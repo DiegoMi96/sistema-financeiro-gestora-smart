@@ -742,48 +742,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         </div>
       </div>
 
-      <div class="section-head" style="margin-bottom:10px"><div class="section-bar"></div><div class="section-title">Resultado (P&amp;L)</div></div>
-
-      <div class="grid grid-3" style="margin-bottom:14px">
-        <div class="chart-card">
-          <div class="chart-head">
-            <div><div class="chart-title">Receita 2026</div><div class="chart-sub" id="plReceitaSub">Realizado R$ 10,85M · Previsão R$ 28,58M</div></div>
-          </div>
-          <div class="chart-canvas-wrap"><canvas id="chartReceita"></canvas></div>
-        </div>
-        <div class="chart-card">
-          <div class="chart-head">
-            <div><div class="chart-title">Custo 2026</div><div class="chart-sub" id="plCustoSub">Realizado R$ 7,04M · Previsão R$ 21,43M</div></div>
-          </div>
-          <div class="chart-canvas-wrap"><canvas id="chartCusto"></canvas></div>
-        </div>
-        <div class="chart-card">
-          <div class="chart-head">
-            <div><div class="chart-title">Despesas 2026</div><div class="chart-sub" id="plDespesaSub">Realizado R$ 3,35M · Previsão R$ 7,03M</div></div>
-          </div>
-          <div class="chart-canvas-wrap"><canvas id="chartDespesa"></canvas></div>
-        </div>
-      </div>
-
-      <div style="margin-bottom:14px">
-        <div class="chart-card">
-          <div class="chart-head">
-            <div>
-              <div class="chart-title">Evolução do Lucro Líquido</div>
-              <div class="chart-sub">Realizado (Jan-Mar) vs. Previsão (Abr-Dez)</div>
-            </div>
-            <div class="chart-legend">
-              <span><span class="legend-dot" style="background:var(--primary)"></span>Realizado</span>
-              <span><span class="legend-dot" style="background:var(--primary-soft)"></span>Previsão</span>
-              <span><span class="legend-dot" style="background:var(--negative)"></span>Negativo</span>
-            </div>
-          </div>
-          <div class="chart-canvas-wrap tall"><canvas id="chartLucro"></canvas></div>
-        </div>
-      </div>
-
-      <div class="section-head" style="margin-bottom:10px"><div class="section-bar"></div><div class="section-title">Posição de Caixa</div></div>
-
+      <!-- KPI cards — topo da visão financeira -->
       <div class="grid grid-4" style="margin-bottom:14px">
         <div class="card tinted-primary">
           <div class="kpi-label" id="cashSaldoLabel">Saldo Acumulado Mar/26</div>
@@ -807,6 +766,45 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         </div>
       </div>
 
+      <!-- Mini gráficos Receita / Custo / Despesas -->
+      <div class="grid grid-3" style="margin-bottom:14px">
+        <div class="chart-card">
+          <div class="chart-head">
+            <div><div class="chart-title">Receita 2026</div><div class="chart-sub" id="plReceitaSub">Realizado R$ 10,85M · Previsão R$ 28,58M</div></div>
+          </div>
+          <div class="chart-canvas-wrap"><canvas id="chartReceita"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-head">
+            <div><div class="chart-title">Custo 2026</div><div class="chart-sub" id="plCustoSub">Realizado R$ 7,04M · Previsão R$ 21,43M</div></div>
+          </div>
+          <div class="chart-canvas-wrap"><canvas id="chartCusto"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-head">
+            <div><div class="chart-title">Despesas 2026</div><div class="chart-sub" id="plDespesaSub">Realizado R$ 3,35M · Previsão R$ 7,03M</div></div>
+          </div>
+          <div class="chart-canvas-wrap"><canvas id="chartDespesa"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Evolução do Lucro Líquido -->
+      <div class="chart-card" style="margin-bottom:14px">
+        <div class="chart-head">
+          <div>
+            <div class="chart-title">Evolução do Lucro Líquido</div>
+            <div class="chart-sub">Realizado (Jan-Mar) vs. Previsão (Abr-Dez)</div>
+          </div>
+          <div class="chart-legend">
+            <span><span class="legend-dot" style="background:var(--primary)"></span>Realizado</span>
+            <span><span class="legend-dot" style="background:var(--primary-soft)"></span>Previsão</span>
+            <span><span class="legend-dot" style="background:var(--negative)"></span>Negativo</span>
+          </div>
+        </div>
+        <div class="chart-canvas-wrap tall"><canvas id="chartLucro"></canvas></div>
+      </div>
+
+      <!-- Saldo Acumulado -->
       <div class="chart-card" style="margin-bottom:14px">
         <div class="chart-head">
           <div><div class="chart-title">Saldo Acumulado</div><div class="chart-sub">Análise de Liquidez · Realizado + Previsão</div></div>
@@ -815,6 +813,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         <div class="chart-canvas-wrap tall"><canvas id="chartSaldo"></canvas></div>
       </div>
 
+      <!-- EBITDA -->
       <div class="chart-card" style="margin-bottom:14px">
         <div class="chart-head">
           <div>
@@ -1895,6 +1894,10 @@ navItems.forEach(item => {
     pages.forEach(p => p.classList.remove('active'));
     document.querySelector(`.page[data-page="${target}"]`).classList.add('active');
     crumbPage.textContent = pageNames[target];
+    // Sempre volta ao topo ao trocar de página
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
     setTimeout(rerenderAllCharts, 50);
   });
 });
