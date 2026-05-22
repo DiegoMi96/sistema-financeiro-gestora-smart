@@ -2554,72 +2554,86 @@ function buildDFC() {
 // (página de Cenários What-If removida)
 
 // ====== Análise de Saídas — data ======
+// saidasData — estrutura completa; valores zerados (preenchidos via sync com Saidas_2026)
 const saidasData = [
+  { cat: 'Total de RECEITA - SS', subs: [
+    ['Conectividade M2M',                  0, 0, 0],
+    ['Conectividade Cheque',               0, 0, 0],
+    ['Equipamentos',                       0, 0, 0],
+    ['Software',                           0, 0, 0],
+    ['Outros (SMS, Aportes, Apto etc..)',  0, 0, 0],
+    ['Rendimento (CDI)',                   0, 0, 0]
+  ]},
+  { cat: 'Total de RECEITA - SMT', subs: [
+    ['Brasil',                             0, 0, 0],
+    ['Mundo',                              0, 0, 0],
+    ['Outros',                             0, 0, 0]
+  ]},
   { cat: 'CMV / CPS', subs: [
-    ['Conectividade M2M',        1500000, 1520000, 1580000],
-    ['Conectividade Cheque',      350000,  360000,  380000],
-    ['Equipamentos',              250000,  240000,  230000],
-    ['Software',                  120000,  130000,  135000],
-    ['Outros (SMS, Aportes…)',     98419,   77666,   68137]
+    ['Conectividade M2M',                  0, 0, 0],
+    ['Conectividade Cheque',               0, 0, 0],
+    ['Equipamentos',                       0, 0, 0],
+    ['Software',                           0, 0, 0],
+    ['Outros (SMS, Aportes, Apto etc..)',  0, 0, 0]
   ]},
   { cat: 'Despesas Administrativa', subs: [
-    ['Contabilidade',              12000,   12000,   12000],
-    ['Aluguel',                    18500,   18500,   18500],
-    ['Telefonica e Internet',       4800,    4500,    4700],
-    ['Energia Elétrica',            8200,    7800,    7500],
-    ['Escritório',                  6500,    5800,    6100],
-    ['Informatica',                 9200,    8700,    8500],
-    ['Despesa com Logistica',      17098,   12412,   11340]
+    ['Contabilidade',                      0, 0, 0],
+    ['Aluguel',                            0, 0, 0],
+    ['Telefonica e Internet',              0, 0, 0],
+    ['Energia Elétrica',                   0, 0, 0],
+    ['Escritório',                         0, 0, 0],
+    ['Informatica',                        0, 0, 0],
+    ['Despesa com Logistica',              0, 0, 0]
   ]},
   { cat: 'Despesas com pessoal', subs: [
-    ['Folha de pagamento',        180000,  175000,  220000],
-    ['Beneficios',                 35000,   32000,   38000],
-    ['Impostos folha de pagamento',65000,   60000,   78000],
-    ['Pró-labore',                 45000,   42000,   50000],
-    ['Retirada dos Sócios',        30000,   28000,   35000],
-    ['Comissão',                   35000,   30000,   45000],
-    ['Diretoria',                  25000,   20000,   22000],
-    ['Rescisão',                    3631,    2626,    3003]
-  ]},
-  { cat: 'RH', subs: [
-    ['Eventos',                      500,     200,   38000],
-    ['Cursos e Treinamentos',        600,     400,    7500],
-    ['Gratificações',                171,     137,    1319]
+    ['Folha de pagamento',                 0, 0, 0],
+    ['Beneficios',                         0, 0, 0],
+    ['Impostos folha de pagamento',        0, 0, 0],
+    ['Pró-labore',                         0, 0, 0],
+    ['Retirada dos Sócios',                0, 0, 0],
+    ['Comissão',                           0, 0, 0],
+    ['Diretoria',                          0, 0, 0],
+    ['Rescisão',                           0, 0, 0],
+    ['RH',                                 0, 0, 0],
+    ['Eventos',                            0, 0, 0],
+    ['Cursos e Treinamentos',              0, 0, 0],
+    ['Gratificações',                      0, 0, 0]
   ]},
   { cat: 'Despesa Comercial', subs: [
-    ['Viagens e Representações',     300,     500,     800],
-    ['Alimentação',                  200,     250,     300],
-    ['Transporte',                   150,     200,     300],
-    ['Outros (Brindes…)',             44,      94,     109]
+    ['Viagens e Representações',           0, 0, 0],
+    ['Alimentação',                        0, 0, 0],
+    ['Transporte',                         0, 0, 0],
+    ['Outros ( Brindes...)',               0, 0, 0]
   ]},
   { cat: 'Despesa Tributaria', subs: [
-    ['COFINS',                     12000,   12500,   13500],
-    ['PIS',                         3500,    3700,    4100],
-    ['GNRE',                        4500,    4800,    5200],
-    ['CSLL e IRPJ',                 8500,    9200,   10500],
-    ['ICMS',                        5500,    6300,    6800],
-    ['Outros impostos',             1502,    1508,    1701]
+    ['COFINS',                             0, 0, 0],
+    ['PIS',                                0, 0, 0],
+    ['GNRE',                               0, 0, 0],
+    ['CSLL e IRPJ',                        0, 0, 0],
+    ['ICMS',                               0, 0, 0],
+    ['Outros impostos',                    0, 0, 0]
   ]},
   { cat: 'Atividades Financeiras', subs: [
-    ['Empréstimos PGTO',           50000,   50000,   50000],
-    ['Empréstimos',                    0,       0,  800000],
-    ['Tarifa Bancaria',             4300,    4500,    4800],
-    ['Investimentos',              20000,   20000,  200000],
-    ['Investimento Externo',       25000,   20000,  150000],
-    ['Estorno',                    12001,   10290,   13062],
-    ['Empréstimo entre contas',    40000,   45000,  158000]
+    ['Empréstimos PGTO',                   0, 0, 0],
+    ['Empréstimos',                        0, 0, 0],
+    ['Tarifa Bancaria',                    0, 0, 0],
+    ['Investimentos',                      0, 0, 0],
+    ['Investimento Externo',               0, 0, 0],
+    ['Estorno',                            0, 0, 0],
+    ['Emprestimo entre contas',            0, 0, 0]
   ]},
   { cat: 'Custo SMT', subs: [
-    ['SMT - CSP',                  50000,   32000,   35000],
-    ['SMT - CSP (Mundo)',          35000,   22000,   24000],
-    ['SMT - Folha de Pagamento',   38000,   30000,   30000],
-    ['SMT - Imposto Sobre Folha',  12000,    9000,    9500],
-    ['SMT - Aluguel',               8000,    8000,    8000],
-    ['SMT - Tributação',            6000,    4000,    4200],
-    ['SMT - Despesas Administrativas', 5500,3500,    3800],
-    ['SMT - Investimento',         15729,    4984,    3657],
-    ['SMT - Empréstimo',            6000,    1000,    1000]
-  ]}
+    ['SMT - CSP',                          0, 0, 0],
+    ['SMT - CSP (Mundo)',                  0, 0, 0],
+    ['SMT - Folha de Pagamento',           0, 0, 0],
+    ['SMT - Imposto Sobre Folha',          0, 0, 0],
+    ['SMT - Aluguel',                      0, 0, 0],
+    ['SMT - Tributação',                   0, 0, 0],
+    ['SMT -  Despesas Administrativas',    0, 0, 0],
+    ['SMT - Investimento',                 0, 0, 0],
+    ['SMT - Empréstimo',                   0, 0, 0]
+  ]},
+  { cat: 'Custo Total', subs: [] }
 ];
 
 const fmtMoney = n => 'R$ ' + new Intl.NumberFormat('pt-BR').format(Math.round(n));
