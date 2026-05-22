@@ -1905,23 +1905,23 @@ navItems.forEach(item => {
 // ========== Data ==========
 const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
-const lucroLiquido = [166761, -26708, 13434, 70925, 206505, 28387, 140565, 73225, 86480, 165396, 170811, 46016];
-const isReal = [true, true, true, false, false, false, false, false, false, false, false, false];
+// Todos os arrays iniciam vazios — preenchidos exclusivamente via sincronização com Google Sheets
+const lucroLiquido   = new Array(12).fill(null);
+const isReal         = new Array(12).fill(false);
 
-const receitaMes = [3500000, 2917000, 4432000, 2800000, 3200000, 3400000, 3000000, 2900000, 3100000, 3300000, 3400000, 2200000];
-const custoMes   = [2350000, 2296000, 2393000, 2280000, 2300000, 2350000, 2280000, 2200000, 2270000, 2350000, 2400000, 2050000];
-const despesaMes = [600000, 610000, 2144000, 700000, 720000, 800000, 700000, 650000, 680000, 720000, 750000, 780000];
+const receitaMes = new Array(12).fill(null);
+const custoMes   = new Array(12).fill(null);
+const despesaMes = new Array(12).fill(null);
 
-const saldoAcum = [490000, 463292, 340745, 166000, 476000, 504387, 644952, 718177, 804657, 970053, 1140864, 1186880];
-// Slope evolution (12 months — Realizado Jan-Mar = first 3, rest preview/forecast)
-const saldoIsReal = [true, true, true, false, false, false, false, false, false, false, false, false];
+const saldoAcum   = new Array(12).fill(null);
+const saldoIsReal = new Array(12).fill(false);
 
-const baseAtiva = [546312, 555824, 560891, 565338, null, null, null, null, null, null, null, null];
-const baseSw    = [13419, 13780, 14012, 14108, null, null, null, null, null, null, null, null];
-const smartFat  = [2746694, 2758001, 2782136, 2778621, null, null, null, null, null, null, null, null];
-const allcomFat = [2226088, 2234750, 2249308, 2244435, null, null, null, null, null, null, null, null];
-const margemSmart    = [23.12, 27.78, 41.55, 38, null, null, null, null, null, null, null, null];
-const margemValorBRL = [520606, 523251, 532829, null, null, null, null, null, null, null, null, null];
+const baseAtiva      = new Array(12).fill(null);
+const baseSw         = new Array(12).fill(null);
+const smartFat       = new Array(12).fill(null);
+const allcomFat      = new Array(12).fill(null);
+const margemSmart    = new Array(12).fill(null);
+const margemValorBRL = new Array(12).fill(null);
 
 const opNomes = ['ALGAR','ALGAR MULTI','ARQIA','ARQIA 2OP','ARQIA INTERNACIONAL','CLARO','CLARO BL','CLARO CATM1','SIERRA','TIM','VIVO','VIVO BL','VIVO CATM1'];
 const opBase = [
@@ -1940,36 +1940,36 @@ const poolContratado = [2000, 1500, 800, 1200, 600]; // GB contratados (fixo anu
 const poolConsumoBase = [944, 989, 388, 571, 301];   // GB consumidos em Jan
 const poolGrowth = [0.035, 0.028, 0.031, 0.025, 0.042]; // crescimento mensal por operadora
 
-// Atendimento — tickets por mês [Jan…Dez]
-const ticketsMes = [3890, 4210, 4861, 4405, 4620, 4780, 4950, 5100, 5280, 5410, 5560, 5700];
-const isRealTickets = [true, true, true, false, false, false, false, false, false, false, false, false];
-const tmaMes  = [32, 31, 30, 30, 29, 29, 28, 28, 27, 27, 26, 26]; // minutos
-const satMes  = [96.8, 97.1, 97.4, 97.5, 97.6, 97.8, 97.9, 98.0, 98.1, 98.2, 98.3, 98.4]; // %
-const satResp = [621, 648, 677, null, null, null, null, null, null, null, null, null];
+// Atendimento
+const ticketsMes    = new Array(12).fill(null);
+const isRealTickets = new Array(12).fill(false);
+const tmaMes        = new Array(12).fill(null);
+const satMes        = new Array(12).fill(null);
+const satResp       = new Array(12).fill(null);
 
 // ── RH ──────────────────────────────────────────────────────────────
-const rhHeadcountMes  = [43,44,45,45,46,46,47,47,48,48,49,49];
+const rhHeadcountMes  = new Array(12).fill(null);
 const rhDeptNomes     = ['Comercial','Operações','TI','Financeiro','Suporte','Logística','RH / Admin'];
 const rhDeptQtd       = [10, 9, 7, 4, 6, 5, 4];
-const rhAdmissoes     = [2,2,2,1,2,1,2,1,2,1,1,1];
-const rhDesligamentos = [1,1,2,1,1,0,1,1,1,1,0,1];
-const rhFolhaMes      = [298000,306000,312000,315000,318000,321000,324000,327000,330000,333000,336000,340000];
-const isRealRH        = [true,true,true,false,false,false,false,false,false,false,false,false];
-const rhFaltasMes     = [6,7,8,7,6,7,6,7,6,6,5,6];
-const rhAfastMes      = [1,2,2,2,1,1,2,1,1,2,1,1];
-const rhENPSMes       = [35,38,42,42,44,45,46,47,48,49,50,51];
+const rhAdmissoes     = new Array(12).fill(null);
+const rhDesligamentos = new Array(12).fill(null);
+const rhFolhaMes      = new Array(12).fill(null);
+const isRealRH        = new Array(12).fill(false);
+const rhFaltasMes     = new Array(12).fill(null);
+const rhAfastMes      = new Array(12).fill(null);
+const rhENPSMes       = new Array(12).fill(null);
 
-const vendasMes = [34639, 31590, 36435];
-const novosClientes = [101, 91, 89];
-const equipMes = [2102, 1632, 2212];
+const vendasMes     = [null, null, null];
+const novosClientes = [null, null, null];
+const equipMes      = [null, null, null];
 
-const cancelMes = [16450, 16980, 16751, 17200, 17000, 16500, 17100, 16700, 16800, 17000, 17200, 16800];
-const desistMes = [7800, 7500, 10602, 8500, 8200, 7900, 8300, 8100, 8200, 8400, 8500, 8300];
+const cancelMes = new Array(12).fill(null);
+const desistMes = new Array(12).fill(null);
 
-const volEnvio  = [421, 462, 510];
-const custoEnvio = [16800, 18420, 20330];
-const ebitda = [710000, 185000, 1390000, 280000, 440000, 380000, 460000, 400000, 450000, 480000, 510000, 380000];
-const ebitdaIsReal = [true, true, true, false, false, false, false, false, false, false, false, false];
+const volEnvio   = [null, null, null];
+const custoEnvio = [null, null, null];
+const ebitda       = new Array(12).fill(null);
+const ebitdaIsReal = new Array(12).fill(false);
 
 // ========== Helpers ==========
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
@@ -2014,232 +2014,26 @@ const periodLabels = {
 };
 const periodMonthIdx = { '2026-01': 0, '2026-02': 1, '2026-03': 2, '2026-Q1': 2, '2026-YTD': 2 };
 
+// Função auxiliar para criar período vazio — todos os dados vêm do Google Sheets
+function emptyPeriod(label) {
+  return {
+    hero1Val: '—', hero1Desc: 'Sincronize a planilha',
+    hero2Val: '—', hero2Desc: '—',
+    pageSub: 'Indicadores de Performance · ' + label,
+    kpis: {},
+    satisfacao: { val: '—', volume: '—' },
+    proximasAtivacoes: [],
+    margemPanel: { pct:'—', valor:'—', vsMeta:'—', historico:[] },
+    q1Panel: { header:'Média Simcards', total:'—', pct:'—', items:[] }
+  };
+}
+
 const periodData = {
-  '2026-01': {
-    hero1Val: '+105%', hero1Desc: 'Acima da meta prevista',
-    hero2Val: 'R$ 3,50M', hero2Desc: 'Resultado: R$ 167k',
-    pageSub: 'Principais Indicadores de Performance (KPIs) · Janeiro 2026',
-    kpis: {
-      'Receita Bruta':         { v: 'R$ 3,500M',   f: '<span class="delta-chip up">↑ 121%</span> vs. Previsto' },
-      'CSP / CMV':             { v: 'R$ 2,350M',   f: '<span class="delta-chip down">↓ 100%</span> vs. Previsto' },
-      'Despesas':              { v: 'R$ 600.000',  f: '<span class="delta-chip up">↑ 60%</span> vs. Previsto' },
-      'Margem de Contribuição':{ v: '32,86%',      f: '<span class="delta-chip up">↑ 109%</span> vs. Previsto' },
-      'Resultado do Mês':      { v: 'R$ 166.761',  f: '<span class="delta-chip up">↑ 205%</span> vs. Previsto' },
-      'Saldo Acumulado':       { v: 'R$ 463.292',  f: 'YTD Janeiro' },
-      'Tesouro':               { v: 'R$ 1,18M',    f: 'Aplicações financeiras' },
-      'Caixa Inicial':         { v: 'R$ 490.000',  f: 'Saldo em 01/01' },
-      'Caixa Final':           { v: 'R$ 463.292',  f: 'Saldo em 31/01' },
-      'Inadimplências':        { v: 'R$ 98.000',   f: 'A recuperar' },
-      'Base Ativa':            { v: '546.312',     f: 'Simcards faturantes' },
-      'Base Pré-Ativa':        { v: '55.230',      f: 'Aguardando ativação' },
-      'Base Software':         { v: '13.419',      f: 'Licenças ativas' },
-      'Vendas':                { v: '34.639',      f: '102% vs. previsto' },
-      'Novos Clientes':        { v: '101',         f: 'Conversão 3,8%' },
-      'Cancelamento':          { v: '16.450',      f: 'Linhas no mês' },
-      'Desistência':           { v: '7.800',       f: 'Pré-ativação' },
-      'Cancelamento Acumulado':{ v: '16.450',      f: 'YTD Janeiro' },
-      'Resultado Líquido':     { v: 'R$ 166.761',  f: 'Janeiro 2026' },
-      'Cancelamento Anual':    { v: '16.450',      f: 'Média mensal: 16.450' },
-      'Desistência Anual':     { v: '7.800',       f: 'Média mensal: 7.800' },
-      'Churn Implícito':       { v: '3,01%',       f: 'Cancel / Base ativa' },
-      'Custo de Envio YTD':    { v: 'R$ 16.800',   f: 'Janeiro / 2026' },
-      'Pacotes Enviados':      { v: '421',          f: 'Jan/26' },
-      'Custo Médio / Pacote':  { v: 'R$ 39,90',    f: 'Jan/26' },
-      'Custo / Receita':       { v: '0,50%',       f: 'Frete sobre faturamento' },
-      'Total de Saídas':       { v: 'R$ 3,18M',    f: 'Janeiro 2026' },
-      'Maior Categoria':       { v: 'CMV / CPS',   f: '74% das saídas totais' },
-      'Maior Salto':           { v: '—',            f: 'Sem destaque relevante' },
-      'Custo CMV / Receita':   { v: '69,3%',        f: 'CMV sobre faturamento bruto' }
-    },
-    satisfacao: { val: '95%', volume: 'Vol. 4.520 atend.' },
-    proximasAtivacoes: [
-      { mes:'FEV', qty:'31.590' }, { mes:'MAR', qty:'36.435' }, { mes:'ABR', qty:'13.196' }
-    ],
-    margemPanel: { pct:'23,12%', valor:'R$ 520.606', vsMeta:'+79% vs. meta',
-      historico:[{ mes:'JAN', pct:'23,12%', val:'R$ 520.606' }] },
-    q1Panel: { header:'Média Simcards', total:'34.639', pct:'105% vs. meta (33.000)',
-      items:[{mes:'JAN',qty:'34.639',chip:'<span class="delta-chip up">+1.639</span>'}] }
-  },
-  '2026-02': {
-    hero1Val: '−0,9%', hero1Desc: 'Abaixo da meta prevista',
-    hero2Val: 'R$ 2,92M', hero2Desc: 'Resultado: −R$ 27k',
-    pageSub: 'Principais Indicadores de Performance (KPIs) · Fevereiro 2026',
-    kpis: {
-      'Receita Bruta':         { v: 'R$ 2,917M',   f: '<span class="delta-chip up">↑ 101%</span> vs. Previsto' },
-      'CSP / CMV':             { v: 'R$ 2,296M',   f: '<span class="delta-chip down">↓ 98%</span> vs. Previsto' },
-      'Despesas':              { v: 'R$ 610.000',  f: '<span class="delta-chip up">↑ 61%</span> vs. Previsto' },
-      'Margem de Contribuição':{ v: '21,29%',      f: '<span class="delta-chip down">↓ 71%</span> vs. Previsto' },
-      'Resultado do Mês':      { v: '−R$ 26.708',  f: '<span class="delta-chip down">↓ 17%</span> vs. Previsto' },
-      'Saldo Acumulado':       { v: 'R$ 332.640',  f: 'YTD Fevereiro' },
-      'Tesouro':               { v: 'R$ 1,22M',    f: 'Aplicações financeiras' },
-      'Caixa Inicial':         { v: 'R$ 463.292',  f: 'Saldo em 01/02' },
-      'Caixa Final':           { v: 'R$ 332.640',  f: 'Saldo em 28/02' },
-      'Inadimplências':        { v: 'R$ 105.000',  f: 'A recuperar' },
-      'Base Ativa':            { v: '555.824',     f: 'Simcards faturantes' },
-      'Base Pré-Ativa':        { v: '58.410',      f: 'Aguardando ativação' },
-      'Base Software':         { v: '13.780',      f: 'Licenças ativas' },
-      'Vendas':                { v: '31.590',      f: '93% vs. previsto' },
-      'Novos Clientes':        { v: '91',          f: 'Conversão 3,5%' },
-      'Cancelamento':          { v: '16.980',      f: 'Linhas no mês' },
-      'Desistência':           { v: '7.500',       f: 'Pré-ativação' },
-      'Cancelamento Acumulado':{ v: '33.430',      f: 'YTD Fevereiro' },
-      'Resultado Líquido':     { v: '−R$ 26.708',  f: 'Fevereiro 2026' },
-      'Cancelamento Anual':    { v: '33.430',      f: 'Média mensal: 16.715' },
-      'Desistência Anual':     { v: '15.300',      f: 'Média mensal: 7.650' },
-      'Churn Implícito':       { v: '3,05%',       f: 'Cancel / Base ativa' },
-      'Custo de Envio YTD':    { v: 'R$ 35.220',   f: 'Acumulado Jan-Fev' },
-      'Pacotes Enviados':      { v: '883',          f: 'Jan-Fev/26' },
-      'Custo Médio / Pacote':  { v: 'R$ 39,89',    f: 'Jan-Fev/26' },
-      'Custo / Receita':       { v: '0,56%',       f: 'Frete sobre faturamento' },
-      'Total de Saídas':       { v: 'R$ 3,09M',    f: 'Fevereiro 2026' },
-      'Maior Categoria':       { v: 'CMV / CPS',   f: '74% das saídas totais' },
-      'Maior Salto':           { v: '+150%',        f: 'Despesa Comercial · Fev' },
-      'Custo CMV / Receita':   { v: '78,8%',        f: 'CMV sobre faturamento bruto' }
-    },
-    satisfacao: { val: '95%', volume: 'Vol. 4.730 atend.' },
-    proximasAtivacoes: [
-      { mes:'MAR', qty:'36.435' }, { mes:'ABR', qty:'13.196' }, { mes:'MAI', qty:'16.546' }
-    ],
-    margemPanel: { pct:'27,78%', valor:'R$ 523.251', vsMeta:'+93% vs. meta',
-      historico:[{mes:'JAN',pct:'23,12%',val:'R$ 520.606'},{mes:'FEV',pct:'27,78%',val:'R$ 523.251'}] },
-    q1Panel: { header:'Média Simcards', total:'66.229', pct:'100% vs. meta',
-      items:[{mes:'JAN',qty:'34.639',chip:'<span class="delta-chip up">+1.639</span>'},{mes:'FEV',qty:'31.590',chip:'<span class="delta-chip down">−1.410</span>'}] }
-  },
-  '2026-03': {
-    hero1Val: '+108,44%', hero1Desc: 'Acima da meta prevista',
-    hero2Val: 'R$ 4,43M', hero2Desc: 'Resultado: R$ 13.510',
-    pageSub: 'Principais Indicadores de Performance (KPIs) · Março 2026',
-    kpis: {
-      'Receita Bruta':         { v: 'R$ 4,432M',   f: '<span class="delta-chip up">↑ 154%</span> vs. Previsto' },
-      'CSP / CMV':             { v: 'R$ 2,393M',   f: '<span class="delta-chip down">↓ 102%</span> vs. Previsto' },
-      'Despesas':              { v: 'R$ 2,144M',   f: '<span class="delta-chip up">↑ 213%</span> vs. Previsto' },
-      'Margem de Contribuição':{ v: '41,55%',      f: '<span class="delta-chip up">↑ 124%</span> vs. Previsto' },
-      'Resultado do Mês':      { v: 'R$ 13.510',   f: '<span class="delta-chip up">↑ 108%</span> vs. Previsto' },
-      'Saldo Acumulado':       { v: 'R$ 340.745',  f: 'YTD Março' },
-      'Tesouro':               { v: 'R$ 1,269M',   f: 'Aplicações financeiras' },
-      'Caixa Inicial':         { v: 'R$ 332.640',  f: 'Saldo em 01/03' },
-      'Caixa Final':           { v: 'R$ 342.069',  f: 'Saldo em 31/03' },
-      'Inadimplências':        { v: 'R$ 113.919',  f: 'A recuperar' },
-      'Base Ativa':            { v: '565.338',     f: 'Simcards faturantes' },
-      'Base Pré-Ativa':        { v: '60.825',      f: 'Aguardando ativação' },
-      'Base Software':         { v: '14.108',      f: 'Licenças ativas' },
-      'Vendas':                { v: '36.435',      f: '102% vs. previsto' },
-      'Novos Clientes':        { v: '89',          f: 'Conversão 3,4%' },
-      'Cancelamento':          { v: '16.751',      f: 'Linhas no mês' },
-      'Desistência':           { v: '10.602',      f: 'Pré-ativação' },
-      'Cancelamento Acumulado':{ v: '78.719',      f: 'YTD Março' },
-      'Resultado Líquido':     { v: 'R$ 13.510',   f: 'Março 2026' },
-      'Cancelamento Anual':    { v: '50.181',      f: 'Média mensal: 16.727' },
-      'Desistência Anual':     { v: '25.902',      f: 'Média mensal: 8.634' },
-      'Churn Implícito':       { v: '2,96%',       f: 'Cancel / Base ativa' },
-      'Custo de Envio YTD':    { v: 'R$ 55.550',   f: 'Acumulado Q1' },
-      'Pacotes Enviados':      { v: '1.393',        f: 'Q1/26' },
-      'Custo Médio / Pacote':  { v: 'R$ 39,88',    f: 'Q1/26' },
-      'Custo / Receita':       { v: '0,51%',       f: 'Frete sobre faturamento' },
-      'Total de Saídas':       { v: 'R$ 4,54M',    f: 'Março 2026' },
-      'Maior Categoria':       { v: 'CMV / CPS',   f: '53% das saídas totais' },
-      'Maior Salto':           { v: '+919%',        f: 'Atividades Financeiras · Mar' },
-      'Custo CMV / Receita':   { v: '52,6%',        f: 'CMV sobre faturamento bruto' }
-    },
-    satisfacao: { val: '96%', volume: 'Vol. 4.861 atend.' },
-    proximasAtivacoes: [
-      { mes:'ABR', qty:'13.196' }, { mes:'MAI', qty:'16.546' }, { mes:'JUN', qty:'135.373' }
-    ],
-    margemPanel: { pct:'41,55%', valor:'R$ 532.829', vsMeta:'+108% vs. meta',
-      historico:[{mes:'JAN',pct:'23,12%',val:'R$ 520.606'},{mes:'FEV',pct:'27,78%',val:'R$ 523.251'},{mes:'MAR',pct:'41,55%',val:'R$ 532.829'}] },
-    q1Panel: { header:'Média Simcards', total:'102.664', pct:'103% vs. meta (102.000)',
-      items:[{mes:'JAN',qty:'34.639',chip:'<span class="delta-chip up">+1.639</span>'},{mes:'FEV',qty:'31.590',chip:'<span class="delta-chip down">−1.410</span>'},{mes:'MAR',qty:'36.435',chip:'<span class="delta-chip up">+3.435</span>'}] }
-  },
-  '2026-Q1': {
-    hero1Val: '+31%', hero1Desc: 'Q1 acima da meta',
-    hero2Val: 'R$ 10,85M', hero2Desc: 'Resultado Q1: R$ 153k',
-    pageSub: 'Principais Indicadores de Performance (KPIs) · 1º Trimestre 2026',
-    kpis: {
-      'Receita Bruta':         { v: 'R$ 10,849M',  f: '<span class="delta-chip up">↑ 152%</span> vs. Previsto Q1' },
-      'CSP / CMV':             { v: 'R$ 7,039M',   f: '<span class="delta-chip down">↓ 100%</span> vs. Previsto Q1' },
-      'Despesas':              { v: 'R$ 3,354M',   f: '<span class="delta-chip up">↑ 111%</span> vs. Previsto Q1' },
-      'Margem de Contribuição':{ v: '35,12%',      f: '<span class="delta-chip up">↑ 117%</span> vs. Previsto Q1' },
-      'Resultado do Mês':      { v: 'R$ 153.487',  f: '<span class="delta-chip up">↑ 131%</span> vs. Previsto Q1' },
-      'Saldo Acumulado':       { v: 'R$ 340.745',  f: 'Fim de Q1' },
-      'Tesouro':               { v: 'R$ 1,269M',   f: 'Aplicações financeiras' },
-      'Caixa Inicial':         { v: 'R$ 490.000',  f: 'Saldo em 01/01' },
-      'Caixa Final':           { v: 'R$ 342.069',  f: 'Saldo em 31/03' },
-      'Inadimplências':        { v: 'R$ 113.919',  f: 'A recuperar' },
-      'Base Ativa':            { v: '565.338',     f: '+19.026 desde Jan' },
-      'Base Pré-Ativa':        { v: '60.825',      f: 'Aguardando ativação' },
-      'Base Software':         { v: '14.108',      f: '+689 desde Jan' },
-      'Vendas':                { v: '102.664',     f: '101% vs. meta Q1' },
-      'Novos Clientes':        { v: '281',         f: 'Total Q1' },
-      'Cancelamento':          { v: '50.181',      f: 'Total Q1' },
-      'Desistência':           { v: '25.902',      f: 'Total Q1' },
-      'Cancelamento Acumulado':{ v: '78.719',      f: 'YTD Março' },
-      'Resultado Líquido':     { v: 'R$ 153.487',  f: '1º Trimestre 2026' },
-      'Cancelamento Anual':    { v: '50.181',      f: 'Média mensal: 16.727' },
-      'Desistência Anual':     { v: '25.902',      f: 'Média mensal: 8.634' },
-      'Churn Implícito':       { v: '2,96%',       f: 'Cancel / Base ativa' },
-      'Custo de Envio YTD':    { v: 'R$ 55.550',   f: 'Acumulado Q1' },
-      'Pacotes Enviados':      { v: '1.393',        f: 'Q1/26' },
-      'Custo Médio / Pacote':  { v: 'R$ 39,88',    f: 'Q1/26' },
-      'Custo / Receita':       { v: '0,51%',       f: 'Frete sobre faturamento' },
-      'Total de Saídas':       { v: 'R$ 10,81M',   f: '1º Trimestre 2026' },
-      'Maior Categoria':       { v: 'CMV / CPS',   f: '65% das saídas totais' },
-      'Maior Salto':           { v: '+919%',        f: 'Atividades Financeiras · Mar' },
-      'Custo CMV / Receita':   { v: '64,9%',        f: 'CMV sobre faturamento bruto' }
-    },
-    satisfacao: { val: '95%', volume: 'Vol. 14.111 atend. Q1' },
-    proximasAtivacoes: [
-      { mes:'ABR', qty:'13.196' }, { mes:'MAI', qty:'16.546' }, { mes:'JUN', qty:'135.373' }
-    ],
-    margemPanel: { pct:'35,12%', valor:'R$ 1.576.686', vsMeta:'+95% vs. meta',
-      historico:[{mes:'JAN',pct:'23,12%',val:'R$ 520.606'},{mes:'FEV',pct:'27,78%',val:'R$ 523.251'},{mes:'MAR',pct:'41,55%',val:'R$ 532.829'}] },
-    q1Panel: { header:'Média Simcards', total:'102.664', pct:'103% vs. meta (102.000)',
-      items:[{mes:'JAN',qty:'34.639',chip:'<span class="delta-chip up">+1.639</span>'},{mes:'FEV',qty:'31.590',chip:'<span class="delta-chip down">−1.410</span>'},{mes:'MAR',qty:'36.435',chip:'<span class="delta-chip up">+3.435</span>'}] }
-  },
-  '2026-YTD': {
-    hero1Val: '+31%', hero1Desc: 'YTD acima da meta',
-    hero2Val: 'R$ 10,85M', hero2Desc: 'Resultado YTD: R$ 153k',
-    pageSub: 'Principais Indicadores de Performance (KPIs) · Acumulado 2026',
-    kpis: {
-      'Receita Bruta':         { v: 'R$ 10,849M',  f: '<span class="delta-chip up">↑ 38%</span> vs. meta anual' },
-      'CSP / CMV':             { v: 'R$ 7,039M',   f: '<span class="delta-chip down">↓ 33%</span> da meta anual' },
-      'Despesas':              { v: 'R$ 3,354M',   f: '<span class="delta-chip up">↑ 48%</span> da meta anual' },
-      'Margem de Contribuição':{ v: '35,12%',      f: '<span class="delta-chip down">↓ 95%</span> vs. meta 37%' },
-      'Resultado do Mês':      { v: 'R$ 153.487',  f: '<span class="delta-chip up">↑ 131%</span> vs. meta YTD' },
-      'Saldo Acumulado':       { v: 'R$ 340.745',  f: 'Atual' },
-      'Tesouro':               { v: 'R$ 1,269M',   f: 'Aplicações financeiras' },
-      'Caixa Inicial':         { v: 'R$ 490.000',  f: 'Início do ano' },
-      'Caixa Final':           { v: 'R$ 342.069',  f: 'Atual' },
-      'Inadimplências':        { v: 'R$ 113.919',  f: 'A recuperar' },
-      'Base Ativa':            { v: '565.338',     f: '+19.026 desde Jan (+3%)' },
-      'Base Pré-Ativa':        { v: '60.825',      f: 'Aguardando ativação' },
-      'Base Software':         { v: '14.108',      f: '+689 desde Jan (+5%)' },
-      'Vendas':                { v: '102.664',     f: '101% vs. meta YTD' },
-      'Novos Clientes':        { v: '281',         f: 'YTD 2026' },
-      'Cancelamento':          { v: '50.181',      f: 'YTD 2026' },
-      'Desistência':           { v: '25.902',      f: 'YTD 2026' },
-      'Cancelamento Acumulado':{ v: '78.719',      f: 'YTD 2026' },
-      'Resultado Líquido':     { v: 'R$ 153.487',  f: 'Acumulado 2026' },
-      'Cancelamento Anual':    { v: '50.181',      f: 'Média mensal: 16.727' },
-      'Desistência Anual':     { v: '25.902',      f: 'Média mensal: 8.634' },
-      'Churn Implícito':       { v: '2,96%',       f: 'Cancel / Base ativa' },
-      'Custo de Envio YTD':    { v: 'R$ 55.550',   f: 'Acumulado YTD' },
-      'Pacotes Enviados':      { v: '1.393',        f: 'YTD 2026' },
-      'Custo Médio / Pacote':  { v: 'R$ 39,88',    f: 'YTD 2026' },
-      'Custo / Receita':       { v: '0,51%',       f: 'Frete sobre faturamento' },
-      'Total de Saídas':       { v: 'R$ 10,81M',   f: 'Acumulado 2026' },
-      'Maior Categoria':       { v: 'CMV / CPS',   f: '65% das saídas totais' },
-      'Maior Salto':           { v: '+919%',        f: 'Atividades Financeiras · Mar' },
-      'Custo CMV / Receita':   { v: '64,9%',        f: 'CMV sobre faturamento bruto' }
-    },
-    satisfacao: { val: '95%', volume: 'Vol. 14.111 atend. YTD' },
-    proximasAtivacoes: [
-      { mes:'ABR', qty:'13.196' }, { mes:'MAI', qty:'16.546' }, { mes:'JUN', qty:'135.373' }
-    ],
-    margemPanel: { pct:'35,12%', valor:'R$ 1.576.686', vsMeta:'+95% vs. meta',
-      historico:[{mes:'JAN',pct:'23,12%',val:'R$ 520.606'},{mes:'FEV',pct:'27,78%',val:'R$ 523.251'},{mes:'MAR',pct:'41,55%',val:'R$ 532.829'}] },
-    q1Panel: { header:'Média Simcards', total:'102.664', pct:'103% vs. meta (102.000)',
-      items:[{mes:'JAN',qty:'34.639',chip:'<span class="delta-chip up">+1.639</span>'},{mes:'FEV',qty:'31.590',chip:'<span class="delta-chip down">−1.410</span>'},{mes:'MAR',qty:'36.435',chip:'<span class="delta-chip up">+3.435</span>'}] }
-  }
+  '2026-01': emptyPeriod('Janeiro 2026'),
+  '2026-02': emptyPeriod('Fevereiro 2026'),
+  '2026-03': emptyPeriod('Março 2026'),
+  '2026-Q1': emptyPeriod('1º Trimestre 2026'),
+  '2026-YTD': emptyPeriod('Acumulado 2026')
 };
 
 function applyPeriod(p) {
@@ -2253,33 +2047,32 @@ function applyPeriod(p) {
   document.getElementById('heroVal2').textContent = d.hero2Val;
   document.getElementById('heroDesc2').textContent = d.hero2Desc;
   const ps = document.getElementById('pageSub'); if (ps) ps.textContent = d.pageSub;
-  // KPI cards by label match
+  // KPI cards — atualiza todos; mostra "—" se não houver dado na planilha
   document.querySelectorAll('.kpi-label').forEach(el => {
     const label = el.textContent.trim();
-    const k = d.kpis[label];
-    if (!k) return;
     const card = el.closest('.card');
     if (!card) return;
     const v = card.querySelector('.kpi-value');
     const f = card.querySelector('.kpi-foot');
-    if (v) v.innerHTML = k.v;
-    if (f && k.f !== undefined) {
-      // Preserve special foot (satisfação keeps stars)
-      if (label === 'Índice de Satisfação') {
-        // Update value separately, keep stars in foot
-      } else {
-        f.innerHTML = k.f;
-      }
+    if (label === 'Índice de Satisfação') return; // tratado separado
+    const k = d.kpis[label];
+    if (!k) {
+      // Sem dado na planilha — limpa o card
+      if (v) v.textContent = '—';
+      if (f) f.textContent = 'Sincronize a planilha';
+      return;
     }
+    if (v) v.innerHTML = k.v;
+    if (f && k.f !== undefined) f.innerHTML = k.f;
   });
-  // Satisfação special handling — update value and volume text but keep stars
+  // Índice de Satisfação — mantém as estrelas, só atualiza o número
   document.querySelectorAll('.kpi-label').forEach(el => {
     if (el.textContent.trim() === 'Índice de Satisfação') {
       const card = el.closest('.card');
-      const v = card.querySelector('.kpi-value');
-      if (v) v.textContent = d.satisfacao.val;
-      const volSpan = card.querySelector('.kpi-foot span[style*="margin-left:auto"]');
-      if (volSpan) volSpan.textContent = d.satisfacao.volume;
+      const v = card?.querySelector('.kpi-value');
+      if (v) v.textContent = d.satisfacao?.val || '—';
+      const volSpan = card?.querySelector('.kpi-foot span[style*="margin-left:auto"]');
+      if (volSpan) volSpan.textContent = d.satisfacao?.volume || '—';
     }
   });
 
@@ -3298,13 +3091,21 @@ function computePeriodData(dm) {
     if (periodData[key]) periodData[key].kpis = buildKpis(idx,q,ytd);
   });
 
-  // Update main data arrays
+  // ── Zera TODOS os arrays antes de preencher — garante que nada do ciclo anterior persiste
+  lucroLiquido.fill(null); receitaMes.fill(null); custoMes.fill(null); despesaMes.fill(null);
+  ebitda.fill(null); saldoAcum.fill(null); cancelMes.fill(null); desistMes.fill(null);
+  ticketsMes.fill(null); rhHeadcountMes.fill(null); rhFolhaMes.fill(null);
+  rhFaltasMes.fill(null); rhAfastMes.fill(null); rhENPSMes.fill(null);
+  baseAtiva.fill(null); baseSw.fill(null); smartFat.fill(null);
+  allcomFat.fill(null); margemSmart.fill(null); margemValorBRL.fill(null);
+  for (let i=0;i<3;i++) { vendasMes[i]=null; equipMes[i]=null; novosClientes[i]=null; volEnvio[i]=null; custoEnvio[i]=null; }
+  isReal.fill(false); isRealTickets.fill(false); isRealRH.fill(false);
+  ebitdaIsReal.fill(false); saldoIsReal.fill(false);
+
+  // mapArr sempre sobrescreve (inclusive null) — dados da planilha são a única fonte
   const mapArr = (key, target, len=12) => {
     if (!dm[key]) return;
-    for (let i=0;i<len;i++) {
-      const v = dm[key][i];
-      if (v != null) target[i] = v;
-    }
+    for (let i=0;i<len;i++) target[i] = dm[key][i] ?? null;
   };
   mapArr('Receita', receitaMes);
   mapArr('CMV', custoMes);
@@ -3320,23 +3121,83 @@ function computePeriodData(dm) {
   mapArr('RH_Faltas', rhFaltasMes);
   mapArr('RH_Afasta', rhAfastMes);
   mapArr('RH_ENPS', rhENPSMes);
-  mapArr('Base_Ativa', baseAtiva, 4);
-  mapArr('Base_SW', baseSw, 4);
-  mapArr('Smart_FAT', smartFat, 4);
-  mapArr('Allcom_FAT', allcomFat, 4);
-  mapArr('Margem_PCT', margemSmart, 4);
-  mapArr('Margem_BRL', margemValorBRL, 3);
+  mapArr('Base_Ativa', baseAtiva, 12);
+  mapArr('Base_SW', baseSw, 12);
+  mapArr('Smart_FAT', smartFat, 12);
+  mapArr('Allcom_FAT', allcomFat, 12);
+  mapArr('Margem_PCT', margemSmart, 12);
+  mapArr('Margem_BRL', margemValorBRL, 12);
   mapArr('Vendas_SIM', vendasMes, 3);
   mapArr('Vendas_EQ', equipMes, 3);
   mapArr('Novos_CLI', novosClientes, 3);
   mapArr('Vol_Envio', volEnvio, 3);
   mapArr('Custo_Envio', custoEnvio, 3);
 
-  // Update isReal based on which months have Receita data
-  if (dm['Receita']) {
-    dm['Receita'].forEach((v,i) => { if (i<12) isReal[i] = v != null; });
-    dm['Receita'].slice(0,3).forEach((v,i) => { isRealTickets[i] = v!=null; isRealRH[i] = v!=null; });
-  }
+  // isReal: meses com Receita preenchida são "realizados"
+  receitaMes.forEach((v,i) => {
+    isReal[i] = v != null;
+    if (i<3) { isRealTickets[i] = v!=null; isRealRH[i] = v!=null; }
+  });
+  lucroLiquido.forEach((v,i) => { if (v!=null) ebitdaIsReal[i] = true; });
+  saldoAcum.forEach((v,i) => { if (v!=null) saldoIsReal[i] = true; });
+
+  // ── Reconstrói hero / satisfacao / margemPanel / q1Panel de cada período ──
+  const pills = ['JAN','FEV','MAR'];
+  periods.forEach(({key,idx,q,ytd}) => {
+    if (!periodData[key]) return;
+    const rec = q||ytd ? sumTo('Receita',2) : get('Receita',idx);
+    const res = q||ytd ? sumTo('Resultado',2) : get('Resultado',idx);
+
+    periodData[key].hero2Val  = rec!=null ? fmtAutoK(rec) : '—';
+    periodData[key].hero2Desc = res!=null ? 'Resultado: '+fmtAutoK(res) : '—';
+    if (rec!=null) {
+      periodData[key].hero1Val  = fmtAutoK(rec);
+      periodData[key].hero1Desc = res!=null && res>=0 ? 'Resultado positivo' : res!=null ? 'Resultado negativo' : '—';
+    } else {
+      periodData[key].hero1Val  = '—';
+      periodData[key].hero1Desc = 'Sincronize a planilha';
+    }
+
+    // Satisfação e próximas ativações não vêm da planilha
+    periodData[key].satisfacao = { val:'—', volume:'—' };
+    periodData[key].proximasAtivacoes = [];
+
+    // margemPanel — Margem_PCT e Margem_BRL da planilha
+    const mHist = [];
+    for (let i=0; i<=Math.min(idx,2); i++) {
+      const mp = get('Margem_PCT',i), mv = get('Margem_BRL',i);
+      if (mp!=null || mv!=null)
+        mHist.push({ mes:pills[i], pct:mp!=null?(+mp).toFixed(2).replace('.',',')+' %':'—', val:mv!=null?fmtAutoK(mv):'—' });
+    }
+    const mp0 = get('Margem_PCT',idx);
+    periodData[key].margemPanel = {
+      pct:   mp0!=null ? (+mp0).toFixed(2).replace('.',',')+' %' : '—',
+      valor: get('Margem_BRL',idx)!=null ? fmtAutoK(get('Margem_BRL',idx)) : '—',
+      vsMeta:'—', historico: mHist
+    };
+
+    // q1Panel — Vendas_SIM
+    const vendMeta = 33000;
+    const vArr = dm['Vendas_SIM'] || [];
+    const vItems = [];
+    for (let i=0; i<=Math.min(idx,2); i++) {
+      const v = vArr[i];
+      if (v!=null) {
+        const diff = v - vendMeta;
+        vItems.push({ mes:pills[i], qty:fmtNum(v),
+          chip:`<span class="delta-chip ${diff>=0?'up':'down'}">${diff>=0?'+':'−'}${fmtNum(Math.abs(diff))}</span>` });
+      }
+    }
+    const vTot = vArr.slice(0,Math.min(idx+1,3)).reduce((a,b)=>a+(b??0),0);
+    const vMes = vArr.slice(0,3).filter(v=>v!=null).length;
+    const vMetaTot = vendMeta * vMes;
+    periodData[key].q1Panel = {
+      header:'Média Simcards',
+      total: vTot ? fmtNum(vTot) : '—',
+      pct:   vMetaTot>0 ? Math.round(vTot/vMetaTot*100)+'% vs. meta ('+fmtNum(vMetaTot)+')' : '—',
+      items: vItems
+    };
+  });
 }
 
 async function syncFromSheets() {
