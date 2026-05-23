@@ -1693,6 +1693,11 @@ async function doLogin() {
   document.getElementById('userEmail').textContent = email;
   loginScreen.style.display = 'none';
   document.body.classList.remove('logged-out');
+  // Restaura cache DEPOIS do login — dados só ficam no DOM com sessão autenticada
+  if (restoreCache()) {
+    applyPeriod(getActivePeriod());
+    rerenderAllCharts();
+  }
 }
 
 function doLogout() {
@@ -1736,8 +1741,9 @@ navItems.forEach(item => {
     navItems.forEach(n => n.classList.remove('active'));
     item.classList.add('active');
     pages.forEach(p => p.classList.remove('active'));
-    document.querySelector(`.page[data-page="${target}"]`).classList.add('active');
-    crumbPage.textContent = pageNames[target];
+    const targetPage = document.querySelector(`.page[data-page="${target}"]`);
+    if (targetPage) targetPage.classList.add('active');
+    if (crumbPage) crumbPage.textContent = pageNames[target] || target;
     // Sempre volta ao topo ao trocar de página
     window.scrollTo({ top: 0, behavior: 'instant' });
     document.documentElement.scrollTop = 0;
@@ -2209,7 +2215,8 @@ function buildConect() {
     if (pct == null) return null;
     return margemValorBRL[i] != null ? margemValorBRL[i] : Math.round(pct / 100 * lastBase);
   });
-  const maxMargem = Math.max(...margemBRL.slice(0,4).filter(v => v != null));
+  const _validMargem = margemBRL.slice(0,4).filter(v => v != null);
+  const maxMargem = _validMargem.length ? Math.max(..._validMargem) : 0;
   charts.conect = new Chart(ctx, {
     data:{ labels:['Janeiro','Fevereiro','Março','Abril'], datasets:[
       { type:'bar', label:'Gestora Smart', data: smartFat.slice(0,4), backgroundColor: css('--primary'), borderRadius:6, barPercentage:.6, yAxisID:'y', order:2,
@@ -2355,7 +2362,8 @@ function buildChurnAnual() {
   // Churn = (cancelamentos + desistências) / base ativa — para meses sem base usa o último valor conhecido
   const lastBase = baseAtiva.reduce((acc, v) => v != null ? v : acc, 565338);
   const churnPct = cancelMes.map((c, i) => {
-    const base = baseAtiva[i] != null ? baseAtiva[i] : lastBase;
+    if (c == null || desistMes[i] == null) return null;
+    const base = (baseAtiva[i] != null ? baseAtiva[i] : lastBase) || 1;
     return parseFloat(((c + desistMes[i]) / base * 100).toFixed(2));
   });
   const realData = churnPct.map((v, i) => isReal[i] ? v : null);
@@ -2948,29 +2956,32 @@ if (btnCancelMetas) btnCancelMetas.addEventListener('click', cancelEdit);
 function uInitials(nome) {
   return nome.split(/\s+/).slice(0,2).map(p => p[0]?.toUpperCase() || '').join('') || '?';
 }
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
 function renderAcessos() {
   const tbody = document.querySelector('#acessosTbl tbody');
   if (!tbody) return;
-  tbody.innerHTML = gsmUsers.map((u, idx) => `
-    <tr data-idx="${idx}">
+  tbody.innerHTML = gsmUsers.map((u) => `
+    <tr data-email="${escHtml(u.email)}">
       <td>
         <div class="user-cell">
-          <div class="av">${uInitials(u.nome)}</div>
-          <div>${u.nome}${u.email === currentUserEmail ? '<span class="you-tag">VOCÊ</span>' : ''}</div>
+          <div class="av">${escHtml(uInitials(u.nome))}</div>
+          <div>${escHtml(u.nome)}${u.email === currentUserEmail ? '<span class="you-tag">VOCÊ</span>' : ''}</div>
         </div>
       </td>
-      <td style="color:var(--text-2);font-size:12.5px">${u.email}</td>
+      <td style="color:var(--text-2);font-size:12.5px">${escHtml(u.email)}</td>
       <td>
-        <select class="perfil-select" data-idx="${idx}" ${u.email === currentUserEmail ? 'disabled title="Não é possível alterar o próprio perfil"' : ''}>
+        <select class="perfil-select" data-email="${escHtml(u.email)}" ${u.email === currentUserEmail ? 'disabled title="Não é possível alterar o próprio perfil"' : ''}>
           <option value="Adm" ${u.perfil==='Adm'?'selected':''}>Adm</option>
           <option value="Leitura" ${u.perfil==='Leitura'?'selected':''}>Leitura</option>
         </select>
       </td>
-      <td style="color:var(--muted);font-size:12.5px">${u.ultimo || '—'}</td>
+      <td style="color:var(--muted);font-size:12.5px">${escHtml(u.ultimo || '—')}</td>
       <td class="num">
         <div class="row-actions">
-          ${u.email !== currentUserEmail ? `<button title="Remover usuário" data-act="remove" data-idx="${idx}">
+          ${u.email !== currentUserEmail ? `<button title="Remover usuário" data-act="remove" data-email="${escHtml(u.email)}">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
           </button>` : ''}
         </div>
@@ -2980,30 +2991,33 @@ function renderAcessos() {
 
   tbody.querySelectorAll('.perfil-select').forEach(sel => {
     sel.addEventListener('change', e => {
-      const idx = parseInt(e.target.dataset.idx);
+      const email = e.target.dataset.email;
+      const u = gsmUsers.find(x => x.email === email);
+      if (!u) return;
       const admCount = gsmUsers.filter(x => x.perfil === 'Adm').length;
-      if (gsmUsers[idx].perfil === 'Adm' && admCount === 1 && e.target.value !== 'Adm') {
+      if (u.perfil === 'Adm' && admCount === 1 && e.target.value !== 'Adm') {
         showToast('Deve existir ao menos um administrador no sistema.');
         e.target.value = 'Adm';
         return;
       }
-      gsmUsers[idx].perfil = e.target.value;
+      u.perfil = e.target.value;
       saveUsers(gsmUsers);
-      showToast(`Perfil de ${gsmUsers[idx].nome} alterado para ${gsmUsers[idx].perfil}`);
+      showToast(`Perfil de ${u.nome} alterado para ${u.perfil}`);
     });
   });
 
   tbody.querySelectorAll('button[data-act="remove"]').forEach(btn => {
     btn.addEventListener('click', e => {
-      const idx = parseInt(e.currentTarget.dataset.idx);
-      const u = gsmUsers[idx];
+      const email = e.currentTarget.dataset.email;
+      const u = gsmUsers.find(x => x.email === email);
+      if (!u) return;
       const admCount = gsmUsers.filter(x => x.perfil === 'Adm').length;
       if (u.perfil === 'Adm' && admCount === 1) {
         alert('Não é possível remover o único administrador do sistema.');
         return;
       }
       if (confirm(`Remover ${u.nome} (${u.email}) do sistema?\nEle não conseguirá mais fazer login.`)) {
-        gsmUsers.splice(idx, 1);
+        gsmUsers.splice(gsmUsers.indexOf(u), 1);
         saveUsers(gsmUsers);
         renderAcessos();
         showToast(`${u.nome} removido`);
@@ -3042,7 +3056,11 @@ if (confirmNovoUser) confirmNovoUser.addEventListener('click', async () => {
   const perfil= newUserPerfil.value;
   if (!nome)                      { newUserNome.focus();  showToast('Informe o nome'); return; }
   if (!email || !email.includes('@')) { newUserEmail.focus(); showToast('E-mail inválido'); return; }
-  if (!pass || pass.length < 4)   { if (newUserPass) newUserPass.focus(); showToast('Senha deve ter ao menos 4 caracteres'); return; }
+  if (!pass || pass.length < 8)   { if (newUserPass) newUserPass.focus(); showToast('Senha deve ter ao menos 8 caracteres'); return; }
+  // Validação de e-mail via API nativa do browser
+  const emailChecker = document.createElement('input');
+  emailChecker.type = 'email'; emailChecker.value = email;
+  if (!emailChecker.validity.valid) { newUserEmail.focus(); showToast('Formato de e-mail inválido'); return; }
   if (gsmUsers.find(u => u.email === email)) { showToast('Este e-mail já está cadastrado'); return; }
   const hx = await hashPass(pass);
   gsmUsers.push({ nome, email, hash: hx, perfil, ultimo: '—' });
@@ -3074,14 +3092,16 @@ const SHEET_CSV = (tab) =>
   `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
 
 function parseCSV(text) {
+  // Normaliza CRLF e CR isolado para LF antes de processar
+  const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   const lines = [];
   let cur = '', inQ = false;
   const cols = [];
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
+  for (let i = 0; i < normalized.length; i++) {
+    const c = normalized[i];
     if (c === '"') { inQ = !inQ; }
     else if (c === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
-    else if ((c === '\n' || c === '\r') && !inQ) {
+    else if (c === '\n' && !inQ) {
       if (cur.trim() || cols.length) { cols.push(cur.trim()); lines.push([...cols]); cols.length = 0; cur = ''; }
     } else { cur += c; }
   }
@@ -3091,8 +3111,12 @@ function parseCSV(text) {
 
 function numOrNull(v) {
   if (!v || v === '' || v === '—' || v === '-') return null;
-  const n = parseFloat(v.replace(/\./g,'').replace(',','.').replace(/[^0-9.\-]/g,''));
-  return isNaN(n) ? null : n;
+  // Detecta formato contábil de negativo: (1.234,00) → −1234.00
+  const isParenNeg = /^\(.*\)$/.test(v.trim());
+  const cleaned = v.replace(/\./g,'').replace(',','.').replace(/[^0-9.\-]/g,'');
+  const n = parseFloat(cleaned);
+  if (isNaN(n)) return null;
+  return isParenNeg ? -Math.abs(n) : n;
 }
 
 function fmtAutoK(v) {
@@ -3284,9 +3308,10 @@ function computePeriodData(dm) {
 
     // Satisfação — chave Satisfacao (decimal 0-1)
     const satV2 = q||ytd ? null : get('Satisfacao', idx);
+    const periodLbl = q ? '1º Trimestre 2026' : ytd ? 'Acumulado 2026' : ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][idx]+' 2026';
     periodData[key].satisfacao = {
       val:    satV2 != null ? (satV2*100).toFixed(1).replace('.',',')+'%' : '—',
-      volume: satV2 != null ? lbl : '—'
+      volume: satV2 != null ? periodLbl : '—'
     };
 
     // Próximas Ativações — chave Atv_Qtd (meses futuros com dados)
@@ -3341,7 +3366,10 @@ function computePeriodData(dm) {
   buildDFCTable();
 }
 
+let _syncInProgress = false;
 async function syncFromSheets() {
+  if (_syncInProgress) return;
+  _syncInProgress = true;
   const btn = document.getElementById('btnSync');
   const statusEl = document.getElementById('syncStatus');
   const icon = document.getElementById('syncIcon');
@@ -3478,6 +3506,7 @@ async function syncFromSheets() {
   } finally {
     if (btn) { btn.disabled=false; btn.style.opacity='1'; }
     if (icon) icon.style.animation='';
+    _syncInProgress = false;
   }
 }
 
@@ -3486,9 +3515,8 @@ const spinStyle = document.createElement('style');
 spinStyle.textContent = '@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }';
 document.head.appendChild(spinStyle);
 
-// Initial render — restaura cache se disponível
+// Initial render — cache só restaura APÓS login bem-sucedido
 window.addEventListener('load', () => {
-  restoreCache();
   applyPeriod(getActivePeriod());
   rerenderAllCharts();
 });
@@ -3511,7 +3539,7 @@ function getOpMes(mesIdx) {
   return { rows, total: { mens: tM, custo: tC, marg: tMarg, pct: tPct } };
 }
 
-function fmtOp(v) { return 'R$ ' + v.toFixed(2).replace('.',','); }
+function fmtOp(v) { return v != null ? 'R$ ' + v.toFixed(2).replace('.',',') : '—'; }
 
 function renderOpTable(bodyId, mesIdx) {
   const tbody = document.getElementById(bodyId); if (!tbody) return;
@@ -3731,9 +3759,10 @@ function buildOpMediaChart() {
   destroyChart('opMedia');
   const labels = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   // Média ponderada derivada do Detalhamento por Operadora (aba Operadoras_YYYY)
-  const mens  = labels.map((_, i) => getOpMes(i).total.mens);
-  const custo = labels.map((_, i) => getOpMes(i).total.custo);
-  const pct   = labels.map((_, i) => getOpMes(i).total.pct);
+  const _opByMonth = labels.map((_, i) => getOpMes(i).total);
+  const mens  = _opByMonth.map(t => t.mens);
+  const custo = _opByMonth.map(t => t.custo);
+  const pct   = _opByMonth.map(t => t.pct);
   charts.opMedia = new Chart(ctx, {
     data: { labels, datasets: [
       { type:'line', label:'Mensalidade', data: mens,
