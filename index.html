@@ -3333,22 +3333,6 @@ function computePeriodData(dm) {
     };
   };
 
-  // Detecta o último mês real e atualiza o filtro dinamicamente
-  const lastRealIdx = isReal.reduce((last, v, i) => v ? i : last, -1);
-  refreshPeriodFilter(year, lastRealIdx >= 0 ? lastRealIdx : 2);
-
-  // Constrói a lista de períodos dinamicamente com base nos meses com dados
-  const periods = [];
-  for (let i = 0; i <= (lastRealIdx >= 0 ? lastRealIdx : 2); i++) {
-    const key = `${year}-${MES_PAD[i]}`;
-    periods.push({key, idx:i, q:false, ytd:false});
-  }
-  if (lastRealIdx >= 2) periods.push({key:`${year}-Q1`, idx:2, q:true, ytd:false});
-  periods.push({key:`${year}-YTD`, idx: lastRealIdx >= 0 ? lastRealIdx : 2, q:false, ytd:true});
-  periods.forEach(({key,idx,q,ytd}) => {
-    if (periodData[key]) periodData[key].kpis = buildKpis(idx,q,ytd);
-  });
-
   // ── Zera TODOS os arrays antes de preencher — garante que nada do ciclo anterior persiste
   lucroLiquido.fill(null); receitaMes.fill(null); custoMes.fill(null); despesaMes.fill(null);
   ebitda.fill(null); saldoAcum.fill(null); cancelMes.fill(null); desistMes.fill(null);
@@ -3398,6 +3382,22 @@ function computePeriodData(dm) {
   });
   lucroLiquido.forEach((v,i) => { if (v!=null) ebitdaIsReal[i] = true; });
   saldoAcum.forEach((v,i) => { if (v!=null) saldoIsReal[i] = true; });
+
+  // Detecta o último mês real APÓS carregar os dados — isReal agora está correto
+  const lastRealIdx = isReal.reduce((last, v, i) => v ? i : last, -1);
+  refreshPeriodFilter(year, lastRealIdx >= 0 ? lastRealIdx : 0);
+
+  // Constrói a lista de períodos com base nos meses que têm dados reais
+  const periods = [];
+  for (let i = 0; i <= (lastRealIdx >= 0 ? lastRealIdx : 0); i++) {
+    const key = `${year}-${MES_PAD[i]}`;
+    periods.push({key, idx:i, q:false, ytd:false});
+  }
+  if (lastRealIdx >= 2) periods.push({key:`${year}-Q1`, idx:2, q:true, ytd:false});
+  if (lastRealIdx >= 0) periods.push({key:`${year}-YTD`, idx:lastRealIdx, q:false, ytd:true});
+  periods.forEach(({key,idx,q,ytd}) => {
+    if (periodData[key]) periodData[key].kpis = buildKpis(idx,q,ytd);
+  });
 
   // ── Previsão (forecast) — preenche meses futuros a partir de previsaoData ──
   if (previsaoData.length > 0) {
