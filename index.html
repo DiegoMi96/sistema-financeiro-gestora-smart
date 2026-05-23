@@ -452,11 +452,11 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
     <form id="loginForm" autocomplete="off">
       <div class="login-field">
         <label for="loginEmail">E-mail</label>
-        <input id="loginEmail" type="email" placeholder="diretoria@gestorasmart.com.br" value="diretoria@gestorasmart.com.br" required>
+        <input id="loginEmail" type="email" placeholder="seu@email.com.br" autocomplete="off" required>
       </div>
       <div class="login-field">
         <label for="loginPass">Senha</label>
-        <input id="loginPass" type="password" placeholder="••••••••" value="demo2026" required>
+        <input id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password" required>
       </div>
 
       <div class="login-options">
@@ -468,8 +468,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
     </form>
 
     <div class="login-foot">
-      Acesso restrito · Diretoria e Controladoria<br>
-      <strong>Protótipo navegável</strong> — qualquer e-mail/senha libera o acesso para demonstração
+      Acesso restrito · Diretoria e Controladoria Gestora Smart
     </div>
   </div>
 </div>
@@ -528,7 +527,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
     </div>
   </nav>
   <div class="sidebar-foot">
-    Última atualização<br><strong style="color:var(--text)">13 mai 2026 · 09:42</strong>
+    Última atualização<br><strong id="sidebarLastSync" style="color:var(--text)">—</strong>
   </div>
   <div class="logout-wrap">
     <div class="user-avatar" id="userAvatar">DM</div>
@@ -1634,21 +1633,32 @@ const loginForm = document.getElementById('loginForm');
 const loginError = document.getElementById('loginError');
 const btnLogout = document.getElementById('btnLogout');
 
-function doLogin() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const pass = document.getElementById('loginPass').value;
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  const pass  = document.getElementById('loginPass').value;
   if (!email || !pass) {
     loginError.style.display = 'block';
     loginError.textContent = 'Preencha e-mail e senha para continuar.';
     return;
   }
-  // Update sidebar user info based on entered email
+  // SHA-256 da senha para comparação sem expor plain text
+  const hashHex = await (async () => {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pass));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+  })();
+  const OK_EMAIL = 'financeiro@gestorasmart.com.br';
+  const OK_HASH  = '52a01fcc849e4538b43dd817f182dffd443bb1dfc08267fc2527337afec2c16b';
+  if (email !== OK_EMAIL || hashHex !== OK_HASH) {
+    loginError.style.display = 'block';
+    loginError.textContent = 'E-mail ou senha inválidos. Tente novamente.';
+    return;
+  }
+  loginError.style.display = 'none';
   const initials = email.split('@')[0].split('.').slice(0,2).map(s => s[0]?.toUpperCase() || '').join('') || 'GS';
   const name = email.split('@')[0].split('.').map(s => s[0]?.toUpperCase() + s.slice(1)).join(' ');
   document.getElementById('userAvatar').textContent = initials.slice(0,2);
   document.getElementById('userName').textContent = name;
   document.getElementById('userEmail').textContent = email;
-  // Hide login
   loginScreen.style.display = 'none';
   document.body.classList.remove('logged-out');
 }
@@ -1794,6 +1804,47 @@ const volEnvio   = [null, null, null];
 const custoEnvio = [null, null, null];
 const ebitda       = new Array(12).fill(null);
 const ebitdaIsReal = new Array(12).fill(false);
+
+// ========== Cache localStorage ==========
+const CACHE_KEY = 'gsm_data_cache';
+
+function saveCache(dm, tsDisplay) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({
+      ts: new Date().toISOString(),
+      tsDisplay,
+      dm,
+      saidasData,
+      previsaoData,
+      opMensMes,
+      opCustoMes,
+      poolUsoMes,
+      poolContratado
+    }));
+  } catch(e) { /* storage indisponível */ }
+}
+
+function restoreCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return false;
+    const c = JSON.parse(raw);
+    if (!c.dm) return false;
+    saidasData.splice(0, saidasData.length, ...(c.saidasData || []));
+    previsaoData = c.previsaoData || [];
+    opMensMes    = c.opMensMes    || Array.from({length:13}, () => new Array(12).fill(null));
+    opCustoMes   = c.opCustoMes   || Array.from({length:13}, () => new Array(12).fill(null));
+    poolUsoMes   = c.poolUsoMes   || Array.from({length:5},  () => new Array(12).fill(null));
+    if (c.poolContratado) poolContratado.splice(0, 5, ...c.poolContratado);
+    computePeriodData(c.dm);
+    const ts = c.tsDisplay || '—';
+    const elSync    = document.getElementById('lastSyncTime');
+    const elSidebar = document.getElementById('sidebarLastSync');
+    if (elSync)    elSync.textContent    = ts;
+    if (elSidebar) elSidebar.textContent = ts;
+    return true;
+  } catch(e) { return false; }
+}
 
 // ========== Helpers ==========
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
@@ -3382,6 +3433,9 @@ async function syncFromSheets() {
     const now = new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
     const lastSync = document.getElementById('lastSyncTime');
     if (lastSync) lastSync.textContent = now;
+    const sidebarSync = document.getElementById('sidebarLastSync');
+    if (sidebarSync) sidebarSync.textContent = now;
+    saveCache(dm, now);
     if (statusEl) { statusEl.style.background='var(--primary-light)'; statusEl.style.color='var(--primary-dark)'; statusEl.textContent='✅ Sincronização concluída em '+now+' · Todos os indicadores atualizados.'; }
 
     const toast = document.getElementById('toastSync');
@@ -3404,8 +3458,9 @@ const spinStyle = document.createElement('style');
 spinStyle.textContent = '@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }';
 document.head.appendChild(spinStyle);
 
-// Initial render
+// Initial render — restaura cache se disponível
 window.addEventListener('load', () => {
+  restoreCache();
   applyPeriod(getActivePeriod());
   rerenderAllCharts();
 });
