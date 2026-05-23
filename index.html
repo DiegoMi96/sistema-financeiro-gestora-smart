@@ -289,6 +289,16 @@ footer.last-update { padding: 18px 28px; text-align: center; color: var(--muted)
 .dfc-tbl tr.saldo td { background: var(--primary); color: #fff; font-weight: 700; }
 .dfc-tbl tr.saldo td.num { color: #fff; }
 .dfc-tbl tr.saldo td.cat { padding-left: 24px; }
+/* Previsão / Forecast */
+.dfc-tbl th.forecast-hdr { background: #6B7A99; opacity: .92; }
+.dfc-tbl td.forecast { background: #F0F4FF !important; color: #3B4A6B !important; font-style: italic; }
+.dfc-tbl td.forecast.neg { color: #7B3540 !important; }
+.dfc-tbl td.pct.forecast { background: #F0F4FF !important; color: #5B6B99 !important; }
+.dfc-tbl tr.resultado td.forecast { background: #E8EEF8 !important; }
+.dfc-tbl tr.saldo td.forecast { background: #6B7A99 !important; color: #fff !important; }
+.prev-badge { display:inline-block; background:rgba(255,255,255,.22); color:#fff; font-size:9px;
+  letter-spacing:.4px; padding:1px 5px; border-radius:4px; margin-left:4px; font-style:italic;
+  vertical-align:middle; font-weight:600; }
 [data-theme="dark"] .dfc-tbl tr.resultado td { background: rgba(29,158,94,.18); }
 [data-theme="dark"] .dfc-tbl td { background: var(--surface-2); }
 
@@ -1231,23 +1241,9 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           <div><div class="chart-title">Fluxo de Caixa Mensal · por Categoria</div><div class="chart-sub">Valores em R$ · Dados atualizados via upload da planilha mensal</div></div>
         </div>
         <div style="overflow-x:auto">
-        <table class="dfc-tbl">
-          <thead>
-            <tr>
-              <th class="cat">CATEGORIA</th>
-              <th class="num">jan/26</th>
-              <th class="num">fev/26</th><th class="pct">% vs Ant.</th>
-              <th class="num">mar/26</th><th class="pct">% vs Ant.</th>
-              <th class="num">abr/26</th><th class="pct">% vs Ant.</th>
-              <th class="num">mai/26</th><th class="pct">% vs Ant.</th>
-              <th class="num">jun/26</th><th class="pct">% vs Ant.</th>
-              <th class="num">jul/26</th><th class="pct">% vs Ant.</th>
-              <th class="num">ago/26</th><th class="pct">% vs Ant.</th>
-              <th class="num">set/26</th><th class="pct">% vs Ant.</th>
-              <th class="num">out/26</th><th class="pct">% vs Ant.</th>
-              <th class="num">nov/26</th><th class="pct">% vs Ant.</th>
-              <th class="num">dez/26</th><th class="pct">% vs Ant.</th>
-            </tr>
+        <table class="dfc-tbl" id="dfcTbl">
+          <thead id="dfcThead">
+            <!-- Populated by buildDFCTable() -->
           </thead>
           <tbody>
             <!-- Populated by buildDFCTable() -->
@@ -2408,15 +2404,29 @@ function buildDFC() {
   });
 }
 
-// DFC table — renderiza tbody a partir de saidasData + saldoAcum
+// DFC table — renderiza thead + tbody a partir de saidasData (real) + previsaoData (forecast) + saldoAcum
 function buildDFCTable() {
-  const tbody = document.querySelector('.dfc-tbl tbody');
+  const tbody  = document.querySelector('#dfcTbl tbody');
+  const thead  = document.getElementById('dfcThead');
   if (!tbody) return;
 
-  // Soma todos os subs de uma categoria para um mês (0=Jan,1=Fev,2=Mar)
+  // ── Thead dinâmico — indica quais meses são PREVISÃO ────────
+  const year = document.getElementById('yearSelect')?.value || '2026';
+  const mesLabels = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  let thHtml = '<tr><th class="cat">CATEGORIA</th>';
+  thHtml += `<th class="num${!isReal[0]?' forecast-hdr':''}">${mesLabels[0]}/${year.slice(2)}${!isReal[0]?' <span class="prev-badge">PREV</span>':''}</th>`;
+  for (let m = 1; m < 12; m++) {
+    const fc = !isReal[m];
+    const lbl = `${mesLabels[m]}/${year.slice(2)}${fc?' <span class="prev-badge">PREV</span>':''}`;
+    thHtml += `<th class="num${fc?' forecast-hdr':''}">${lbl}</th><th class="pct${fc?' forecast-hdr':''}">% vs Ant.</th>`;
+  }
+  thHtml += '</tr>';
+  if (thead) thead.innerHTML = thHtml;
+
+  // Soma todos os subs: usa saidasData para meses realizados, previsaoData para futuros
   const catSum = (catName, m) => {
-    if (m > 2) return null;
-    const g = saidasData.find(g => g.cat === catName);
+    const source = isReal[m] ? saidasData : previsaoData;
+    const g = source.find(g => g.cat === catName);
     if (!g) return null;
     const tot = g.subs.reduce((a, s) => a + (s[m + 1] || 0), 0);
     return tot === 0 ? null : tot;
@@ -2424,8 +2434,8 @@ function buildDFCTable() {
 
   // Sub "RH" dentro de "Despesas com pessoal"
   const rhVal = (m) => {
-    if (m > 2) return null;
-    const g = saidasData.find(g => g.cat === 'Despesas com pessoal');
+    const source = isReal[m] ? saidasData : previsaoData;
+    const g = source.find(g => g.cat === 'Despesas com pessoal');
     if (!g) return null;
     const s = g.subs.find(s => s[0] === 'RH');
     return s && s[m + 1] ? s[m + 1] : null;
@@ -2468,29 +2478,32 @@ function buildDFCTable() {
 
   const fmtN = v => new Intl.NumberFormat('pt-BR').format(Math.round(Math.abs(v)));
 
-  const cellHtml = (v, isExp) => {
-    if (v == null) return `<td class="num">—</td>`;
+  const cellHtml = (v, isExp, fc) => {
+    const fcCls = fc ? ' forecast' : '';
+    if (v == null) return `<td class="num${fcCls}">—</td>`;
     const formatted = fmtN(v);
     const showNeg = isExp ? (v !== 0) : v < 0;
     return showNeg
-      ? `<td class="num neg"><span class="sign">−</span>${formatted}</td>`
-      : `<td class="num">${formatted}</td>`;
+      ? `<td class="num neg${fcCls}"><span class="sign">−</span>${formatted}</td>`
+      : `<td class="num${fcCls}">${formatted}</td>`;
   };
 
-  const pctHtml = (curr, prev, isExp) => {
-    if (curr == null || prev == null || prev === 0) return `<td class="pct">—</td>`;
+  const pctHtml = (curr, prev, isExp, fc) => {
+    const fcCls = fc ? ' forecast' : '';
+    if (curr == null || prev == null || prev === 0) return `<td class="pct${fcCls}">—</td>`;
     const pct = Math.round(Math.abs(curr) / Math.abs(prev) * 100);
     const cls = isExp ? (pct > 100 ? 'neg' : 'pos') : (pct > 100 ? 'pos' : 'neg');
-    return `<td class="pct ${cls}">${pct}%</td>`;
+    return `<td class="pct ${cls}${fcCls}">${pct}%</td>`;
   };
 
   let html = '';
   rowDefs.forEach(([label, cls, isExp], ri) => {
     html += `<tr class="${cls}"><td class="cat">${label}</td>`;
-    html += cellHtml(vals[ri][0], isExp); // Janeiro — sem % col
+    html += cellHtml(vals[ri][0], isExp, !isReal[0]); // Janeiro — sem % col
     for (let m = 1; m < 12; m++) {
-      html += cellHtml(vals[ri][m], isExp);
-      html += pctHtml(vals[ri][m], vals[ri][m - 1], isExp);
+      const fc = !isReal[m];
+      html += cellHtml(vals[ri][m], isExp, fc);
+      html += pctHtml(vals[ri][m], vals[ri][m - 1], isExp, fc);
     }
     html += '</tr>';
   });
@@ -2518,86 +2531,92 @@ function buildDFCTable() {
 
 // ====== Análise de Saídas — data ======
 // saidasData — estrutura completa; valores zerados (preenchidos via sync com Saidas_2026)
+// Helper: cria sub com 12 zeros — índice 0 = nome, 1-12 = Jan-Dez
+const _sub12 = n => [n,0,0,0,0,0,0,0,0,0,0,0,0];
+
 const saidasData = [
   { cat: 'Total de RECEITA - SS', subs: [
-    ['Conectividade M2M',                  0, 0, 0],
-    ['Conectividade Cheque',               0, 0, 0],
-    ['Equipamentos',                       0, 0, 0],
-    ['Software',                           0, 0, 0],
-    ['Outros (SMS, Aportes, Apto etc..)',  0, 0, 0],
-    ['Rendimento (CDI)',                   0, 0, 0]
+    _sub12('Conectividade M2M'),
+    _sub12('Conectividade Cheque'),
+    _sub12('Equipamentos'),
+    _sub12('Software'),
+    _sub12('Outros (SMS, Aportes, Apto etc..)'),
+    _sub12('Rendimento (CDI)')
   ]},
   { cat: 'Total de RECEITA - SMT', subs: [
-    ['Brasil',                             0, 0, 0],
-    ['Mundo',                              0, 0, 0],
-    ['Outros',                             0, 0, 0]
+    _sub12('Brasil'),
+    _sub12('Mundo'),
+    _sub12('Outros')
   ]},
   { cat: 'CMV / CPS', subs: [
-    ['Conectividade M2M',                  0, 0, 0],
-    ['Conectividade Cheque',               0, 0, 0],
-    ['Equipamentos',                       0, 0, 0],
-    ['Software',                           0, 0, 0],
-    ['Outros (SMS, Aportes, Apto etc..)',  0, 0, 0]
+    _sub12('Conectividade M2M'),
+    _sub12('Conectividade Cheque'),
+    _sub12('Equipamentos'),
+    _sub12('Software'),
+    _sub12('Outros (SMS, Aportes, Apto etc..)')
   ]},
   { cat: 'Despesas Administrativa', subs: [
-    ['Contabilidade',                      0, 0, 0],
-    ['Aluguel',                            0, 0, 0],
-    ['Telefonica e Internet',              0, 0, 0],
-    ['Energia Elétrica',                   0, 0, 0],
-    ['Escritório',                         0, 0, 0],
-    ['Informatica',                        0, 0, 0],
-    ['Despesa com Logistica',              0, 0, 0]
+    _sub12('Contabilidade'),
+    _sub12('Aluguel'),
+    _sub12('Telefonica e Internet'),
+    _sub12('Energia Elétrica'),
+    _sub12('Escritório'),
+    _sub12('Informatica'),
+    _sub12('Despesa com Logistica')
   ]},
   { cat: 'Despesas com pessoal', subs: [
-    ['Folha de pagamento',                 0, 0, 0],
-    ['Beneficios',                         0, 0, 0],
-    ['Impostos folha de pagamento',        0, 0, 0],
-    ['Pró-labore',                         0, 0, 0],
-    ['Retirada dos Sócios',                0, 0, 0],
-    ['Comissão',                           0, 0, 0],
-    ['Diretoria',                          0, 0, 0],
-    ['Rescisão',                           0, 0, 0],
-    ['RH',                                 0, 0, 0],
-    ['Eventos',                            0, 0, 0],
-    ['Cursos e Treinamentos',              0, 0, 0],
-    ['Gratificações',                      0, 0, 0]
+    _sub12('Folha de pagamento'),
+    _sub12('Beneficios'),
+    _sub12('Impostos folha de pagamento'),
+    _sub12('Pró-labore'),
+    _sub12('Retirada dos Sócios'),
+    _sub12('Comissão'),
+    _sub12('Diretoria'),
+    _sub12('Rescisão'),
+    _sub12('RH'),
+    _sub12('Eventos'),
+    _sub12('Cursos e Treinamentos'),
+    _sub12('Gratificações')
   ]},
   { cat: 'Despesa Comercial', subs: [
-    ['Viagens e Representações',           0, 0, 0],
-    ['Alimentação',                        0, 0, 0],
-    ['Transporte',                         0, 0, 0],
-    ['Outros ( Brindes...)',               0, 0, 0]
+    _sub12('Viagens e Representações'),
+    _sub12('Alimentação'),
+    _sub12('Transporte'),
+    _sub12('Outros ( Brindes...)')
   ]},
   { cat: 'Despesa Tributaria', subs: [
-    ['COFINS',                             0, 0, 0],
-    ['PIS',                                0, 0, 0],
-    ['GNRE',                               0, 0, 0],
-    ['CSLL e IRPJ',                        0, 0, 0],
-    ['ICMS',                               0, 0, 0],
-    ['Outros impostos',                    0, 0, 0]
+    _sub12('COFINS'),
+    _sub12('PIS'),
+    _sub12('GNRE'),
+    _sub12('CSLL e IRPJ'),
+    _sub12('ICMS'),
+    _sub12('Outros impostos')
   ]},
   { cat: 'Atividades Financeiras', subs: [
-    ['Empréstimos PGTO',                   0, 0, 0],
-    ['Empréstimos',                        0, 0, 0],
-    ['Tarifa Bancaria',                    0, 0, 0],
-    ['Investimentos',                      0, 0, 0],
-    ['Investimento Externo',               0, 0, 0],
-    ['Estorno',                            0, 0, 0],
-    ['Emprestimo entre contas',            0, 0, 0]
+    _sub12('Empréstimos PGTO'),
+    _sub12('Empréstimos'),
+    _sub12('Tarifa Bancaria'),
+    _sub12('Investimentos'),
+    _sub12('Investimento Externo'),
+    _sub12('Estorno'),
+    _sub12('Emprestimo entre contas')
   ]},
   { cat: 'Custo SMT', subs: [
-    ['SMT - CSP',                          0, 0, 0],
-    ['SMT - CSP (Mundo)',                  0, 0, 0],
-    ['SMT - Folha de Pagamento',           0, 0, 0],
-    ['SMT - Imposto Sobre Folha',          0, 0, 0],
-    ['SMT - Aluguel',                      0, 0, 0],
-    ['SMT - Tributação',                   0, 0, 0],
-    ['SMT -  Despesas Administrativas',    0, 0, 0],
-    ['SMT - Investimento',                 0, 0, 0],
-    ['SMT - Empréstimo',                   0, 0, 0]
+    _sub12('SMT - CSP'),
+    _sub12('SMT - CSP (Mundo)'),
+    _sub12('SMT - Folha de Pagamento'),
+    _sub12('SMT - Imposto Sobre Folha'),
+    _sub12('SMT - Aluguel'),
+    _sub12('SMT - Tributação'),
+    _sub12('SMT -  Despesas Administrativas'),
+    _sub12('SMT - Investimento'),
+    _sub12('SMT - Empréstimo')
   ]},
   { cat: 'Custo Total', subs: [] }
 ];
+
+// Previsão (forecast) — mesma estrutura do saidasData, populada via Previsao_YYYY
+let previsaoData = [];
 
 const fmtMoney = n => 'R$ ' + new Intl.NumberFormat('pt-BR').format(Math.round(n));
 
@@ -2763,7 +2782,7 @@ function clearData(period) {
       smartFat[i] = null; allcomFat[i] = null; margemSmart[i] = null;
     }
     Object.keys(periodData).forEach(p => emptyKpis(periodData[p]));
-    saidasData.forEach(g => g.subs.forEach(s => { s[1] = 0; s[2] = 0; s[3] = 0; }));
+    saidasData.forEach(g => g.subs.forEach(s => { for(let i=1;i<=12;i++) s[i]=0; }));
     clearDFCTable(['jan','fev','mar']);
   } else {
     const idx = monthMap[period];
@@ -3134,6 +3153,40 @@ function computePeriodData(dm) {
   lucroLiquido.forEach((v,i) => { if (v!=null) ebitdaIsReal[i] = true; });
   saldoAcum.forEach((v,i) => { if (v!=null) saldoIsReal[i] = true; });
 
+  // ── Previsão (forecast) — preenche meses futuros a partir de previsaoData ──
+  if (previsaoData.length > 0) {
+    const _prevCatSum = (catName, m) => {
+      const g = previsaoData.find(g => g.cat === catName);
+      if (!g) return 0;
+      return g.subs.reduce((a, s) => a + (s[m + 1] || 0), 0);
+    };
+    const _prevExpGroups = ['Despesas Administrativa','Despesas com pessoal',
+      'Despesa Comercial','Despesa Tributaria','Atividades Financeiras','Custo SMT'];
+
+    for (let m = 0; m < 12; m++) {
+      if (isReal[m]) continue; // mês já tem dado real — não sobrescreve
+      const rec = _prevCatSum('Total de RECEITA - SS', m)
+                + _prevCatSum('Total de RECEITA - SMT', m);
+      const cmv = _prevCatSum('CMV / CPS', m);
+      const desp = _prevExpGroups.reduce((t,g) => t + _prevCatSum(g, m), 0);
+      if (rec || cmv || desp) {
+        receitaMes[m]  = rec  || null;
+        custoMes[m]    = cmv  || null;
+        despesaMes[m]  = desp || null;
+        lucroLiquido[m] = rec - cmv - desp;
+      }
+    }
+    // Saldo acumulado nos meses de previsão (acumula sobre o último real)
+    let ultimoSaldo = saldoAcum.reduce((acc, v) => v != null ? v : acc, 0);
+    for (let m = 0; m < 12; m++) {
+      if (saldoIsReal[m]) { ultimoSaldo = saldoAcum[m]; continue; }
+      if (lucroLiquido[m] != null) {
+        ultimoSaldo = ultimoSaldo + lucroLiquido[m];
+        saldoAcum[m] = ultimoSaldo;
+      }
+    }
+  }
+
   // ── Reconstrói hero / satisfacao / margemPanel / q1Panel de cada período ──
   const pills = ['JAN','FEV','MAR'];
   periods.forEach(({key,idx,q,ytd}) => {
@@ -3257,7 +3310,7 @@ async function syncFromSheets() {
             curGroup = { cat, subs: [] };
             newSaidas.push(curGroup);
           } else if (curGroup && sub) {
-            curGroup.subs.push([sub, vals[0]||0, vals[1]||0, vals[2]||0]);
+            curGroup.subs.push([sub, ...vals.map(v => v||0)]);
           }
         });
         if (newSaidas.length > 0) {
@@ -3294,6 +3347,34 @@ async function syncFromSheets() {
         poolContrChaves.forEach((key, i) => { if (dmO[key] && dmO[key][0] != null) poolContratado[i] = dmO[key][0]; });
       }
     } catch(e) { /* Operadoras tab optional */ }
+
+    // Aba Previsao_YYYY — forecast de saídas (mesma estrutura de Saidas_YYYY)
+    try {
+      const prevTab = `Previsao_${year}`;
+      const respP = await fetch(SHEET_CSV(prevTab));
+      if (respP.ok) {
+        const textP = await respP.text();
+        const rowsP = parseCSV(textP);
+        const newPrev = [];
+        let curGrp = null;
+        rowsP.slice(1).forEach(row => {
+          const cat = (row[0]||'').trim();
+          const sub = (row[1]||'').trim();
+          if (!cat && !sub) return;
+          if (cat.startsWith('#') || cat === 'Categoria') return;
+          const vals = row.slice(2, 14).map(numOrNull);
+          if (cat && !sub) {
+            curGrp = { cat, subs: [] };
+            newPrev.push(curGrp);
+          } else if (curGrp && sub) {
+            curGrp.subs.push([sub, ...vals.map(v => v||0)]);
+          }
+        });
+        previsaoData = newPrev.length > 0 ? newPrev : [];
+      } else {
+        previsaoData = [];
+      }
+    } catch(e) { previsaoData = []; /* Previsao tab optional */ }
 
     computePeriodData(dm);
     applyPeriod(getActivePeriod());
