@@ -1222,16 +1222,26 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         </div>
       </div>
 
-      <div class="grid grid-2" style="margin-bottom:14px">
+      <div class="grid grid-4" style="margin-bottom:14px">
         <div class="card tinted-primary">
           <div class="kpi-label">Saldo Acumulado</div>
           <div class="kpi-value lg" id="dfcKpiSaldo">—</div>
           <div class="kpi-foot" id="dfcKpiSaldoFoot">Sincronize a planilha</div>
         </div>
+        <div class="card" style="border-left:4px solid var(--primary-soft)">
+          <div class="kpi-label">Saldo Acumulado Anual <span class="prev-badge" style="margin-left:4px;vertical-align:middle">PREV</span></div>
+          <div class="kpi-value lg" id="dfcKpiSaldoAnual">—</div>
+          <div class="kpi-foot" id="dfcKpiSaldoAnualFoot">Projeção Dez/26</div>
+        </div>
         <div class="card tinted-primary">
           <div class="kpi-label">Resultado Líquido</div>
           <div class="kpi-value lg" id="dfcKpiResultado">—</div>
           <div class="kpi-foot" id="dfcKpiResultadoFoot">Sincronize a planilha</div>
+        </div>
+        <div class="card" style="border-left:4px solid var(--primary-soft)">
+          <div class="kpi-label">Resultado Líquido Anual <span class="prev-badge" style="margin-left:4px;vertical-align:middle">PREV</span></div>
+          <div class="kpi-value lg" id="dfcKpiResultadoAnual">—</div>
+          <div class="kpi-foot" id="dfcKpiResultadoAnualFoot">Real + Previsão 2026</div>
         </div>
       </div>
 
@@ -2527,13 +2537,20 @@ function buildDFCTable() {
   thHtml += '</tr>';
   if (thead) thead.innerHTML = thHtml;
 
-  // Soma todos os subs: usa saidasData para meses realizados, previsaoData para futuros
+  // Soma todos os subs: usa saidasData para meses realizados, previsaoData para futuros.
+  // Se mês real mas sem dados ainda (tot === 0), usa previsão como fallback.
   const catSum = (catName, m) => {
-    const source = isReal[m] ? saidasData : previsaoData;
-    const g = source.find(g => g.cat === catName);
-    if (!g) return null;
-    const tot = g.subs.reduce((a, s) => a + (s[m + 1] || 0), 0);
-    return tot === 0 ? null : tot;
+    const trySource = (src) => {
+      const g = src.find(g => g.cat === catName);
+      if (!g) return null;
+      const tot = g.subs.reduce((a, s) => a + (s[m + 1] || 0), 0);
+      return tot === 0 ? null : tot;
+    };
+    if (isReal[m]) {
+      const real = trySource(saidasData);
+      return real != null ? real : trySource(previsaoData); // fallback forecast
+    }
+    return trySource(previsaoData);
   };
 
   // [label, rowClass, isExpense, valueFn]
@@ -2608,18 +2625,58 @@ function buildDFCTable() {
 
   // KPI cards do DFC
   const shortMons = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  const latestSaldo = saldoAcum.reduce((last, v, i) => v != null ? i : last, -1);
-  const latestRes   = vals[resIdx].reduce((last, v, i) => v != null ? i : last, -1);
 
-  const kS  = document.getElementById('dfcKpiSaldo');
-  const kSF = document.getElementById('dfcKpiSaldoFoot');
-  const kR  = document.getElementById('dfcKpiResultado');
-  const kRF = document.getElementById('dfcKpiResultadoFoot');
+  // ── Saldo Acumulado (último mês real) ────────────────────────
+  const latestRealSaldo = saldoAcum.reduce((last, v, i) => (v != null && saldoIsReal[i]) ? i : last, -1);
+  const latestSaldo     = saldoAcum.reduce((last, v, i) => v != null ? i : last, -1);
 
-  if (kS)  kS.textContent  = latestSaldo >= 0 && saldoAcum[latestSaldo] != null ? fmtBRL(saldoAcum[latestSaldo]) : '—';
-  if (kSF) kSF.textContent = latestSaldo >= 0 ? `Posição atual · ${shortMons[latestSaldo]}/${year.slice(2)}` : 'Sincronize a planilha';
-  if (kR)  kR.textContent  = latestRes >= 0 && vals[resIdx][latestRes] != null ? fmtBRL(vals[resIdx][latestRes]) : '—';
-  if (kRF) kRF.textContent = latestRes >= 0 ? `${shortMons[latestRes]} ${year}` : 'Sincronize a planilha';
+  // ── Resultado Líquido (último mês com dado) ──────────────────
+  const latestRes = vals[resIdx].reduce((last, v, i) => v != null ? i : last, -1);
+
+  // ── Saldo Anual (Previsão) = último saldoAcum disponível (Dez se projetado) ──
+  const saldoAnual = saldoAcum[11] ?? saldoAcum[latestSaldo];
+
+  // ── Resultado Líquido Anual = soma de todos os meses (real + previsão) ──
+  const resultadoAnual = vals[resIdx].some(v => v != null)
+    ? vals[resIdx].reduce((acc, v) => acc + (v ?? 0), 0)
+    : null;
+
+  // Quantos meses reais vs previsão no cálculo anual
+  const mesesReais = vals[resIdx].filter((v, i) => v != null && saldoIsReal[i]).length;
+  const mesesPrev  = vals[resIdx].filter((v, i) => v != null && !saldoIsReal[i]).length;
+
+  const kS   = document.getElementById('dfcKpiSaldo');
+  const kSF  = document.getElementById('dfcKpiSaldoFoot');
+  const kSA  = document.getElementById('dfcKpiSaldoAnual');
+  const kSAF = document.getElementById('dfcKpiSaldoAnualFoot');
+  const kR   = document.getElementById('dfcKpiResultado');
+  const kRF  = document.getElementById('dfcKpiResultadoFoot');
+  const kRA  = document.getElementById('dfcKpiResultadoAnual');
+  const kRAF = document.getElementById('dfcKpiResultadoAnualFoot');
+
+  // Card 1 — Saldo atual (último real)
+  if (kS)  kS.textContent  = latestRealSaldo >= 0 ? fmtBRL(saldoAcum[latestRealSaldo]) : '—';
+  if (kSF) kSF.textContent = latestRealSaldo >= 0
+    ? `Posição atual · ${shortMons[latestRealSaldo]}/${year.slice(2)}`
+    : 'Sincronize a planilha';
+
+  // Card 2 — Saldo Anual Projetado (Dez)
+  if (kSA)  kSA.textContent  = saldoAnual != null ? fmtBRL(saldoAnual) : '—';
+  if (kSAF) kSAF.textContent = saldoAnual != null
+    ? `Projeção Dez/${year.slice(2)} · ${mesesReais} real + ${mesesPrev} prev`
+    : 'Preencha a Previsao_2026';
+
+  // Card 3 — Resultado do último mês real
+  if (kR)  kR.textContent  = latestRes >= 0 ? fmtBRL(vals[resIdx][latestRes]) : '—';
+  if (kRF) kRF.textContent = latestRes >= 0
+    ? `${shortMons[latestRes]} ${year}`
+    : 'Sincronize a planilha';
+
+  // Card 4 — Resultado Anual (Real + Previsão)
+  if (kRA)  kRA.textContent  = resultadoAnual != null ? fmtBRL(resultadoAnual) : '—';
+  if (kRAF) kRAF.textContent = resultadoAnual != null
+    ? `${mesesReais} meses reais + ${mesesPrev} previstos`
+    : 'Preencha a Previsao_2026';
 }
 
 // (página de Cenários What-If removida)
