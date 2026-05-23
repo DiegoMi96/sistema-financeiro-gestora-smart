@@ -558,9 +558,18 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
     <div class="tb-control">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
       <select id="monthSelect">
-        <option value="03" selected>Março</option>
-        <option value="02">Fevereiro</option>
         <option value="01">Janeiro</option>
+        <option value="02">Fevereiro</option>
+        <option value="03" selected>Março</option>
+        <option value="04">Abril</option>
+        <option value="05">Maio</option>
+        <option value="06">Junho</option>
+        <option value="07">Julho</option>
+        <option value="08">Agosto</option>
+        <option value="09">Setembro</option>
+        <option value="10">Outubro</option>
+        <option value="11">Novembro</option>
+        <option value="12">Dezembro</option>
         <option value="Q1">1º Trimestre</option>
         <option value="YTD">Acumulado</option>
       </select>
@@ -1952,13 +1961,14 @@ let currentPeriod = '2026-03';
 const periodLabels    = {};
 const periodMonthIdx  = {};
 
-/** Reconstrói monthSelect e registra entradas de periodo para todos os meses reais */
+/** Reconstrói monthSelect com todos os 12 meses fixos + Q1 + YTD.
+ *  Seleciona automaticamente o mês mais recente com dados reais. */
 function refreshPeriodFilter(year, lastRealIdx) {
   const sel = document.getElementById('monthSelect');
-  if (!sel || lastRealIdx < 0) return;
+  if (!sel) return;
 
-  // Registra labels/idx para cada mês real
-  for (let i = 0; i <= lastRealIdx; i++) {
+  // Registra labels/idx para todos os 12 meses
+  for (let i = 0; i < 12; i++) {
     const key = `${year}-${MES_PAD[i]}`;
     periodLabels[key]   = MES_NOME[i] + ' / ' + year;
     periodMonthIdx[key] = i;
@@ -1968,32 +1978,30 @@ function refreshPeriodFilter(year, lastRealIdx) {
   periodLabels[`${year}-Q1`]  = '1º Trimestre / ' + year;
   periodLabels[`${year}-YTD`] = 'Acumulado ' + year;
   periodMonthIdx[`${year}-Q1`]  = 2;
-  periodMonthIdx[`${year}-YTD`] = lastRealIdx;
+  periodMonthIdx[`${year}-YTD`] = Math.max(lastRealIdx, 0);
   if (!periodData[`${year}-Q1`])  periodData[`${year}-Q1`]  = emptyPeriod('1º Trimestre ' + year);
   if (!periodData[`${year}-YTD`]) periodData[`${year}-YTD`] = emptyPeriod('Acumulado ' + year);
 
-  // Reconstrói as opções do select (mais recente primeiro)
+  // Reconstrói as opções: Jan→Dez (ordem crescente) + Q1 + Acumulado
   const prevVal = sel.value;
   sel.innerHTML = '';
-  for (let i = lastRealIdx; i >= 0; i--) {
+  for (let i = 0; i < 12; i++) {
     const opt = document.createElement('option');
-    opt.value = MES_PAD[i];
+    opt.value       = MES_PAD[i];
     opt.textContent = MES_NOME[i];
     sel.appendChild(opt);
   }
-  if (lastRealIdx >= 2) {
-    const optQ1 = document.createElement('option');
-    optQ1.value = 'Q1'; optQ1.textContent = '1º Trimestre';
-    sel.appendChild(optQ1);
-  }
+  const optQ1 = document.createElement('option');
+  optQ1.value = 'Q1'; optQ1.textContent = '1º Trimestre';
+  sel.appendChild(optQ1);
+
   const optYTD = document.createElement('option');
   optYTD.value = 'YTD'; optYTD.textContent = 'Acumulado';
   sel.appendChild(optYTD);
 
-  // Seleciona o mês mais recente por padrão (ou mantém seleção válida)
-  const latestKey = `${year}-${MES_PAD[lastRealIdx]}`;
-  const newVal = MES_PAD[lastRealIdx];
-  sel.value = Array.from(sel.options).some(o => o.value === prevVal) ? prevVal : newVal;
+  // Seleciona o mês mais recente com dados; mantém seleção atual se ainda válida
+  const latestVal = lastRealIdx >= 0 ? MES_PAD[lastRealIdx] : MES_PAD[0];
+  sel.value = Array.from(sel.options).some(o => o.value === prevVal) ? prevVal : latestVal;
   currentPeriod = `${year}-${sel.value}`;
 }
 
