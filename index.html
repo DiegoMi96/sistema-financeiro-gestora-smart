@@ -1846,6 +1846,10 @@ const ebitdaIsReal = new Array(12).fill(false);
 // ========== Cache localStorage ==========
 const CACHE_KEY = 'gsm_data_cache';
 
+// ── Named constants (magic numbers) ─────────────────────────────
+const META_SIMCARDS_MES = 33000;   // Meta mensal de vendas de SIM cards
+const DIAS_UTEIS_MES    = 22;      // Dias úteis médios por mês (absenteísmo RH)
+
 function saveCache(dm, tsDisplay) {
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify({
@@ -1867,7 +1871,10 @@ function restoreCache() {
     const raw = localStorage.getItem(CACHE_KEY);
     if (!raw) return false;
     const c = JSON.parse(raw);
-    if (!c.dm) return false;
+    // EDGE-04: validate cache structure to avoid crashes on corrupted data
+    if (!c || typeof c !== 'object') return false;
+    if (!c.dm || typeof c.dm !== 'object') return false;
+    if (!Array.isArray(c.saidasData)) return false;
     saidasData.splice(0, saidasData.length, ...(c.saidasData || []));
     previsaoData = c.previsaoData || [];
     opMensMes    = c.opMensMes    || Array.from({length:13}, () => new Array(12).fill(null));
@@ -1886,6 +1893,12 @@ function restoreCache() {
 
 // ========== Helpers ==========
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+/** Debounce: atrasa chamada até inatividade de `wait` ms (EDGE-06) */
+function debounce(fn, wait) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), wait); };
+}
 const fmtBRL = (n) => 'R$ ' + (n == null ? '—' : new Intl.NumberFormat('pt-BR', {maximumFractionDigits: 0}).format(n));
 const fmtNum = (n) => n == null ? '—' : new Intl.NumberFormat('pt-BR').format(n);
 
@@ -2242,7 +2255,7 @@ function buildVendasMeta() {
   destroyChart('vendasMeta');
   const realData = vendasMes.filter(v => v != null);
   const vendasTotal = realData.reduce((a,b)=>a+b,0);
-  const vendasMetaTotal = 33000 * realData.length;
+  const vendasMetaTotal = META_SIMCARDS_MES * realData.length;
   const vendasPct = vendasMetaTotal > 0 ? Math.round(vendasTotal / vendasMetaTotal * 100) : 0;
   const vSub = document.getElementById('vendasMetaSub');
   if (vSub) vSub.textContent = 'Total período: ' + fmtNum(vendasTotal) + ' · Meta ' + fmtNum(vendasMetaTotal) + ' (' + vendasPct + '%)';
@@ -2714,7 +2727,8 @@ function buildSaidasTable(filter='') {
   const tbody = document.querySelector('#saidasTbl tbody');
   if (!tbody) return;
   const grandTotal = saidasData.reduce((acc, g) => acc + g.subs.reduce((a,s)=>a+s[1]+s[2]+s[3],0), 0);
-  let html = '';
+  // PERF-05: use array join instead of string concatenation
+  const parts = [];
   const ftext = filter.toLowerCase().trim();
   saidasData.forEach(group => {
     const subTotalJan = group.subs.reduce((a,s)=>a+s[1],0);
@@ -2728,33 +2742,33 @@ function buildSaidasTable(filter='') {
     // Filter check
     const subsFiltered = ftext ? group.subs.filter(s => s[0].toLowerCase().includes(ftext)) : group.subs;
     if (ftext && subsFiltered.length === 0 && !group.cat.toLowerCase().includes(ftext)) return;
-    html += `<tr class="cat-group">
-      <td class="cat">${group.cat}</td>
+    parts.push(`<tr class="cat-group">
+      <td class="cat">${escHtml(group.cat)}</td>
       <td class="num">${fmtMoney(subTotalJan)}</td>
       <td class="num">${fmtMoney(subTotalFev)}</td>
       <td class="num">${fmtMoney(subTotalMar)}</td>
       <td class="num">${fmtMoney(subTotalQ1)}</td>
       <td class="pct ${subPctClass}">${subPctTxt}</td>
       <td><div class="saidas-bar-wrap"><div class="saidas-bar" style="width:${Math.min(100, subWeight*2).toFixed(1)}%"></div></div> <span style="font-size:11.5px;color:var(--muted);margin-left:4px">${subWeight.toFixed(1)}%</span></td>
-    </tr>`;
+    </tr>`);
     subsFiltered.forEach(s => {
       const total = s[1]+s[2]+s[3];
       const pct = s[2]>0 ? s[3]/s[2] : 0;
       const pctTxt = s[2]>0 ? (pct*100).toFixed(0)+'%' : '—';
       const pctClass = pct > 1 ? 'up' : (pct < 1 ? 'down' : '');
       const weight = grandTotal > 0 ? total/grandTotal*100 : 0;
-      html += `<tr class="sub">
-        <td class="cat">${s[0]}</td>
+      parts.push(`<tr class="sub">
+        <td class="cat">${escHtml(s[0])}</td>
         <td class="num">${fmtMoney(s[1])}</td>
         <td class="num">${fmtMoney(s[2])}</td>
         <td class="num">${fmtMoney(s[3])}</td>
         <td class="num">${fmtMoney(total)}</td>
         <td class="pct ${pctClass}">${pctTxt}</td>
         <td><div class="saidas-bar-wrap"><div class="saidas-bar" style="width:${Math.min(100, weight*4).toFixed(1)}%"></div></div> <span style="font-size:11.5px;color:var(--muted);margin-left:4px">${weight.toFixed(1)}%</span></td>
-      </tr>`;
+      </tr>`);
     });
   });
-  tbody.innerHTML = html;
+  tbody.innerHTML = parts.join('');
 }
 
 function buildSaidasCat() {
@@ -2806,7 +2820,7 @@ function rerenderAllCharts() {
 
 // Filter saídas
 const filterSaidasEl = document.getElementById('filterSaidas');
-if (filterSaidasEl) filterSaidasEl.addEventListener('input', e => buildSaidasTable(e.target.value));
+if (filterSaidasEl) filterSaidasEl.addEventListener('input', debounce(e => buildSaidasTable(e.target.value), 200));
 
 // ====== Limpar Dados (modal) ======
 const modalLimpar = document.getElementById('modalLimpar');
@@ -2989,40 +3003,41 @@ function renderAcessos() {
     </tr>
   `).join('');
 
-  tbody.querySelectorAll('.perfil-select').forEach(sel => {
-    sel.addEventListener('change', e => {
-      const email = e.target.dataset.email;
-      const u = gsmUsers.find(x => x.email === email);
-      if (!u) return;
-      const admCount = gsmUsers.filter(x => x.perfil === 'Adm').length;
-      if (u.perfil === 'Adm' && admCount === 1 && e.target.value !== 'Adm') {
-        showToast('Deve existir ao menos um administrador no sistema.');
-        e.target.value = 'Adm';
-        return;
-      }
-      u.perfil = e.target.value;
-      saveUsers(gsmUsers);
-      showToast(`Perfil de ${u.nome} alterado para ${u.perfil}`);
-    });
+  // PERF-04: event delegation — um único listener para toda a tabela
+  tbody.addEventListener('change', e => {
+    const sel = e.target.closest('.perfil-select');
+    if (!sel) return;
+    const email = sel.dataset.email;
+    const u = gsmUsers.find(x => x.email === email);
+    if (!u) return;
+    const admCount = gsmUsers.filter(x => x.perfil === 'Adm').length;
+    if (u.perfil === 'Adm' && admCount === 1 && sel.value !== 'Adm') {
+      showToast('Deve existir ao menos um administrador no sistema.');
+      sel.value = 'Adm';
+      return;
+    }
+    u.perfil = sel.value;
+    saveUsers(gsmUsers);
+    showToast(`Perfil de ${u.nome} alterado para ${u.perfil}`);
   });
 
-  tbody.querySelectorAll('button[data-act="remove"]').forEach(btn => {
-    btn.addEventListener('click', e => {
-      const email = e.currentTarget.dataset.email;
-      const u = gsmUsers.find(x => x.email === email);
-      if (!u) return;
-      const admCount = gsmUsers.filter(x => x.perfil === 'Adm').length;
-      if (u.perfil === 'Adm' && admCount === 1) {
-        alert('Não é possível remover o único administrador do sistema.');
-        return;
-      }
-      if (confirm(`Remover ${u.nome} (${u.email}) do sistema?\nEle não conseguirá mais fazer login.`)) {
-        gsmUsers.splice(gsmUsers.indexOf(u), 1);
-        saveUsers(gsmUsers);
-        renderAcessos();
-        showToast(`${u.nome} removido`);
-      }
-    });
+  tbody.addEventListener('click', e => {
+    const btn = e.target.closest('button[data-act="remove"]');
+    if (!btn) return;
+    const email = btn.dataset.email;
+    const u = gsmUsers.find(x => x.email === email);
+    if (!u) return;
+    const admCount = gsmUsers.filter(x => x.perfil === 'Adm').length;
+    if (u.perfil === 'Adm' && admCount === 1) {
+      alert('Não é possível remover o único administrador do sistema.');
+      return;
+    }
+    if (confirm(`Remover ${u.nome} (${u.email}) do sistema?\nEle não conseguirá mais fazer login.`)) {
+      gsmUsers.splice(gsmUsers.indexOf(u), 1);
+      saveUsers(gsmUsers);
+      renderAcessos();
+      showToast(`${u.nome} removido`);
+    }
   });
 }
 
@@ -3340,7 +3355,7 @@ function computePeriodData(dm) {
     };
 
     // q1Panel — Vendas_SIM
-    const vendMeta = 33000;
+    const vendMeta = META_SIMCARDS_MES;
     const vArr = dm['Vendas_SIM'] || [];
     const vItems = [];
     for (let i=0; i<=Math.min(idx,2); i++) {
@@ -3647,12 +3662,15 @@ function buildRH() {
   // KPI card: Custo Folha (Mês)
   const folhaEl = document.getElementById('rhFolha');
   if (folhaEl) {
-    folhaEl.textContent = 'R$ ' + Math.round(rhFolhaMes[idx]/1000) + 'k';
+    const folhaVal = rhFolhaMes[idx];
+    folhaEl.textContent = folhaVal != null ? 'R$ ' + Math.round(folhaVal / 1000) + 'k' : '—';
     const footF = document.getElementById('rhFolhaFoot');
     if (footF) {
       const prev = idx > 0 ? rhFolhaMes[idx-1] : null;
-      const diffPct = prev ? (((rhFolhaMes[idx]-prev)/prev)*100).toFixed(1).replace('.',',') : null;
-      const sign = diffPct && parseFloat(diffPct.replace(',','.')) >= 0 ? '+' : '';
+      const diffPct = (prev != null && prev !== 0 && folhaVal != null)
+        ? (((folhaVal - prev) / prev) * 100).toFixed(1).replace('.', ',')
+        : null;
+      const sign = diffPct && parseFloat(diffPct.replace(',', '.')) >= 0 ? '+' : '';
       footF.textContent = shortMon[idx] + (diffPct ? ' · ' + sign + diffPct + '% vs. ' + shortMon[idx-1] : '');
     }
   }
@@ -3660,7 +3678,8 @@ function buildRH() {
   // KPI card: eNPS
   const enpsEl = document.getElementById('rhENPS');
   if (enpsEl) {
-    enpsEl.textContent = '+' + rhENPSMes[idx];
+    const enpsVal = rhENPSMes[idx];
+    enpsEl.textContent = enpsVal != null ? (enpsVal >= 0 ? '+' : '') + enpsVal : '—';
     const footE = enpsEl.closest('.card')?.querySelector('.kpi-foot');
     if (footE) footE.textContent = 'Última pesquisa · ' + yearSuf[idx];
   }
@@ -3668,10 +3687,17 @@ function buildRH() {
   // KPI card: Faltas não justificadas
   const faltasEl = document.getElementById('rhFaltasVal');
   if (faltasEl) {
-    faltasEl.textContent = rhFaltasMes[idx];
+    const faltasVal = rhFaltasMes[idx];
+    faltasEl.textContent = faltasVal != null ? faltasVal : '—';
     const footFa = document.getElementById('rhFaltasFoot');
-    const taxa = ((rhFaltasMes[idx] / (rhHeadcountMes[idx] * 22)) * 100).toFixed(1).replace('.',',');
-    if (footFa) footFa.textContent = shortMon[idx] + ' · Taxa: ' + taxa + '%';
+    if (footFa) {
+      const hc = rhHeadcountMes[idx];
+      const base = (hc != null && hc > 0) ? hc * DIAS_UTEIS_MES : null;
+      const taxa = (faltasVal != null && base != null)
+        ? ((faltasVal / base) * 100).toFixed(1).replace('.', ',')
+        : null;
+      footFa.textContent = shortMon[idx] + (taxa ? ' · Taxa: ' + taxa + '%' : '');
+    }
   }
 
   // KPI card: Afastamentos
