@@ -1591,7 +1591,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
               </div>
               <div>
                 <h3 style="margin:0 0 4px;font-family:'Manrope';font-weight:700;font-size:17px;color:var(--text)">Adicionar novo usuário</h3>
-                <p style="margin:0;color:var(--text-2);font-size:13px;line-height:1.5">Um e-mail de convite será enviado com as instruções de acesso</p>
+                <p style="margin:0;color:var(--text-2);font-size:13px;line-height:1.5">Defina e-mail e senha — o usuário usará essas credenciais para acessar o sistema</p>
               </div>
             </div>
 
@@ -1605,6 +1605,10 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
                 <input id="newUserEmail" type="email" placeholder="maria@gestorasmart.com.br" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:9px;font-size:14px;font-family:inherit;outline:none">
               </div>
               <div>
+                <label style="display:block;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:6px">Senha de acesso</label>
+                <input id="newUserPass" type="password" placeholder="Mínimo 4 caracteres" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:9px;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box">
+              </div>
+              <div>
                 <label style="display:block;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:6px">Perfil de acesso</label>
                 <select id="newUserPerfil" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:9px;font-size:14px;font-family:inherit;outline:none">
                   <option value="Adm">Adm — acesso total</option>
@@ -1615,7 +1619,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
 
             <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px">
               <button id="cancelNovoUser" style="background:transparent;color:var(--text);border:1px solid var(--border);padding:9px 18px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit">Cancelar</button>
-              <button id="confirmNovoUser" style="background:var(--primary);color:white;border:0;padding:9px 18px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit">Adicionar e enviar convite</button>
+              <button id="confirmNovoUser" style="background:var(--primary);color:white;border:0;padding:9px 18px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit">Adicionar usuário</button>
             </div>
           </div>
         </div>
@@ -1627,11 +1631,38 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
 </div>
 
 <script>
-// ========== Login (simulado) ==========
+// ========== Auth — usuários armazenados no localStorage com hash SHA-256 ==========
+const USERS_KEY   = 'gsm_users';
+const ADMIN_EMAIL = 'financeiro@gestorasmart.com.br';
+const ADMIN_HASH  = '52a01fcc849e4538b43dd817f182dffd443bb1dfc08267fc2527337afec2c16b';
+let currentUserEmail = null;
+let gsmUsers = [];
+
+async function hashPass(pass) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pass));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+function loadUsers() {
+  try { const s = localStorage.getItem(USERS_KEY); if (s) return JSON.parse(s); } catch(e) {}
+  return null;
+}
+function saveUsers(users) {
+  try { localStorage.setItem(USERS_KEY, JSON.stringify(users)); } catch(e) {}
+}
+function ensureAdminUser() {
+  let users = loadUsers();
+  if (!users || users.length === 0) {
+    users = [{ nome: 'Financeiro', email: ADMIN_EMAIL, hash: ADMIN_HASH, perfil: 'Adm', ultimo: '—' }];
+    saveUsers(users);
+  }
+  return users;
+}
+
+// ========== Login ==========
 const loginScreen = document.getElementById('loginScreen');
-const loginForm = document.getElementById('loginForm');
-const loginError = document.getElementById('loginError');
-const btnLogout = document.getElementById('btnLogout');
+const loginForm   = document.getElementById('loginForm');
+const loginError  = document.getElementById('loginError');
+const btnLogout   = document.getElementById('btnLogout');
 
 async function doLogin() {
   const email = document.getElementById('loginEmail').value.trim().toLowerCase();
@@ -1641,23 +1672,24 @@ async function doLogin() {
     loginError.textContent = 'Preencha e-mail e senha para continuar.';
     return;
   }
-  // SHA-256 da senha para comparação sem expor plain text
-  const hashHex = await (async () => {
-    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pass));
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-  })();
-  const OK_EMAIL = 'financeiro@gestorasmart.com.br';
-  const OK_HASH  = '52a01fcc849e4538b43dd817f182dffd443bb1dfc08267fc2527337afec2c16b';
-  if (email !== OK_EMAIL || hashHex !== OK_HASH) {
+  const hx    = await hashPass(pass);
+  const users = ensureAdminUser();
+  const user  = users.find(u => u.email === email && u.hash === hx);
+  if (!user) {
     loginError.style.display = 'block';
     loginError.textContent = 'E-mail ou senha inválidos. Tente novamente.';
     return;
   }
+  const now = new Date().toLocaleString('pt-BR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+  user.ultimo = now;
+  saveUsers(users);
+  gsmUsers = users;
+  currentUserEmail = email;
   loginError.style.display = 'none';
-  const initials = email.split('@')[0].split('.').slice(0,2).map(s => s[0]?.toUpperCase() || '').join('') || 'GS';
-  const name = email.split('@')[0].split('.').map(s => s[0]?.toUpperCase() + s.slice(1)).join(' ');
-  document.getElementById('userAvatar').textContent = initials.slice(0,2);
-  document.getElementById('userName').textContent = name;
+  const parts = user.nome.split(/\s+/);
+  const ini = parts.slice(0,2).map(p => p[0]?.toUpperCase() || '').join('') || 'GS';
+  document.getElementById('userAvatar').textContent = ini;
+  document.getElementById('userName').textContent = user.nome;
   document.getElementById('userEmail').textContent = email;
   loginScreen.style.display = 'none';
   document.body.classList.remove('logged-out');
@@ -2912,119 +2944,115 @@ if (btnEditMetas) btnEditMetas.addEventListener('click', () => setEditMode(true)
 if (btnSaveMetas) btnSaveMetas.addEventListener('click', saveMetas);
 if (btnCancelMetas) btnCancelMetas.addEventListener('click', cancelEdit);
 
-// ====== Gestão de Acessos ======
-const ACESSOS_DEFAULT = [
-  { id: 1, nome: 'Diego Miranda', email: 'diretoria@gestorasmart.com.br', perfil: 'Adm', ultimo: '13/05 09:42', isYou: true },
-  { id: 2, nome: 'Paulo Moleiro', email: 'paulo@gestorasmart.com.br',     perfil: 'Adm', ultimo: '12/05 18:20', isYou: false }
-];
-function loadAcessos() {
-  try {
-    const saved = localStorage.getItem('acessosData');
-    if (saved) return JSON.parse(saved);
-  } catch(e) {}
-  return ACESSOS_DEFAULT.map(u => ({...u}));
-}
-function saveAcessos() {
-  try { localStorage.setItem('acessosData', JSON.stringify(acessosData)); } catch(e) {}
-}
-let acessosData = loadAcessos();
-let nextUserId = acessosData.reduce((max, u) => Math.max(max, u.id), 0) + 1;
-
-function initials(nome) {
+// ====== Gestão de Acessos — conectada à autenticação real ======
+function uInitials(nome) {
   return nome.split(/\s+/).slice(0,2).map(p => p[0]?.toUpperCase() || '').join('') || '?';
 }
 
 function renderAcessos() {
   const tbody = document.querySelector('#acessosTbl tbody');
   if (!tbody) return;
-  tbody.innerHTML = acessosData.map(u => `
-    <tr data-uid="${u.id}">
+  tbody.innerHTML = gsmUsers.map((u, idx) => `
+    <tr data-idx="${idx}">
       <td>
         <div class="user-cell">
-          <div class="av">${initials(u.nome)}</div>
-          <div>${u.nome}${u.isYou ? '<span class="you-tag">VOCÊ</span>' : ''}</div>
+          <div class="av">${uInitials(u.nome)}</div>
+          <div>${u.nome}${u.email === currentUserEmail ? '<span class="you-tag">VOCÊ</span>' : ''}</div>
         </div>
       </td>
       <td style="color:var(--text-2);font-size:12.5px">${u.email}</td>
       <td>
-        <select class="perfil-select" data-uid="${u.id}" ${u.isYou ? 'disabled' : ''}>
+        <select class="perfil-select" data-idx="${idx}" ${u.email === currentUserEmail ? 'disabled title="Não é possível alterar o próprio perfil"' : ''}>
           <option value="Adm" ${u.perfil==='Adm'?'selected':''}>Adm</option>
           <option value="Leitura" ${u.perfil==='Leitura'?'selected':''}>Leitura</option>
         </select>
       </td>
-      <td style="color:var(--muted);font-size:12.5px">${u.ultimo}</td>
+      <td style="color:var(--muted);font-size:12.5px">${u.ultimo || '—'}</td>
       <td class="num">
         <div class="row-actions">
-          ${u.isYou ? '' : `<button title="Remover" data-act="remove" data-uid="${u.id}">
+          ${u.email !== currentUserEmail ? `<button title="Remover usuário" data-act="remove" data-idx="${idx}">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
-          </button>`}
+          </button>` : ''}
         </div>
       </td>
     </tr>
   `).join('');
 
-  // Wire profile change
   tbody.querySelectorAll('.perfil-select').forEach(sel => {
     sel.addEventListener('change', e => {
-      const uid = parseInt(e.target.dataset.uid);
-      const newProf = e.target.value;
-      const u = acessosData.find(x => x.id === uid);
-      if (u) {
-        u.perfil = newProf;
-        saveAcessos();
-        showToast(`Perfil de ${u.nome} alterado para ${newProf}`);
+      const idx = parseInt(e.target.dataset.idx);
+      const admCount = gsmUsers.filter(x => x.perfil === 'Adm').length;
+      if (gsmUsers[idx].perfil === 'Adm' && admCount === 1 && e.target.value !== 'Adm') {
+        showToast('Deve existir ao menos um administrador no sistema.');
+        e.target.value = 'Adm';
+        return;
       }
+      gsmUsers[idx].perfil = e.target.value;
+      saveUsers(gsmUsers);
+      showToast(`Perfil de ${gsmUsers[idx].nome} alterado para ${gsmUsers[idx].perfil}`);
     });
   });
 
-  // Wire remove
   tbody.querySelectorAll('button[data-act="remove"]').forEach(btn => {
     btn.addEventListener('click', e => {
-      const uid = parseInt(e.currentTarget.dataset.uid);
-      const u = acessosData.find(x => x.id === uid);
-      if (u && confirm(`Remover ${u.nome} (${u.email}) do sistema?`)) {
-        acessosData = acessosData.filter(x => x.id !== uid);
-        saveAcessos();
+      const idx = parseInt(e.currentTarget.dataset.idx);
+      const u = gsmUsers[idx];
+      const admCount = gsmUsers.filter(x => x.perfil === 'Adm').length;
+      if (u.perfil === 'Adm' && admCount === 1) {
+        alert('Não é possível remover o único administrador do sistema.');
+        return;
+      }
+      if (confirm(`Remover ${u.nome} (${u.email}) do sistema?\nEle não conseguirá mais fazer login.`)) {
+        gsmUsers.splice(idx, 1);
+        saveUsers(gsmUsers);
         renderAcessos();
-        showToast(`${u.nome} removido do sistema`);
+        showToast(`${u.nome} removido`);
       }
     });
   });
 }
 
 // Modal de novo usuário
-const modalNovoUser = document.getElementById('modalNovoUser');
-const btnNovoUser = document.getElementById('btnNovoUser');
+const modalNovoUser  = document.getElementById('modalNovoUser');
+const btnNovoUser    = document.getElementById('btnNovoUser');
 const cancelNovoUser = document.getElementById('cancelNovoUser');
-const confirmNovoUser = document.getElementById('confirmNovoUser');
-const newUserNome = document.getElementById('newUserNome');
-const newUserEmail = document.getElementById('newUserEmail');
-const newUserPerfil = document.getElementById('newUserPerfil');
+const confirmNovoUser= document.getElementById('confirmNovoUser');
+const newUserNome    = document.getElementById('newUserNome');
+const newUserEmail   = document.getElementById('newUserEmail');
+const newUserPass    = document.getElementById('newUserPass');
+const newUserPerfil  = document.getElementById('newUserPerfil');
 
 function openNovoUser() {
-  newUserNome.value = '';
+  newUserNome.value  = '';
   newUserEmail.value = '';
+  if (newUserPass) newUserPass.value = '';
   newUserPerfil.value = 'Leitura';
   modalNovoUser.style.display = 'flex';
 }
 function closeNovoUser() { modalNovoUser.style.display = 'none'; }
 
-if (btnNovoUser) btnNovoUser.addEventListener('click', openNovoUser);
+if (btnNovoUser)    btnNovoUser.addEventListener('click', openNovoUser);
 if (cancelNovoUser) cancelNovoUser.addEventListener('click', closeNovoUser);
-if (modalNovoUser) modalNovoUser.addEventListener('click', e => { if (e.target === modalNovoUser) closeNovoUser(); });
-if (confirmNovoUser) confirmNovoUser.addEventListener('click', () => {
-  const nome = newUserNome.value.trim();
-  const email = newUserEmail.value.trim();
-  const perfil = newUserPerfil.value;
-  if (!nome) { newUserNome.focus(); return; }
-  if (!email || !email.includes('@')) { newUserEmail.focus(); return; }
-  acessosData.push({ id: nextUserId++, nome, email, perfil, ultimo: 'Convite enviado', isYou: false });
-  saveAcessos();
+if (modalNovoUser)  modalNovoUser.addEventListener('click', e => { if (e.target === modalNovoUser) closeNovoUser(); });
+
+if (confirmNovoUser) confirmNovoUser.addEventListener('click', async () => {
+  const nome  = newUserNome.value.trim();
+  const email = newUserEmail.value.trim().toLowerCase();
+  const pass  = newUserPass ? newUserPass.value : '';
+  const perfil= newUserPerfil.value;
+  if (!nome)                      { newUserNome.focus();  showToast('Informe o nome'); return; }
+  if (!email || !email.includes('@')) { newUserEmail.focus(); showToast('E-mail inválido'); return; }
+  if (!pass || pass.length < 4)   { if (newUserPass) newUserPass.focus(); showToast('Senha deve ter ao menos 4 caracteres'); return; }
+  if (gsmUsers.find(u => u.email === email)) { showToast('Este e-mail já está cadastrado'); return; }
+  const hx = await hashPass(pass);
+  gsmUsers.push({ nome, email, hash: hx, perfil, ultimo: '—' });
+  saveUsers(gsmUsers);
   renderAcessos();
   closeNovoUser();
-  showToast(`Convite enviado para ${email}`);
+  showToast(`Usuário ${nome} adicionado com sucesso`);
 });
 
+gsmUsers = ensureAdminUser();
 renderAcessos();
 
 // Dual period filter — year + month/period
