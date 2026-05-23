@@ -2536,23 +2536,15 @@ function buildDFCTable() {
     return tot === 0 ? null : tot;
   };
 
-  // Sub "RH" dentro de "Despesas com pessoal"
-  const rhVal = (m) => {
-    const source = isReal[m] ? saidasData : previsaoData;
-    const g = source.find(g => g.cat === 'Despesas com pessoal');
-    if (!g) return null;
-    const s = g.subs.find(s => s[0] === 'RH');
-    return s && s[m + 1] ? s[m + 1] : null;
-  };
-
   // [label, rowClass, isExpense, valueFn]
+  // RH é agora centro de custo próprio (categoria top-level na planilha)
   const rowDefs = [
     ['RECEITA - SS',           'receita',   false, m => catSum('Total de RECEITA - SS', m)],
     ['RECEITA - SMT',          'receita',   false, m => catSum('Total de RECEITA - SMT', m)],
     ['CMV / CPS',              '',          true,  m => catSum('CMV / CPS', m)],
     ['Despesas Administrativa', '',         true,  m => catSum('Despesas Administrativa', m)],
     ['Despesas com pessoal',   '',          true,  m => catSum('Despesas com pessoal', m)],
-    ['RH',                     '',          true,  m => rhVal(m)],
+    ['RH',                     '',          true,  m => catSum('RH', m)],
     ['Despesa Comercial',      '',          true,  m => catSum('Despesa Comercial', m)],
     ['Despesa Tributaria',     '',          true,  m => catSum('Despesa Tributaria', m)],
     ['Atividades Financeiras', '',          true,  m => catSum('Atividades Financeiras', m)],
@@ -2675,7 +2667,9 @@ const saidasData = [
     _sub12('Retirada dos Sócios'),
     _sub12('Comissão'),
     _sub12('Diretoria'),
-    _sub12('Rescisão'),
+    _sub12('Rescisão')
+  ]},
+  { cat: 'RH', subs: [
     _sub12('RH'),
     _sub12('Eventos'),
     _sub12('Cursos e Treinamentos'),
@@ -3277,7 +3271,7 @@ function computePeriodData(dm) {
       if (!g) return 0;
       return g.subs.reduce((a, s) => a + (s[m + 1] || 0), 0);
     };
-    const _prevExpGroups = ['Despesas Administrativa','Despesas com pessoal',
+    const _prevExpGroups = ['Despesas Administrativa','Despesas com pessoal','RH',
       'Despesa Comercial','Despesa Tributaria','Atividades Financeiras','Custo SMT'];
 
     for (let m = 0; m < 12; m++) {
