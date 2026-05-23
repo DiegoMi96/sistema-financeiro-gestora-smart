@@ -336,6 +336,82 @@ function criarAbaPrevisao2026() {
   );
 }
 
+/**
+ * ============================================================
+ *  migrarRHPrevisao2026()
+ *
+ *  USE ESTA FUNÇÃO em vez de criarAbaPrevisao2026() quando a aba
+ *  já possui dados preenchidos.
+ *
+ *  O que faz:
+ *    1. Lê e salva TODOS os valores já preenchidos (Col C–N)
+ *    2. Apaga e recria a aba com a nova estrutura (RH como grupo próprio)
+ *    3. Restaura todos os valores salvos automaticamente
+ *
+ *  Após rodar: verifique os dados e clique Sincronizar no painel.
+ * ============================================================
+ */
+function migrarRHPrevisao2026() {
+  const ss  = SpreadsheetApp.getActiveSpreadsheet();
+  const sh  = ss.getSheetByName('Previsao_2026');
+
+  if (!sh) {
+    SpreadsheetApp.getUi().alert('Aba "Previsao_2026" não encontrada.\nExecute criarAbaPrevisao2026() primeiro.');
+    return;
+  }
+
+  // ── Passo 1: captura todos os valores existentes ─────────────
+  // Estrutura: { 'NomeDaCategoria > NomeDaSub': [v_jan, v_fev, ..., v_dez] }
+  const salvo = {};
+  const dados = sh.getDataRange().getValues();
+  let catAtual = '';
+
+  dados.forEach(row => {
+    const colA = String(row[0] || '').trim();
+    const colB = String(row[1] || '').trim();
+    if (colA && !colB) { catAtual = colA; return; }  // linha de grupo
+    if (!colB) return;                                 // linha vazia/separador
+    const chave = catAtual + ' > ' + colB;
+    const valores = row.slice(2, 14).map(v => (v === '' || v === null || v === undefined) ? null : Number(v));
+    salvo[chave] = valores;
+  });
+
+  // ── Passo 2: recria a aba com a nova estrutura ───────────────
+  criarAbaPrevisao2026();   // apaga e recria
+
+  // ── Passo 3: restaura os valores ────────────────────────────
+  const shNova = ss.getSheetByName('Previsao_2026');
+  const dadosNovos = shNova.getDataRange().getValues();
+  let catNova = '';
+
+  dadosNovos.forEach((row, rowIdx) => {
+    const colA = String(row[0] || '').trim();
+    const colB = String(row[1] || '').trim();
+    if (colA && !colB) { catNova = colA; return; }
+    if (!colB) return;
+
+    const chave = catNova + ' > ' + colB;
+    const vals  = salvo[chave];
+    if (!vals) return;
+
+    // Escreve os 12 meses (Col C = índice 3 → coluna da planilha)
+    for (let m = 0; m < 12; m++) {
+      if (vals[m] !== null && vals[m] !== 0) {
+        shNova.getRange(rowIdx + 1, 3 + m).setValue(vals[m]);
+      }
+    }
+  });
+
+  SpreadsheetApp.getUi().alert(
+    '✅  Migração concluída!\n\n' +
+    Object.keys(salvo).length + ' subcategorias restauradas.\n\n' +
+    'As 4 linhas movidas para o grupo "RH" (RH, Eventos,\n' +
+    'Cursos e Treinamentos, Gratificações) tiveram seus\n' +
+    'valores preservados automaticamente.\n\n' +
+    'Clique em Sincronizar no painel para atualizar o sistema.'
+  );
+}
+
 function colLetra(n) {
   let s = '';
   while (n > 0) {
