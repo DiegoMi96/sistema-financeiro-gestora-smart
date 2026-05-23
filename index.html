@@ -3024,6 +3024,8 @@ function computePeriodData(dm) {
     const tes = get('Tesouro', idx);
     const inadimpl = get('Inadimpl', idx);
     const baseAtivaV = get('Base_Ativa', idx);
+    const basePreV   = get('Base_Pre', idx);
+    const satV       = get('Satisfacao', idx);
     const baseSWV = get('Base_SW', idx);
     const vendasV = isQ1||isYTD ? sumTo('Vendas_SIM',2) : get('Vendas_SIM',idx);
     const novos = isQ1||isYTD ? sumTo('Novos_CLI',2) : get('Novos_CLI',idx);
@@ -3047,7 +3049,7 @@ function computePeriodData(dm) {
       'Caixa Final':            { v: fmtAutoK(caixaFim), f: isQ1||isYTD?'Saldo em 31/03':'Saldo em 31/'+(idx+1<10?'0'+(idx+1):idx+1) },
       'Inadimplências':         { v: fmtAutoK(inadimpl), f: 'A recuperar' },
       'Base Ativa':             { v: fmtNum(baseAtivaV), f: 'Simcards faturantes' },
-      'Base Pré-Ativa':         { v: '—', f: 'Aguardando ativação' },
+      'Base Pré-Ativa':         { v: fmtNum(basePreV), f: basePreV!=null?'Aguardando ativação':'Sincronize a planilha' },
       'Base Software':          { v: fmtNum(baseSWV), f: 'Licenças ativas' },
       'Vendas':                 { v: fmtNum(vendasV), f: isQ1||isYTD?'Total Q1':'vs. previsto' },
       'Novos Clientes':         { v: fmtNum(novos), f: 'Clientes novos · '+lbl },
@@ -3055,6 +3057,7 @@ function computePeriodData(dm) {
       'Desistência':            { v: fmtNum(desist), f: 'Pré-ativação' },
       'Cancelamento Acumulado': { v: fmtNum(cancelAcum), f: 'YTD '+longMon[idx] },
       'Resultado Líquido':      { v: fmtAutoK(res), f: lbl },
+      'Índice de Satisfação':   { v: satV!=null ? (satV*100).toFixed(1).replace('.',',')+'%' : '—', f: satV!=null?lbl:'Sincronize a planilha' },
       'Cancelamento Anual':     { v: fmtNum(cancelAcum), f: 'Média mensal: '+fmtNum(Math.round(cancelAcum/(idx+1))) },
       'Desistência Anual':      { v: fmtNum(sumTo('Desistencia',idx)), f: 'Média mensal: '+fmtNum(Math.round(sumTo('Desistencia',idx)/(idx+1))) },
       'Churn Implícito':        { v: churnPct, f: 'Cancel / Base ativa' },
@@ -3148,9 +3151,23 @@ function computePeriodData(dm) {
       periodData[key].hero1Desc = 'Sincronize a planilha';
     }
 
-    // Satisfação e próximas ativações não vêm da planilha
-    periodData[key].satisfacao = { val:'—', volume:'—' };
-    periodData[key].proximasAtivacoes = [];
+    // Satisfação — chave Satisfacao (decimal 0-1)
+    const satV2 = q||ytd ? null : get('Satisfacao', idx);
+    periodData[key].satisfacao = {
+      val:    satV2 != null ? (satV2*100).toFixed(1).replace('.',',')+'%' : '—',
+      volume: satV2 != null ? lbl : '—'
+    };
+
+    // Próximas Ativações — chave Atv_Qtd (meses futuros com dados)
+    const atvArr = dm['Atv_Qtd'] || [];
+    const futuroStart = q||ytd ? 3 : idx + 1;
+    const ativacoes = [];
+    const pillsFull = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    for (let m = futuroStart; m < 12 && ativacoes.length < 3; m++) {
+      if (atvArr[m] != null && atvArr[m] > 0)
+        ativacoes.push({ mes: pillsFull[m].toUpperCase(), qty: fmtNum(atvArr[m]) });
+    }
+    periodData[key].proximasAtivacoes = ativacoes;
 
     // margemPanel — Margem_PCT e Margem_BRL da planilha
     const mHist = [];
