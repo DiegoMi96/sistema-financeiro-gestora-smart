@@ -1742,9 +1742,11 @@ const opTotalBase = [0, 0];
 // Pool de Dados — [contratado_GB, consumido_jan] por operadora
 // Consumo cresce ~2-4% ao mês (simulado)
 const poolNomes = ['Vivo','TIM','Algar MULTI','Algar ONE','Arqia'];
-const poolContratado = [0, 0, 0, 0, 0]; // GB contratados (preencher nas configurações)
-const poolConsumoBase = [0, 0, 0, 0, 0]; // GB consumidos
-const poolGrowth = [0, 0, 0, 0, 0]; // crescimento mensal
+let poolContratado = [0, 0, 0, 0, 0]; // GB contratados — preenchido via Pool_Contr_X na planilha
+const poolConsumoBase = [0, 0, 0, 0, 0]; // legado
+const poolGrowth = [0, 0, 0, 0, 0];    // legado
+// Consumo mensal por operadora — preenchido via Pool_Uso_X na planilha
+let poolUsoMes = Array.from({length:5}, () => new Array(12).fill(null));
 
 // Atendimento
 const ticketsMes    = new Array(12).fill(null);
@@ -3101,6 +3103,14 @@ function computePeriodData(dm) {
   mapArr('Vol_Envio', volEnvio, 3);
   mapArr('Custo_Envio', custoEnvio, 3);
 
+  // Pool de dados — Pool_Uso_X e Pool_Contr_X por operadora
+  // Chaves: Pool_Uso_Vivo, Pool_Uso_TIM, Pool_Uso_AlgarM, Pool_Uso_AlgarO, Pool_Uso_Arqia
+  const poolKeys = ['Pool_Uso_Vivo','Pool_Uso_TIM','Pool_Uso_AlgarM','Pool_Uso_AlgarO','Pool_Uso_Arqia'];
+  const poolContrKeys = ['Pool_Contr_Vivo','Pool_Contr_TIM','Pool_Contr_AlgarM','Pool_Contr_AlgarO','Pool_Contr_Arqia'];
+  poolUsoMes = Array.from({length:5}, () => new Array(12).fill(null)); // reset
+  poolKeys.forEach((key, i) => { if (dm[key]) for(let m=0;m<12;m++) poolUsoMes[i][m] = dm[key][m] ?? null; });
+  poolContrKeys.forEach((key, i) => { if (dm[key] && dm[key][0] != null) poolContratado[i] = dm[key][0]; });
+
   // isReal: meses com Receita preenchida são "realizados"
   receitaMes.forEach((v,i) => {
     isReal[i] = v != null;
@@ -3300,19 +3310,28 @@ function renderOpTable(bodyId, mesIdx) {
 
 function buildPool(mesIdx) {
   const wrap = document.getElementById('poolBars'); if (!wrap) return;
-  const consumido = poolConsumoBase.map((base, i) =>
-    Math.round(base * Math.pow(1 + poolGrowth[i], mesIdx))
-  );
   wrap.innerHTML = poolNomes.map((nome, i) => {
-    const pct = +(consumido[i] / poolContratado[i] * 100).toFixed(1);
+    const consumido   = poolUsoMes[i][mesIdx];
+    const contratado  = poolContratado[i];
+    if (consumido == null || contratado === 0) {
+      return `<div class="pool-item">
+        <div class="pool-bar-row">
+          <div class="pool-bar-track"><div class="pool-bar-fill" style="width:0%;background:var(--border)"></div></div>
+          <span class="pool-bar-pct">—</span>
+        </div>
+        <div class="pool-item-name">${nome}</div>
+        <div class="pool-item-sub" style="color:var(--muted)">Sincronize a planilha</div>
+      </div>`;
+    }
+    const pct = +(consumido / contratado * 100).toFixed(1);
     const color = pct >= 80 ? 'var(--negative)' : pct >= 60 ? 'var(--warning)' : 'var(--info)';
     return `<div class="pool-item">
       <div class="pool-bar-row">
-        <div class="pool-bar-track"><div class="pool-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+        <div class="pool-bar-track"><div class="pool-bar-fill" style="width:${Math.min(100,pct)}%;background:${color}"></div></div>
         <span class="pool-bar-pct">${pct.toFixed(1).replace('.',',')}%</span>
       </div>
       <div class="pool-item-name">${nome}</div>
-      <div class="pool-item-sub">${consumido[i].toLocaleString('pt-BR')} GB / ${poolContratado[i].toLocaleString('pt-BR')} GB</div>
+      <div class="pool-item-sub">${consumido.toLocaleString('pt-BR')} GB / ${contratado.toLocaleString('pt-BR')} GB</div>
     </div>`;
   }).join('');
 }
@@ -3486,9 +3505,10 @@ function buildOpMediaChart() {
   const ctx = document.getElementById('chartOpMedia'); if (!ctx) return;
   destroyChart('opMedia');
   const labels = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  const mens  = labels.map((_, i) => getOpMes(i).total.mens);
-  const custo = labels.map((_, i) => getOpMes(i).total.custo);
-  const pct   = labels.map((_, i) => getOpMes(i).total.pct);
+  // Mensalidade média = Receita / Base_Ativa   |   Custo médio = CMV / Base_Ativa
+  const mens  = receitaMes.map((r, i) => (r != null && baseAtiva[i]) ? +(r / baseAtiva[i]).toFixed(2) : null);
+  const custo = custoMes.map((c, i)   => (c != null && baseAtiva[i]) ? +(c / baseAtiva[i]).toFixed(2) : null);
+  const pct   = margemSmart.map(v => v != null ? +v : null);
   charts.opMedia = new Chart(ctx, {
     data: { labels, datasets: [
       { type:'line', label:'Mensalidade', data: mens,
