@@ -1735,9 +1735,29 @@ const opBase = [
   [0,0],[0,0],[0,0],[0,0],[0,0],
   [0,0],[0,0],[0,0]
 ];
-const opMensAdj  = [0,0,0,0,0,0,0,0,0,0,0,0];
-const opCustoAdj = [0,0,0,0,0,0,0,0,0,0,0,0];
-const opTotalBase = [0, 0];
+const opMensAdj  = [0,0,0,0,0,0,0,0,0,0,0,0]; // legado
+const opCustoAdj = [0,0,0,0,0,0,0,0,0,0,0,0]; // legado
+const opTotalBase = [0, 0]; // legado
+// Arrays mensais por operadora — preenchidos via aba Operadoras_YYYY
+// Índice corresponde a opNomes: 0=ALGAR, 1=ALGAR MULTI, ..., 12=VIVO CATM1
+let opMensMes  = Array.from({length:13}, () => new Array(12).fill(null));
+let opCustoMes = Array.from({length:13}, () => new Array(12).fill(null));
+// Chaves usadas na aba Operadoras_YYYY (mesma ordem de opNomes)
+const opChaves = [
+  ['OP_ALGAR_MENS','OP_ALGAR_CUSTO'],
+  ['OP_ALGAR_M_MENS','OP_ALGAR_M_CUSTO'],
+  ['OP_ARQIA_MENS','OP_ARQIA_CUSTO'],
+  ['OP_ARQIA_2_MENS','OP_ARQIA_2_CUSTO'],
+  ['OP_ARQIA_I_MENS','OP_ARQIA_I_CUSTO'],
+  ['OP_CLARO_MENS','OP_CLARO_CUSTO'],
+  ['OP_CLARO_BL_MENS','OP_CLARO_BL_CUSTO'],
+  ['OP_CLARO_C_MENS','OP_CLARO_C_CUSTO'],
+  ['OP_SIERRA_MENS','OP_SIERRA_CUSTO'],
+  ['OP_TIM_MENS','OP_TIM_CUSTO'],
+  ['OP_VIVO_MENS','OP_VIVO_CUSTO'],
+  ['OP_VIVO_BL_MENS','OP_VIVO_BL_CUSTO'],
+  ['OP_VIVO_C_MENS','OP_VIVO_C_CUSTO'],
+];
 
 // Pool de Dados — [contratado_GB, consumido_jan] por operadora
 // Consumo cresce ~2-4% ao mês (simulado)
@@ -3103,14 +3123,6 @@ function computePeriodData(dm) {
   mapArr('Vol_Envio', volEnvio, 3);
   mapArr('Custo_Envio', custoEnvio, 3);
 
-  // Pool de dados — Pool_Uso_X e Pool_Contr_X por operadora
-  // Chaves: Pool_Uso_Vivo, Pool_Uso_TIM, Pool_Uso_AlgarM, Pool_Uso_AlgarO, Pool_Uso_Arqia
-  const poolKeys = ['Pool_Uso_Vivo','Pool_Uso_TIM','Pool_Uso_AlgarM','Pool_Uso_AlgarO','Pool_Uso_Arqia'];
-  const poolContrKeys = ['Pool_Contr_Vivo','Pool_Contr_TIM','Pool_Contr_AlgarM','Pool_Contr_AlgarO','Pool_Contr_Arqia'];
-  poolUsoMes = Array.from({length:5}, () => new Array(12).fill(null)); // reset
-  poolKeys.forEach((key, i) => { if (dm[key]) for(let m=0;m<12;m++) poolUsoMes[i][m] = dm[key][m] ?? null; });
-  poolContrKeys.forEach((key, i) => { if (dm[key] && dm[key][0] != null) poolContratado[i] = dm[key][0]; });
-
   // isReal: meses com Receita preenchida são "realizados"
   receitaMes.forEach((v,i) => {
     isReal[i] = v != null;
@@ -3237,6 +3249,35 @@ async function syncFromSheets() {
       }
     } catch(e) { /* Saidas tab optional */ }
 
+    // Aba Operadoras_YYYY — Detalhamento por Operadora + Pool de Dados
+    try {
+      const opTab = `Operadoras_${year}`;
+      const respO = await fetch(SHEET_CSV(opTab));
+      if (respO.ok) {
+        const textO = await respO.text();
+        const rowsO = parseCSV(textO);
+        const dmO = {};
+        rowsO.slice(1).forEach(row => {
+          const key = (row[0]||'').trim();
+          if (!key || key.startsWith('#') || key.startsWith('Chave')) return;
+          dmO[key] = row.slice(2, 14).map(numOrNull);
+        });
+        // Operadoras — mensalidade e custo por operadora por mês
+        opMensMes  = Array.from({length:13}, () => new Array(12).fill(null));
+        opCustoMes = Array.from({length:13}, () => new Array(12).fill(null));
+        opChaves.forEach(([mk, ck], i) => {
+          if (dmO[mk]) for(let m=0;m<12;m++) opMensMes[i][m]  = dmO[mk][m] ?? null;
+          if (dmO[ck]) for(let m=0;m<12;m++) opCustoMes[i][m] = dmO[ck][m] ?? null;
+        });
+        // Pool de dados — uso e capacidade contratada por operadora
+        const poolUsoChaves   = ['POOL_VIVO_USO','POOL_TIM_USO','POOL_ALGAR_M_USO','POOL_ALGAR_O_USO','POOL_ARQIA_USO'];
+        const poolContrChaves = ['POOL_VIVO_CONTR','POOL_TIM_CONTR','POOL_ALGAR_M_CONTR','POOL_ALGAR_O_CONTR','POOL_ARQIA_CONTR'];
+        poolUsoMes   = Array.from({length:5}, () => new Array(12).fill(null));
+        poolUsoChaves.forEach((key, i)   => { if (dmO[key]) for(let m=0;m<12;m++) poolUsoMes[i][m] = dmO[key][m] ?? null; });
+        poolContrChaves.forEach((key, i) => { if (dmO[key] && dmO[key][0] != null) poolContratado[i] = dmO[key][0]; });
+      }
+    } catch(e) { /* Operadoras tab optional */ }
+
     computePeriodData(dm);
     applyPeriod(getActivePeriod());
     rerenderAllCharts();
@@ -3272,20 +3313,22 @@ window.addEventListener('load', () => {
   rerenderAllCharts();
 });
 function getOpMes(mesIdx) {
-  const adjM = opMensAdj[mesIdx] / 100;
-  const adjC = opCustoAdj[mesIdx] / 100;
   const rows = opNomes.map((nome, i) => {
-    const mens  = +(opBase[i][0] * (1 + adjM)).toFixed(2);
-    const custo = +(opBase[i][1] * (1 + adjC)).toFixed(2);
-    const marg  = +(mens - custo).toFixed(2);
-    const pct   = +(marg / mens * 100).toFixed(1);
+    const mens  = opMensMes[i][mesIdx];
+    const custo = opCustoMes[i][mesIdx];
+    if (mens == null) return { nome, mens: null, custo: null, marg: null, pct: null };
+    const marg = +(mens - (custo || 0)).toFixed(2);
+    const pct  = mens > 0 ? +(marg / mens * 100).toFixed(1) : 0;
     return { nome, mens, custo, marg, pct };
   });
-  const tM = +(opTotalBase[0] * (1 + adjM)).toFixed(2);
-  const tC = +(opTotalBase[1] * (1 + adjC)).toFixed(2);
+  // Média ponderada — apenas operadoras com dados preenchidos
+  const valid = rows.filter(r => r.mens != null);
+  if (valid.length === 0) return { rows, total: { mens: null, custo: null, marg: null, pct: null } };
+  const tM    = +(valid.reduce((a, r) => a + r.mens, 0) / valid.length).toFixed(2);
+  const tC    = +(valid.reduce((a, r) => a + (r.custo || 0), 0) / valid.length).toFixed(2);
   const tMarg = +(tM - tC).toFixed(2);
-  const tPct  = +(tMarg / tM * 100).toFixed(1);
-  return { rows, total: { mens:tM, custo:tC, marg:tMarg, pct:tPct } };
+  const tPct  = tM > 0 ? +(tMarg / tM * 100).toFixed(1) : 0;
+  return { rows, total: { mens: tM, custo: tC, marg: tMarg, pct: tPct } };
 }
 
 function fmtOp(v) { return 'R$ ' + v.toFixed(2).replace('.',','); }
@@ -3293,18 +3336,20 @@ function fmtOp(v) { return 'R$ ' + v.toFixed(2).replace('.',','); }
 function renderOpTable(bodyId, mesIdx) {
   const tbody = document.getElementById(bodyId); if (!tbody) return;
   const d = getOpMes(mesIdx);
-  tbody.innerHTML = d.rows.map(r => `<tr>
+  const fO = v => v != null ? fmtOp(v) : '—';
+  const fP = v => v != null ? v.toFixed(1).replace('.',',')+'%' : '—';
+  tbody.innerHTML = d.rows.map(r => `<tr${r.mens == null ? ' style="opacity:.45"' : ''}>
     <td>${r.nome}</td>
-    <td class="r">${fmtOp(r.mens)}</td>
-    <td class="r">${fmtOp(r.custo)}</td>
-    <td class="r">${fmtOp(r.marg)}</td>
-    <td class="r"><span class="pct-chip ${r.pct >= 20 ? 'pos' : 'mid'}">${r.pct.toFixed(1).replace('.',',')}%</span></td>
+    <td class="r">${fO(r.mens)}</td>
+    <td class="r">${fO(r.custo)}</td>
+    <td class="r">${fO(r.marg)}</td>
+    <td class="r"><span class="pct-chip ${r.pct != null && r.pct >= 20 ? 'pos' : 'mid'}">${fP(r.pct)}</span></td>
   </tr>`).join('') + `<tr class="op-total">
     <td>Média Ponderada</td>
-    <td class="r">${fmtOp(d.total.mens)}</td>
-    <td class="r">${fmtOp(d.total.custo)}</td>
-    <td class="r">${fmtOp(d.total.marg)}</td>
-    <td class="r"><span class="pct-chip pos">${d.total.pct.toFixed(1).replace('.',',')}%</span></td>
+    <td class="r">${fO(d.total.mens)}</td>
+    <td class="r">${fO(d.total.custo)}</td>
+    <td class="r">${fO(d.total.marg)}</td>
+    <td class="r"><span class="pct-chip ${d.total.pct != null && d.total.pct >= 20 ? 'pos' : 'mid'}">${fP(d.total.pct)}</span></td>
   </tr>`;
 }
 
@@ -3505,10 +3550,10 @@ function buildOpMediaChart() {
   const ctx = document.getElementById('chartOpMedia'); if (!ctx) return;
   destroyChart('opMedia');
   const labels = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  // Mensalidade média = Receita / Base_Ativa   |   Custo médio = CMV / Base_Ativa
-  const mens  = receitaMes.map((r, i) => (r != null && baseAtiva[i]) ? +(r / baseAtiva[i]).toFixed(2) : null);
-  const custo = custoMes.map((c, i)   => (c != null && baseAtiva[i]) ? +(c / baseAtiva[i]).toFixed(2) : null);
-  const pct   = margemSmart.map(v => v != null ? +v : null);
+  // Média ponderada derivada do Detalhamento por Operadora (aba Operadoras_YYYY)
+  const mens  = labels.map((_, i) => getOpMes(i).total.mens);
+  const custo = labels.map((_, i) => getOpMes(i).total.custo);
+  const pct   = labels.map((_, i) => getOpMes(i).total.pct);
   charts.opMedia = new Chart(ctx, {
     data: { labels, datasets: [
       { type:'line', label:'Mensalidade', data: mens,
