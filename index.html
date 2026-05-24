@@ -2210,7 +2210,8 @@ function buildLucro() {
         legend: { display:false },
         tooltip: { callbacks: { label: c => fmtBRL(c.parsed.y) } },
         datalabels: {
-          display: true,
+          // Só exibe label nas barras de realizado — previsão aparece apenas no tooltip
+          display: ctx => ctx.datasetIndex === 0 && ctx.dataset.data[ctx.dataIndex] != null,
           anchor: c => (c.dataset.data[c.dataIndex] || 0) < 0 ? 'start' : 'end',
           align: c => (c.dataset.data[c.dataIndex] || 0) < 0 ? 'bottom' : 'top',
           color: css('--text-2'), font: { size: 10, weight: '700' },
@@ -2238,9 +2239,11 @@ function buildMini(id, real) {
         legend:{display:false},
         tooltip:{ callbacks:{ label: c => fmtBRL(c.parsed.y) } },
         datalabels: {
-          display: true, anchor: 'end', align: 'top',
+          // Mostra label só nas barras de realizado (dataset 0) — previsão fica só no tooltip
+          display: ctx => ctx.datasetIndex === 0 && ctx.dataset.data[ctx.dataIndex] != null,
+          anchor: 'end', align: 'top',
           color: css('--text-2'), font: { size: 9, weight: '700' },
-          formatter: v => v == null ? '' : (v/1000000).toFixed(2)+'M'
+          formatter: v => v == null ? '' : (v/1000000).toFixed(1)+'M'
         }
       },
       scales: { ...commonOpts().scales, y: { ...commonOpts().scales.y, ticks: { ...commonOpts().scales.y.ticks, callback: v => (v/1000000).toFixed(1)+'M' } } }
