@@ -3386,13 +3386,26 @@ function computePeriodData(dm) {
   mapArr('Vol_Envio', volEnvio, 3);
   mapArr('Custo_Envio', custoEnvio, 3);
 
-  // isReal: meses com Receita preenchida são "realizados"
+  // isReal: meses com Receita > 0 são "realizados".
+  // Células com fórmula que retornam 0 (meses futuros) NÃO são "realizado".
   receitaMes.forEach((v,i) => {
-    isReal[i] = v != null;
-    if (i<3) { isRealTickets[i] = v!=null; isRealRH[i] = v!=null; }
+    isReal[i] = v != null && v > 0;
+    if (i<3) { isRealTickets[i] = isReal[i]; isRealRH[i] = isReal[i]; }
   });
-  lucroLiquido.forEach((v,i) => { if (v!=null) ebitdaIsReal[i] = true; });
-  saldoAcum.forEach((v,i) => { if (v!=null) saldoIsReal[i] = true; });
+  lucroLiquido.forEach((v,i) => { if (v!=null && v!==0) ebitdaIsReal[i] = true; });
+  saldoAcum.forEach((v,i) => { if (v!=null && v!==0) saldoIsReal[i] = true; });
+
+  // Zera arrays financeiros para meses não realizados — garante que 0 do sheet
+  // não apareça nos gráficos; a previsão os preencherá logo abaixo.
+  for (let i = 0; i < 12; i++) {
+    if (!isReal[i]) {
+      receitaMes[i]   = null;
+      custoMes[i]     = null;
+      despesaMes[i]   = null;
+      lucroLiquido[i] = null;
+      saldoAcum[i]    = null;
+    }
+  }
 
   // Detecta o último mês real APÓS carregar os dados — isReal agora está correto
   const lastRealIdx = isReal.reduce((last, v, i) => v ? i : last, -1);
