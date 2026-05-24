@@ -269,15 +269,15 @@ body { display: flex; min-height: 100vh; }
 footer.last-update { padding: 18px 28px; text-align: center; color: var(--muted); font-size: 11.5px; }
 
 /* DFC table (match print layout) */
-.dfc-tbl { width: 100%; border-collapse: separate; border-spacing: 0 4px; font-family: 'Inter', sans-serif; min-width: 2200px; }
+.dfc-tbl { width: 100%; border-collapse: separate; border-spacing: 0 4px; font-family: 'Inter', sans-serif; min-width: 2800px; }
 .dfc-tbl th { background: var(--primary); color: #fff; font-weight: 700; padding: 12px 14px; font-size: 12px; letter-spacing: .5px; text-transform: uppercase; text-align: left; vertical-align: middle; }
-.dfc-tbl th.num, .dfc-tbl th.pct { text-align: right; }
-.dfc-tbl th:first-child { border-radius: 8px 0 0 8px; }
+.dfc-tbl th.num, .dfc-tbl th.pct { text-align: right; min-width: 110px; }
+.dfc-tbl th:first-child { border-radius: 8px 0 0 8px; min-width: 200px; }
 .dfc-tbl th:last-child { border-radius: 0 8px 8px 0; }
 .dfc-tbl td { padding: 12px 14px; background: var(--surface-2); font-size: 13px; vertical-align: middle; }
-.dfc-tbl td.cat { font-weight: 500; color: var(--text); }
-.dfc-tbl td.num { text-align: right; font-variant-numeric: tabular-nums; font-family: 'Manrope'; font-weight: 600; color: var(--text); position: relative; }
-.dfc-tbl td.num .sign { color: var(--negative); margin-right: 18px; font-weight: 700; position: absolute; left: 14px; }
+.dfc-tbl td.cat { font-weight: 500; color: var(--text); min-width: 200px; }
+.dfc-tbl td.num { text-align: right; font-variant-numeric: tabular-nums; font-family: 'Manrope'; font-weight: 600; color: var(--text); min-width: 110px; white-space: nowrap; }
+.dfc-tbl td.num .sign { color: var(--negative); font-weight: 700; margin-right: 3px; }
 .dfc-tbl td.num.neg { color: #B43B30; }
 .dfc-tbl td.num.pos-num { color: var(--primary-dark); font-weight: 700; }
 .dfc-tbl td.pct { text-align: right; font-weight: 700; font-family: 'Manrope'; font-size: 13.5px; }
