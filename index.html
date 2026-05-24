@@ -2627,7 +2627,8 @@ function buildDFCTable() {
     ['RH',                     '',          true,  m => catSum('RH', m)],
     ['Despesa Comercial',      '',          true,  m => catSum('Despesa Comercial', m)],
     ['Despesa Tributaria',     '',          true,  m => catSum('Despesa Tributaria', m)],
-    ['Atividades Financeiras', '',          true,  m => catSum('Atividades Financeiras', m)],
+    ['R - Ativ. Financeiras',   'receita',   false, m => catSum('R - Atividades Financeiras', m)],
+    ['D - Ativ. Financeiras',   '',          true,  m => catSum('D - Atividades Financeiras', m)],
     ['Custo SMT',              '',          true,  m => catSum('Custo SMT', m)],
     ['Resultado do Mês',       'resultado', false, null],
     ['Dividendos',             '',          true,  null],
@@ -2638,19 +2639,21 @@ function buildDFCTable() {
     Array.from({length: 12}, (_, m) => fn ? fn(m) : null)
   );
 
-  // Resultado do Mês = Receita − todos os custos
-  // resIdx=9: vals[0]=RECEITA, vals[1..8]=custos, vals[9]=Resultado
-  const resIdx = 9;
+  // Resultado do Mês = (RECEITA TOTAL + R-AtivFin) − custos
+  // [0]=RECEITA TOTAL  [1]=R-AtivFin  [2..9]=custos  [10]=Resultado  [11]=Dividendos  [12]=Saldo
+  const resIdx = 10;
   for (let m = 0; m < 12; m++) {
-    const totalRec = vals[0][m];
-    if (totalRec != null) {
-      const totalCost = [1,2,3,4,5,6,7,8].reduce((a, ri) => a + (vals[ri][m] || 0), 0);
+    const recOp  = vals[0][m];   // receita operacional
+    const recFin = vals[1][m];   // R - Atividades Financeiras
+    if (recOp != null || recFin != null) {
+      const totalRec  = (recOp || 0) + (recFin || 0);
+      const totalCost = [2,3,4,5,6,7,8,9].reduce((a, ri) => a + (vals[ri][m] || 0), 0);
       vals[resIdx][m] = totalRec - totalCost;
     }
   }
 
-  // Saldo Acumulado da planilha principal  (index 11)
-  for (let m = 0; m < 12; m++) vals[11][m] = saldoAcum[m];
+  // Saldo Acumulado da planilha principal  (index 12)
+  for (let m = 0; m < 12; m++) vals[12][m] = saldoAcum[m];
 
   const fmtN = v => new Intl.NumberFormat('pt-BR').format(Math.round(Math.abs(v)));
 
@@ -2809,7 +2812,13 @@ const saidasData = [
     _sub12('ICMS'),
     _sub12('Outros impostos')
   ]},
-  { cat: 'Atividades Financeiras', subs: [
+  { cat: 'R - Atividades Financeiras', subs: [
+    _sub12('Rendimento de Investimentos'),
+    _sub12('Juros Recebidos'),
+    _sub12('Estorno Recebido'),
+    _sub12('Outras Receitas Financeiras')
+  ]},
+  { cat: 'D - Atividades Financeiras', subs: [
     _sub12('Empréstimos PGTO'),
     _sub12('Empréstimos'),
     _sub12('Tarifa Bancaria'),
@@ -3440,16 +3449,17 @@ function computePeriodData(dm) {
     };
     // Receita: tenta SS + SMT, e também variações como "Receita SS", "RECEITA", etc.
     const _prevRec = (m) => {
-      const ss  = _prevCatSum('Total de RECEITA - SS', m);
-      const smt = _prevCatSum('Total de RECEITA - SMT', m);
-      if (ss > 0 || smt > 0) return ss + smt;
+      const ss     = _prevCatSum('Total de RECEITA - SS', m);
+      const smt    = _prevCatSum('Total de RECEITA - SMT', m);
+      const rAfin  = _prevCatSum('R - Atividades Financeiras', m);
+      if (ss > 0 || smt > 0 || rAfin > 0) return ss + smt + rAfin;
       // Fallback: soma de todos os grupos que tenham "receita" no nome
       return previsaoData
         .filter(g => g.cat.toLowerCase().includes('receita'))
         .reduce((t, g) => t + g.subs.reduce((a, s) => a + (s[m + 1] || 0), 0), 0);
     };
     const _prevExpGroups = ['Despesas Administrativa','Despesas com pessoal','RH',
-      'Despesa Comercial','Despesa Tributaria','Atividades Financeiras','Custo SMT'];
+      'Despesa Comercial','Despesa Tributaria','D - Atividades Financeiras','Custo SMT'];
 
     for (let m = 0; m < 12; m++) {
       if (isReal[m]) continue; // mês já tem dado real — não sobrescreve

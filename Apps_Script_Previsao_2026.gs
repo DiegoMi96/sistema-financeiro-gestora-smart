@@ -43,7 +43,8 @@ function criarAbaPrevisao2026() {
     grpRH:      '#1A6B45',   // Centro de custo RH
     grpComerc:  '#7D6608',
     grpTribut:  '#512E5F',
-    grpFinanc:  '#0D4B82',
+    grpRFinanc: '#154360',   // R - Atividades Financeiras (receita financeira)
+    grpFinanc:  '#0D4B82',  // D - Atividades Financeiras (despesa financeira)
     grpSMT:     '#0B5345',
     grpTotal:   '#1A2535',
     grpFg:      '#FFFFFF',
@@ -120,7 +121,15 @@ function criarAbaPrevisao2026() {
       subs: ['COFINS', 'PIS', 'GNRE', 'CSLL e IRPJ', 'ICMS', 'Outros impostos']
     },
     {
-      cat: 'Atividades Financeiras',
+      cat: 'R - Atividades Financeiras',
+      cor: COR.grpRFinanc,
+      subs: [
+        'Rendimento de Investimentos', 'Juros Recebidos',
+        'Estorno Recebido', 'Outras Receitas Financeiras',
+      ]
+    },
+    {
+      cat: 'D - Atividades Financeiras',
       cor: COR.grpFinanc,
       subs: [
         'Empréstimos PGTO', 'Empréstimos', 'Tarifa Bancaria',

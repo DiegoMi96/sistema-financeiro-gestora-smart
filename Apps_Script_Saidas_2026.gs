@@ -38,7 +38,8 @@ function criarAbaSaidas2026() {
     grpRH:      '#1A6B45',   // Centro de custo RH (tom distinto do Pessoal)
     grpComerc:  '#7D6608',
     grpTribut:  '#512E5F',
-    grpFinanc:  '#1B4F72',
+    grpRFinanc: '#154360',   // R - Atividades Financeiras (receita financeira)
+    grpFinanc:  '#1B4F72',  // D - Atividades Financeiras (despesa financeira)
     grpSMT:     '#0B5345',
     grpTotal:   '#212F3C',
     grpFg:      '#FFFFFF',
@@ -152,7 +153,17 @@ function criarAbaSaidas2026() {
       ]
     },
     {
-      cat: 'Atividades Financeiras',
+      cat: 'R - Atividades Financeiras',
+      cor: COR.grpRFinanc,
+      subs: [
+        'Rendimento de Investimentos',
+        'Juros Recebidos',
+        'Estorno Recebido',
+        'Outras Receitas Financeiras',
+      ]
+    },
+    {
+      cat: 'D - Atividades Financeiras',
       cor: COR.grpFinanc,
       subs: [
         'Empréstimos PGTO',
