@@ -2669,19 +2669,32 @@ function buildDFCTable() {
   };
 
   // [label, rowClass, isExpense, valueFn]
-  // RECEITA usa receitaMes — fonte única confiável:
-  //   meses reais  → dm['Receita'] da aba 2026 (preenchido pelo usuário)
-  //   meses prev   → derivado de previsaoData em computePeriodData
+  // RECEITA SS/SMT: lê saidasData (real) ou previsaoData (forecast)
+  // Fallback real: se Saidas_2026 não tiver receita, usa receitaMes no SS (evita — para o usuário)
+  const _recSS  = m => {
+    const ss = catSum('Total de RECEITA - SS', m);
+    if (ss != null) return ss;
+    if (isReal[m] && catSum('Total de RECEITA - SMT', m) == null) return receitaMes[m]; // fallback total em SS
+    return null;
+  };
+  const _recSMT = m => {
+    const smt = catSum('Total de RECEITA - SMT', m);
+    if (smt != null) return smt;
+    // Se SS usou fallback (total), SMT fica null para não duplicar
+    return null;
+  };
+
   const rowDefs = [
-    ['RECEITA TOTAL',          'receita',   false, m => receitaMes[m] ?? null],
+    ['RECEITA - SS',           'receita',   false, m => _recSS(m)],
+    ['RECEITA - SMT',          'receita',   false, m => _recSMT(m)],
+    ['R - Ativ. Financeiras',  'receita',   false, m => catSum('R - Atividades Financeiras', m)],
     ['CMV / CPS',              '',          true,  m => catSum('CMV / CPS', m)],
-    ['Despesas Administrativa', '',         true,  m => catSum('Despesas Administrativa', m)],
+    ['Despesas Administrativa','',          true,  m => catSum('Despesas Administrativa', m)],
     ['Despesas com pessoal',   '',          true,  m => catSum('Despesas com pessoal', m)],
     ['RH',                     '',          true,  m => catSum('RH', m)],
     ['Despesa Comercial',      '',          true,  m => catSum('Despesa Comercial', m)],
     ['Despesa Tributaria',     '',          true,  m => catSum('Despesa Tributaria', m)],
-    ['R - Ativ. Financeiras',   'receita',   false, m => catSum('R - Atividades Financeiras', m)],
-    ['D - Ativ. Financeiras',   '',          true,  m => catSum('D - Atividades Financeiras', m)],
+    ['D - Ativ. Financeiras',  '',          true,  m => catSum('D - Atividades Financeiras', m)],
     ['Custo SMT',              '',          true,  m => catSum('Custo SMT', m)],
     ['Resultado do Mês',       'resultado', false, null],
     ['Dividendos',             '',          true,  null],
@@ -2692,21 +2705,20 @@ function buildDFCTable() {
     Array.from({length: 12}, (_, m) => fn ? fn(m) : null)
   );
 
-  // Resultado do Mês = (RECEITA TOTAL + R-AtivFin) − custos
-  // [0]=RECEITA TOTAL  [1]=R-AtivFin  [2..9]=custos  [10]=Resultado  [11]=Dividendos  [12]=Saldo
-  const resIdx = 10;
+  // Resultado do Mês = (SS + SMT + R-AtivFin) − custos
+  // [0]=SS [1]=SMT [2]=R-AtivFin [3..10]=custos [11]=Resultado [12]=Dividendos [13]=Saldo
+  const resIdx = 11;
   for (let m = 0; m < 12; m++) {
-    const recOp  = vals[0][m];   // receita operacional
-    const recFin = vals[1][m];   // R - Atividades Financeiras
-    if (recOp != null || recFin != null) {
-      const totalRec  = (recOp || 0) + (recFin || 0);
-      const totalCost = [2,3,4,5,6,7,8,9].reduce((a, ri) => a + (vals[ri][m] || 0), 0);
+    const recSS = vals[0][m], recSMT = vals[1][m], recFin = vals[2][m];
+    if (recSS != null || recSMT != null || recFin != null) {
+      const totalRec  = (recSS || 0) + (recSMT || 0) + (recFin || 0);
+      const totalCost = [3,4,5,6,7,8,9,10].reduce((a, ri) => a + (vals[ri][m] || 0), 0);
       vals[resIdx][m] = totalRec - totalCost;
     }
   }
 
-  // Saldo Acumulado da planilha principal  (index 12)
-  for (let m = 0; m < 12; m++) vals[12][m] = saldoAcum[m];
+  // Saldo Acumulado da planilha principal  (index 13)
+  for (let m = 0; m < 12; m++) vals[13][m] = saldoAcum[m];
 
   const fmtN = v => new Intl.NumberFormat('pt-BR').format(Math.round(Math.abs(v)));
 
