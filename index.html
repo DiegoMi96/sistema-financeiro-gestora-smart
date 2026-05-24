@@ -2616,10 +2616,11 @@ function buildDFCTable() {
   };
 
   // [label, rowClass, isExpense, valueFn]
-  // RH é agora centro de custo próprio (categoria top-level na planilha)
+  // RECEITA usa receitaMes — fonte única confiável:
+  //   meses reais  → dm['Receita'] da aba 2026 (preenchido pelo usuário)
+  //   meses prev   → derivado de previsaoData em computePeriodData
   const rowDefs = [
-    ['RECEITA - SS',           'receita',   false, m => catSum('Total de RECEITA - SS', m)],
-    ['RECEITA - SMT',          'receita',   false, m => catSum('Total de RECEITA - SMT', m)],
+    ['RECEITA TOTAL',          'receita',   false, m => receitaMes[m] ?? null],
     ['CMV / CPS',              '',          true,  m => catSum('CMV / CPS', m)],
     ['Despesas Administrativa', '',         true,  m => catSum('Despesas Administrativa', m)],
     ['Despesas com pessoal',   '',          true,  m => catSum('Despesas com pessoal', m)],
@@ -2638,18 +2639,18 @@ function buildDFCTable() {
   );
 
   // Resultado do Mês = Receita − todos os custos
-  const resIdx = 10;
+  // resIdx=9: vals[0]=RECEITA, vals[1..8]=custos, vals[9]=Resultado
+  const resIdx = 9;
   for (let m = 0; m < 12; m++) {
-    const recSS = vals[0][m], recSMT = vals[1][m];
-    if (recSS != null || recSMT != null) {
-      const totalRec  = (recSS || 0) + (recSMT || 0);
-      const totalCost = [2,3,4,5,6,7,8,9].reduce((a, ri) => a + (vals[ri][m] || 0), 0);
+    const totalRec = vals[0][m];
+    if (totalRec != null) {
+      const totalCost = [1,2,3,4,5,6,7,8].reduce((a, ri) => a + (vals[ri][m] || 0), 0);
       vals[resIdx][m] = totalRec - totalCost;
     }
   }
 
-  // Saldo Acumulado da planilha principal
-  for (let m = 0; m < 12; m++) vals[12][m] = saldoAcum[m];
+  // Saldo Acumulado da planilha principal  (index 11)
+  for (let m = 0; m < 12; m++) vals[11][m] = saldoAcum[m];
 
   const fmtN = v => new Intl.NumberFormat('pt-BR').format(Math.round(Math.abs(v)));
 
@@ -3426,18 +3427,33 @@ function computePeriodData(dm) {
 
   // ── Previsão (forecast) — preenche meses futuros a partir de previsaoData ──
   if (previsaoData.length > 0) {
+    // _prevCatSum: busca pelo nome exato OU por qualquer grupo que contenha a palavra-chave
     const _prevCatSum = (catName, m) => {
-      const g = previsaoData.find(g => g.cat === catName);
+      let g = previsaoData.find(g => g.cat === catName);
+      if (!g) {
+        // Fallback: busca parcial (case-insensitive) para tolerar variações de nome
+        const kw = catName.toLowerCase();
+        g = previsaoData.find(g => g.cat.toLowerCase().includes(kw.replace('total de ','')));
+      }
       if (!g) return 0;
       return g.subs.reduce((a, s) => a + (s[m + 1] || 0), 0);
+    };
+    // Receita: tenta SS + SMT, e também variações como "Receita SS", "RECEITA", etc.
+    const _prevRec = (m) => {
+      const ss  = _prevCatSum('Total de RECEITA - SS', m);
+      const smt = _prevCatSum('Total de RECEITA - SMT', m);
+      if (ss > 0 || smt > 0) return ss + smt;
+      // Fallback: soma de todos os grupos que tenham "receita" no nome
+      return previsaoData
+        .filter(g => g.cat.toLowerCase().includes('receita'))
+        .reduce((t, g) => t + g.subs.reduce((a, s) => a + (s[m + 1] || 0), 0), 0);
     };
     const _prevExpGroups = ['Despesas Administrativa','Despesas com pessoal','RH',
       'Despesa Comercial','Despesa Tributaria','Atividades Financeiras','Custo SMT'];
 
     for (let m = 0; m < 12; m++) {
       if (isReal[m]) continue; // mês já tem dado real — não sobrescreve
-      const rec = _prevCatSum('Total de RECEITA - SS', m)
-                + _prevCatSum('Total de RECEITA - SMT', m);
+      const rec = _prevRec(m);
       const cmv = _prevCatSum('CMV / CPS', m);
       const desp = _prevExpGroups.reduce((t,g) => t + _prevCatSum(g, m), 0);
       if (rec || cmv || desp) {
