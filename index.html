@@ -2030,6 +2030,7 @@ function applyPeriod(p) {
   currentPeriod = p;
   const d = periodData[p];
   if (!d) return;
+  const year = document.getElementById('yearSelect')?.value || '2026';
   // Hero
   document.getElementById('heroSub').textContent = periodLabels[p] + ' · Gestora Smart';
   document.getElementById('heroVal1').textContent = d.hero1Val;
