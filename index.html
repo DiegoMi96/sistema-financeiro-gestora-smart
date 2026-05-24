@@ -3270,7 +3270,17 @@ function fmtAutoK(v) {
 
 function computePeriodData(dm) {
   const year = document.getElementById('yearSelect')?.value || '2026';
-  const get = (key, idx) => dm[key] ? (dm[key][idx] ?? null) : null;
+  const get = (key, idx) => {
+    const v = dm[key] ? (dm[key][idx] ?? null) : null;
+    if (v != null) return v;
+    // Fallback: para meses de previsão usa os arrays já populados
+    if (key === 'Receita')    return receitaMes[idx]  ?? null;
+    if (key === 'CMV')        return custoMes[idx]    ?? null;
+    if (key === 'Despesas')   return despesaMes[idx]  ?? null;
+    if (key === 'Resultado')  return lucroLiquido[idx] ?? null;
+    if (key === 'Saldo_Acum') return saldoAcum[idx]   ?? null;
+    return null;
+  };
   const sumTo = (key, idx) => dm[key] ? dm[key].slice(0, idx+1).reduce((a,b)=>a+(b??0),0) : null;
   const shortMon = MES_ABREV;
   const longMon  = MES_NOME;
@@ -3432,6 +3442,16 @@ function computePeriodData(dm) {
         saldoAcum[m] = ultimoSaldo;
       }
     }
+
+    // ── KPIs para meses de previsão (após arrays populados) ──────
+    // get() já faz fallback para receitaMes/custoMes/etc., então
+    // buildKpis funciona normalmente com os valores de previsão.
+    for (let m = 0; m < 12; m++) {
+      if (isReal[m]) continue;
+      if (receitaMes[m] == null && custoMes[m] == null) continue;
+      const key = `${year}-${MES_PAD[m]}`;
+      if (periodData[key]) periodData[key].kpis = buildKpis(m, false, false);
+    }
   }
 
   // ── Reconstrói hero / satisfacao / margemPanel / q1Panel de cada período ──
@@ -3506,6 +3526,21 @@ function computePeriodData(dm) {
       items: vItems
     };
   });
+
+  // ── Hero values para meses de previsão ──────────────────────────
+  for (let m = 0; m < 12; m++) {
+    if (isReal[m]) continue;
+    if (receitaMes[m] == null && custoMes[m] == null) continue;
+    const key = `${year}-${MES_PAD[m]}`;
+    if (!periodData[key]) continue;
+    const rec = receitaMes[m];
+    const res = lucroLiquido[m];
+    periodData[key].hero2Val  = rec != null ? fmtAutoK(rec) : '—';
+    periodData[key].hero2Desc = res != null ? 'Resultado (prev): ' + fmtAutoK(res) : '—';
+    periodData[key].hero1Val  = rec != null ? fmtAutoK(rec) : '—';
+    periodData[key].hero1Desc = res != null && res >= 0 ? 'Previsão · resultado positivo'
+                               : res != null ? 'Previsão · resultado negativo' : 'Previsão';
+  }
 
   // Atualiza tabela DFC após recalcular todos os arrays
   buildDFCTable();
