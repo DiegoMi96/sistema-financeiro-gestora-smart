@@ -2887,6 +2887,7 @@ function buildSaidasTable(filter='') {
 function buildSaidasCat() {
   const ctx = document.getElementById('chartSaidasCat'); if (!ctx) return;
   destroyChart('saidasCat');
+  const year = document.getElementById('yearSelect')?.value || '2026';
   // periLblShort — derivado de periodMonthIdx (dinâmico)
   const periLblShort = {[`${year}-Q1`]: 'Q1 '+year, [`${year}-YTD`]: 'YTD '+year};
   Object.keys(periodMonthIdx).forEach(k => {
