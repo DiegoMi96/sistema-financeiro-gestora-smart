@@ -2684,54 +2684,29 @@ function buildDFCTable() {
     return null;
   };
 
+  // [label, rowClass, isExpense, valueFn]
+  // Resultado do Mês, Dividendos e Saldo Acumulado puxados diretamente da aba Saidas_2026
   const rowDefs = [
-    ['RECEITA - SS',           'receita',   false, m => _recSS(m)],
-    ['RECEITA - SMT',          'receita',   false, m => _recSMT(m)],
-    ['R - Ativ. Financeiras',  'receita',   false, m => catSum('R - Atividades Financeiras', m)],
-    ['CMV / CPS',              '',          true,  m => catSum('CMV / CPS', m)],
-    ['Despesas Administrativa','',          true,  m => catSum('Despesas Administrativa', m)],
-    ['Despesas com pessoal',   '',          true,  m => catSum('Despesas com pessoal', m)],
-    ['RH',                     '',          true,  m => catSum('RH', m)],
-    ['Despesa Comercial',      '',          true,  m => catSum('Despesa Comercial', m)],
-    ['Despesa Tributaria',     '',          true,  m => catSum('Despesa Tributaria', m)],
-    ['D - Ativ. Financeiras',  '',          true,  m => catSum('D - Atividades Financeiras', m)],
-    ['Custo SMT',              '',          true,  m => catSum('Custo SMT', m)],
-    ['Resultado do Mês',       'resultado', false, null],
-    ['Dividendos',             '',          true,  null],
-    ['Saldo Acumulado',        'saldo',     false, null],
+    ['RECEITA - SS',            'receita',   false, m => _recSS(m)],
+    ['RECEITA - SMT',           'receita',   false, m => _recSMT(m)],
+    ['CMV / CPS',               '',          true,  m => catSum('CMV / CPS', m)],
+    ['Despesas Administrativa', '',          true,  m => catSum('Despesas Administrativa', m)],
+    ['Despesas com pessoal',    '',          true,  m => catSum('Despesas com pessoal', m)],
+    ['RH',                      '',          true,  m => catSum('RH', m)],
+    ['Despesa Comercial',       '',          true,  m => catSum('Despesa Comercial', m)],
+    ['Despesa Tributaria',      '',          true,  m => catSum('Despesa Tributaria', m)],
+    ['Atividades Financeiras',  '',          false, m => catSum('Atividades Financeiras', m)],
+    ['Custo SMT',               '',          true,  m => catSum('Custo SMT', m)],
+    ['Resultado do Mês',        'resultado', false, m => catSum('Resultado do Mês', m)],
+    ['Dividendos',              '',          true,  m => catSum('Dividendos', m)],
+    ['Saldo Acumulado',         'saldo',     false, m => catSum('Saldo Acumulado', m)],
   ];
 
+  // Todos os valores vêm diretamente das funções definidas em rowDefs (catSum / _recSS / _recSMT)
+  // Resultado do Mês, Dividendos e Saldo Acumulado são lidos da aba Saidas_2026 — nenhum recálculo necessário
   const vals = rowDefs.map(([,,, fn]) =>
     Array.from({length: 12}, (_, m) => fn ? fn(m) : null)
   );
-
-  // Resultado do Mês = (SS + SMT + R-AtivFin) − custos
-  // [0]=SS [1]=SMT [2]=R-AtivFin [3..10]=custos [11]=Resultado [12]=Dividendos [13]=Saldo
-  const resIdx = 11;
-  for (let m = 0; m < 12; m++) {
-    const recSS = vals[0][m], recSMT = vals[1][m], recFin = vals[2][m];
-    if (recSS != null || recSMT != null || recFin != null) {
-      const totalRec  = (recSS || 0) + (recSMT || 0) + (recFin || 0);
-      const totalCost = [3,4,5,6,7,8,9,10].reduce((a, ri) => a + (vals[ri][m] || 0), 0);
-      vals[resIdx][m] = totalRec - totalCost;
-    }
-  }
-
-  // Saldo Acumulado: acumula o Resultado do Mês do próprio DFC (menos Dividendos, se houver)
-  // Autocontido — elimina divergência quando Saldo_Acum da planilha armazena valores mensais em vez de cumulativos
-  {
-    let acum = 0;
-    for (let m = 0; m < 12; m++) {
-      const res = vals[resIdx][m];
-      const div = vals[12][m] || 0; // Dividendos (atualmente null → 0; preparado para uso futuro)
-      if (res != null) {
-        acum += res - div;
-        vals[13][m] = acum;
-      } else {
-        vals[13][m] = null;
-      }
-    }
-  }
 
   const fmtN = v => new Intl.NumberFormat('pt-BR').format(Math.round(Math.abs(v)));
 
