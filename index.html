@@ -1590,6 +1590,33 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
     </section>
 
   </div>
+
+  <!-- Modal Link de Acesso — gerado após criar novo usuário -->
+  <div id="modalSetupLink" style="display:none;position:fixed;inset:0;background:rgba(15,27,45,.55);z-index:1001;align-items:center;justify-content:center;padding:20px">
+    <div style="background:var(--surface);border-radius:14px;padding:24px;max-width:520px;width:100%;box-shadow:0 30px 60px rgba(0,0,0,.30);border:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+        <div style="width:42px;height:42px;border-radius:50%;background:var(--primary-light);display:grid;place-items:center;flex-shrink:0;color:var(--primary-dark)">
+          <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div>
+          <h3 style="margin:0 0 2px;font-family:'Manrope';font-weight:700;font-size:17px;color:var(--text)">Usuário criado com sucesso!</h3>
+          <p style="margin:0;color:var(--text-2);font-size:13px">Compartilhe o link abaixo com o colaborador</p>
+        </div>
+      </div>
+      <p style="font-size:13px;color:var(--text-2);line-height:1.55;margin:0 0 14px;padding:10px 12px;background:var(--bg);border-radius:8px;border-left:3px solid var(--primary)">
+        Ao abrir o link pelo celular ou computador, a conta é criada automaticamente. Depois basta fazer login normalmente com o e-mail e senha definidos.
+      </p>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="setupLinkInput" readonly style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:9px;font-size:12px;font-family:inherit;outline:none;min-width:0">
+        <button id="btnCopySetupLink" style="background:var(--primary);color:white;border:0;padding:10px 16px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px;white-space:nowrap;flex-shrink:0">Copiar link</button>
+      </div>
+      <p id="setupLinkCopied" style="display:none;margin:8px 0 0;font-size:12px;color:var(--primary-dark);font-weight:600">✓ Link copiado para a área de transferência!</p>
+      <div style="display:flex;justify-content:flex-end;margin-top:18px">
+        <button id="closeSetupLink" style="background:transparent;color:var(--text);border:1px solid var(--border);padding:9px 18px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit">Fechar</button>
+      </div>
+    </div>
+  </div>
+
   <footer class="last-update">Protótipo navegável · Gestora Smart Financial Suite · gerado a partir do Fechamento Mensal de Março/2026</footer>
 </div>
 
@@ -1613,6 +1640,27 @@ function loadUsers() {
 function saveUsers(users) {
   try { localStorage.setItem(USERS_KEY, JSON.stringify(users)); } catch(e) {}
 }
+
+// ── Auto-import via URL ?setup=<base64token> ──────────────────────────────
+// Quando o colaborador abre o link gerado pelo admin, a conta é criada
+// automaticamente no localStorage do dispositivo dele.
+(function checkSetupParam() {
+  try {
+    const raw = new URLSearchParams(window.location.search).get('setup');
+    if (!raw) return;
+    const u = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(raw)))));
+    if (!u || !u.email || !u.hash) return;
+    const users = loadUsers() || [];
+    if (!users.find(x => x.email === u.email)) {
+      users.push({ nome: u.nome || 'Colaborador', email: u.email, hash: u.hash,
+                   perfil: u.perfil || 'Leitura', pages: u.pages || [], ultimo: '—' });
+      saveUsers(users);
+    }
+    // Remove o parâmetro da URL sem recarregar a página
+    window.history.replaceState({}, '', window.location.pathname);
+  } catch(e) { /* token inválido — ignora silenciosamente */ }
+})();
+
 function ensureAdminUser() {
   let users = loadUsers();
   if (!users || users.length === 0) {
@@ -3235,6 +3283,30 @@ function renderAcessos() {
   });
 }
 
+// ── Setup URL — gera link para o colaborador ──────────────────────────────
+function generateSetupUrl(u) {
+  const token = btoa(unescape(encodeURIComponent(JSON.stringify(
+    { nome: u.nome, email: u.email, hash: u.hash, perfil: u.perfil, pages: u.pages || [] }
+  ))));
+  return window.location.origin + window.location.pathname + '?setup=' + encodeURIComponent(token);
+}
+
+const modalSetupLink   = document.getElementById('modalSetupLink');
+const setupLinkInput   = document.getElementById('setupLinkInput');
+const btnCopySetupLink = document.getElementById('btnCopySetupLink');
+const closeSetupLink   = document.getElementById('closeSetupLink');
+
+if (closeSetupLink) closeSetupLink.addEventListener('click', () => { modalSetupLink.style.display = 'none'; });
+if (btnCopySetupLink) btnCopySetupLink.addEventListener('click', () => {
+  if (!setupLinkInput) return;
+  setupLinkInput.select();
+  navigator.clipboard?.writeText(setupLinkInput.value).catch(() => {
+    try { document.execCommand('copy'); } catch(e) {}
+  });
+  const el = document.getElementById('setupLinkCopied');
+  if (el) { el.style.display = 'block'; setTimeout(() => { el.style.display = 'none'; }, 3000); }
+});
+
 // Modal de novo usuário
 const modalNovoUser  = document.getElementById('modalNovoUser');
 const btnNovoUser    = document.getElementById('btnNovoUser');
@@ -3292,11 +3364,16 @@ if (confirmNovoUser) confirmNovoUser.addEventListener('click', async () => {
     selectedPages = ALL_PAGES.map(p => p.key); // Adm: acesso total
   }
   const hx = await hashPass(pass);
-  gsmUsers.push({ nome, email, hash: hx, perfil, pages: selectedPages, ultimo: '—' });
+  const newUser = { nome, email, hash: hx, perfil, pages: selectedPages, ultimo: '—' };
+  gsmUsers.push(newUser);
   saveUsers(gsmUsers);
   renderAcessos();
   closeNovoUser();
-  showToast(`Usuário ${nome} adicionado com sucesso`);
+  // Abre modal com link de acesso para o colaborador
+  if (setupLinkInput) setupLinkInput.value = generateSetupUrl(newUser);
+  const copiedEl = document.getElementById('setupLinkCopied');
+  if (copiedEl) copiedEl.style.display = 'none';
+  if (modalSetupLink) modalSetupLink.style.display = 'flex';
 });
 
 gsmUsers = ensureAdminUser();
