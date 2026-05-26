@@ -362,6 +362,14 @@ footer.last-update { padding: 18px 28px; text-align: center; color: var(--muted)
 .acessos-tbl .user-cell .av { width: 30px; height: 30px; border-radius: 50%; background: var(--primary); color: #fff; display: grid; place-items: center; font-family: 'Manrope'; font-weight: 700; font-size: 11px; flex-shrink: 0; }
 .you-tag { font-size: 10px; background: var(--primary-light); color: var(--primary-dark); padding: 2px 6px; border-radius: 4px; font-weight: 700; margin-left: 6px; letter-spacing: .3px; }
 [data-theme="dark"] .you-tag { color: #6FD8A4; }
+/* Checkboxes de páginas no modal de novo usuário */
+.page-check-item { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-2); cursor:pointer; padding:6px 8px; border-radius:7px; transition:background .12s; }
+.page-check-item:hover { background:var(--primary-light); }
+.page-check-item input[type=checkbox] { accent-color:var(--primary); width:15px; height:15px; cursor:pointer; flex-shrink:0; }
+.page-check-item span { font-weight:500; }
+/* Badge de página na tabela de acessos */
+.page-badge { display:inline-block; background:var(--primary-light); color:var(--primary-dark); padding:2px 7px; border-radius:5px; font-size:10.5px; font-weight:600; margin:2px 1px; white-space:nowrap; }
+[data-theme="dark"] .page-badge { color:#6FD8A4; }
 
 /* Login screen */
 #loginScreen {
@@ -1500,86 +1508,6 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <div style="display:flex;flex-direction:column;gap:14px">
         <div class="chart-card">
           <div class="chart-head">
-            <div><div class="chart-title">Metas 2026</div><div class="chart-sub">Clique em qualquer valor para editar · salvas localmente no sistema</div></div>
-            <div style="display:flex;gap:8px">
-              <button id="btnEditMetas" style="background:var(--primary);color:white;border:0;padding:8px 14px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px;display:inline-flex;align-items:center;gap:6px">
-                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                Editar metas
-              </button>
-              <button id="btnSaveMetas" style="display:none;background:var(--primary-dark);color:white;border:0;padding:8px 14px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px">Salvar</button>
-              <button id="btnCancelMetas" style="display:none;background:transparent;color:var(--text-2);border:1px solid var(--border);padding:8px 14px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px">Cancelar</button>
-            </div>
-          </div>
-          <table class="tbl metas-tbl" id="metasTbl" style="margin-top:12px">
-            <thead><tr><th>Indicador</th><th class="num">Meta Anual</th><th class="num">YTD Realizado</th><th class="num">Falta / Status</th><th>Progresso</th></tr></thead>
-            <tbody>
-              <tr data-kind="cumulative">
-                <td>Receita</td>
-                <td class="num" data-meta="receita-a">R$ 28,58M</td>
-                <td class="num" data-ytd="R$ 10,85M">R$ 10,85M</td>
-                <td class="num" data-falta>R$ 17,73M</td>
-                <td><div class="prog-wrap"><div class="prog-bar" style="width:38%"></div></div><span class="prog-pct">38%</span></td>
-              </tr>
-              <tr data-kind="rate">
-                <td>Margem de Contribuição</td>
-                <td class="num" data-meta="margem-a">37%</td>
-                <td class="num" data-ytd="35,12%">35,12%</td>
-                <td class="num" data-falta>−1,88 p.p.</td>
-                <td><div class="prog-wrap"><div class="prog-bar warn" style="width:95%"></div></div><span class="prog-pct">95%</span></td>
-              </tr>
-              <tr data-kind="cumulative">
-                <td>Vendas Simcards</td>
-                <td class="num" data-meta="vendas-a">408.000</td>
-                <td class="num" data-ytd="102.664">102.664</td>
-                <td class="num" data-falta>305.336</td>
-                <td><div class="prog-wrap"><div class="prog-bar" style="width:25%"></div></div><span class="prog-pct">25%</span></td>
-              </tr>
-              <tr data-kind="cumulative">
-                <td>Crescimento Base</td>
-                <td class="num" data-meta="base-a">+25%</td>
-                <td class="num" data-ytd="+3,5%">+3,5%</td>
-                <td class="num" data-falta>+21,5 p.p.</td>
-                <td><div class="prog-wrap"><div class="prog-bar warn" style="width:14%"></div></div><span class="prog-pct">14%</span></td>
-              </tr>
-              <tr data-kind="threshold-min">
-                <td>Satisfação (mínimo)</td>
-                <td class="num" data-meta="sat-a">≥ 94%</td>
-                <td class="num" data-ytd="96%">96%</td>
-                <td class="num pos" data-falta>+2 p.p. acima</td>
-                <td><span class="prog-status ok">✓ Atingida</span></td>
-              </tr>
-              <tr data-kind="threshold-max">
-                <td>Churn (máximo)</td>
-                <td class="num" data-meta="churn-a">≤ 36%</td>
-                <td class="num" data-ytd="13,9%">13,9%</td>
-                <td class="num pos" data-falta>margem de 22 p.p.</td>
-                <td><span class="prog-status ok">✓ Dentro</span></td>
-              </tr>
-              <tr data-kind="threshold-max">
-                <td>Custo / Receita (máximo)</td>
-                <td class="num" data-meta="cr-a">≤ 65%</td>
-                <td class="num" data-ytd="64,7%">64,7%</td>
-                <td class="num warn" data-falta>margem de 0,3 p.p.</td>
-                <td><span class="prog-status warn">⚠ No limite</span></td>
-              </tr>
-              <tr data-kind="cumulative">
-                <td>Novos Clientes</td>
-                <td class="num" data-meta="novos-a">1.080</td>
-                <td class="num" data-ytd="281">281</td>
-                <td class="num" data-falta>799</td>
-                <td><div class="prog-wrap"><div class="prog-bar warn" style="width:26%"></div></div><span class="prog-pct">26%</span></td>
-              </tr>
-            </tbody>
-          </table>
-          <div style="margin-top:10px;font-size:11.5px;color:var(--muted);line-height:1.6">
-            <strong style="color:var(--text-2)">Como funciona:</strong> a <em>Meta Anual</em> é editável. O <em>YTD Realizado</em> é puxado automaticamente dos dados importados. <em>Falta</em> e <em>Progresso</em> são calculados em tempo real — para indicadores cumulativos (Receita, Vendas), mostra quanto ainda precisa entregar até dezembro; para indicadores de taxa (Margem, Satisfação, Churn), mostra a margem em pontos percentuais até o limite.
-          </div>
-          <div id="metasSaved" style="display:none;margin-top:12px;padding:10px 14px;background:var(--primary-light);color:var(--primary-dark);border-radius:9px;font-size:13px;font-weight:600">
-            ✓ Metas atualizadas. Toda a comparação Realizado vs Meta no sistema vai usar os novos valores no próximo recálculo.
-          </div>
-        </div>
-        <div class="chart-card">
-          <div class="chart-head">
             <div>
               <div class="chart-title">Acessos</div>
               <div class="chart-sub">Gestão de usuários · Adm (acesso total) · Leitura (somente visualização)</div>
@@ -1590,7 +1518,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
             </button>
           </div>
           <table class="tbl acessos-tbl" id="acessosTbl" style="margin-top:12px">
-            <thead><tr><th>Usuário</th><th>E-mail</th><th>Perfil</th><th>Último acesso</th><th class="num" style="width:80px">Ações</th></tr></thead>
+            <thead><tr><th>Usuário</th><th>E-mail</th><th>Perfil</th><th>Páginas acessíveis</th><th>Último acesso</th><th class="num" style="width:80px">Ações</th></tr></thead>
             <tbody>
               <!-- linhas populadas via JS -->
             </tbody>
@@ -1633,6 +1561,22 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
                   <option value="Adm">Adm — acesso total</option>
                   <option value="Leitura" selected>Leitura — somente visualização</option>
                 </select>
+              </div>
+              <!-- Páginas acessíveis — visível apenas para perfil Leitura -->
+              <div id="newUserPagesSection">
+                <label style="display:block;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:8px">
+                  Páginas acessíveis <span style="color:var(--negative);font-size:10px;font-weight:500;text-transform:none;letter-spacing:0">* selecione ao menos uma</span>
+                </label>
+                <div id="newUserPagesGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:10px;background:var(--bg);border-radius:9px;border:1px solid var(--border)">
+                  <label class="page-check-item"><input type="checkbox" value="dashboard" checked><span>Resumo Executivo</span></label>
+                  <label class="page-check-item"><input type="checkbox" value="pl" checked><span>Resumo Financeiro</span></label>
+                  <label class="page-check-item"><input type="checkbox" value="sales" checked><span>Vendas &amp; Performance</span></label>
+                  <label class="page-check-item"><input type="checkbox" value="ops" checked><span>Operação</span></label>
+                  <label class="page-check-item"><input type="checkbox" value="logistics" checked><span>Logística</span></label>
+                  <label class="page-check-item"><input type="checkbox" value="rh" checked><span>RH</span></label>
+                  <label class="page-check-item"><input type="checkbox" value="dfc" checked><span>DFC Gerencial</span></label>
+                  <label class="page-check-item"><input type="checkbox" value="saidas" checked><span>Análise de Saída</span></label>
+                </div>
               </div>
             </div>
 
@@ -1717,6 +1661,7 @@ async function doLogin() {
   } catch(e) {}
 
   _applyUserUI(user);
+  applyPageAccess(user);
   loginScreen.style.display = 'none';
   document.body.classList.remove('logged-out');
   // Restaura cache DEPOIS do login — dados só ficam no DOM com sessão autenticada
@@ -1772,6 +1717,7 @@ function doLogout() {
   gsmUsers = users;
   currentUserEmail = sess.email;
   _applyUserUI(user);
+  applyPageAccess(user);
   if (loginScreen) loginScreen.style.display = 'none';
   document.body.classList.remove('logged-out');
   if (restoreCache()) {
@@ -1804,6 +1750,53 @@ const pageNames = {
   saidas: 'Análise de Saídas',
   data: 'Sincronizar Dados', settings: 'Configurações'
 };
+
+// Páginas disponíveis para controle de acesso por usuário Leitura
+const ALL_PAGES = [
+  { key: 'dashboard', label: 'Resumo Executivo'    },
+  { key: 'pl',        label: 'Resumo Financeiro'   },
+  { key: 'sales',     label: 'Vendas & Performance'},
+  { key: 'ops',       label: 'Operação'             },
+  { key: 'logistics', label: 'Logística'            },
+  { key: 'rh',        label: 'RH'                   },
+  { key: 'dfc',       label: 'DFC Gerencial'        },
+  { key: 'saidas',    label: 'Análise de Saída'     },
+];
+
+/** Aplica restrições de página conforme o perfil do usuário logado.
+ *  Adm → todas as páginas (inclusive data/settings).
+ *  Leitura → apenas as páginas em user.pages; data/settings ocultos. */
+function applyPageAccess(user) {
+  const isAdm = !user || user.perfil === 'Adm';
+  const allowed = isAdm
+    ? ALL_PAGES.map(p => p.key)
+    : (user.pages && user.pages.length > 0 ? user.pages : ALL_PAGES.map(p => p.key));
+
+  document.querySelectorAll('.nav-item[data-page]').forEach(item => {
+    const pg = item.dataset.page;
+    if (pg === 'data' || pg === 'settings') {
+      item.style.display = isAdm ? '' : 'none';
+    } else {
+      item.style.display = allowed.includes(pg) ? '' : 'none';
+    }
+  });
+
+  // Se a página ativa não está permitida, redireciona para a primeira permitida
+  const activeNav = document.querySelector('.nav-item.active');
+  const activePg  = activeNav ? activeNav.dataset.page : null;
+  const blocked   = activePg && !isAdm &&
+    (activePg === 'data' || activePg === 'settings' || !allowed.includes(activePg));
+  if (blocked) {
+    const first = allowed[0] || 'dashboard';
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelector(`.page[data-page="${first}"]`)?.classList.add('active');
+    const firstNav = document.querySelector(`.nav-item[data-page="${first}"]`);
+    if (firstNav) firstNav.classList.add('active');
+    if (crumbPage) crumbPage.textContent = pageNames[first] || first;
+  }
+}
+
 navItems.forEach(item => {
   item.addEventListener('click', () => {
     const target = item.dataset.page;
@@ -3168,7 +3161,16 @@ function escHtml(s) {
 function renderAcessos() {
   const tbody = document.querySelector('#acessosTbl tbody');
   if (!tbody) return;
-  tbody.innerHTML = gsmUsers.map((u) => `
+  tbody.innerHTML = gsmUsers.map((u) => {
+    const pagesHtml = u.perfil === 'Adm'
+      ? '<span style="color:var(--muted);font-size:12px">Todas</span>'
+      : (u.pages && u.pages.length > 0
+          ? u.pages.map(pk => {
+              const pg = ALL_PAGES.find(x => x.key === pk);
+              return pg ? `<span class="page-badge">${escHtml(pg.label)}</span>` : '';
+            }).join('')
+          : '<span style="color:var(--muted);font-size:12px">Todas</span>');
+    return `
     <tr data-email="${escHtml(u.email)}">
       <td>
         <div class="user-cell">
@@ -3183,6 +3185,7 @@ function renderAcessos() {
           <option value="Leitura" ${u.perfil==='Leitura'?'selected':''}>Leitura</option>
         </select>
       </td>
+      <td style="max-width:240px;line-height:1.8">${pagesHtml}</td>
       <td style="color:var(--muted);font-size:12.5px">${escHtml(u.ultimo || '—')}</td>
       <td class="num">
         <div class="row-actions">
@@ -3191,8 +3194,8 @@ function renderAcessos() {
           </button>` : ''}
         </div>
       </td>
-    </tr>
-  `).join('');
+    </tr>`;
+  }).join('');
 
   // PERF-04: event delegation — um único listener para toda a tabela
   tbody.addEventListener('change', e => {
@@ -3247,9 +3250,21 @@ function openNovoUser() {
   newUserEmail.value = '';
   if (newUserPass) newUserPass.value = '';
   newUserPerfil.value = 'Leitura';
+  // Mostra checkboxes (padrão: Leitura) com todas as páginas marcadas
+  const pagesSection = document.getElementById('newUserPagesSection');
+  if (pagesSection) pagesSection.style.display = 'block';
+  document.querySelectorAll('#newUserPagesGrid input[type=checkbox]').forEach(cb => { cb.checked = true; });
   modalNovoUser.style.display = 'flex';
 }
 function closeNovoUser() { modalNovoUser.style.display = 'none'; }
+
+// Mostra/oculta checkboxes conforme perfil selecionado
+if (newUserPerfil) {
+  newUserPerfil.addEventListener('change', () => {
+    const pagesSection = document.getElementById('newUserPagesSection');
+    if (pagesSection) pagesSection.style.display = newUserPerfil.value === 'Leitura' ? 'block' : 'none';
+  });
+}
 
 if (btnNovoUser)    btnNovoUser.addEventListener('click', openNovoUser);
 if (cancelNovoUser) cancelNovoUser.addEventListener('click', closeNovoUser);
@@ -3268,8 +3283,16 @@ if (confirmNovoUser) confirmNovoUser.addEventListener('click', async () => {
   emailChecker.type = 'email'; emailChecker.value = email;
   if (!emailChecker.validity.valid) { newUserEmail.focus(); showToast('Formato de e-mail inválido'); return; }
   if (gsmUsers.find(u => u.email === email)) { showToast('Este e-mail já está cadastrado'); return; }
+  // Coleta páginas selecionadas (apenas para Leitura; Adm recebe todas)
+  let selectedPages;
+  if (perfil === 'Leitura') {
+    selectedPages = Array.from(document.querySelectorAll('#newUserPagesGrid input[type=checkbox]:checked')).map(cb => cb.value);
+    if (selectedPages.length === 0) { showToast('Selecione ao menos uma página para o usuário'); return; }
+  } else {
+    selectedPages = ALL_PAGES.map(p => p.key); // Adm: acesso total
+  }
   const hx = await hashPass(pass);
-  gsmUsers.push({ nome, email, hash: hx, perfil, ultimo: '—' });
+  gsmUsers.push({ nome, email, hash: hx, perfil, pages: selectedPages, ultimo: '—' });
   saveUsers(gsmUsers);
   renderAcessos();
   closeNovoUser();
