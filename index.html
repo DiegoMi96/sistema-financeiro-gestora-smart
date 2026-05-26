@@ -2707,6 +2707,8 @@ function buildDFCTable() {
   const vals = rowDefs.map(([,,, fn]) =>
     Array.from({length: 12}, (_, m) => fn ? fn(m) : null)
   );
+  // índice de Resultado do Mês no novo rowDefs (0-based): SS, SMT, CMV, AdmDesp, Pessoal, RH, Comercial, Trib, AtivFin, CustoSMT, Resultado…
+  const resIdx = 10;
 
   const fmtN = v => new Intl.NumberFormat('pt-BR').format(Math.round(Math.abs(v)));
 
