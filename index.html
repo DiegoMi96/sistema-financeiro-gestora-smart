@@ -2694,13 +2694,20 @@ function buildDFCTable() {
   if (thead) thead.innerHTML = thHtml;
 
   // Soma todos os subs: usa saidasData para meses realizados, previsaoData para futuros.
-  // Se mês real mas sem dados ainda (tot === 0), usa previsão como fallback.
+  // Se o grupo não tem subcategorias mas tem _headerVals (linha com valor direto na col A),
+  // usa esse valor — suporte a linhas como Resultado do Mês, Dividendos, Saldo Acumulado.
   const catSum = (catName, m) => {
     const trySource = (src) => {
       const g = src.find(g => g.cat === catName);
       if (!g) return null;
-      const tot = g.subs.reduce((a, s) => a + (s[m + 1] || 0), 0);
-      return tot === 0 ? null : tot;
+      if (g.subs.length > 0) {
+        // Categoria com subcategorias: soma normalmente
+        const tot = g.subs.reduce((a, s) => a + (s[m + 1] || 0), 0);
+        return tot === 0 ? null : tot;
+      }
+      // Categoria sem subcategorias: lê valor direto do cabeçalho (ex: Resultado do Mês)
+      const v = g._headerVals ? (g._headerVals[m] ?? null) : null;
+      return (v === 0 || v == null) ? null : v;
     };
     if (isReal[m]) {
       const real = trySource(saidasData);
@@ -3789,6 +3796,9 @@ async function syncFromSheets() {
           const vals = row.slice(2, 14).map(numOrNull);
           if (cat && !sub) {
             curGroup = { cat, subs: [] };
+            // Se o cabeçalho já tiver valores mensais (ex: Resultado do Mês, Saldo Acumulado),
+            // guarda em _headerVals para que catSum() os leia quando não houver subcategorias
+            if (vals.some(v => v != null)) curGroup._headerVals = vals;
             newSaidas.push(curGroup);
           } else if (curGroup && sub) {
             curGroup.subs.push([sub, ...vals.map(v => v||0)]);
@@ -3846,6 +3856,7 @@ async function syncFromSheets() {
           const vals = row.slice(2, 14).map(numOrNull);
           if (cat && !sub) {
             curGrp = { cat, subs: [] };
+            if (vals.some(v => v != null)) curGrp._headerVals = vals;
             newPrev.push(curGrp);
           } else if (curGrp && sub) {
             curGrp.subs.push([sub, ...vals.map(v => v||0)]);
