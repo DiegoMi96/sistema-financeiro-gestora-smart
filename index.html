@@ -2717,8 +2717,21 @@ function buildDFCTable() {
     }
   }
 
-  // Saldo Acumulado da planilha principal  (index 13)
-  for (let m = 0; m < 12; m++) vals[13][m] = saldoAcum[m];
+  // Saldo Acumulado: acumula o Resultado do Mês do próprio DFC (menos Dividendos, se houver)
+  // Autocontido — elimina divergência quando Saldo_Acum da planilha armazena valores mensais em vez de cumulativos
+  {
+    let acum = 0;
+    for (let m = 0; m < 12; m++) {
+      const res = vals[resIdx][m];
+      const div = vals[12][m] || 0; // Dividendos (atualmente null → 0; preparado para uso futuro)
+      if (res != null) {
+        acum += res - div;
+        vals[13][m] = acum;
+      } else {
+        vals[13][m] = null;
+      }
+    }
+  }
 
   const fmtN = v => new Intl.NumberFormat('pt-BR').format(Math.round(Math.abs(v)));
 
