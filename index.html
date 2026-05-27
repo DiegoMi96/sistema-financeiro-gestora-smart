@@ -125,6 +125,7 @@ body { display: flex; min-height: 100vh; }
 [data-theme="dark"] .section-title { color: #6FD8A4; }
 
 .grid { display: grid; gap: 14px; }
+.grid-6 { grid-template-columns: repeat(6, 1fr); }
 .grid-5 { grid-template-columns: repeat(5, 1fr); }
 .grid-4 { grid-template-columns: repeat(4, 1fr); }
 .grid-3 { grid-template-columns: repeat(3, 1fr); }
@@ -132,6 +133,7 @@ body { display: flex; min-height: 100vh; }
 .grid-2-3 { grid-template-columns: 2fr 1fr; }
 .grid-3-2 { grid-template-columns: 3fr 2fr; }
 @media (max-width: 1200px) {
+  .grid-6 { grid-template-columns: repeat(3, 1fr); }
   .grid-5 { grid-template-columns: repeat(3, 1fr); }
   .grid-4 { grid-template-columns: repeat(2, 1fr); }
   .grid-2-3, .grid-3-2 { grid-template-columns: 1fr; }
@@ -690,7 +692,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
 
       <div class="section">
         <div class="section-head"><div class="section-bar"></div><div class="section-title">Base de Clientes</div></div>
-        <div class="grid grid-5">
+        <div class="grid grid-6">
           <div class="card tinted-primary">
             <div class="kpi-label">Base Ativa</div>
             <div class="kpi-value lg">565.338</div>
@@ -705,6 +707,11 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
             <div class="kpi-label">Base Software</div>
             <div class="kpi-value">14.108</div>
             <div class="kpi-foot">Licenças ativas</div>
+          </div>
+          <div class="card"><div class="card-top-line negative"></div>
+            <div class="kpi-label">ID Suspensão</div>
+            <div class="kpi-value">—</div>
+            <div class="kpi-foot">Simcards suspensos</div>
           </div>
           <div class="card tinted-primary">
             <div class="kpi-label">Vendas</div>
@@ -1930,6 +1937,7 @@ const saldoIsReal = new Array(12).fill(false);
 
 const baseAtiva      = new Array(12).fill(null);
 const baseSw         = new Array(12).fill(null);
+const baseSuspensa   = new Array(12).fill(null);
 const smartFat       = new Array(12).fill(null);
 const allcomFat      = new Array(12).fill(null);
 const margemSmart    = new Array(12).fill(null);
@@ -3207,6 +3215,7 @@ function clearData(period) {
       vendasMes[idx] = null; novosClientes[idx] = null; equipMes[idx] = null;
     }
     volEnvio[idx] = null; custoEnvio[idx] = null;
+    baseSuspensa[idx] = null;
     if (idx < 4) {
       baseAtiva[idx] = null; baseSw[idx] = null;
       smartFat[idx] = null; allcomFat[idx] = null; margemSmart[idx] = null;
@@ -3543,6 +3552,7 @@ function computePeriodData(dm) {
     const basePreV     = get('Base_Pre', idx);
     const satV         = get('Satisfacao', idx);
     const baseSWV      = get('Base_SW', idx);
+    const baseSuspV    = get('Base_Susp', idx);
     const vendasV = isQ1||isYTD ? sumTo('Vendas_SIM',2) : get('Vendas_SIM',idx);
     const novos = isQ1||isYTD ? sumTo('Novos_CLI',2) : get('Novos_CLI',idx);
     const cancel = isQ1||isYTD ? sumTo('Cancelam',2) : get('Cancelam',idx);
@@ -3567,6 +3577,7 @@ function computePeriodData(dm) {
       'Base Ativa':             { v: fmtNum(baseAtivaV), f: 'Simcards faturantes' },
       'Base Pré-Ativa':         { v: fmtNum(basePreV), f: basePreV!=null?'Aguardando ativação':'Sincronize a planilha' },
       'Base Software':          { v: fmtNum(baseSWV), f: 'Licenças ativas' },
+      'ID Suspensão':           { v: baseSuspV!=null ? fmtNum(baseSuspV) : '—', f: 'Simcards suspensos' },
       'Vendas':                 { v: fmtNum(vendasV), f: isQ1||isYTD?'Total Q1':'vs. previsto' },
       'Novos Clientes':         { v: fmtNum(novos), f: 'Clientes novos · '+lbl },
       'Cancelamento':           { v: fmtNum(cancel), f: 'Linhas no mês' },
@@ -3593,7 +3604,7 @@ function computePeriodData(dm) {
   ebitda.fill(null); saldoAcum.fill(null); cancelMes.fill(null); desistMes.fill(null);
   ticketsMes.fill(null); rhHeadcountMes.fill(null); rhFolhaMes.fill(null);
   rhFaltasMes.fill(null); rhAfastMes.fill(null); rhENPSMes.fill(null);
-  baseAtiva.fill(null); baseSw.fill(null); smartFat.fill(null);
+  baseAtiva.fill(null); baseSw.fill(null); baseSuspensa.fill(null); smartFat.fill(null);
   allcomFat.fill(null); margemSmart.fill(null); margemValorBRL.fill(null);
   for (let i=0;i<3;i++) { vendasMes[i]=null; equipMes[i]=null; novosClientes[i]=null; }
   volEnvio.fill(null); custoEnvio.fill(null);
@@ -3621,6 +3632,7 @@ function computePeriodData(dm) {
   mapArr('RH_ENPS', rhENPSMes);
   mapArr('Base_Ativa', baseAtiva, 12);
   mapArr('Base_SW', baseSw, 12);
+  mapArr('Base_Susp', baseSuspensa, 12);
   mapArr('Smart_FAT', smartFat, 12);
   mapArr('Allcom_FAT', allcomFat, 12);
   mapArr('Margem_PCT', margemSmart, 12);
