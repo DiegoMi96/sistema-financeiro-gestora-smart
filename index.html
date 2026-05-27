@@ -2720,13 +2720,13 @@ function buildDFCTable() {
   // RECEITA SS/SMT: lê saidasData (real) ou previsaoData (forecast)
   // Fallback real: se Saidas_2026 não tiver receita, usa receitaMes no SS (evita — para o usuário)
   const _recSS  = m => {
-    const ss = catSum('Total de RECEITA - SS', m);
+    const ss = catSum('Receita SS', m);
     if (ss != null) return ss;
-    if (isReal[m] && catSum('Total de RECEITA - SMT', m) == null) return receitaMes[m]; // fallback total em SS
+    if (isReal[m] && catSum('Receita SMT', m) == null) return receitaMes[m]; // fallback total em SS
     return null;
   };
   const _recSMT = m => {
-    const smt = catSum('Total de RECEITA - SMT', m);
+    const smt = catSum('Receita SMT', m);
     if (smt != null) return smt;
     // Se SS usou fallback (total), SMT fica null para não duplicar
     return null;
