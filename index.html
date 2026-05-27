@@ -2695,7 +2695,7 @@ function buildDFCTable() {
 
   // Soma todos os subs: usa saidasData para meses realizados, previsaoData para futuros.
   // Se o grupo não tem subcategorias mas tem _headerVals (linha com valor direto na col A),
-  // usa esse valor — suporte a linhas como Resultado do Mês, Dividendos, Saldo Acumulado.
+  // usa esse valor — suporte a linhas como Dividendos (header-only na Saidas_2026).
   const catSum = (catName, m) => {
     const trySource = (src) => {
       const g = src.find(g => g.cat === catName);
@@ -2733,7 +2733,9 @@ function buildDFCTable() {
   };
 
   // [label, rowClass, isExpense, valueFn]
-  // Resultado do Mês, Dividendos e Saldo Acumulado puxados diretamente da aba Saidas_2026
+  // Resultado do Mês: usa lucroLiquido[] (aba 2026 / cálculo computePeriodData) — 100% confiável
+  // Saldo Acumulado:  usa saldoAcum[]   (aba 2026 / acúmulo computePeriodData) — 100% confiável
+  // Dividendos:       tenta catSum na aba Saidas_2026 (header-only row)
   const rowDefs = [
     ['RECEITA - SS',            'receita',   false, m => _recSS(m)],
     ['RECEITA - SMT',           'receita',   false, m => _recSMT(m)],
@@ -2745,13 +2747,13 @@ function buildDFCTable() {
     ['Despesa Tributaria',      '',          true,  m => catSum('Despesa Tributaria', m)],
     ['Atividades Financeiras',  '',          false, m => catSum('Atividades Financeiras', m)],
     ['Custo SMT',               '',          true,  m => catSum('Custo SMT', m)],
-    ['Resultado do Mês',        'resultado', false, m => catSum('Resultado do mês', m)],
+    ['Resultado do Mês',        'resultado', false, m => lucroLiquido[m] ?? catSum('Resultado do mês', m)],
     ['Dividendos',              '',          true,  m => catSum('Dividendos', m)],
-    ['Saldo Acumulado',         'saldo',     false, m => catSum('Saldo Acumulado', m)],
+    ['Saldo Acumulado',         'saldo',     false, m => saldoAcum[m] ?? catSum('Saldo Acumulado', m)],
   ];
 
   // Todos os valores vêm diretamente das funções definidas em rowDefs (catSum / _recSS / _recSMT)
-  // Resultado do Mês, Dividendos e Saldo Acumulado são lidos da aba Saidas_2026 — nenhum recálculo necessário
+  // Resultado do Mês → lucroLiquido[] | Saldo Acumulado → saldoAcum[] | Dividendos → catSum Saidas_2026
   const vals = rowDefs.map(([,,, fn]) =>
     Array.from({length: 12}, (_, m) => fn ? fn(m) : null)
   );
