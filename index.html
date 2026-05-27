@@ -125,7 +125,6 @@ body { display: flex; min-height: 100vh; }
 [data-theme="dark"] .section-title { color: #6FD8A4; }
 
 .grid { display: grid; gap: 14px; }
-.grid-6 { grid-template-columns: repeat(6, 1fr); }
 .grid-5 { grid-template-columns: repeat(5, 1fr); }
 .grid-4 { grid-template-columns: repeat(4, 1fr); }
 .grid-3 { grid-template-columns: repeat(3, 1fr); }
@@ -133,7 +132,6 @@ body { display: flex; min-height: 100vh; }
 .grid-2-3 { grid-template-columns: 2fr 1fr; }
 .grid-3-2 { grid-template-columns: 3fr 2fr; }
 @media (max-width: 1200px) {
-  .grid-6 { grid-template-columns: repeat(3, 1fr); }
   .grid-5 { grid-template-columns: repeat(3, 1fr); }
   .grid-4 { grid-template-columns: repeat(2, 1fr); }
   .grid-2-3, .grid-3-2 { grid-template-columns: 1fr; }
@@ -692,7 +690,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
 
       <div class="section">
         <div class="section-head"><div class="section-bar"></div><div class="section-title">Base de Clientes</div></div>
-        <div class="grid grid-6">
+        <div class="grid grid-5">
           <div class="card tinted-primary">
             <div class="kpi-label">Base Ativa</div>
             <div class="kpi-value lg">565.338</div>
@@ -707,11 +705,6 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
             <div class="kpi-label">Base Software</div>
             <div class="kpi-value">14.108</div>
             <div class="kpi-foot">Licenças ativas</div>
-          </div>
-          <div class="card"><div class="card-top-line negative"></div>
-            <div class="kpi-label">ID Suspensão</div>
-            <div class="kpi-value">—</div>
-            <div class="kpi-foot">Simcards suspensos</div>
           </div>
           <div class="card tinted-primary">
             <div class="kpi-label">Vendas</div>
@@ -881,7 +874,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
 
       <div class="section-head" style="margin-bottom:10px"><div class="section-bar"></div><div class="section-title">Base de Clientes</div></div>
 
-      <div class="grid grid-3" style="margin-bottom:14px">
+      <div class="grid grid-2" style="margin-bottom:14px">
         <div class="chart-card">
           <div class="chart-head">
             <div><div class="chart-title">Base Ativa (Simcards)</div><div class="chart-sub">+19.026 simcards desde Janeiro · 103% vs. meta · +3%</div></div>
@@ -893,12 +886,6 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
             <div><div class="chart-title">Base Software</div><div class="chart-sub">+689 licenças desde Janeiro · 105% vs. meta · +5%</div></div>
           </div>
           <div class="chart-canvas-wrap"><canvas id="chartBaseSw"></canvas></div>
-        </div>
-        <div class="chart-card">
-          <div class="chart-head">
-            <div><div class="chart-title">ID Suspensão</div><div class="chart-sub" id="baseSuspSub">Simcards suspensos · Jan–Dez</div></div>
-          </div>
-          <div class="chart-canvas-wrap"><canvas id="chartBaseSusp"></canvas></div>
         </div>
       </div>
 
@@ -985,11 +972,11 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
 
       <div class="chart-card" style="margin-bottom:14px">
         <div class="chart-head">
-          <div><div class="chart-title">Evolução da Média Ponderada</div><div class="chart-sub">Mensalidade e custo médio ponderado por mês · eixo direito: margem %</div></div>
+          <div><div class="chart-title">Evolução da Média Ponderada</div><div class="chart-sub">Mensalidade e custo médio ponderado por mês · eixo direito: margem R$</div></div>
           <div class="chart-legend">
             <span><span class="legend-dot" style="background:var(--primary)"></span>Mensalidade</span>
             <span><span class="legend-dot" style="background:var(--negative)"></span>Custo</span>
-            <span><span class="legend-dot" style="background:var(--warning)"></span>Margem %</span>
+            <span><span class="legend-dot" style="background:var(--warning)"></span>Margem R$</span>
           </div>
         </div>
         <div class="chart-canvas-wrap"><canvas id="chartOpMedia"></canvas></div>
@@ -1483,7 +1470,6 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px 10px;font-size:11.5px;color:var(--text-2)">
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">Base_Ativa</code> Simcards faturantes</div>
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">Base_SW</code> Licenças ativas</div>
-              <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">Base_Susp</code> Simcards suspensos (ID Suspensão)</div>
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">Vendas_SIM</code> Simcards vendidos</div>
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">Vendas_EQ</code> Equipamentos vend.</div>
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">Novos_CLI</code> Novos clientes</div>
@@ -1944,7 +1930,6 @@ const saldoIsReal = new Array(12).fill(false);
 
 const baseAtiva      = new Array(12).fill(null);
 const baseSw         = new Array(12).fill(null);
-const baseSuspensa   = new Array(12).fill(null);
 const smartFat       = new Array(12).fill(null);
 const allcomFat      = new Array(12).fill(null);
 const margemSmart    = new Array(12).fill(null);
@@ -2452,35 +2437,6 @@ function buildBaseSw() {
     })
   });
 }
-function buildBaseSusp() {
-  const ctx = document.getElementById('chartBaseSusp'); if (!ctx) return;
-  destroyChart('baseSusp');
-  const allData = baseSuspensa.slice(0,12);
-  const lastIdx = allData.reduce((acc,v,i) => v!=null ? i : acc, -1);
-  const labels  = lastIdx >= 0 ? MES_ABREV.slice(0, lastIdx+1) : MES_ABREV.slice(0,1);
-  const data    = lastIdx >= 0 ? allData.slice(0, lastIdx+1)    : [null];
-  // Update subtitle
-  const sub = document.getElementById('baseSuspSub');
-  if (sub) {
-    const last = lastIdx >= 0 ? allData[lastIdx] : null;
-    const total = allData.filter(v=>v!=null).reduce((a,b)=>a+b,0);
-    sub.textContent = last!=null
-      ? fmtNum(last)+' no último mês · Total acum.: '+fmtNum(total)
-      : 'Adicione Base_Susp na planilha';
-  }
-  charts.baseSusp = new Chart(ctx, {
-    type:'line',
-    data:{ labels, datasets:[
-      { data, borderColor: css('--negative'), backgroundColor:'rgba(224,70,59,.12)', fill:true, tension:.35, pointRadius:6, pointBackgroundColor: css('--negative'), borderWidth:3 }
-    ]},
-    options: commonOpts({
-      layout:{ padding:{ top: 40 } },
-      plugins:{legend:{display:false}, datalabels:{display:true, anchor:'end', align:'top', clip:false, color: css('--negative'), font:{size:10,weight:'700'}, formatter:v => v!=null ? fmtNum(v) : '' } },
-      scales:{ x: commonOpts().scales.x, y: { ...commonOpts().scales.y, min:0, ticks:{ ...commonOpts().scales.y.ticks, callback: v => fmtNum(v) } } }
-    })
-  });
-}
-
 function buildConect() {
   const ctx = document.getElementById('chartConect'); if (!ctx) return;
   destroyChart('conect');
@@ -3154,7 +3110,7 @@ function buildSaidasCat() {
 function rerenderAllCharts() {
   Chart.defaults.color = css('--text-2');
   buildLucro(); buildEbitda(); buildReceita(); buildCusto(); buildDespesa();
-  buildSaldo(); buildBaseSim(); buildBaseSw(); buildBaseSusp(); buildConect();
+  buildSaldo(); buildBaseSim(); buildBaseSw(); buildConect();
   buildVendasMeta(); buildEquipMeta(); buildNovos();
   buildChurn(); buildChurnAnual(); buildVolEnvio(); buildCustoEnvio();
   buildSaidasCat(); buildSaidasTable();
@@ -3238,7 +3194,6 @@ function clearData(period) {
       baseAtiva[i] = null; baseSw[i] = null;
       smartFat[i] = null; allcomFat[i] = null; margemSmart[i] = null;
     }
-    baseSuspensa.fill(null);
     Object.keys(periodData).forEach(p => emptyKpis(periodData[p]));
     saidasData.forEach(g => g.subs.forEach(s => { for(let i=1;i<=12;i++) s[i]=0; }));
     clearDFCTable(['jan','fev','mar']);
@@ -3252,7 +3207,6 @@ function clearData(period) {
       vendasMes[idx] = null; novosClientes[idx] = null; equipMes[idx] = null;
     }
     volEnvio[idx] = null; custoEnvio[idx] = null;
-    baseSuspensa[idx] = null;
     if (idx < 4) {
       baseAtiva[idx] = null; baseSw[idx] = null;
       smartFat[idx] = null; allcomFat[idx] = null; margemSmart[idx] = null;
@@ -3589,7 +3543,6 @@ function computePeriodData(dm) {
     const basePreV     = get('Base_Pre', idx);
     const satV         = get('Satisfacao', idx);
     const baseSWV      = get('Base_SW', idx);
-    const baseSuspV    = get('Base_Susp', idx);
     const vendasV = isQ1||isYTD ? sumTo('Vendas_SIM',2) : get('Vendas_SIM',idx);
     const novos = isQ1||isYTD ? sumTo('Novos_CLI',2) : get('Novos_CLI',idx);
     const cancel = isQ1||isYTD ? sumTo('Cancelam',2) : get('Cancelam',idx);
@@ -3614,7 +3567,6 @@ function computePeriodData(dm) {
       'Base Ativa':             { v: fmtNum(baseAtivaV), f: 'Simcards faturantes' },
       'Base Pré-Ativa':         { v: fmtNum(basePreV), f: basePreV!=null?'Aguardando ativação':'Sincronize a planilha' },
       'Base Software':          { v: fmtNum(baseSWV), f: 'Licenças ativas' },
-      'ID Suspensão':           { v: baseSuspV!=null ? fmtNum(baseSuspV) : '—', f: 'Simcards suspensos' },
       'Vendas':                 { v: fmtNum(vendasV), f: isQ1||isYTD?'Total Q1':'vs. previsto' },
       'Novos Clientes':         { v: fmtNum(novos), f: 'Clientes novos · '+lbl },
       'Cancelamento':           { v: fmtNum(cancel), f: 'Linhas no mês' },
@@ -3641,7 +3593,7 @@ function computePeriodData(dm) {
   ebitda.fill(null); saldoAcum.fill(null); cancelMes.fill(null); desistMes.fill(null);
   ticketsMes.fill(null); rhHeadcountMes.fill(null); rhFolhaMes.fill(null);
   rhFaltasMes.fill(null); rhAfastMes.fill(null); rhENPSMes.fill(null);
-  baseAtiva.fill(null); baseSw.fill(null); baseSuspensa.fill(null); smartFat.fill(null);
+  baseAtiva.fill(null); baseSw.fill(null); smartFat.fill(null);
   allcomFat.fill(null); margemSmart.fill(null); margemValorBRL.fill(null);
   for (let i=0;i<3;i++) { vendasMes[i]=null; equipMes[i]=null; novosClientes[i]=null; }
   volEnvio.fill(null); custoEnvio.fill(null);
@@ -3669,7 +3621,6 @@ function computePeriodData(dm) {
   mapArr('RH_ENPS', rhENPSMes);
   mapArr('Base_Ativa', baseAtiva, 12);
   mapArr('Base_SW', baseSw, 12);
-  mapArr('Base_Susp', baseSuspensa, 12);
   mapArr('Smart_FAT', smartFat, 12);
   mapArr('Allcom_FAT', allcomFat, 12);
   mapArr('Margem_PCT', margemSmart, 12);
@@ -4292,34 +4243,40 @@ function buildOpMediaChart() {
   const _opByMonth = labels.map((_, i) => getOpMes(i).total);
   const mens  = _opByMonth.map(t => t.mens);
   const custo = _opByMonth.map(t => t.custo);
-  const pct   = _opByMonth.map(t => t.pct);
-  // Y-axis bounds: min 5, max = at least 14 or 15% above data max
+  const marg  = _opByMonth.map(t => t.marg);
+  // Eixo Y esquerdo: min 5, max dinâmico (mínimo 14)
   const _yVals = [...mens, ...custo].filter(v => v != null);
   const _yMax  = _yVals.length ? Math.max(..._yVals) : 14;
   const yMax   = Math.max(14, Math.ceil(_yMax * 1.12 * 10) / 10);
+  // Eixo Y direito (margem R$): max dinâmico
+  const _mVals = marg.filter(v => v != null);
+  const _mMax  = _mVals.length ? Math.max(..._mVals) : 5;
+  const _mMin  = _mVals.length ? Math.min(..._mVals) : 0;
+  const y1Max  = Math.max(5, Math.ceil(_mMax * 1.2 * 100) / 100);
+  const y1Min  = Math.min(0, Math.floor(_mMin * 1.2 * 100) / 100);
   charts.opMedia = new Chart(ctx, {
     data: { labels, datasets: [
       { type:'line', label:'Mensalidade', data: mens,
         borderColor: css('--primary'), backgroundColor:'rgba(29,158,94,.1)', fill:true,
         tension:.35, borderWidth:3, pointRadius:4, pointBackgroundColor: css('--primary'), yAxisID:'y',
-        datalabels:{ display: true, anchor:'end', align:'top', color: css('--primary-dark'), font:{size:9,weight:'700'}, formatter: v => fmtOp(v) } },
+        datalabels:{ display: true, anchor:'end', align:'top', clip:false, color: css('--primary-dark'), font:{size:9,weight:'700'}, formatter: v => v!=null ? fmtOp(v) : '' } },
       { type:'line', label:'Custo', data: custo,
         borderColor: css('--negative'), backgroundColor:'rgba(224,70,59,.07)', fill:true,
         tension:.35, borderWidth:2.5, pointRadius:4, pointBackgroundColor: css('--negative'), yAxisID:'y',
-        datalabels:{ display: true, anchor:'end', align:'bottom', color: css('--negative'), font:{size:9,weight:'700'}, formatter: v => fmtOp(v) } },
-      { type:'line', label:'Margem %', data: pct,
+        datalabels:{ display: true, anchor:'end', align:'bottom', color: css('--negative'), font:{size:9,weight:'700'}, formatter: v => v!=null ? fmtOp(v) : '' } },
+      { type:'line', label:'Margem R$', data: marg,
         borderColor: css('--warning'), borderDash:[5,4],
         tension:.35, borderWidth:2, pointRadius:4, pointBackgroundColor: css('--warning'), yAxisID:'y1',
-        datalabels:{ display: () => false, formatter: () => '' } }
+        datalabels:{ display: () => false } }
     ]},
     options: commonOpts({
-      layout:{ padding:{ top:18 } },
-      plugins:{ legend:{ display:false }, datalabels:{ display: ctx => ctx.dataset.label !== 'Margem %' },
-        tooltip:{ callbacks:{ label: c => c.dataset.yAxisID==='y1' ? c.dataset.label+': '+c.parsed.y.toFixed(1).replace('.',',')+'%' : c.dataset.label+': '+fmtOp(c.parsed.y) } } },
+      layout:{ padding:{ top:30 } },
+      plugins:{ legend:{ display:false }, datalabels:{ display: ctx => ctx.dataset.label !== 'Margem R$' },
+        tooltip:{ callbacks:{ label: c => c.dataset.yAxisID==='y1' ? c.dataset.label+': '+fmtOp(c.parsed.y) : c.dataset.label+': '+fmtOp(c.parsed.y) } } },
       scales: {
         x: commonOpts().scales.x,
         y:  { ...commonOpts().scales.y, min: 5, max: yMax, ticks:{ ...commonOpts().scales.y.ticks, callback: v => 'R$ '+v.toFixed(2).replace('.',',') } },
-        y1: { position:'right', grid:{ display:false }, ticks:{ color: css('--muted'), callback: v => v+'%' }, min:0, max:30 }
+        y1: { position:'right', grid:{ display:false }, ticks:{ color: css('--muted'), callback: v => fmtOp(v) }, min: y1Min, max: y1Max }
       }
     })
   });
