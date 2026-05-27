@@ -899,7 +899,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <div class="grid grid-3-2" style="margin-bottom:14px">
         <div class="chart-card">
           <div class="chart-head">
-            <div><div class="chart-title">Curva de Eficiência — Conectividade</div><div class="chart-sub">Correlação entre faturamento Smart × Allcom × Margem Operacional</div></div>
+            <div><div class="chart-title">Curva de Eficiência — Conectividade</div><div class="chart-sub">Conectividade M2M: Receita SS (Smart) × CMV (Allcom) × Margem</div></div>
             <div class="chart-legend"><span><span class="legend-dot" style="background:var(--primary)"></span>Smart</span><span><span class="legend-dot" style="background:var(--allcom)"></span>Allcom</span><span><span class="legend-dot" style="background:var(--warning)"></span>Margem</span></div>
           </div>
           <div class="chart-canvas-wrap tall"><canvas id="chartConect"></canvas></div>
@@ -2448,32 +2448,73 @@ function buildBaseSw() {
 function buildConect() {
   const ctx = document.getElementById('chartConect'); if (!ctx) return;
   destroyChart('conect');
-  // Calcula base implícita do último mês realizado para projetar meses futuros
-  const implicitBases = margemValorBRL.map((v, i) =>
-    v != null && margemSmart[i] != null ? v / (margemSmart[i] / 100) : null
-  );
-  const lastBase = implicitBases.reduce((acc, v) => v != null ? v : acc, 1282566);
-  const margemBRL = margemSmart.map((pct, i) => {
-    if (pct == null) return null;
-    return margemValorBRL[i] != null ? margemValorBRL[i] : Math.round(pct / 100 * lastBase);
+
+  // Dados de Conectividade M2M da Saidas_2026
+  const grpSS  = saidasData.find(g => g.cat === 'Total de RECEITA - SS');
+  const grpCMV = saidasData.find(g => g.cat === 'CMV / CPS');
+  const subSS  = grpSS  ? grpSS.subs.find(s  => s[0] === 'Conectividade M2M') : null;
+  const subCMV = grpCMV ? grpCMV.subs.find(s => s[0] === 'Conectividade M2M') : null;
+
+  // Monta arrays de 12 meses — apenas meses realizados com valor > 0
+  const smartM2M  = Array.from({length:12}, (_, i) => {
+    if (!isReal[i]) return null;
+    const v = subSS ? (subSS[i+1] ?? 0) : 0;
+    return v > 0 ? v : null;
   });
-  const _validMargem = margemBRL.slice(0,4).filter(v => v != null);
-  const maxMargem = _validMargem.length ? Math.max(..._validMargem) : 0;
+  const allcomM2M = Array.from({length:12}, (_, i) => {
+    if (!isReal[i]) return null;
+    const v = subCMV ? (subCMV[i+1] ?? 0) : 0;
+    return v > 0 ? v : null;
+  });
+  // Margem = Smart M2M − Allcom M2M
+  const margemM2M = smartM2M.map((s, i) => {
+    const a = allcomM2M[i];
+    if (s == null && a == null) return null;
+    return (s ?? 0) - (a ?? 0);
+  });
+
+  // Labels dinâmicos — só meses realizados
+  const lastIdx = isReal.reduce((acc, v, i) => v ? i : acc, -1);
+  const count   = lastIdx >= 0 ? lastIdx + 1 : 1;
+  const labels  = MES_NOME.slice(0, count);
+
+  const _valMarg = margemM2M.slice(0, count).filter(v => v != null);
+  const maxMarg  = _valMarg.length ? Math.max(..._valMarg) : 0;
+  const minMarg  = _valMarg.length ? Math.min(..._valMarg) : 0;
+  const y1Max    = Math.max(Math.ceil(maxMarg * 1.3 / 10000) * 10000, 10000);
+  const y1Min    = Math.min(Math.floor(minMarg * 1.3 / 10000) * 10000, 0);
+
+  const _allVals = [...smartM2M, ...allcomM2M].filter(v => v != null);
+  const yMax     = _allVals.length ? Math.ceil(Math.max(..._allVals) * 1.15 / 100000) * 100000 : 1000000;
+
   charts.conect = new Chart(ctx, {
-    data:{ labels:['Janeiro','Fevereiro','Março','Abril'], datasets:[
-      { type:'bar', label:'Gestora Smart', data: smartFat.slice(0,4), backgroundColor: css('--primary'), borderRadius:6, barPercentage:.6, yAxisID:'y', order:2,
-        datalabels:{ display:true, anchor:'end', align:'top', color: css('--text-2'), font:{size:9,weight:'700'}, formatter: v => v==null ? '' : (v/1000000).toFixed(2)+'M' } },
-      { type:'bar', label:'Allcom', data: allcomFat.slice(0,4), backgroundColor: css('--allcom'), borderRadius:6, barPercentage:.6, yAxisID:'y', order:3,
-        datalabels:{ display:true, anchor:'end', align:'top', color: css('--text-2'), font:{size:9,weight:'700'}, formatter: v => v==null ? '' : (v/1000000).toFixed(2)+'M' } },
-      { type:'line', label:'Margem R$', data: margemBRL.slice(0,4), borderColor: css('--warning'), backgroundColor: css('--warning'), tension:.35, pointRadius:6, yAxisID:'y1', borderWidth:3, order:1,
-        datalabels:{ display:true, anchor:'end', align:'top', color: '#C87A1A', font:{size:10,weight:'800'}, formatter: v => v==null ? '' : 'R$ '+(v/1000).toFixed(0)+'K', offset:8 } }
+    data:{ labels, datasets:[
+      { type:'bar', label:'Gestora Smart', data: smartM2M.slice(0, count),
+        backgroundColor: css('--primary'), borderRadius:6, barPercentage:.6, yAxisID:'y', order:2,
+        datalabels:{ display:true, anchor:'end', align:'top', clip:false, color: css('--text-2'),
+          font:{size:9,weight:'700'}, formatter: v => v==null ? '' : fmtAutoK(v) } },
+      { type:'bar', label:'Allcom', data: allcomM2M.slice(0, count),
+        backgroundColor: css('--allcom'), borderRadius:6, barPercentage:.6, yAxisID:'y', order:3,
+        datalabels:{ display:true, anchor:'end', align:'top', clip:false, color: css('--text-2'),
+          font:{size:9,weight:'700'}, formatter: v => v==null ? '' : fmtAutoK(v) } },
+      { type:'line', label:'Margem R$', data: margemM2M.slice(0, count),
+        borderColor: css('--warning'), backgroundColor: css('--warning'),
+        tension:.35, pointRadius:6, yAxisID:'y1', borderWidth:3, order:1,
+        datalabels:{ display:true, anchor:'end', align:'top', clip:false,
+          color:'#C87A1A', font:{size:10,weight:'800'},
+          formatter: v => v==null ? '' : fmtAutoK(v), offset:8 } }
     ]},
     options: commonOpts({
-      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: c => c.dataset.label + ': ' + fmtBRL(c.parsed.y) } } },
+      layout:{ padding:{ top:40 } },
+      plugins:{ legend:{display:false},
+        tooltip:{ callbacks:{ label: c => c.dataset.label + ': ' + fmtBRL(c.parsed.y) } } },
       scales: {
         x: commonOpts().scales.x,
-        y: { ...commonOpts().scales.y, ticks:{ ...commonOpts().scales.y.ticks, callback: v => (v/1000000).toFixed(1)+'M' } },
-        y1: { position:'right', grid:{ display:false }, ticks:{ color: css('--muted'), callback: v => 'R$ '+(v/1000).toFixed(0)+'K' }, min:0, max: Math.ceil(maxMargem * 1.3 / 100000) * 100000 }
+        y:  { ...commonOpts().scales.y, max: yMax,
+              ticks:{ ...commonOpts().scales.y.ticks, callback: v => fmtAutoK(v) } },
+        y1: { position:'right', grid:{ display:false },
+              ticks:{ color: css('--muted'), callback: v => fmtAutoK(v) },
+              min: y1Min, max: y1Max }
       }
     })
   });
