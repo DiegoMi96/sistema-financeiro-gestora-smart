@@ -1948,8 +1948,8 @@ const equipMes      = [null, null, null];
 const cancelMes = new Array(12).fill(null);
 const desistMes = new Array(12).fill(null);
 
-const volEnvio   = [null, null, null];
-const custoEnvio = [null, null, null];
+const volEnvio   = new Array(12).fill(null);
+const custoEnvio = new Array(12).fill(null);
 const ebitda       = new Array(12).fill(null);
 const ebitdaIsReal = new Array(12).fill(false);
 
@@ -2605,7 +2605,7 @@ function buildVolEnvio() {
   destroyChart('vol');
   charts.vol = new Chart(ctx, {
     type:'bar',
-    data:{ labels:['Janeiro','Fevereiro','Março'], datasets:[{ data: volEnvio, backgroundColor: css('--primary'), borderRadius:8, barPercentage:.55 }]},
+    data:{ labels: MES_NOME, datasets:[{ data: volEnvio, backgroundColor: css('--primary'), borderRadius:8, barPercentage:.55 }]},
     options: commonOpts({ plugins:{legend:{display:false}, datalabels:{display:true, anchor:'end', align:'top', color: css('--text-2'), font:{size:11,weight:'700'}, formatter:v=>fmtNum(v) } } })
   });
 }
@@ -2614,7 +2614,7 @@ function buildCustoEnvio() {
   destroyChart('custoEnv');
   charts.custoEnv = new Chart(ctx, {
     type:'line',
-    data:{ labels:['Janeiro','Fevereiro','Março'], datasets:[{ data: custoEnvio, borderColor: css('--allcom'), backgroundColor:'rgba(123,63,160,.15)', fill:true, tension:.35, pointRadius:6, pointBackgroundColor: css('--allcom'), borderWidth:3 }]},
+    data:{ labels: MES_NOME, datasets:[{ data: custoEnvio, borderColor: css('--allcom'), backgroundColor:'rgba(123,63,160,.15)', fill:true, tension:.35, pointRadius:6, pointBackgroundColor: css('--allcom'), borderWidth:3 }]},
     options: commonOpts({ plugins:{legend:{display:false}, datalabels:{display:true, anchor:'end', align:'top', color: css('--text-2'), font:{size:11,weight:'700'}, formatter:v=>fmtBRL(v) } } })
   });
 }
@@ -3130,8 +3130,8 @@ function clearData(period) {
     }
     for (let i = 0; i < 3; i++) {
       vendasMes[i] = null; novosClientes[i] = null; equipMes[i] = null;
-      volEnvio[i] = null; custoEnvio[i] = null;
     }
+    volEnvio.fill(null); custoEnvio.fill(null);
     for (let i = 0; i < 4; i++) {
       baseAtiva[i] = null; baseSw[i] = null;
       smartFat[i] = null; allcomFat[i] = null; margemSmart[i] = null;
@@ -3147,8 +3147,8 @@ function clearData(period) {
     cancelMes[idx] = null; desistMes[idx] = null;
     if (idx < 3) {
       vendasMes[idx] = null; novosClientes[idx] = null; equipMes[idx] = null;
-      volEnvio[idx] = null; custoEnvio[idx] = null;
     }
+    volEnvio[idx] = null; custoEnvio[idx] = null;
     if (idx < 4) {
       baseAtiva[idx] = null; baseSw[idx] = null;
       smartFat[idx] = null; allcomFat[idx] = null; margemSmart[idx] = null;
@@ -3519,9 +3519,9 @@ function computePeriodData(dm) {
       'Cancelamento Anual':     { v: fmtNum(cancelAcum), f: 'Média mensal: '+fmtNum(Math.round(cancelAcum/(idx+1))) },
       'Desistência Anual':      { v: fmtNum(sumTo('Desistencia',idx)), f: 'Média mensal: '+fmtNum(Math.round(sumTo('Desistencia',idx)/(idx+1))) },
       'Churn Implícito':        { v: churnPct, f: 'Cancel / Base ativa' },
-      'Custo de Envio YTD':     { v: fmtAutoK(custoEnvioAcum), f: 'Acumulado '+lbl },
+      'Custo de Envio YTD':     { v: custoEnvioAcum != null ? fmtBRL(custoEnvioAcum) : '—', f: 'Acumulado '+lbl },
       'Pacotes Enviados':       { v: fmtNum(volEnvioAcum), f: lbl },
-      'Custo Médio / Pacote':   { v: custoEnvioAcum&&volEnvioAcum ? fmtAutoK(custoEnvioAcum/volEnvioAcum) : '—', f: lbl },
+      'Custo Médio / Pacote':   { v: custoEnvioAcum&&volEnvioAcum ? 'R$ '+(custoEnvioAcum/volEnvioAcum).toFixed(2).replace('.',',') : '—', f: lbl },
       'Custo / Receita':        { v: rec&&custoEnvioAcum ? (custoEnvioAcum/rec*100).toFixed(2).replace('.',',')+'%' : '—', f: 'Frete sobre faturamento' },
       'Total de Saídas':        { v: fmtAutoK(cmv?(cmv+(desp??0)):null), f: lbl },
       'Maior Categoria':        { v: 'CMV / CPS', f: '~65% das saídas totais' },
@@ -3537,7 +3537,8 @@ function computePeriodData(dm) {
   rhFaltasMes.fill(null); rhAfastMes.fill(null); rhENPSMes.fill(null);
   baseAtiva.fill(null); baseSw.fill(null); smartFat.fill(null);
   allcomFat.fill(null); margemSmart.fill(null); margemValorBRL.fill(null);
-  for (let i=0;i<3;i++) { vendasMes[i]=null; equipMes[i]=null; novosClientes[i]=null; volEnvio[i]=null; custoEnvio[i]=null; }
+  for (let i=0;i<3;i++) { vendasMes[i]=null; equipMes[i]=null; novosClientes[i]=null; }
+  volEnvio.fill(null); custoEnvio.fill(null);
   isReal.fill(false); isRealTickets.fill(false); isRealRH.fill(false);
   ebitdaIsReal.fill(false); saldoIsReal.fill(false);
 
@@ -3569,8 +3570,8 @@ function computePeriodData(dm) {
   mapArr('Vendas_SIM', vendasMes, 3);
   mapArr('Vendas_EQ', equipMes, 3);
   mapArr('Novos_CLI', novosClientes, 3);
-  mapArr('Vol_Envio', volEnvio, 3);
-  mapArr('Custo_Envio', custoEnvio, 3);
+  mapArr('Vol_Envio', volEnvio, 12);
+  mapArr('Custo_Envio', custoEnvio, 12);
 
   // isReal: meses com Receita > 0 são "realizados".
   // Células com fórmula que retornam 0 (meses futuros) NÃO são "realizado".
