@@ -2655,7 +2655,8 @@ function buildVolEnvio() {
     data:{ labels: MES_NOME, datasets:[{ data: volEnvio, backgroundColor: css('--primary'), borderRadius:8, barPercentage:.55 }]},
     options: commonOpts({
       layout:{ padding:{ top: 50 } },
-      plugins:{legend:{display:false}, datalabels:{display:true, anchor:'end', align:'bottom', clip:false, color:'#fff', font:{size:11,weight:'700'}, formatter:v=>fmtNum(v) } }
+      plugins:{legend:{display:false}, datalabels:{display:true, anchor:'end', align:'top', clip:false, color: css('--text-2'), font:{size:11,weight:'700'}, formatter:v=>fmtNum(v) } },
+      scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:50, max:700 } }
     })
   });
 }
@@ -2667,7 +2668,7 @@ function buildCustoEnvio() {
     data:{ labels: MES_NOME, datasets:[{ data: custoEnvio, borderColor: css('--allcom'), backgroundColor:'rgba(123,63,160,.15)', fill:true, tension:.35, pointRadius:6, pointBackgroundColor: css('--allcom'), borderWidth:3 }]},
     options: commonOpts({
       layout:{ padding:{ top: 50 } },
-      plugins:{legend:{display:false}, datalabels:{display:true, anchor:'center', align:'bottom', offset:10, clip:false, color: css('--text-2'), font:{size:11,weight:'700'}, formatter:v=>fmtBRL(v) } }
+      plugins:{legend:{display:false}, datalabels:{display:true, anchor:'end', align:'top', clip:false, color: css('--text-2'), font:{size:11,weight:'700'}, formatter:v=>fmtBRL(v) } }
     })
   });
 }
