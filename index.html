@@ -2693,49 +2693,56 @@ function buildDFCTable() {
   thHtml += '</tr>';
   if (thead) thead.innerHTML = thHtml;
 
-  // Soma todos os subs: usa saidasData para meses realizados, previsaoData para futuros.
-  // Se o grupo não tem subcategorias mas tem _headerVals (linha com valor direto na col A),
-  // usa esse valor — suporte a linhas como Dividendos (header-only na Saidas_2026).
+  // catSum: soma subcategorias. Para grupos sem subs usa _headerVals (ex: Dividendos).
   const catSum = (catName, m) => {
     const trySource = (src) => {
       const g = src.find(g => g.cat === catName);
       if (!g) return null;
       if (g.subs.length > 0) {
-        // Categoria com subcategorias: soma normalmente
         const tot = g.subs.reduce((a, s) => a + (s[m + 1] || 0), 0);
         return tot === 0 ? null : tot;
       }
-      // Categoria sem subcategorias: lê valor direto do cabeçalho (ex: Resultado do Mês)
       const v = g._headerVals ? (g._headerVals[m] ?? null) : null;
       return (v === 0 || v == null) ? null : v;
     };
     if (isReal[m]) {
       const real = trySource(saidasData);
-      return real != null ? real : trySource(previsaoData); // fallback forecast
+      return real != null ? real : trySource(previsaoData);
     }
     return trySource(previsaoData);
   };
 
-  // [label, rowClass, isExpense, valueFn]
-  // RECEITA SS/SMT: lê saidasData (real) ou previsaoData (forecast)
-  // Fallback real: se Saidas_2026 não tiver receita, usa receitaMes no SS (evita — para o usuário)
-  const _recSS  = m => {
-    const ss = catSum('Receita SS', m);
-    if (ss != null) return ss;
-    if (isReal[m] && catSum('Receita SMT', m) == null) return receitaMes[m]; // fallback total em SS
-    return null;
-  };
-  const _recSMT = m => {
-    const smt = catSum('Receita SMT', m);
-    if (smt != null) return smt;
-    // Se SS usou fallback (total), SMT fica null para não duplicar
-    return null;
+  // catHdr: lê o valor do cabeçalho da categoria (_headerVals), ignorando subcategorias.
+  // Usado para Receita SS/SMT cujos totais já estão na linha de cabeçalho da Saidas_2026.
+  const catHdr = (catName, m) => {
+    const trySource = (src) => {
+      const g = src.find(g => g.cat === catName);
+      if (!g || !g._headerVals) return null;
+      const v = g._headerVals[m] ?? null;
+      return (v === 0 || v == null) ? null : v;
+    };
+    if (isReal[m]) {
+      const real = trySource(saidasData);
+      return real != null ? real : trySource(previsaoData);
+    }
+    return trySource(previsaoData);
   };
 
+  // RECEITA SS/SMT: lê o total do cabeçalho (_headerVals) da Saidas_2026.
+  // Fallback: se não encontrar na Saidas_2026, joga total (receitaMes) em SS.
+  const _recSS  = m => {
+    const ss = catHdr('Receita SS', m);
+    if (ss != null) return ss;
+    if (isReal[m] && catHdr('Receita SMT', m) == null) return receitaMes[m];
+    return null;
+  };
+  const _recSMT = m => catHdr('Receita SMT', m);
+
   // [label, rowClass, isExpense, valueFn]
-  // Resultado do Mês: usa lucroLiquido[] (aba 2026 / cálculo computePeriodData) — 100% confiável
-  // Saldo Acumulado:  usa saldoAcum[]   (aba 2026 / acúmulo computePeriodData) — 100% confiável
-  // Dividendos:       tenta catSum na aba Saidas_2026 (header-only row)
+  // Receita SS/SMT:   catHdr (valor do cabeçalho da Saidas_2026, mais confiável que soma de subs)
+  // Resultado do Mês: lucroLiquido[] da aba 2026, fallback catSum Saidas_2026
+  // Dividendos:       catSum Saidas_2026 (header-only row com _headerVals)
+  // Saldo Acumulado:  catSum Saidas_2026 (primário) ?? saldoAcum[] (fallback cumulativo)
   const rowDefs = [
     ['RECEITA - SS',            'receita',   false, m => _recSS(m)],
     ['RECEITA - SMT',           'receita',   false, m => _recSMT(m)],
@@ -2749,7 +2756,7 @@ function buildDFCTable() {
     ['Custo SMT',               '',          true,  m => catSum('Custo SMT', m)],
     ['Resultado do Mês',        'resultado', false, m => lucroLiquido[m] ?? catSum('Resultado do mês', m)],
     ['Dividendos',              '',          true,  m => catSum('Dividendos', m)],
-    ['Saldo Acumulado',         'saldo',     false, m => saldoAcum[m] ?? catSum('Saldo Acumulado', m)],
+    ['Saldo Acumulado',         'saldo',     false, m => catSum('Saldo Acumulado', m) ?? saldoAcum[m]],
   ];
 
   // Todos os valores vêm diretamente das funções definidas em rowDefs (catSum / _recSS / _recSMT)
