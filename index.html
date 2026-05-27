@@ -1717,6 +1717,8 @@ async function doLogin() {
     applyPeriod(getActivePeriod());
     rerenderAllCharts();
   }
+  restoreLastPage();   // volta para a aba em que o usuário estava
+  autoSyncIfStale();   // atualiza automaticamente se dados com mais de 4h
 }
 
 // Preenche avatar / nome / email no sidebar — reutilizado no auto-login
@@ -1772,6 +1774,8 @@ function doLogout() {
     applyPeriod(getActivePeriod());
     rerenderAllCharts();
   }
+  restoreLastPage();   // volta para a aba em que o usuário estava
+  autoSyncIfStale();   // atualiza automaticamente se dados com mais de 4h
 })();
 
 if (loginForm) loginForm.addEventListener('submit', e => { e.preventDefault(); doLogin(); });
@@ -1791,6 +1795,47 @@ themeBtn.addEventListener('click', () => {
 const pages = document.querySelectorAll('.page');
 const navItems = document.querySelectorAll('.nav-item');
 const crumbPage = document.getElementById('crumbPage');
+
+// ── Persistência de página + Auto-sync ──────────────────────────────────────
+const PAGE_KEY       = 'gsm_last_page';
+const CACHE_STALE_MS = 4 * 60 * 60 * 1000; // 4 horas
+
+/** Navega para uma aba pelo key, respeitando permissões de acesso. */
+function navigateToPage(key) {
+  const nav = document.querySelector(`.nav-item[data-page="${key}"]`);
+  if (!nav || nav.style.display === 'none') return; // aba bloqueada — ignora
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  nav.classList.add('active');
+  document.querySelector(`.page[data-page="${key}"]`)?.classList.add('active');
+  if (crumbPage) crumbPage.textContent = pageNames[key] || key;
+}
+
+/** Restaura a última aba visitada (salva no localStorage). */
+function restoreLastPage() {
+  try {
+    const last = localStorage.getItem(PAGE_KEY);
+    if (last) navigateToPage(last);
+  } catch(e) {}
+}
+
+/** Retorna idade do cache em ms (null se não existir). */
+function getCacheAge() {
+  try {
+    const c = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+    return c.ts ? Date.now() - new Date(c.ts).getTime() : null;
+  } catch(e) { return null; }
+}
+
+/** Dispara sync automático se cache ausente ou com mais de 4 horas. */
+function autoSyncIfStale() {
+  const age = getCacheAge();
+  if (age === null || age > CACHE_STALE_MS) {
+    setTimeout(() => syncFromSheets(), 1500); // pequeno delay para UI terminar de renderizar
+  }
+}
+// ────────────────────────────────────────────────────────────────────────────
+
 const pageNames = {
   dashboard: 'Resumo Executivo', pl: 'Resumo Financeiro',
   sales: 'Vendas & Performance', ops: 'Operação',
@@ -1854,6 +1899,8 @@ navItems.forEach(item => {
     const targetPage = document.querySelector(`.page[data-page="${target}"]`);
     if (targetPage) targetPage.classList.add('active');
     if (crumbPage) crumbPage.textContent = pageNames[target] || target;
+    // Persiste a aba ativa — restaurada automaticamente no próximo acesso
+    try { localStorage.setItem(PAGE_KEY, target); } catch(e) {}
     // Sempre volta ao topo ao trocar de página
     window.scrollTo({ top: 0, behavior: 'instant' });
     document.documentElement.scrollTop = 0;
