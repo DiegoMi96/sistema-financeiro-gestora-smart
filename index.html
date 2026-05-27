@@ -607,9 +607,9 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           <div class="sub" id="heroDesc1">Acima da meta prevista</div>
         </div>
         <div class="hero-stat">
-          <div class="lbl" id="heroLbl2">Receita do Mês</div>
-          <div class="val" id="heroVal2">R$ 4,43M</div>
-          <div class="sub" id="heroDesc2">Resultado: R$ 13.510</div>
+          <div class="lbl" id="heroLbl2">Resultado Líquido %</div>
+          <div class="val" id="heroVal2">—</div>
+          <div class="sub" id="heroDesc2">—</div>
         </div>
       </div>
 
@@ -3676,15 +3676,17 @@ function computePeriodData(dm) {
     const rec = q||ytd ? sumTo('Receita',2) : get('Receita',idx);
     const res = q||ytd ? sumTo('Resultado',2) : get('Resultado',idx);
 
-    periodData[key].hero2Val  = rec!=null ? fmtAutoK(rec) : '—';
-    periodData[key].hero2Desc = res!=null ? 'Resultado: '+fmtAutoK(res) : '—';
-    if (rec!=null) {
-      periodData[key].hero1Val  = fmtAutoK(rec);
-      periodData[key].hero1Desc = res!=null && res>=0 ? 'Resultado positivo' : res!=null ? 'Resultado negativo' : '—';
-    } else {
-      periodData[key].hero1Val  = '—';
-      periodData[key].hero1Desc = 'Sincronize a planilha';
-    }
+    // Hero1 — Resultado Líquido em R$
+    periodData[key].hero1Val  = res != null ? fmtAutoK(res) : '—';
+    periodData[key].hero1Desc = res != null && res >= 0 ? 'Resultado positivo no mês'
+                              : res != null              ? 'Resultado negativo no mês'
+                              : 'Sincronize a planilha';
+    // Hero2 — Resultado Líquido em % da Receita
+    const _pct2 = rec != null && rec > 0 ? (res / rec * 100) : null;
+    periodData[key].hero2Val  = _pct2 != null
+      ? (_pct2 >= 0 ? '+' : '−') + Math.abs(_pct2).toFixed(2).replace('.', ',') + '%'
+      : '—';
+    periodData[key].hero2Desc = rec != null ? 'Receita: ' + fmtAutoK(rec) : '—';
 
     // Satisfação — chave Satisfacao (decimal 0-1)
     const satV2 = q||ytd ? null : get('Satisfacao', idx);
@@ -3750,11 +3752,16 @@ function computePeriodData(dm) {
     if (!periodData[key]) continue;
     const rec = receitaMes[m];
     const res = lucroLiquido[m];
-    periodData[key].hero2Val  = rec != null ? fmtAutoK(rec) : '—';
-    periodData[key].hero2Desc = res != null ? 'Resultado (prev): ' + fmtAutoK(res) : '—';
-    periodData[key].hero1Val  = rec != null ? fmtAutoK(rec) : '—';
+    // Hero1 — Resultado Líquido em R$ (previsão)
+    periodData[key].hero1Val  = res != null ? fmtAutoK(res) : '—';
     periodData[key].hero1Desc = res != null && res >= 0 ? 'Previsão · resultado positivo'
                                : res != null ? 'Previsão · resultado negativo' : 'Previsão';
+    // Hero2 — Resultado Líquido em % da Receita (previsão)
+    const _pct2prev = rec != null && rec > 0 ? (res / rec * 100) : null;
+    periodData[key].hero2Val  = _pct2prev != null
+      ? (_pct2prev >= 0 ? '+' : '−') + Math.abs(_pct2prev).toFixed(2).replace('.', ',') + '%'
+      : '—';
+    periodData[key].hero2Desc = rec != null ? 'Receita prev.: ' + fmtAutoK(rec) : '—';
   }
 
   // Atualiza tabela DFC após recalcular todos os arrays
