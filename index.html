@@ -228,9 +228,13 @@ body { display: flex; min-height: 100vh; }
 .op-tbl td.r { text-align:right; font-variant-numeric:tabular-nums; font-family:'Manrope'; font-weight:600; }
 .op-tbl tr.op-total td { font-weight:700; background:var(--surface-2); }
 .op-tbl tr:not(.op-total):hover td { background:var(--surface-2); }
+.op-tbl tr.marg-neg td { background: rgba(224,70,59,.07); }
+.op-tbl tr.marg-neg:hover td { background: rgba(224,70,59,.13); }
+.op-tbl tr.marg-neg td.r.marg-cell { color: var(--negative); font-weight: 700; }
 .pct-chip { display:inline-block; padding:2px 7px; border-radius:5px; font-size:11px; font-weight:700; }
 .pct-chip.pos { background:var(--primary-light); color:var(--primary-dark); }
 .pct-chip.mid { background:#FEF3C7; color:#92400E; }
+.pct-chip.neg { background:rgba(224,70,59,.13); color:var(--negative); }
 [data-theme="dark"] .pct-chip.mid { background:rgba(234,179,8,.15); color:#FCD34D; }
 .pool-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; padding:4px 0 8px; }
 .pool-item {}
@@ -4056,18 +4060,23 @@ function renderOpTable(bodyId, mesIdx) {
   const d = getOpMes(mesIdx);
   const fO = v => v != null ? fmtOp(v) : '—';
   const fP = v => v != null ? v.toFixed(1).replace('.',',')+'%' : '—';
-  tbody.innerHTML = d.rows.map(r => `<tr${r.mens == null ? ' style="opacity:.45"' : ''}>
+  const isNegRow = r => r.marg != null && r.marg < 0;
+  const pctCls = pct => pct != null && pct < 0 ? 'neg' : pct != null && pct >= 20 ? 'pos' : 'mid';
+  tbody.innerHTML = d.rows.map(r => {
+    const negRow = isNegRow(r);
+    return `<tr${r.mens == null ? ' style="opacity:.45"' : negRow ? ' class="marg-neg"' : ''}>
     <td>${r.nome}</td>
     <td class="r">${fO(r.mens)}</td>
     <td class="r">${fO(r.custo)}</td>
-    <td class="r">${fO(r.marg)}</td>
-    <td class="r"><span class="pct-chip ${r.pct != null && r.pct >= 20 ? 'pos' : 'mid'}">${fP(r.pct)}</span></td>
-  </tr>`).join('') + `<tr class="op-total">
+    <td class="r marg-cell">${fO(r.marg)}</td>
+    <td class="r"><span class="pct-chip ${pctCls(r.pct)}">${fP(r.pct)}</span></td>
+  </tr>`;
+  }).join('') + `<tr class="op-total${isNegRow(d.total) ? ' marg-neg' : ''}">
     <td>Média Ponderada</td>
     <td class="r">${fO(d.total.mens)}</td>
     <td class="r">${fO(d.total.custo)}</td>
-    <td class="r">${fO(d.total.marg)}</td>
-    <td class="r"><span class="pct-chip ${d.total.pct != null && d.total.pct >= 20 ? 'pos' : 'mid'}">${fP(d.total.pct)}</span></td>
+    <td class="r marg-cell">${fO(d.total.marg)}</td>
+    <td class="r"><span class="pct-chip ${pctCls(d.total.pct)}">${fP(d.total.pct)}</span></td>
   </tr>`;
 }
 
@@ -4284,6 +4293,10 @@ function buildOpMediaChart() {
   const mens  = _opByMonth.map(t => t.mens);
   const custo = _opByMonth.map(t => t.custo);
   const pct   = _opByMonth.map(t => t.pct);
+  // Y-axis bounds: min 5, max = at least 14 or 15% above data max
+  const _yVals = [...mens, ...custo].filter(v => v != null);
+  const _yMax  = _yVals.length ? Math.max(..._yVals) : 14;
+  const yMax   = Math.max(14, Math.ceil(_yMax * 1.12 * 10) / 10);
   charts.opMedia = new Chart(ctx, {
     data: { labels, datasets: [
       { type:'line', label:'Mensalidade', data: mens,
@@ -4305,7 +4318,7 @@ function buildOpMediaChart() {
         tooltip:{ callbacks:{ label: c => c.dataset.yAxisID==='y1' ? c.dataset.label+': '+c.parsed.y.toFixed(1).replace('.',',')+'%' : c.dataset.label+': '+fmtOp(c.parsed.y) } } },
       scales: {
         x: commonOpts().scales.x,
-        y:  { ...commonOpts().scales.y, ticks:{ ...commonOpts().scales.y.ticks, callback: v => 'R$ '+v.toFixed(2).replace('.',',') } },
+        y:  { ...commonOpts().scales.y, min: 5, max: yMax, ticks:{ ...commonOpts().scales.y.ticks, callback: v => 'R$ '+v.toFixed(2).replace('.',',') } },
         y1: { position:'right', grid:{ display:false }, ticks:{ color: css('--muted'), callback: v => v+'%' }, min:0, max:30 }
       }
     })
