@@ -2450,7 +2450,8 @@ function buildConect() {
   destroyChart('conect');
 
   // Dados de Conectividade M2M da Saidas_2026
-  const grpSS  = saidasData.find(g => g.cat === 'Total de RECEITA - SS');
+  // 'Receita SS' = nome pós-sync; 'Total de RECEITA - SS' = template estático pré-sync
+  const grpSS  = saidasData.find(g => g.cat === 'Receita SS' || g.cat === 'Total de RECEITA - SS');
   const grpCMV = saidasData.find(g => g.cat === 'CMV / CPS');
   const subSS  = grpSS  ? grpSS.subs.find(s  => s[0] === 'Conectividade M2M') : null;
   const subCMV = grpCMV ? grpCMV.subs.find(s => s[0] === 'Conectividade M2M') : null;
