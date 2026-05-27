@@ -1954,7 +1954,8 @@ const ebitda       = new Array(12).fill(null);
 const ebitdaIsReal = new Array(12).fill(false);
 
 // ========== Cache localStorage ==========
-const CACHE_KEY = 'gsm_data_cache';
+const CACHE_KEY     = 'gsm_data_cache';
+const CACHE_VERSION = 3; // incrementar ao mudar estrutura do saidasData
 
 // ── Named constants (magic numbers) ─────────────────────────────
 const META_SIMCARDS_MES = 33000;   // Meta mensal de vendas de SIM cards
@@ -1963,6 +1964,7 @@ const DIAS_UTEIS_MES    = 22;      // Dias úteis médios por mês (absenteísmo
 function saveCache(dm, tsDisplay) {
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify({
+      version: CACHE_VERSION,
       ts: new Date().toISOString(),
       tsDisplay,
       dm,
@@ -1985,6 +1987,8 @@ function restoreCache() {
     if (!c || typeof c !== 'object') return false;
     if (!c.dm || typeof c.dm !== 'object') return false;
     if (!Array.isArray(c.saidasData)) return false;
+    // Versão antiga do cache (sem _headerVals) — descarta e exige nova sincronização
+    if ((c.version || 0) < CACHE_VERSION) { localStorage.removeItem(CACHE_KEY); return false; }
     saidasData.splice(0, saidasData.length, ...(c.saidasData || []));
     previsaoData = c.previsaoData || [];
     opMensMes    = c.opMensMes    || Array.from({length:13}, () => new Array(12).fill(null));
@@ -2742,7 +2746,7 @@ function buildDFCTable() {
   // Receita SS/SMT:   catHdr (valor do cabeçalho da Saidas_2026, mais confiável que soma de subs)
   // Resultado do Mês: lucroLiquido[] da aba 2026, fallback catSum Saidas_2026
   // Dividendos:       catSum Saidas_2026 (header-only row com _headerVals)
-  // Saldo Acumulado:  catSum Saidas_2026 (primário) ?? saldoAcum[] (fallback cumulativo)
+  // Saldo Acumulado:  catHdr Saidas_2026 (real) / Previsao_2026 (forecast) — sem cálculo
   const rowDefs = [
     ['RECEITA - SS',            'receita',   false, m => _recSS(m)],
     ['RECEITA - SMT',           'receita',   false, m => _recSMT(m)],
@@ -2756,7 +2760,7 @@ function buildDFCTable() {
     ['Custo SMT',               '',          true,  m => catSum('Custo SMT', m)],
     ['Resultado do Mês',        'resultado', false, m => lucroLiquido[m] ?? catSum('Resultado do mês', m)],
     ['Dividendos',              '',          true,  m => catSum('Dividendos', m)],
-    ['Saldo Acumulado',         'saldo',     false, m => catSum('Saldo Acumulado', m) ?? saldoAcum[m]],
+    ['Saldo Acumulado',         'saldo',     false, m => catHdr('Saldo Acumulado', m)],
   ];
 
   // Todos os valores vêm diretamente das funções definidas em rowDefs (catSum / _recSS / _recSMT)
