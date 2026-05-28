@@ -2486,8 +2486,9 @@ function buildConect() {
   const _valMarg = margemM2M.slice(0, count).filter(v => v != null);
   const maxMarg  = _valMarg.length ? Math.max(..._valMarg) : 0;
   const minMarg  = _valMarg.length ? Math.min(..._valMarg) : 0;
-  const y1Max    = Math.max(Math.ceil(maxMarg * 1.3 / 10000) * 10000, 10000);
-  const y1Min    = Math.min(Math.floor(minMarg * 1.3 / 10000) * 10000, 0);
+  // Multiplicador 2× coloca a linha no centro (~50% da altura visual do gráfico)
+  const y1Max    = Math.max(Math.ceil(maxMarg * 2.0 / 10000) * 10000, 10000);
+  const y1Min    = Math.min(Math.floor(minMarg * 2.0 / 10000) * 10000, 0);
 
   const _allVals = [...smartM2M, ...allcomM2M].filter(v => v != null);
   const yMax     = _allVals.length ? Math.ceil(Math.max(..._allVals) * 1.15 / 100000) * 100000 : 1000000;
