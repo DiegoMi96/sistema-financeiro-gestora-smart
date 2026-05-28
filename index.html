@@ -379,6 +379,12 @@ footer.last-update { padding: 18px 28px; text-align: center; color: var(--muted)
 [data-theme="dark"] .page-badge { color:#6FD8A4; }
 
 /* Login screen */
+/* Inline-script coloca esta classe no <html> antes do DOM renderizar
+   — evita flash de login para usuários com sessão válida.
+   Se o JS falhar, a classe nunca é adicionada e o login aparece normalmente. */
+html.gsm-has-session #loginScreen { display: none !important; }
+html.gsm-has-session body.logged-out > .sidebar,
+html.gsm-has-session body.logged-out > .main { display: unset; }
 #loginScreen {
   position: fixed; inset: 0; z-index: 2000;
   display: flex; align-items: center; justify-content: center;
@@ -448,9 +454,30 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
 </style>
 </head>
 <body class="logged-out">
+<!-- Inline: detecta sessão no localStorage ANTES de renderizar o DOM.
+     Adiciona gsm-has-session ao <html> → CSS esconde o loginScreen instantaneamente.
+     Se o JS principal falhar, o fallback de 4s remove a classe e mostra o login. -->
+<script>
+(function(){
+  try {
+    var raw = localStorage.getItem('gsm_session') || sessionStorage.getItem('gsm_session');
+    if (!raw) return;
+    var sess = JSON.parse(raw);
+    if (!sess || !sess.email) return;
+    // Sessão parece válida — esconde o loginScreen via CSS imediatamente
+    document.documentElement.classList.add('gsm-has-session');
+    // Fallback: se o JS principal não confirmar em 4s, mostra o login
+    window._gsmLoginFallback = setTimeout(function() {
+      document.documentElement.classList.remove('gsm-has-session');
+      var ls = document.getElementById('loginScreen');
+      if (ls) ls.style.display = 'flex';
+    }, 4000);
+  } catch(e) {}
+})();
+</script>
 
 <!-- ============ LOGIN SCREEN ============ -->
-<div id="loginScreen" style="display:none">
+<div id="loginScreen">
   <div class="login-card">
     <div class="login-brand">
       <div class="login-brand-logo">S</div>
@@ -1760,10 +1787,17 @@ function doLogout() {
 // Verifica localStorage (lembrar) ou sessionStorage (só esta aba)
 // Sessão localStorage expira em 30 dias; sessionStorage nunca expira enquanto a aba estiver aberta.
 (function tryAutoLogin() {
-  // loginScreen está oculto por default — só exibimos se não houver sessão válida
+  // Cancela o fallback de 4s (definido no inline script acima)
+  function confirmSession() {
+    try { if (window._gsmLoginFallback) { clearTimeout(window._gsmLoginFallback); window._gsmLoginFallback = null; } } catch(e) {}
+    document.documentElement.classList.remove('gsm-has-session');
+  }
+  // Exibe tela de login e remove classe CSS de sessão
   function showLogin() {
+    confirmSession();
     if (loginScreen) loginScreen.style.display = 'flex';
   }
+
   let raw = null;
   try { raw = localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY); } catch(e) {}
   if (!raw) { showLogin(); return; }
@@ -1779,12 +1813,14 @@ function doLogout() {
   const users = ensureAdminUser();
   const user  = users.find(u => u.email === sess.email);
   if (!user) { showLogin(); return; } // usuário removido — exige login manual
-  // Sessão válida — entra sem senha
+
+  // ── Sessão válida ──────────────────────────────────────────────
+  confirmSession();               // cancela fallback, remove classe CSS
   gsmUsers = users;
   currentUserEmail = sess.email;
   _applyUserUI(user);
   applyPageAccess(user);
-  // loginScreen já está oculto — apenas remove a classe do body
+  if (loginScreen) loginScreen.style.display = 'none';
   document.body.classList.remove('logged-out');
   if (restoreCache()) {
     applyPeriod(getActivePeriod());
