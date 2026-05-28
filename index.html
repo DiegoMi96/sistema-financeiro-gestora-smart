@@ -927,7 +927,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         <div class="chart-card">
           <div class="chart-head">
             <div><div class="chart-title">Curva de Eficiência — Conectividade</div><div class="chart-sub">Conectividade M2M: Receita SS (Smart) × CMV (Allcom) × Margem</div></div>
-            <div class="chart-legend"><span><span class="legend-dot" style="background:var(--primary)"></span>Smart</span><span><span class="legend-dot" style="background:var(--allcom)"></span>Allcom</span><span><span class="legend-dot" style="background:var(--warning)"></span>Margem</span></div>
+            <div class="chart-legend"><span><span class="legend-dot" style="background:var(--primary)"></span>Smart</span><span><span class="legend-dot" style="background:var(--allcom)"></span>Allcom</span><span><span class="legend-dot" style="background:var(--info)"></span>Margem</span></div>
           </div>
           <div class="chart-canvas-wrap tall"><canvas id="chartConect"></canvas></div>
         </div>
@@ -1001,7 +1001,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <div class="chart-card" style="margin-bottom:14px">
         <div class="chart-head"><div><div class="chart-title">Detalhamento por Operadora</div><div class="chart-sub">Mensalidade média, custo médio e margem · selecione o mês</div></div></div>
         <div class="op-tabs" id="opTabsAll"></div>
-        <div style="overflow-x:auto"><table class="op-tbl"><thead><tr><th>Operadora</th><th class="r">Mensalidade</th><th class="r">Custo</th><th class="r">Margem</th><th class="r">Margem %</th></tr></thead><tbody id="opBodyAll"></tbody></table></div>
+        <div style="overflow-x:auto"><table class="op-tbl"><thead><tr><th>Operadora</th><th class="r">Qtd Linhas</th><th class="r">Mensalidade</th><th class="r">Custo</th><th class="r">Margem</th><th class="r">Margem %</th></tr></thead><tbody id="opBodyAll"></tbody></table></div>
       </div>
 
       <div class="chart-card" style="margin-bottom:14px">
@@ -1996,6 +1996,7 @@ const opTotalBase = [0, 0]; // legado
 // Índice corresponde a opNomes: 0=ALGAR, 1=ALGAR MULTI, ..., 12=VIVO CATM1
 let opMensMes  = Array.from({length:13}, () => new Array(12).fill(null));
 let opCustoMes = Array.from({length:13}, () => new Array(12).fill(null));
+let opQtdMes   = Array.from({length:13}, () => new Array(12).fill(null));
 // Chaves usadas na aba Operadoras_YYYY (mesma ordem de opNomes)
 const opChaves = [
   ['OP_ALGAR_MENS','OP_ALGAR_CUSTO'],
@@ -2011,6 +2012,12 @@ const opChaves = [
   ['OP_VIVO_MENS','OP_VIVO_CUSTO'],
   ['OP_VIVO_BL_MENS','OP_VIVO_BL_CUSTO'],
   ['OP_VIVO_C_MENS','OP_VIVO_C_CUSTO'],
+];
+// Chaves de quantidade de linhas por operadora (coluna Qtd na Operadoras_YYYY)
+const opQtdChaves = [
+  'OP_ALGAR_QTD','OP_ALGAR_M_QTD','OP_ARQIA_QTD','OP_ARQIA_2_QTD','OP_ARQIA_I_QTD',
+  'OP_CLARO_QTD','OP_CLARO_BL_QTD','OP_CLARO_C_QTD','OP_SIERRA_QTD','OP_TIM_QTD',
+  'OP_VIVO_QTD','OP_VIVO_BL_QTD','OP_VIVO_C_QTD',
 ];
 
 // Pool de Dados — [contratado_GB, consumido_jan] por operadora
@@ -2072,6 +2079,7 @@ function saveCache(dm, tsDisplay) {
       previsaoData,
       opMensMes,
       opCustoMes,
+      opQtdMes,
       poolUsoMes,
       poolContratado
     }));
@@ -2093,6 +2101,7 @@ function restoreCache() {
     previsaoData = c.previsaoData || [];
     opMensMes    = c.opMensMes    || Array.from({length:13}, () => new Array(12).fill(null));
     opCustoMes   = c.opCustoMes   || Array.from({length:13}, () => new Array(12).fill(null));
+    opQtdMes     = c.opQtdMes     || Array.from({length:13}, () => new Array(12).fill(null));
     poolUsoMes   = c.poolUsoMes   || Array.from({length:5},  () => new Array(12).fill(null));
     if (c.poolContratado) poolContratado.splice(0, 5, ...c.poolContratado);
     computePeriodData(c.dm);
@@ -2460,14 +2469,18 @@ function buildSaldo() {
 function buildBaseSim() {
   const ctx = document.getElementById('chartBaseSim'); if (!ctx) return;
   destroyChart('baseSim');
+  const _bVals = baseAtiva.slice(0,4).filter(v => v != null);
+  const _bMax  = _bVals.length ? Math.max(..._bVals) : 590000;
+  const yMax   = Math.max(590000, Math.ceil(_bMax * 1.02 / 1000) * 1000);
   charts.baseSim = new Chart(ctx, {
     type:'line',
     data:{ labels:['Jan','Fev','Mar','Abr'], datasets:[
       { data: baseAtiva.slice(0,4), borderColor: css('--primary'), backgroundColor:'rgba(29,158,94,.15)', fill:true, tension:.35, pointRadius:6, pointBackgroundColor: css('--primary'), borderWidth:3 }
     ]},
     options: commonOpts({
-      plugins:{legend:{display:false}, datalabels:{display:true, anchor:'end', align:'top', color: css('--text-2'), font:{size:10,weight:'600'}, formatter:v => fmtNum(v) } },
-      scales:{ x: commonOpts().scales.x, y: { ...commonOpts().scales.y, ticks:{ ...commonOpts().scales.y.ticks, callback: v => fmtNum(v) } } }
+      layout:{ padding:{ top:20 } },
+      plugins:{legend:{display:false}, datalabels:{display:true, anchor:'end', align:'top', clip:false, color: css('--text-2'), font:{size:10,weight:'600'}, formatter:v => fmtNum(v) } },
+      scales:{ x: commonOpts().scales.x, y: { ...commonOpts().scales.y, min: 540000, max: yMax, ticks:{ ...commonOpts().scales.y.ticks, callback: v => fmtNum(v) } } }
     })
   });
 }
@@ -2540,10 +2553,10 @@ function buildConect() {
         datalabels:{ display:true, anchor:'end', align:'top', clip:false, color: css('--text-2'),
           font:{size:9,weight:'700'}, formatter: v => v==null ? '' : fmtAutoK(v) } },
       { type:'line', label:'Margem R$', data: margemM2M.slice(0, count),
-        borderColor: css('--warning'), backgroundColor: css('--warning'),
+        borderColor: css('--info'), backgroundColor: css('--info'),
         tension:.35, pointRadius:6, yAxisID:'y1', borderWidth:3, order:1,
         datalabels:{ display:true, anchor:'end', align:'top', clip:false,
-          color:'#C87A1A', font:{size:10,weight:'800'},
+          color: css('--info'), font:{size:10,weight:'800'},
           formatter: v => v==null ? '' : fmtAutoK(v), offset:8 } }
     ]},
     options: commonOpts({
@@ -2572,15 +2585,20 @@ function buildVendasMeta() {
   const vSub = document.getElementById('vendasMetaSub');
   if (vSub) vSub.textContent = 'Total período: ' + fmtNum(vendasTotal) + ' · Meta ' + fmtNum(vendasMetaTotal) + ' (' + vendasPct + '%)';
   const media = realData.length ? Math.round(realData.reduce((a,b)=>a+b,0) / realData.length) : 0;
-  const mediaArr = vendasMes.map(() => media);
+  // Adiciona um slot vazio após o último mês para posicionar o rótulo da média DEPOIS da última barra
+  const baseLabels3 = ['Janeiro','Fevereiro','Março'];
+  const nMes = realData.length;
+  const labelsExt  = [...baseLabels3.slice(0, nMes), ''];
+  const barDataExt = [...vendasMes.slice(0, nMes), null];
+  const lineDataExt = [...vendasMes.slice(0, nMes).map(() => media), media];
   charts.vendasMeta = new Chart(ctx, {
-    data:{ labels:['Janeiro','Fevereiro','Março'], datasets:[
-      { type:'bar', data: vendasMes, backgroundColor: css('--primary'), borderRadius:8, barPercentage:.55, label:'Vendas',
-        datalabels:{ display: true, anchor:'center', color:'#fff', font:{size:13,weight:'700'}, formatter: v => fmtNum(v) } },
-      { type:'line', data: mediaArr, borderColor: css('--warning'), borderDash:[0,0], pointRadius:0, label:'Média', borderWidth:2.5,
+    data:{ labels: labelsExt, datasets:[
+      { type:'bar', data: barDataExt, backgroundColor: css('--primary'), borderRadius:8, barPercentage:.55, label:'Vendas',
+        datalabels:{ display: true, anchor:'center', color:'#fff', font:{size:13,weight:'700'}, formatter: v => v!=null ? fmtNum(v) : '' } },
+      { type:'line', data: lineDataExt, borderColor: css('--warning'), borderDash:[0,0], pointRadius:0, label:'Média', borderWidth:2.5,
         datalabels:{
-          display: (c) => c.dataIndex === mediaArr.length - 1,
-          anchor:'end', align:'right',
+          display: (c) => c.dataIndex === lineDataExt.length - 1,
+          anchor:'center', align:'right', clip:false,
           backgroundColor: css('--warning'),
           borderRadius: 6, padding: { top:4, bottom:4, left:7, right:7 },
           color:'#fff', font:{ size:11, weight:'700' },
@@ -2647,12 +2665,16 @@ function buildEquipMeta() {
 function buildNovos() {
   const ctx = document.getElementById('chartNovosClientes'); if (!ctx) return;
   destroyChart('novos');
+  const _nVals = novosClientes.filter(v => v != null);
+  const _nMax  = _nVals.length ? Math.max(..._nVals) : 1;
+  const yMax   = Math.ceil(_nMax * 1.35);  // 35% acima do maior valor — espaço para rótulos
   charts.novos = new Chart(ctx, {
     type:'line',
     data:{ labels:['Jan','Fev','Mar'], datasets:[{ data: novosClientes, borderColor: css('--primary'), backgroundColor:'rgba(29,158,94,.15)', fill:true, tension:.4, pointRadius:5, pointBackgroundColor: css('--primary'), borderWidth:3 }]},
     options: commonOpts({
-      plugins:{ legend:{display:false}, datalabels:{ display:true, anchor:'end', align:'top', color: css('--text-2'), font:{size:10,weight:'700'}, formatter:v=>v } },
-      scales:{ x: commonOpts().scales.x, y: { display: false } }
+      layout:{ padding:{ top:18, left:8 } },
+      plugins:{ legend:{display:false}, datalabels:{ display:true, anchor:'end', align:'top', clip:false, color: css('--text-2'), font:{size:10,weight:'700'}, formatter:v=>v!=null?fmtNum(v):'' } },
+      scales:{ x: commonOpts().scales.x, y: { display: false, min: 0, max: yMax } }
     })
   });
 }
@@ -3997,12 +4019,16 @@ async function syncFromSheets() {
           if (!key || key.startsWith('#') || key.startsWith('Chave')) return;
           dmO[key] = row.slice(2, 14).map(numOrNull);
         });
-        // Operadoras — mensalidade e custo por operadora por mês
+        // Operadoras — mensalidade, custo e quantidade de linhas por operadora por mês
         opMensMes  = Array.from({length:13}, () => new Array(12).fill(null));
         opCustoMes = Array.from({length:13}, () => new Array(12).fill(null));
+        opQtdMes   = Array.from({length:13}, () => new Array(12).fill(null));
         opChaves.forEach(([mk, ck], i) => {
           if (dmO[mk]) for(let m=0;m<12;m++) opMensMes[i][m]  = dmO[mk][m] ?? null;
           if (dmO[ck]) for(let m=0;m<12;m++) opCustoMes[i][m] = dmO[ck][m] ?? null;
+        });
+        opQtdChaves.forEach((qk, i) => {
+          if (dmO[qk]) for(let m=0;m<12;m++) opQtdMes[i][m] = dmO[qk][m] ?? null;
         });
         // Pool de dados — uso e capacidade contratada por operadora
         const poolUsoChaves   = ['POOL_VIVO_USO','POOL_TIM_USO','POOL_ALGAR_M_USO','POOL_ALGAR_O_USO','POOL_ARQIA_USO'];
@@ -4099,19 +4125,21 @@ function getOpMes(mesIdx) {
   const rows = opNomes.map((nome, i) => {
     const mens  = opMensMes[i][mesIdx];
     const custo = opCustoMes[i][mesIdx];
-    if (mens == null) return { nome, mens: null, custo: null, marg: null, pct: null };
+    const qtd   = opQtdMes[i][mesIdx];
+    if (mens == null) return { nome, qtd, mens: null, custo: null, marg: null, pct: null };
     const marg = +(mens - (custo || 0)).toFixed(2);
     const pct  = mens > 0 ? +(marg / mens * 100).toFixed(1) : 0;
-    return { nome, mens, custo, marg, pct };
+    return { nome, qtd, mens, custo, marg, pct };
   });
   // Média ponderada — apenas operadoras com dados preenchidos
   const valid = rows.filter(r => r.mens != null);
-  if (valid.length === 0) return { rows, total: { mens: null, custo: null, marg: null, pct: null } };
+  if (valid.length === 0) return { rows, total: { qtd: null, mens: null, custo: null, marg: null, pct: null } };
   const tM    = +(valid.reduce((a, r) => a + r.mens, 0) / valid.length).toFixed(2);
   const tC    = +(valid.reduce((a, r) => a + (r.custo || 0), 0) / valid.length).toFixed(2);
   const tMarg = +(tM - tC).toFixed(2);
   const tPct  = tM > 0 ? +(tMarg / tM * 100).toFixed(1) : 0;
-  return { rows, total: { mens: tM, custo: tC, marg: tMarg, pct: tPct } };
+  const tQtd  = valid.some(r => r.qtd != null) ? valid.reduce((a, r) => a + (r.qtd || 0), 0) : null;
+  return { rows, total: { qtd: tQtd, mens: tM, custo: tC, marg: tMarg, pct: tPct } };
 }
 
 function fmtOp(v) { return v != null ? 'R$ ' + v.toFixed(2).replace('.',',') : '—'; }
@@ -4123,10 +4151,12 @@ function renderOpTable(bodyId, mesIdx) {
   const fP = v => v != null ? v.toFixed(1).replace('.',',')+'%' : '—';
   const isNegRow = r => r.marg != null && r.marg < 0;
   const pctCls = pct => pct != null && pct < 0 ? 'neg' : pct != null && pct >= 20 ? 'pos' : 'mid';
+  const fQ = v => v != null ? fmtNum(v) : '—';
   tbody.innerHTML = d.rows.map(r => {
     const negRow = isNegRow(r);
     return `<tr${r.mens == null ? ' style="opacity:.45"' : negRow ? ' class="marg-neg"' : ''}>
     <td>${r.nome}</td>
+    <td class="r">${fQ(r.qtd)}</td>
     <td class="r">${fO(r.mens)}</td>
     <td class="r">${fO(r.custo)}</td>
     <td class="r marg-cell">${fO(r.marg)}</td>
@@ -4134,6 +4164,7 @@ function renderOpTable(bodyId, mesIdx) {
   </tr>`;
   }).join('') + `<tr class="op-total${isNegRow(d.total) ? ' marg-neg' : ''}">
     <td>Média Ponderada</td>
+    <td class="r">${fQ(d.total.qtd)}</td>
     <td class="r">${fO(d.total.mens)}</td>
     <td class="r">${fO(d.total.custo)}</td>
     <td class="r marg-cell">${fO(d.total.marg)}</td>
