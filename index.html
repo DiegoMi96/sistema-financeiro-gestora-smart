@@ -927,7 +927,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         <div class="chart-card">
           <div class="chart-head">
             <div><div class="chart-title">Curva de Eficiência — Conectividade</div><div class="chart-sub">Conectividade M2M: Receita SS (Smart) × CMV (Allcom) × Margem</div></div>
-            <div class="chart-legend"><span><span class="legend-dot" style="background:var(--primary)"></span>Smart</span><span><span class="legend-dot" style="background:var(--allcom)"></span>Allcom</span><span><span class="legend-dot" style="background:var(--info)"></span>Margem</span></div>
+            <div class="chart-legend"><span><span class="legend-dot" style="background:var(--primary)"></span>Smart</span><span><span class="legend-dot" style="background:var(--allcom)"></span>Allcom</span><span><span class="legend-dot" style="background:var(--warning)"></span>Margem</span></div>
           </div>
           <div class="chart-canvas-wrap tall"><canvas id="chartConect"></canvas></div>
         </div>
@@ -2469,9 +2469,7 @@ function buildSaldo() {
 function buildBaseSim() {
   const ctx = document.getElementById('chartBaseSim'); if (!ctx) return;
   destroyChart('baseSim');
-  const _bVals = baseAtiva.slice(0,4).filter(v => v != null);
-  const _bMax  = _bVals.length ? Math.max(..._bVals) : 590000;
-  const yMax   = Math.max(590000, Math.ceil(_bMax * 1.02 / 1000) * 1000);
+  const yMax = 590000;
   charts.baseSim = new Chart(ctx, {
     type:'line',
     data:{ labels:['Jan','Fev','Mar','Abr'], datasets:[
@@ -2553,10 +2551,10 @@ function buildConect() {
         datalabels:{ display:true, anchor:'end', align:'top', clip:false, color: css('--text-2'),
           font:{size:9,weight:'700'}, formatter: v => v==null ? '' : fmtAutoK(v) } },
       { type:'line', label:'Margem R$', data: margemM2M.slice(0, count),
-        borderColor: css('--info'), backgroundColor: css('--info'),
+        borderColor: css('--warning'), backgroundColor: css('--warning'),
         tension:.35, pointRadius:6, yAxisID:'y1', borderWidth:3, order:1,
         datalabels:{ display:true, anchor:'end', align:'top', clip:false,
-          color: css('--info'), font:{size:10,weight:'800'},
+          color:'#C87A1A', font:{size:10,weight:'800'},
           formatter: v => v==null ? '' : fmtAutoK(v), offset:8 } }
     ]},
     options: commonOpts({
