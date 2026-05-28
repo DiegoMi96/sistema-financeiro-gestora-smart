@@ -3755,6 +3755,10 @@ function computePeriodData(dm) {
   lucroLiquido.forEach((v,i) => { if (v!=null && v!==0) ebitdaIsReal[i] = true; });
   saldoAcum.forEach((v,i) => { if (v!=null && v!==0) saldoIsReal[i] = true; });
 
+  // Guarda snapshot dos valores Saldo_Acum diretos da aba 2026 (inclui meses futuros preenchidos)
+  // antes de zerá-los, para usá-los na hora de montar o gráfico de previsão.
+  const rawSaldoAcum = saldoAcum.slice();
+
   // Zera arrays financeiros para meses não realizados — garante que 0 do sheet
   // não apareça nos gráficos; a previsão os preencherá logo abaixo.
   for (let i = 0; i < 12; i++) {
@@ -3822,10 +3826,18 @@ function computePeriodData(dm) {
         lucroLiquido[m] = rec - cmv - desp;
       }
     }
-    // Saldo acumulado nos meses de previsão (acumula sobre o último real)
+    // Saldo acumulado nos meses de previsão:
+    // 1º opção — valor direto do Saldo_Acum na aba 2026 (rawSaldoAcum)
+    // 2º opção (fallback) — acumula sobre o último real via lucroLiquido
     let ultimoSaldo = saldoAcum.reduce((acc, v) => v != null ? v : acc, 0);
     for (let m = 0; m < 12; m++) {
-      if (saldoIsReal[m]) { ultimoSaldo = saldoAcum[m]; continue; }
+      if (saldoIsReal[m] && saldoAcum[m] != null) { ultimoSaldo = saldoAcum[m]; continue; }
+      // Prefere valor direto da planilha quando preenchido
+      if (rawSaldoAcum[m] != null && rawSaldoAcum[m] !== 0) {
+        saldoAcum[m] = rawSaldoAcum[m];
+        ultimoSaldo  = rawSaldoAcum[m];
+        continue;
+      }
       if (lucroLiquido[m] != null) {
         ultimoSaldo = ultimoSaldo + lucroLiquido[m];
         saldoAcum[m] = ultimoSaldo;
