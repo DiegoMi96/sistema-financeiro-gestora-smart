@@ -1522,7 +1522,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_Afasta</code> Afastamentos</div>
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_Rescisao</code> Rescisão mensal (R$)</div>
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_D_Comerc</code> Headcount Comercial</div>
-              <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_D_Oper</code> Headcount Operações</div>
+              <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_D_Oper</code> Headcount Suporte Técnico</div>
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_D_TI</code> Headcount TI</div>
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_D_Fin</code> Headcount Financeiro</div>
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_D_Sup</code> Headcount Suporte</div>
@@ -2035,7 +2035,7 @@ const satResp       = new Array(12).fill(null);
 
 // ── RH ──────────────────────────────────────────────────────────────
 const rhHeadcountMes  = new Array(12).fill(null);
-const rhDeptNomes     = ['Comercial','Operações','TI','Financeiro','Suporte','Logística','RH / Admin'];
+const rhDeptNomes     = ['Comercial','Suporte Técnico','TI','Financeiro','Suporte','Logística','RH / Admin'];
 const rhDeptChaves    = ['RH_D_Comerc','RH_D_Oper','RH_D_TI','RH_D_Fin','RH_D_Sup','RH_D_Log','RH_D_Admin'];
 let   rhDeptMes       = Array.from({length:7}, () => new Array(12).fill(null));
 const rhAdmissoes     = new Array(12).fill(null);
