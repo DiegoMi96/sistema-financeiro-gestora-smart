@@ -1526,9 +1526,9 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">Tickets</code> Tickets de suporte</div>
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">Vol_Envio</code> Pacotes enviados</div>
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">Custo_Envio</code> Custo frete (R$)</div>
-              <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_Headcount</code> Colaboradores total</div>
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_CLT</code> Colaboradores CLT</div>
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_PJ</code> Colaboradores PJ</div>
+              <div style="color:var(--muted);font-size:11px;padding-left:4px">↳ Total = CLT + PJ (calculado automaticamente)</div>
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_Folha</code> Custo folha (R$)</div>
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_Faltas</code> Faltas no mês</div>
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_Afasta</code> Afastamentos</div>
@@ -3733,13 +3733,17 @@ function computePeriodData(dm) {
   mapArr('Cancelam', cancelMes);
   mapArr('Desistencia', desistMes);
   mapArr('Tickets', ticketsMes);
-  mapArr('RH_Headcount', rhHeadcountMes);
   mapArr('RH_Folha', rhFolhaMes);
   mapArr('RH_Faltas', rhFaltasMes);
   mapArr('RH_Afasta', rhAfastMes);
   mapArr('RH_ENPS', rhENPSMes);
   mapArr('RH_CLT', rhCLTMes);
   mapArr('RH_PJ',  rhPJMes);
+  // Total = CLT + PJ (calculado; não depende mais de RH_Headcount na planilha)
+  for (let i = 0; i < 12; i++) {
+    const c = rhCLTMes[i], p = rhPJMes[i];
+    rhHeadcountMes[i] = (c != null || p != null) ? (c ?? 0) + (p ?? 0) : null;
+  }
   mapArr('Base_Ativa', baseAtiva, 12);
   mapArr('Base_SW', baseSw, 12);
   mapArr('Base_Susp', baseSuspensa, 12);
