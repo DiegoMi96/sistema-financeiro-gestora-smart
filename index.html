@@ -466,13 +466,12 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
     if (!sess || !sess.email) return;
     // Sessão parece válida — esconde o loginScreen via CSS imediatamente
     document.documentElement.classList.add('gsm-has-session');
-    // Fallback: se o JS principal não confirmar em 12s, mostra o login
-    // (12s dá margem para Chart.js e outros CDNs carregarem em conexões lentas)
+    // Fallback: se o JS principal não confirmar em 8s, mostra o login
     window._gsmLoginFallback = setTimeout(function() {
       document.documentElement.classList.remove('gsm-has-session');
       var ls = document.getElementById('loginScreen');
       if (ls) ls.style.display = 'flex';
-    }, 12000);
+    }, 8000);
   } catch(e) {}
 })();
 </script>
@@ -492,10 +491,10 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
 
     <div id="loginError" class="login-error">E-mail ou senha inválidos. Tente novamente.</div>
 
-    <form id="loginForm" autocomplete="off">
+    <form id="loginForm">
       <div class="login-field">
         <label for="loginEmail">E-mail</label>
-        <input id="loginEmail" type="email" placeholder="seu@email.com.br" autocomplete="off" required>
+        <input id="loginEmail" type="email" placeholder="seu@email.com.br" autocomplete="username" required>
       </div>
       <div class="login-field">
         <label for="loginPass">Senha</label>
@@ -1653,18 +1652,60 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
 </div>
 
 <script>
-// ========== Auth — usuários armazenados no localStorage com hash SHA-256 ==========
-const USERS_KEY   = 'gsm_users';
-const SESSION_KEY = 'gsm_session';   // persiste login entre F5 e recargas
-const ADMIN_EMAIL = 'financeiro@gestorasmart.com.br';
-const ADMIN_HASH  = '52a01fcc849e4538b43dd817f182dffd443bb1dfc08267fc2527337afec2c16b';
+// ========== Auth — PBKDF2 + salt, brute-force protection, convite TTL ==========
+const USERS_KEY      = 'gsm_users';
+const SESSION_KEY    = 'gsm_session';
+const BF_KEY         = 'gsm_bf';            // contadores de brute-force por e-mail
+const BF_MAX         = 5;                   // tentativas antes do bloqueio
+const BF_LOCK_MS     = 15 * 60 * 1000;      // bloqueio de 15 minutos
+const SESSION_MAX_MS = 8  * 60 * 60 * 1000; // sessão expira após 8h de inatividade
+const INVITE_TTL_MS  = 48 * 60 * 60 * 1000; // links de convite válidos por 48h
 let currentUserEmail = null;
 let gsmUsers = [];
 
-async function hashPass(pass) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pass));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+// ── Crypto helpers ────────────────────────────────────────────────────────
+function _hexToBytes(hex) {
+  const a = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < a.length; i++) a[i] = parseInt(hex.substr(i*2,2),16);
+  return a;
 }
+function _genSalt() {
+  return Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+/** PBKDF2-SHA256 — 100.000 iterações, salt por usuário */
+async function _hashPBKDF2(pass, salt) {
+  const km   = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name:'PBKDF2', hash:'SHA-256', salt:_hexToBytes(salt), iterations:100000 }, km, 256);
+  return Array.from(new Uint8Array(bits)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+/** SHA-256 simples — APENAS para migração silenciosa de contas legadas */
+async function _hashLegacy(pass) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pass));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+/** Cria hash PBKDF2 com salt aleatório para novas senhas */
+async function hashPassNew(pass) {
+  const salt = _genSalt();
+  return { hash: await _hashPBKDF2(pass, salt), salt };
+}
+/** Verifica senha — detecta formato automaticamente (legado SHA-256 ou PBKDF2+salt) */
+async function verifyPass(pass, storedHash, storedSalt) {
+  if (!storedHash) return false;
+  if (storedSalt)  return (await _hashPBKDF2(pass, storedSalt)) === storedHash;
+  return (await _hashLegacy(pass)) === storedHash; // migração legada
+}
+
+// ── Brute-force protection ────────────────────────────────────────────────
+function _getBF(email) {
+  try { const d = JSON.parse(localStorage.getItem(BF_KEY)||'{}'); return d[email]||{a:0,u:0}; } catch(e) { return {a:0,u:0}; }
+}
+function _setBF(email, rec) {
+  try { const d = JSON.parse(localStorage.getItem(BF_KEY)||'{}'); d[email]=rec; localStorage.setItem(BF_KEY,JSON.stringify(d)); } catch(e) {}
+}
+function _clearBF(email) {
+  try { const d = JSON.parse(localStorage.getItem(BF_KEY)||'{}'); delete d[email]; localStorage.setItem(BF_KEY,JSON.stringify(d)); } catch(e) {}
+}
+
 function loadUsers() {
   try { const s = localStorage.getItem(USERS_KEY); if (s) return JSON.parse(s); } catch(e) {}
   return null;
@@ -1673,33 +1714,48 @@ function saveUsers(users) {
   try { localStorage.setItem(USERS_KEY, JSON.stringify(users)); } catch(e) {}
 }
 
-// ── Auto-import via URL ?setup=<base64token> ──────────────────────────────
-// Quando o colaborador abre o link gerado pelo admin, a conta é criada
-// automaticamente no localStorage do dispositivo dele.
+// ── Auto-import via URL ?setup=<base64token> ─────────────────────────────
+// Hash NÃO está mais no token. Usuário define a própria senha no primeiro login.
 (function checkSetupParam() {
   try {
     const raw = new URLSearchParams(window.location.search).get('setup');
     if (!raw) return;
     const u = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(raw)))));
-    if (!u || !u.email || !u.hash) return;
+    if (!u || !u.email) return;
+    // Valida TTL (links sem exp aceitos para compatibilidade com versão anterior)
+    if (u.exp && Date.now() > u.exp) {
+      alert('Este link de acesso expirou. Solicite um novo link ao administrador.');
+      window.history.replaceState({}, '', window.location.pathname);
+      return;
+    }
     const users = loadUsers() || [];
     if (!users.find(x => x.email === u.email)) {
-      users.push({ nome: u.nome || 'Colaborador', email: u.email, hash: u.hash,
-                   perfil: u.perfil || 'Leitura', pages: u.pages || [], ultimo: '—' });
+      users.push({
+        nome: u.nome || 'Colaborador', email: u.email,
+        hash: u.hash || null, salt: u.salt || null,
+        needsSetup: !u.hash,   // true = usuário deve definir senha no 1º login
+        perfil: u.perfil || 'Leitura', pages: u.pages || [], ultimo: '—'
+      });
       saveUsers(users);
     }
-    // Remove o parâmetro da URL sem recarregar a página
     window.history.replaceState({}, '', window.location.pathname);
-  } catch(e) { /* token inválido — ignora silenciosamente */ }
+  } catch(e) {}
 })();
 
+/** Retorna usuários do localStorage. Se vazio, aciona wizard de primeira execução. */
 function ensureAdminUser() {
-  let users = loadUsers();
+  const users = loadUsers();
   if (!users || users.length === 0) {
-    users = [{ nome: 'Financeiro', email: ADMIN_EMAIL, hash: ADMIN_HASH, perfil: 'Adm', ultimo: '—' }];
-    saveUsers(users);
+    setTimeout(_showFirstRunSetup, 80); // DOM já está pronto
+    return [];
   }
   return users;
+}
+
+/** Verifica em memória (não só DOM) se o usuário atual tem perfil Adm */
+function isCurrentUserAdm() {
+  if (!currentUserEmail) return false;
+  return gsmUsers.find(u => u.email === currentUserEmail)?.perfil === 'Adm';
 }
 
 // ========== Login ==========
@@ -1716,25 +1772,64 @@ async function doLogin() {
     loginError.textContent = 'Preencha e-mail e senha para continuar.';
     return;
   }
-  const hx    = await hashPass(pass);
-  const users = ensureAdminUser();
-  const user  = users.find(u => u.email === email && u.hash === hx);
-  if (!user) {
+
+  // ── Brute-force: verifica bloqueio ─────────────────────────────────────
+  const bf = _getBF(email);
+  if (bf.u > Date.now()) {
+    const mins = Math.ceil((bf.u - Date.now()) / 60000);
     loginError.style.display = 'block';
-    loginError.textContent = 'E-mail ou senha inválidos. Tente novamente.';
+    loginError.textContent = `Conta bloqueada. Aguarde ${mins} minuto${mins > 1 ? 's' : ''} e tente novamente.`;
     return;
   }
+
+  const users = ensureAdminUser();
+  const user  = users.find(u => u.email === email);
+  const valid = user ? await verifyPass(pass, user.hash, user.salt) : false;
+
+  if (!valid) {
+    const attempts = (bf.a || 0) + 1;
+    const locked   = attempts >= BF_MAX;
+    _setBF(email, { a: attempts, u: locked ? Date.now() + BF_LOCK_MS : (bf.u || 0) });
+    loginError.style.display = 'block';
+    loginError.textContent = locked
+      ? `Conta bloqueada por ${BF_LOCK_MS / 60000} minutos após ${BF_MAX} tentativas inválidas.`
+      : `E-mail ou senha inválidos. ${BF_MAX - attempts} tentativa${BF_MAX - attempts !== 1 ? 's' : ''} restante${BF_MAX - attempts !== 1 ? 's' : ''}.`;
+    return;
+  }
+
+  // ── Login válido — limpa contador brute-force ───────────────────────────
+  _clearBF(email);
+
+  // ── Migração silenciosa: SHA-256 legado → PBKDF2 + salt ────────────────
+  if (!user.salt) {
+    const upgraded = await hashPassNew(pass);
+    user.hash = upgraded.hash;
+    user.salt = upgraded.salt;
+    saveUsers(users);
+  }
+
+  // ── Primeiro acesso via convite: pede para definir senha ────────────────
+  if (user.needsSetup) {
+    gsmUsers = users;
+    _showSetPasswordModal(user, users);
+    return;
+  }
+
+  _completeLogin(user, users);
+}
+
+/** Finaliza login após autenticação + migrações resolvidas */
+function _completeLogin(user, users) {
   const now = new Date().toLocaleString('pt-BR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
   user.ultimo = now;
   saveUsers(users);
   gsmUsers = users;
-  currentUserEmail = email;
-  loginError.style.display = 'none';
+  currentUserEmail = user.email;
+  if (loginError) loginError.style.display = 'none';
 
-  // Persiste sessão: "Mantenha-me conectado" → localStorage (survives F5 + fechar browser)
-  //                  desmarcado               → sessionStorage (sobrevive F5, apaga ao fechar aba)
   const remember = document.getElementById('rememberMe')?.checked ?? true;
-  const sessionData = JSON.stringify({ email, nome: user.nome, ts: Date.now() });
+  const ts = Date.now();
+  const sessionData = JSON.stringify({ email: user.email, nome: user.nome, ts, la: ts });
   try {
     if (remember) { localStorage.setItem(SESSION_KEY, sessionData); sessionStorage.removeItem(SESSION_KEY); }
     else          { sessionStorage.setItem(SESSION_KEY, sessionData); localStorage.removeItem(SESSION_KEY); }
@@ -1742,15 +1837,12 @@ async function doLogin() {
 
   _applyUserUI(user);
   applyPageAccess(user);
-  loginScreen.style.display = 'none';
+  if (loginScreen) loginScreen.style.display = 'none';
+  document.documentElement.classList.remove('gsm-has-session');
   document.body.classList.remove('logged-out');
-  // Restaura cache DEPOIS do login — dados só ficam no DOM com sessão autenticada
-  if (restoreCache()) {
-    applyPeriod(getActivePeriod());
-    rerenderAllCharts();
-  }
-  restoreLastPage();   // volta para a aba em que o usuário estava
-  autoSyncIfStale();   // atualiza automaticamente se dados com mais de 4h
+  if (restoreCache()) { applyPeriod(getActivePeriod()); rerenderAllCharts(); }
+  restoreLastPage();
+  autoSyncIfStale();
 }
 
 // Preenche avatar / nome / email no sidebar — reutilizado no auto-login
@@ -1799,13 +1891,23 @@ function doLogout() {
   if (!raw) { showLogin(); return; }
   let sess;
   try { sess = JSON.parse(raw); } catch(e) { showLogin(); return; }
-  const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 dias para localStorage
   if (!sess?.email) { showLogin(); return; }
-  // sessionStorage não tem expiração; localStorage expira em 30 dias
-  if (localStorage.getItem(SESSION_KEY) && (Date.now() - (sess.ts || 0)) > MAX_AGE_MS) {
-    try { localStorage.removeItem(SESSION_KEY); } catch(e) {}
+
+  // Expiração por inatividade: 8h sem ação → força novo login
+  const la = sess.la || sess.ts || 0;
+  if ((Date.now() - la) > SESSION_MAX_MS) {
+    try { localStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_KEY); } catch(e) {}
     showLogin(); return;
   }
+  // Renova lastActive a cada 30 min para manter sessão ativa
+  if ((Date.now() - la) > 30 * 60 * 1000) {
+    const updated = JSON.stringify({ ...sess, la: Date.now() });
+    try {
+      if (localStorage.getItem(SESSION_KEY))   localStorage.setItem(SESSION_KEY, updated);
+      else                                     sessionStorage.setItem(SESSION_KEY, updated);
+    } catch(e) {}
+  }
+
   const users = ensureAdminUser();
   const user  = users.find(u => u.email === sess.email);
   if (!user) { showLogin(); return; } // usuário removido — exige login manual
@@ -3475,9 +3577,10 @@ function renderAcessos() {
 
 // ── Setup URL — gera link para o colaborador ──────────────────────────────
 function generateSetupUrl(u) {
-  const token = btoa(unescape(encodeURIComponent(JSON.stringify(
-    { nome: u.nome, email: u.email, hash: u.hash, perfil: u.perfil, pages: u.pages || [] }
-  ))));
+  // Hash NÃO incluído — colaborador define a própria senha no primeiro login
+  const payload = { nome: u.nome, email: u.email, perfil: u.perfil, pages: u.pages || [],
+                    exp: Date.now() + INVITE_TTL_MS };
+  const token = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
   return window.location.origin + window.location.pathname + '?setup=' + encodeURIComponent(token);
 }
 
@@ -3508,6 +3611,7 @@ const newUserPass    = document.getElementById('newUserPass');
 const newUserPerfil  = document.getElementById('newUserPerfil');
 
 function openNovoUser() {
+  if (!isCurrentUserAdm()) { showToast('Acesso restrito a administradores.'); return; }
   newUserNome.value  = '';
   newUserEmail.value = '';
   if (newUserPass) newUserPass.value = '';
@@ -3553,8 +3657,8 @@ if (confirmNovoUser) confirmNovoUser.addEventListener('click', async () => {
   } else {
     selectedPages = ALL_PAGES.map(p => p.key); // Adm: acesso total
   }
-  const hx = await hashPass(pass);
-  const newUser = { nome, email, hash: hx, perfil, pages: selectedPages, ultimo: '—' };
+  const { hash: hx, salt: sx } = await hashPassNew(pass);
+  const newUser = { nome, email, hash: hx, salt: sx, perfil, pages: selectedPages, ultimo: '—' };
   gsmUsers.push(newUser);
   saveUsers(gsmUsers);
   renderAcessos();
@@ -3565,6 +3669,88 @@ if (confirmNovoUser) confirmNovoUser.addEventListener('click', async () => {
   if (copiedEl) copiedEl.style.display = 'none';
   if (modalSetupLink) modalSetupLink.style.display = 'flex';
 });
+
+// ── Modais injetados: First-Run Setup & Set Password ─────────────────────
+(function _injectAuthModals() {
+  const card = `background:#fff;border-radius:18px;padding:38px 36px;width:100%;max-width:420px;box-shadow:0 30px 80px rgba(0,0,0,.30);position:relative;z-index:1;font-family:'Inter',sans-serif`;
+  const overlay = `position:fixed;inset:0;z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px`;
+  document.body.insertAdjacentHTML('beforeend', `
+    <!-- First-run setup modal -->
+    <div id="firstRunModal" style="${overlay};display:none;background:linear-gradient(135deg,#0E5C3D 0%,#1D9E5E 50%,#46C77C 100%)">
+      <div style="${card}">
+        <div class="login-brand"><div class="login-brand-logo">G</div><div><h1 style="margin:0;font-family:'Manrope';font-weight:800;font-size:18px;color:#0F1B2D">Gestora Smart</h1><p style="margin:2px 0 0;font-size:12px;color:#8895A5;letter-spacing:.4px;text-transform:uppercase;font-weight:600">SISTEMA FINANCEIRO</p></div></div>
+        <div class="login-title">Configuração Inicial</div>
+        <div class="login-sub">Crie a conta do administrador para começar.</div>
+        <div class="login-field"><label>Nome completo</label><input type="text" id="frNome" autocomplete="name" placeholder="Ex: Financeiro Gestora Smart" required></div>
+        <div class="login-field"><label>E-mail</label><input type="email" id="frEmail" autocomplete="username" placeholder="financeiro@gestorasmart.com.br" required></div>
+        <div class="login-field"><label>Senha (mín. 8 caracteres)</label><input type="password" id="frPass" autocomplete="new-password" placeholder="Crie uma senha segura" required></div>
+        <div class="login-field"><label>Confirme a senha</label><input type="password" id="frPass2" autocomplete="new-password" placeholder="Repita a senha" required></div>
+        <div id="frError" style="display:none;color:#E0463B;font-size:12.5px;margin-bottom:12px;padding:8px 12px;background:#FEE2E2;border-radius:8px;"></div>
+        <button class="login-btn" id="frBtn">Criar conta e entrar</button>
+      </div>
+    </div>
+    <!-- Set-password modal (primeiro acesso via convite) -->
+    <div id="setPassModal" style="${overlay};display:none;background:rgba(0,0,0,.65);backdrop-filter:blur(4px)">
+      <div style="${card}">
+        <div class="login-brand"><div class="login-brand-logo">G</div><div><h1 style="margin:0;font-family:'Manrope';font-weight:800;font-size:18px;color:#0F1B2D">Gestora Smart</h1><p style="margin:2px 0 0;font-size:12px;color:#8895A5;letter-spacing:.4px;text-transform:uppercase;font-weight:600">PRIMEIRO ACESSO</p></div></div>
+        <div class="login-title" style="margin:8px 0 4px">Defina sua senha</div>
+        <div class="login-sub">Crie uma senha para acessar o sistema.</div>
+        <div class="login-field"><label>Nova senha (mín. 8 caracteres)</label><input type="password" id="spPass" autocomplete="new-password" placeholder="Crie uma senha segura" required></div>
+        <div class="login-field"><label>Confirme a senha</label><input type="password" id="spPass2" autocomplete="new-password" placeholder="Repita a senha" required></div>
+        <div id="spError" style="display:none;color:#E0463B;font-size:12.5px;margin-bottom:12px;padding:8px 12px;background:#FEE2E2;border-radius:8px;"></div>
+        <button class="login-btn" id="spBtn">Confirmar e entrar</button>
+      </div>
+    </div>
+  `);
+
+  // ── First-run setup ──
+  function _showErr(id, msg) { const el = document.getElementById(id); if (el) { el.textContent = msg; el.style.display = 'block'; } }
+  window._showFirstRunSetup = function() {
+    if (loginScreen) loginScreen.style.display = 'none';
+    const m = document.getElementById('firstRunModal'); if (m) m.style.display = 'flex';
+  };
+  const frBtn = document.getElementById('frBtn');
+  if (frBtn) frBtn.addEventListener('click', async () => {
+    document.getElementById('frError').style.display = 'none';
+    const nome  = document.getElementById('frNome').value.trim();
+    const email = document.getElementById('frEmail').value.trim().toLowerCase();
+    const pass  = document.getElementById('frPass').value;
+    const pass2 = document.getElementById('frPass2').value;
+    if (!nome)                        return _showErr('frError','Informe o nome completo.');
+    if (!email || !email.includes('@')) return _showErr('frError','E-mail inválido.');
+    if (!pass || pass.length < 8)     return _showErr('frError','Senha deve ter ao menos 8 caracteres.');
+    if (pass !== pass2)               return _showErr('frError','As senhas não coincidem.');
+    frBtn.disabled = true; frBtn.textContent = 'Criando…';
+    const { hash, salt } = await hashPassNew(pass);
+    const admin = { nome, email, hash, salt, perfil:'Adm', pages:[], ultimo:'—' };
+    saveUsers([admin]);
+    gsmUsers = [admin];
+    document.getElementById('firstRunModal').style.display = 'none';
+    _completeLogin(admin, [admin]);
+  });
+
+  // ── Set-password (primeiro acesso via convite) ──
+  let _spUser = null, _spUsers = null;
+  window._showSetPasswordModal = function(user, users) {
+    _spUser = user; _spUsers = users;
+    if (loginScreen) loginScreen.style.display = 'none';
+    const m = document.getElementById('setPassModal'); if (m) m.style.display = 'flex';
+  };
+  const spBtn = document.getElementById('spBtn');
+  if (spBtn) spBtn.addEventListener('click', async () => {
+    document.getElementById('spError').style.display = 'none';
+    const pass  = document.getElementById('spPass').value;
+    const pass2 = document.getElementById('spPass2').value;
+    if (!pass || pass.length < 8) return _showErr('spError','Senha deve ter ao menos 8 caracteres.');
+    if (pass !== pass2)           return _showErr('spError','As senhas não coincidem.');
+    spBtn.disabled = true; spBtn.textContent = 'Salvando…';
+    const { hash, salt } = await hashPassNew(pass);
+    _spUser.hash = hash; _spUser.salt = salt; delete _spUser.needsSetup;
+    saveUsers(_spUsers);
+    document.getElementById('setPassModal').style.display = 'none';
+    _completeLogin(_spUser, _spUsers);
+  });
+})();
 
 gsmUsers = ensureAdminUser();
 renderAcessos();
