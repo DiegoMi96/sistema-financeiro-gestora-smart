@@ -466,12 +466,13 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
     if (!sess || !sess.email) return;
     // Sessão parece válida — esconde o loginScreen via CSS imediatamente
     document.documentElement.classList.add('gsm-has-session');
-    // Fallback: se o JS principal não confirmar em 4s, mostra o login
+    // Fallback: se o JS principal não confirmar em 12s, mostra o login
+    // (12s dá margem para Chart.js e outros CDNs carregarem em conexões lentas)
     window._gsmLoginFallback = setTimeout(function() {
       document.documentElement.classList.remove('gsm-has-session');
       var ls = document.getElementById('loginScreen');
       if (ls) ls.style.display = 'flex';
-    }, 4000);
+    }, 12000);
   } catch(e) {}
 })();
 </script>
@@ -1779,14 +1780,17 @@ function doLogout() {
 // Verifica localStorage (lembrar) ou sessionStorage (só esta aba)
 // Sessão localStorage expira em 30 dias; sessionStorage nunca expira enquanto a aba estiver aberta.
 (function tryAutoLogin() {
-  // Cancela o fallback de 4s (definido no inline script acima)
+  // Cancela o fallback (definido no inline script) sem tocar na classe CSS
+  // A classe gsm-has-session continua escondendo o loginScreen via CSS
+  // até que loginScreen.style.display = 'none' seja definido explicitamente
   function confirmSession() {
     try { if (window._gsmLoginFallback) { clearTimeout(window._gsmLoginFallback); window._gsmLoginFallback = null; } } catch(e) {}
-    document.documentElement.classList.remove('gsm-has-session');
+    // NÃO remove gsm-has-session aqui — isso causava flash de login
   }
   // Exibe tela de login e remove classe CSS de sessão
   function showLogin() {
-    confirmSession();
+    try { if (window._gsmLoginFallback) { clearTimeout(window._gsmLoginFallback); window._gsmLoginFallback = null; } } catch(e) {}
+    document.documentElement.classList.remove('gsm-has-session');
     if (loginScreen) loginScreen.style.display = 'flex';
   }
 
@@ -1807,12 +1811,13 @@ function doLogout() {
   if (!user) { showLogin(); return; } // usuário removido — exige login manual
 
   // ── Sessão válida ──────────────────────────────────────────────
-  confirmSession();               // cancela fallback, remove classe CSS
+  confirmSession();               // cancela fallback (classe CSS continua escondendo login)
   gsmUsers = users;
   currentUserEmail = sess.email;
   _applyUserUI(user);
   applyPageAccess(user);
   if (loginScreen) loginScreen.style.display = 'none';
+  document.documentElement.classList.remove('gsm-has-session'); // limpeza — display:none já está setado
   document.body.classList.remove('logged-out');
   if (restoreCache()) {
     applyPeriod(getActivePeriod());
