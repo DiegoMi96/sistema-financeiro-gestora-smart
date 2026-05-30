@@ -2903,15 +2903,15 @@ function buildCustoEnvio() {
   const ctx = document.getElementById('chartCustoEnvio'); if (!ctx) return;
   destroyChart('custoEnv');
   const _ceVals = custoEnvio.filter(v => v != null && v > 0);
-  const _ceMax  = _ceVals.length ? Math.max(..._ceVals) : 40000;
-  const ceYMax  = Math.ceil(_ceMax * 1.2 / 1000) * 1000;
+  const _ceMin  = _ceVals.length ? Math.min(..._ceVals) : 0;
+  const ceYMin  = Math.max(0, Math.floor(_ceMin * 0.9 / 1000) * 1000);
   charts.custoEnv = new Chart(ctx, {
     type:'line',
     data:{ labels: MES_NOME, datasets:[{ data: custoEnvio, borderColor: css('--allcom'), backgroundColor:'rgba(123,63,160,.15)', fill:true, tension:.35, pointRadius:6, pointBackgroundColor: css('--allcom'), borderWidth:3 }]},
     options: commonOpts({
       layout:{ padding:{ top: 50 } },
       plugins:{legend:{display:false}, datalabels:{display:true, anchor:'end', align:'top', clip:false, color: css('--text-2'), font:{size:11,weight:'700'}, formatter:v=>fmtBRL(v) } },
-      scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:22000, max:ceYMax,
+      scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:ceYMin, max:22000,
         ticks:{ ...commonOpts().scales.y.ticks, callback:v=>'R$'+(v/1000).toFixed(0)+'k' } } }
     })
   });
@@ -3919,7 +3919,7 @@ function computePeriodData(dm) {
       'Cancelamento Anual':     { v: fmtNum(cancelAcum), f: 'Média mensal: '+fmtNum(Math.round(cancelAcum/(idx+1))) },
       'Desistência Anual':      { v: fmtNum(sumTo('Desistencia',idx)), f: 'Média mensal: '+fmtNum(Math.round(sumTo('Desistencia',idx)/(idx+1))) },
       'Churn Implícito':        { v: churnPct, f: 'Cancel / Base ativa' },
-      'Custo de Envio':         { v: custoEnvioAcum != null ? fmtBRL(custoEnvioAcum) : '—', f: 'Acumulado desde '+lbl },
+      'Custo de Envio':         { v: custoEnvioAcum != null ? fmtBRL(custoEnvioAcum) : '—', f: 'Acumulado desde Janeiro '+(document.getElementById('yearSelect')?.value||'2026') },
       'Pacotes Enviados':       { v: fmtNum(volEnvioAcum), f: 'Acumulado' },
       'Custo Médio / Pacote':   { v: custoEnvioAcum&&volEnvioAcum ? 'R$ '+(custoEnvioAcum/volEnvioAcum).toFixed(2).replace('.',',') : '—', f: 'Custo médio acumulado' },
       'Custo / Receita':        { v: rec&&custoEnvioAcum ? (custoEnvioAcum/rec*100).toFixed(2).replace('.',',')+'%' : '—', f: 'Frete sobre faturamento' },
