@@ -2819,8 +2819,8 @@ function buildVendasMedia() {
   const ctx = document.getElementById('chartVendasMedia'); if (!ctx) return;
   destroyChart('vendasMedia');
   const _ncMax = novosClientes.filter(v => v != null).reduce((m, v) => v > m ? v : m, 0);
-  // Teto: mínimo 100, sobe em incrementos de 100 quando dados atingem o teto
-  const ncYMax = Math.max(100, Math.ceil((_ncMax + 1) / 100) * 100);
+  // Teto: mínimo 150, sobe em incrementos de 50 quando dados atingem o teto
+  const ncYMax = Math.max(150, Math.ceil((_ncMax + 1) / 50) * 50);
   charts.vendasMedia = new Chart(ctx, {
     type: 'line',
     data: { labels: meses, datasets: [
