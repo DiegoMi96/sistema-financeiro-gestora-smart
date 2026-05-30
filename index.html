@@ -891,10 +891,6 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           <div>
             <div class="chart-title">Evolução do EBITDA</div>
           </div>
-          <div class="chart-legend">
-            <span><span class="legend-dot" style="background:var(--info)"></span>Realizado</span>
-            <span><span class="legend-dot" style="background:#B8D4F0"></span>Previsão</span>
-          </div>
         </div>
         <div class="chart-canvas-wrap tall"><canvas id="chartEbitda"></canvas></div>
       </div>
@@ -2545,49 +2541,49 @@ function miniSub(arr) {
   const allTotal  = arr.reduce((s,v) => s+(v!=null?v:0), 0);
   const prevTotal = allTotal - realTotal;
   const pct = allTotal > 0 ? Math.round(realTotal/allTotal*100) : 0;
-  return 'Realizado '+fmtAutoK(realTotal)+' · Previsão '+fmtAutoK(prevTotal)+' · '+pct+'% concluído';
+  return 'Realizado '+fmtAutoK(realTotal)+' · Previsão '+fmtAutoK(prevTotal)+' · <strong>'+pct+'% concluído</strong>';
 }
 function buildReceita() {
   buildMini('chartReceita', receitaMes);
-  const s = document.getElementById('plReceitaSub'); if(s) s.textContent = miniSub(receitaMes);
+  const s = document.getElementById('plReceitaSub'); if(s) s.innerHTML = miniSub(receitaMes);
 }
 function buildCusto()   {
   buildMini('chartCusto', custoMes);
-  const s = document.getElementById('plCustoSub'); if(s) s.textContent = miniSub(custoMes);
+  const s = document.getElementById('plCustoSub'); if(s) s.innerHTML = miniSub(custoMes);
 }
 function buildDespesa() {
   buildMini('chartDespesa', despesaMes);
-  const s = document.getElementById('plDespesaSub'); if(s) s.textContent = miniSub(despesaMes);
+  const s = document.getElementById('plDespesaSub'); if(s) s.innerHTML = miniSub(despesaMes);
 }
 
 function buildEbitda() {
   const ctx = document.getElementById('chartEbitda'); if (!ctx) return;
   destroyChart('ebitda');
   const sel = periodMonthIdx[currentPeriod];
+  const ebitdaPct = ebitda.map((v,i) => {
+    const rec = receitaMes[i];
+    return (v != null && rec) ? parseFloat((v / rec * 100).toFixed(2)) : null;
+  });
   charts.ebitda = new Chart(ctx, {
     type: 'line',
     data: { labels: meses, datasets: [
-      { label:'Realizado', data: ebitda.map((v,i)=>ebitdaIsReal[i]?v:null),
+      { label:'EBITDA %', data: ebitdaPct,
         borderColor: css('--info'), backgroundColor:'rgba(44,123,229,.12)', fill:true,
         tension:.35, borderWidth:3,
         pointRadius: ebitda.map((_,i)=>i===sel?8:5),
-        pointBackgroundColor: ebitda.map((_,i)=>i===sel?'#1558B0':css('--info')) },
-      { label:'Previsão', data: ebitda.map((v,i)=>ebitdaIsReal[i]?null:v),
-        borderColor:'#B8D4F0', backgroundColor:'rgba(44,123,229,.06)', fill:true,
-        tension:.35, borderDash:[6,4], pointRadius:4,
-        pointBackgroundColor:'#B8D4F0', borderWidth:3 }
+        pointBackgroundColor: ebitda.map((_,i)=>i===sel?'#1558B0':css('--info')) }
     ]},
     options: commonOpts({
       plugins:{
         legend:{display:false},
-        tooltip:{ callbacks:{ label: c => fmtBRL(c.parsed.y) } },
+        tooltip:{ callbacks:{ label: c => c.parsed.y != null ? c.parsed.y.toFixed(2).replace('.',',')+' %' : '' } },
         datalabels:{
           display:true, anchor:'end', align:'top',
           color: css('--text-2'), font:{size:9,weight:'700'},
-          formatter: v => v==null?'':(v/1000).toFixed(0)+'k'
+          formatter: v => v==null?'':v.toFixed(1).replace('.',',')+'%'
         }
       },
-      scales:{...commonOpts().scales, y:{...commonOpts().scales.y, ticks:{...commonOpts().scales.y.ticks, callback: v=>(v/1000).toFixed(0)+'k'}}}
+      scales:{...commonOpts().scales, y:{...commonOpts().scales.y, ticks:{...commonOpts().scales.y.ticks, callback: v => v+'%'}}}
     })
   });
 }
@@ -3955,7 +3951,8 @@ function computePeriodData(dm) {
     const custoEnvioAcum = sumTo('Custo_Envio', idx);
     const volEnvioAcum = sumTo('Vol_Envio', idx);
     const lbl = isQ1 ? '1º Trimestre 2026' : isYTD ? 'Acumulado 2026' : longMon[idx]+' 2026';
-    const ebitdaVal   = isQ1||isYTD ? ebitda.slice(0,3).reduce((a,b)=>a+(b??0),0) : (ebitda[idx]??null);
+    const ebitdaVal    = isQ1||isYTD ? ebitda.slice(0,3).reduce((a,b)=>a+(b??0),0) : (ebitda[idx]??null);
+    const ebitdaPctKpi = rec && ebitdaVal != null ? ((ebitdaVal/rec)*100).toFixed(2).replace('.',',')+'%' : '—';
     const margemLiqPct = rec && res != null ? ((res/rec)*100).toFixed(2).replace('.',',')+'%' : '—';
     const cofPrin     = cofrePrincipalMes[idx] ?? null;
     const cof2        = cofre2Mes[idx] ?? null;
@@ -3993,11 +3990,11 @@ function computePeriodData(dm) {
       'Maior Categoria':        { v: 'CMV / CPS', f: '~65% das saídas totais' },
       'Maior Salto':            { v: '—', f: 'Ver tabela de saídas' },
       'Custo CMV / Receita':    { v: rec&&cmv ? (cmv/rec*100).toFixed(1).replace('.',',')+'%' : '—', f: 'CMV sobre faturamento bruto' },
-      'Margem Líquida':    { v: margemLiqPct, f: lbl },
-      'EBITDA':            { v: ebitdaVal != null ? fmtAutoK(ebitdaVal) : '—', f: lbl },
+      'Margem Líquida':    { v: margemLiqPct, f: 'Resultado / Receita' },
+      'EBITDA':            { v: ebitdaPctKpi, f: 'EBITDA / Receita' },
       'Tesouro Acumulado': { v: tesAcum != null ? fmtAutoK(tesAcum) : '—', f: 'Cofre Principal + Cofre Secundário' },
-      'Cofre Principal':   { v: cofPrin != null ? fmtAutoK(cofPrin) : '—', f: lbl },
-      'Cofre Secundário':  { v: cof2 != null ? fmtAutoK(cof2) : '—', f: lbl }
+      'Cofre Principal':   { v: cofPrin != null ? fmtAutoK(cofPrin) : '—', f: 'Saldo atual' },
+      'Cofre Secundário':  { v: cof2 != null ? fmtAutoK(cof2) : '—', f: 'Saldo atual' }
     };
   };
 
