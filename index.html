@@ -1147,8 +1147,8 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <div class="page-head">
         <div>
           <div class="tag">Pessoas</div>
-          <h2 class="page-title" style="margin-top:10px">Gestão de RH · 2026</h2>
-          <p class="page-sub">Headcount, turnover, folha, absenteísmo e rescisão</p>
+          <h2 class="page-title" style="margin-top:10px">Gestão de RH</h2>
+          <p class="page-sub">Headcount, folha, absenteísmo e rescisão</p>
         </div>
       </div>
 
@@ -1177,7 +1177,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           <div class="kpi-foot" id="rhFolhaFoot">Março · +1,8% vs. Fev</div>
         </div>
         <div class="card"><div class="card-top-line" style="background:var(--negative)"></div>
-          <div class="kpi-label">Rescisão (Mês)</div>
+          <div class="kpi-label">Rescisão (Anual)</div>
           <div class="kpi-value lg" id="rhRescisaoVal">—</div>
           <div class="kpi-foot" id="rhRescisaoFoot">Sincronize a planilha</div>
         </div>
@@ -1213,41 +1213,41 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         <div class="chart-canvas-wrap"><canvas id="chartRHFolha"></canvas></div>
       </div>
 
+      <!-- Rescisão Anual — abaixo da Folha de Pagamento -->
+      <div class="section-head" style="margin-bottom:10px"><div class="section-bar"></div><div class="section-title">Rescisão</div></div>
+      <div class="chart-card" style="margin-bottom:14px">
+        <div class="chart-head">
+          <div><div class="chart-title">Rescisão Anual</div><div class="chart-sub">Custo total de rescisões por mês (R$)</div></div>
+          <div class="chart-legend">
+            <span><span class="legend-dot" style="background:var(--negative)"></span>Rescisão</span>
+          </div>
+        </div>
+        <div class="chart-canvas-wrap"><canvas id="chartRHRescisao"></canvas></div>
+      </div>
+
       <!-- Absenteísmo -->
       <div class="section-head" style="margin-bottom:10px"><div class="section-bar"></div><div class="section-title">Absenteísmo</div></div>
       <div class="grid grid-2" style="margin-bottom:14px">
         <div class="card"><div class="card-top-line warn"></div>
           <div class="kpi-label">Faltas não justificadas (mês)</div>
           <div class="kpi-value lg" id="rhFaltasVal">8</div>
-          <div class="kpi-foot" id="rhFaltasFoot">Março · Taxa: 0,6%</div>
+          <div class="kpi-foot" id="rhFaltasFoot">Taxa: 0,6%</div>
         </div>
         <div class="card"><div class="card-top-line" style="background:var(--negative)"></div>
           <div class="kpi-label">Afastamentos (mês)</div>
           <div class="kpi-value lg" id="rhAfastVal">2</div>
-          <div class="kpi-foot" id="rhAfastFoot">Março · INSS / licença médica</div>
+          <div class="kpi-foot" id="rhAfastFoot">INSS / licença médica</div>
         </div>
       </div>
       <div class="chart-card" style="margin-bottom:14px">
         <div class="chart-head">
-          <div><div class="chart-title">Absenteísmo Mensal · Jan–Dez 2026</div><div class="chart-sub">Faltas e afastamentos por mês</div></div>
+          <div><div class="chart-title">Absenteísmo Mensal</div><div class="chart-sub">Faltas e afastamentos por mês</div></div>
           <div class="chart-legend">
             <span><span class="legend-dot" style="background:var(--warning)"></span>Faltas</span>
             <span><span class="legend-dot" style="background:var(--negative)"></span>Afastamentos</span>
           </div>
         </div>
         <div class="chart-canvas-wrap"><canvas id="chartRHAbs"></canvas></div>
-      </div>
-
-      <!-- Rescisão Anual -->
-      <div class="section-head" style="margin-bottom:10px"><div class="section-bar"></div><div class="section-title">Rescisão</div></div>
-      <div class="chart-card" style="margin-bottom:14px">
-        <div class="chart-head">
-          <div><div class="chart-title">Rescisão Anual · Jan–Dez 2026</div><div class="chart-sub">Custo total de rescisões por mês (R$)</div></div>
-          <div class="chart-legend">
-            <span><span class="legend-dot" style="background:var(--negative)"></span>Rescisão</span>
-          </div>
-        </div>
-        <div class="chart-canvas-wrap"><canvas id="chartRHRescisao"></canvas></div>
       </div>
     </section>
 
@@ -4483,7 +4483,7 @@ function buildRH() {
   if (hcEl) {
     hcEl.textContent = rhHeadcountMes[idx] != null ? rhHeadcountMes[idx] : '—';
     const foot = hcEl.closest('.card')?.querySelector('.kpi-foot');
-    if (foot) foot.textContent = 'Quadro ativo · ' + yearSuf[idx];
+    if (foot) foot.textContent = 'Quadro ativo';
   }
 
   // KPI card: Colaboradores CLT
@@ -4491,7 +4491,7 @@ function buildRH() {
   if (cltEl) {
     cltEl.textContent = rhCLTMes[idx] != null ? rhCLTMes[idx] : '—';
     const foot = cltEl.closest('.card')?.querySelector('.kpi-foot');
-    if (foot) foot.textContent = 'Regime CLT · ' + yearSuf[idx];
+    if (foot) foot.textContent = 'Regime CLT';
   }
 
   // KPI card: Colaboradores PJ
@@ -4499,7 +4499,7 @@ function buildRH() {
   if (pjEl) {
     pjEl.textContent = rhPJMes[idx] != null ? rhPJMes[idx] : '—';
     const foot = pjEl.closest('.card')?.querySelector('.kpi-foot');
-    if (foot) foot.textContent = 'Pessoa jurídica · ' + yearSuf[idx];
+    if (foot) foot.textContent = 'Pessoa jurídica';
   }
 
   // KPI card: Custo Folha (Mês)
@@ -4514,17 +4514,18 @@ function buildRH() {
         ? (((folhaVal - prev) / prev) * 100).toFixed(1).replace('.', ',')
         : null;
       const sign = diffPct && parseFloat(diffPct.replace(',', '.')) >= 0 ? '+' : '';
-      footF.textContent = shortMon[idx] + (diffPct ? ' · ' + sign + diffPct + '% vs. ' + shortMon[idx-1] : '');
+      footF.textContent = diffPct ? sign + diffPct + '% vs. ' + shortMon[idx-1] : '';
     }
   }
 
-  // KPI card: Rescisão no Mês
+  // KPI card: Rescisão Anual (soma de todos os meses realizados)
   const rescEl = document.getElementById('rhRescisaoVal');
   if (rescEl) {
-    const rescVal = rhRescisaoMes[idx];
-    rescEl.textContent = rescVal != null ? 'R$ ' + Math.round(rescVal / 1000) + 'k' : '—';
+    const rescAnual = rhRescisaoMes.reduce((sum, v) => sum + (v != null ? v : 0), 0);
+    const hasAnyResc = rhRescisaoMes.some(v => v != null);
+    rescEl.textContent = hasAnyResc ? 'R$ ' + Math.round(rescAnual / 1000) + 'k' : '—';
     const footR = document.getElementById('rhRescisaoFoot');
-    if (footR) footR.textContent = shortMon[idx] + (rescVal != null ? ' · ' + fmtBRL(rescVal) : '');
+    if (footR) footR.textContent = hasAnyResc ? 'Total acumulado · ' + fmtBRL(rescAnual) : 'Sincronize a planilha';
   }
 
   // KPI card: Faltas não justificadas
@@ -4539,7 +4540,7 @@ function buildRH() {
       const taxa = (faltasVal != null && base != null)
         ? ((faltasVal / base) * 100).toFixed(1).replace('.', ',')
         : null;
-      footFa.textContent = shortMon[idx] + (taxa ? ' · Taxa: ' + taxa + '%' : '');
+      footFa.textContent = taxa ? 'Taxa: ' + taxa + '%' : '';
     }
   }
 
@@ -4548,7 +4549,7 @@ function buildRH() {
   if (afastEl) {
     afastEl.textContent = rhAfastMes[idx] != null ? rhAfastMes[idx] : '—';
     const footAf = document.getElementById('rhAfastFoot');
-    if (footAf) footAf.textContent = shortMon[idx] + ' · INSS / licença médica';
+    if (footAf) footAf.textContent = 'INSS / licença médica';
   }
 
   // Headcount evolução
@@ -4560,8 +4561,8 @@ function buildRH() {
     const _hcVals = [...realHC, ...prevHC].filter(v => v != null);
     const _hcLo = _hcVals.length ? Math.min(..._hcVals) : 0;
     const _hcHi = _hcVals.length ? Math.max(..._hcVals) : 50;
-    const hcYMin = Math.max(0, _hcLo - 2.5);
-    const hcYMax = _hcHi + 2.5;
+    const hcYMin = Math.max(0, _hcLo - 2);
+    const hcYMax = _hcHi + 2;
     charts.rhHC = new Chart(ctxHC, { type:'line', data:{ labels, datasets:[
       { label:'Realizado', data:realHC, borderColor:css('--primary'), backgroundColor:'rgba(29,158,94,.12)', fill:true, tension:.35, borderWidth:3, pointRadius:5, pointBackgroundColor:css('--primary'),
         datalabels:{ display:true, anchor:'end', align:'top', color:css('--primary-dark'), font:{size:10,weight:'700'}, formatter:v=>v==null?'':v } },
