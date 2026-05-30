@@ -1073,7 +1073,6 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         <div class="chart-canvas-wrap tall"><canvas id="chartChurnAnual"></canvas></div>
       </div>
 
-      <div class="section-head" style="margin:20px 0 10px"><div class="section-bar"></div><div class="section-title">Pool de Dados por Operadora</div></div>
       <div class="chart-card" style="margin-bottom:14px">
         <div class="chart-head">
           <div><div class="chart-title">Pool de dados · status</div><div class="chart-sub">% do pool consumido por operadora</div></div>
@@ -1082,13 +1081,11 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         <div id="poolBars" class="pool-grid"></div>
       </div>
 
-      <div class="section-head" style="margin:20px 0 10px"><div class="section-bar"></div><div class="section-title">Atendimento & Tickets</div></div>
       <div class="chart-card" style="margin-bottom:14px">
         <div class="chart-head">
-          <div><div class="chart-title">Evolução de Tickets</div><div class="chart-sub">Volume mensal de atendimentos realizados vs. previsão</div></div>
+          <div><div class="chart-title">Evolução de Tickets</div><div class="chart-sub">Volume mensal de atendimentos</div></div>
           <div class="chart-legend">
             <span><span class="legend-dot" style="background:var(--info)"></span>Realizado</span>
-            <span><span class="legend-dot" style="background:#A8C8F0"></span>Previsão</span>
           </div>
         </div>
         <div class="chart-canvas-wrap tall"><canvas id="chartTickets"></canvas></div>
@@ -1997,6 +1994,8 @@ function navigateToPage(key) {
   nav.classList.add('active');
   document.querySelector(`.page[data-page="${key}"]`)?.classList.add('active');
   if (crumbPage) crumbPage.textContent = pageNames[key] || key;
+  // Pool: sempre mostra o mês atual ao abrir a aba Operação
+  if (key === 'ops') resetPoolToCurrentMonth();
 }
 
 /** Restaura a última aba visitada (salva no localStorage). */
@@ -4438,9 +4437,10 @@ function buildPool(mesIdx) {
 function buildPoolTabs() {
   const labels = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const tabs = document.getElementById('poolTabs'); if (!tabs) return;
+  const defaultMes = periodMonthIdx[currentPeriod] ?? 0;
   tabs.innerHTML = labels.map((l, m) =>
-    `<button class="op-tab${m===0?' active':''}" data-mes="${m}">${l}</button>`).join('');
-  buildPool(0);
+    `<button class="op-tab${m===defaultMes?' active':''}" data-mes="${m}">${l}</button>`).join('');
+  buildPool(defaultMes);
   tabs.addEventListener('click', e => {
     const btn = e.target.closest('.op-tab'); if (!btn) return;
     tabs.querySelectorAll('.op-tab').forEach(b => b.classList.remove('active'));
@@ -4449,29 +4449,33 @@ function buildPoolTabs() {
   });
 }
 
+function resetPoolToCurrentMonth() {
+  const tabs = document.getElementById('poolTabs'); if (!tabs) return;
+  const mesIdx = periodMonthIdx[currentPeriod] ?? 0;
+  tabs.querySelectorAll('.op-tab').forEach(b => b.classList.toggle('active', +b.dataset.mes === mesIdx));
+  buildPool(mesIdx);
+}
+
 function buildTickets() {
   const ctx = document.getElementById('chartTickets'); if (!ctx) return;
   destroyChart('tickets');
   const labels = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const realData = ticketsMes.map((v, i) => isRealTickets[i] ? v : null);
-  const prevData = ticketsMes.map((v, i) => isRealTickets[i] ? null : v);
+  const _tMax = realData.reduce((mx, v) => v != null && v > mx ? v : mx, 0);
+  const tYMax = Math.max(6000, Math.ceil(_tMax * 1.2 / 1000) * 1000);
   charts.tickets = new Chart(ctx, {
     type:'line',
     data:{ labels, datasets:[
       { label:'Realizado', data: realData,
         borderColor: css('--info'), backgroundColor:'rgba(44,123,229,.12)', fill:true,
         tension:.35, borderWidth:3, pointRadius:5, pointBackgroundColor: css('--info'),
-        datalabels:{ display:true, anchor:'end', align:'top', color: css('--info'), font:{size:10,weight:'700'}, formatter: v => v==null?'':fmtNum(v) } },
-      { label:'Previsão', data: prevData,
-        borderColor:'#A8C8F0', backgroundColor:'rgba(44,123,229,.05)', fill:true,
-        tension:.35, borderWidth:2.5, borderDash:[6,4], pointRadius:4, pointBackgroundColor:'#A8C8F0',
-        datalabels:{ display:true, anchor:'end', align:'top', color:'#A8C8F0', font:{size:10,weight:'700'}, formatter: v => v==null?'':fmtNum(v) } }
+        datalabels:{ display:true, anchor:'end', align:'top', color: css('--info'), font:{size:10,weight:'700'}, formatter: v => v==null?'':fmtNum(v) } }
     ]},
     options: commonOpts({
       plugins:{ legend:{ display:false },
         tooltip:{ callbacks:{ label: c => c.dataset.label+': '+fmtNum(c.parsed.y)+' tickets' } },
         datalabels:{ display:false } },
-      scales:{ ...commonOpts().scales }
+      scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:0, max:tYMax } }
     })
   });
 }
