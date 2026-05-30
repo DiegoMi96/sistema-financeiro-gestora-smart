@@ -832,10 +832,9 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       </div>
 
       <!-- Cofres -->
-      <div class="grid grid-3" style="margin-bottom:14px">
+      <div class="grid grid-2" style="margin-bottom:14px">
         <div class="card"><div class="kpi-label">Cofre Principal</div><div class="kpi-value">—</div><div class="kpi-foot">—</div></div>
-        <div class="card"><div class="kpi-label">Cofre 1</div><div class="kpi-value">—</div><div class="kpi-foot">—</div></div>
-        <div class="card"><div class="kpi-label">Cofre 2</div><div class="kpi-value">—</div><div class="kpi-foot">—</div></div>
+        <div class="card"><div class="kpi-label">Cofre Secundário</div><div class="kpi-value">—</div><div class="kpi-foot">—</div></div>
       </div>
 
       <!-- Mini gráficos Receita / Custo -->
@@ -3959,9 +3958,8 @@ function computePeriodData(dm) {
     const ebitdaVal   = isQ1||isYTD ? ebitda.slice(0,3).reduce((a,b)=>a+(b??0),0) : (ebitda[idx]??null);
     const margemLiqPct = rec && res != null ? ((res/rec)*100).toFixed(2).replace('.',',')+'%' : '—';
     const cofPrin     = cofrePrincipalMes[idx] ?? null;
-    const cof1        = cofre1Mes[idx] ?? null;
     const cof2        = cofre2Mes[idx] ?? null;
-    const tesAcum     = (cof1 != null || cof2 != null) ? (cof1??0)+(cof2??0) : null;
+    const tesAcum     = (cofPrin != null || cof2 != null) ? (cofPrin??0)+(cof2??0) : null;
     return {
       'Receita Bruta':          { v: fmtAutoK(rec), f: 'Faturamento bruto · '+lbl },
       'CSP / CMV':              { v: fmtAutoK(cmv), f: 'Custo de serviços · '+lbl },
@@ -3997,10 +3995,9 @@ function computePeriodData(dm) {
       'Custo CMV / Receita':    { v: rec&&cmv ? (cmv/rec*100).toFixed(1).replace('.',',')+'%' : '—', f: 'CMV sobre faturamento bruto' },
       'Margem Líquida':    { v: margemLiqPct, f: lbl },
       'EBITDA':            { v: ebitdaVal != null ? fmtAutoK(ebitdaVal) : '—', f: lbl },
-      'Tesouro Acumulado': { v: tesAcum != null ? fmtAutoK(tesAcum) : '—', f: 'Cofre 1 + Cofre 2' },
+      'Tesouro Acumulado': { v: tesAcum != null ? fmtAutoK(tesAcum) : '—', f: 'Cofre Principal + Cofre Secundário' },
       'Cofre Principal':   { v: cofPrin != null ? fmtAutoK(cofPrin) : '—', f: lbl },
-      'Cofre 1':           { v: cof1 != null ? fmtAutoK(cof1) : '—', f: lbl },
-      'Cofre 2':           { v: cof2 != null ? fmtAutoK(cof2) : '—', f: lbl }
+      'Cofre Secundário':  { v: cof2 != null ? fmtAutoK(cof2) : '—', f: lbl }
     };
   };
 
