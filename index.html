@@ -1055,7 +1055,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
 
       <div class="chart-card" style="margin-bottom:14px">
         <div class="chart-head">
-          <div><div class="chart-title">Suporte técnico - Analise detalhada</div></div>
+          <div><div class="chart-title">Cancelamento vs. Desistência</div></div>
           <div class="chart-legend"><span><span class="legend-dot" style="background:var(--negative)"></span>Cancelamento</span><span><span class="legend-dot" style="background:var(--warning)"></span>Desistência</span></div>
         </div>
         <div class="chart-canvas-wrap tall"><canvas id="chartChurn"></canvas></div>
@@ -4119,8 +4119,8 @@ function computePeriodData(dm) {
       if (atvArr[m] != null && atvArr[m] > 0)
         ativacoes.push({ mes: pillsFull[m].toUpperCase(), qty: fmtNum(atvArr[m]) });
     }
-    // Garantir mínimo de 3 slots exibidos
-    while (ativacoes.length < 3) ativacoes.push({ mes: '—', qty: '—' });
+    // Garantir mínimo de 2 slots exibidos
+    while (ativacoes.length < 2) ativacoes.push({ mes: '—', qty: '—' });
     periodData[key].proximasAtivacoes = ativacoes;
 
     // margemPanel — Margem_PCT e Margem_BRL da planilha
