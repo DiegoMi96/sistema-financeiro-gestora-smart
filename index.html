@@ -718,7 +718,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       </div>
 
       <div class="section">
-        <div class="section-head"><div class="section-bar"></div><div class="section-title">Base de Clientes</div></div>
+        <div class="section-head"><div class="section-bar"></div><div class="section-title">BASE SMART</div></div>
         <div class="grid grid-6">
           <div class="card tinted-primary">
             <div class="kpi-label">Base Ativa</div>
@@ -906,12 +906,12 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         </div>
       </div>
 
-      <div class="section-head" style="margin-bottom:10px"><div class="section-bar"></div><div class="section-title">Base de Clientes</div></div>
+      <div class="section-head" style="margin-bottom:10px"><div class="section-bar"></div><div class="section-title">BASE SMART</div></div>
 
       <div class="grid grid-2" style="margin-bottom:14px">
         <div class="chart-card">
           <div class="chart-head">
-            <div><div class="chart-title">Base Ativa (Simcards)</div><div class="chart-sub">+19.026 simcards desde Janeiro · 103% vs. meta · +3%</div></div>
+            <div><div class="chart-title">Base Ativa</div><div class="chart-sub">+19.026 simcards desde Janeiro · 103% vs. meta · +3%</div></div>
           </div>
           <div class="chart-canvas-wrap"><canvas id="chartBaseSim"></canvas></div>
         </div>
@@ -926,7 +926,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <div class="grid grid-3-2" style="margin-bottom:14px">
         <div class="chart-card">
           <div class="chart-head">
-            <div><div class="chart-title">Curva de Eficiência — Conectividade</div><div class="chart-sub">Conectividade M2M: Receita SS (Smart) × CMV (Allcom) × Margem</div></div>
+            <div><div class="chart-title">Curva de Eficiência</div><div class="chart-sub">Conectividade M2M: Receita SS (Smart) × CMV (Allcom) × Margem</div></div>
             <div class="chart-legend"><span><span class="legend-dot" style="background:var(--primary)"></span>Smart</span><span><span class="legend-dot" style="background:var(--allcom)"></span>Allcom</span><span><span class="legend-dot" style="background:var(--warning)"></span>Margem</span></div>
           </div>
           <div class="chart-canvas-wrap tall"><canvas id="chartConect"></canvas></div>
@@ -967,11 +967,18 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
             <div class="activation-item"><div class="month-pill">FEV</div><div class="qty">31.590</div><span class="delta-chip down">−1.410</span></div>
             <div class="activation-item"><div class="month-pill">MAR</div><div class="qty">36.435</div><span class="delta-chip up">+3.435</span></div>
           </div>
-          <div>
-            <div style="font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:8px">Novos Clientes</div>
-            <div class="chart-canvas-wrap short"><canvas id="chartNovosClientes"></canvas></div>
+        </div>
+      </div>
+
+      <div class="chart-card" style="margin-bottom:14px">
+        <div class="chart-head">
+          <div><div class="chart-title">Vendas Simcards e Média Mensal</div><div class="chart-sub">Evolução ponto a ponto · Jan–Dez 2026</div></div>
+          <div class="chart-legend">
+            <span><span class="legend-dot" style="background:var(--primary)"></span>Vendas</span>
+            <span><span class="legend-dot" style="background:#F59300"></span>Média acumulada</span>
           </div>
         </div>
+        <div class="chart-canvas-wrap tall"><canvas id="chartVendasMedia"></canvas></div>
       </div>
 
       <div class="grid grid-3-2" style="margin-bottom:14px">
@@ -2590,7 +2597,8 @@ function buildBaseSim() {
   const _bMax       = _bVals.length ? Math.max(..._bVals) : 590000;
   const _bMin       = _bVals.length ? Math.min(..._bVals) : 0;
   const bYMin       = Math.max(0, Math.floor(_bMin * 0.97));
-  const bYMax       = Math.ceil(_bMax * 1.04);
+  // Teto: mínimo 600k, sobe em incrementos de 20k quando dados atingem o teto
+  const bYMax       = Math.max(600000, Math.ceil(_bMax * 1.03 / 20000) * 20000);
   charts.baseSim = new Chart(ctx, {
     type:'line',
     data:{ labels: baseLabels, datasets:[
@@ -2681,10 +2689,10 @@ function buildConect() {
         datalabels:{ display:true, anchor:'end', align:'top', clip:false, color: css('--text-2'),
           font:{size:9,weight:'700'}, formatter: v => v==null ? '' : fmtAutoK(v) } },
       { type:'line', label:'Margem R$', data: margemM2M.slice(0, count),
-        borderColor: css('--warning'), backgroundColor: css('--warning'),
+        borderColor:'#F59300', backgroundColor:'#F59300',
         tension:.35, pointRadius:6, yAxisID:'y1', borderWidth:3, order:1,
         datalabels:{ display:true, anchor:'end', align:'top', clip:false,
-          color:'#C87A1A', font:{size:10,weight:'800'},
+          color:'#D97B00', font:{size:10,weight:'800'},
           formatter: v => v==null ? '' : fmtAutoK(v), offset:8 } }
     ]},
     options: commonOpts({
@@ -2807,6 +2815,41 @@ function buildNovos() {
   });
 }
 
+
+function buildVendasMedia() {
+  const ctx = document.getElementById('chartVendasMedia'); if (!ctx) return;
+  destroyChart('vendasMedia');
+  // Média acumulada: a cada mês, a média de todos os meses realizados até ali
+  let sum = 0, cnt = 0;
+  const mediaAcum = vendasMes.map((v, i) => {
+    if (!isReal[i] || v == null) return null;
+    sum += v; cnt++;
+    return Math.round(sum / cnt);
+  });
+  const _vmMax = [...vendasMes, ...mediaAcum].filter(v => v != null).reduce((m, v) => v > m ? v : m, 0);
+  const vmYMax = Math.max(50000, Math.ceil(_vmMax * 1.25 / 5000) * 5000);
+  charts.vendasMedia = new Chart(ctx, {
+    type: 'line',
+    data: { labels: meses, datasets: [
+      { label:'Vendas', data: vendasMes,
+        borderColor: css('--primary'), backgroundColor:'rgba(29,158,94,.12)', fill:true,
+        tension:.35, borderWidth:3, pointRadius:5, pointBackgroundColor: css('--primary'),
+        datalabels:{ display:true, anchor:'end', align:'top', color: css('--text-2'), font:{size:9,weight:'700'}, formatter: v => v==null?'':fmtNum(v) } },
+      { label:'Média', data: mediaAcum,
+        borderColor:'#F59300', backgroundColor:'transparent',
+        tension:.35, borderWidth:2.5, borderDash:[6,4], pointRadius:4, pointBackgroundColor:'#F59300',
+        datalabels:{ display:false } }
+    ]},
+    options: commonOpts({
+      layout:{ padding:{ top:28 } },
+      plugins:{ legend:{ display:false },
+        tooltip:{ callbacks:{ label: c => c.dataset.label+': '+fmtNum(c.parsed.y) } },
+        datalabels:{ display:false } },
+      scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:0, max:vmYMax,
+        ticks:{ ...commonOpts().scales.y.ticks, callback: v => fmtNum(v) } } }
+    })
+  });
+}
 
 function buildChurnAnual() {
   const ctx = document.getElementById('chartChurnAnual'); if (!ctx) return;
@@ -3338,7 +3381,7 @@ function rerenderAllCharts() {
   Chart.defaults.color = css('--text-2');
   buildLucro(); buildEbitda(); buildReceita(); buildCusto(); buildDespesa();
   buildSaldo(); buildBaseSim(); buildBaseSw(); buildConect();
-  buildVendasMeta(); buildEquipMeta(); buildNovos();
+  buildVendasMeta(); buildEquipMeta(); buildNovos(); buildVendasMedia();
   buildChurn(); buildChurnAnual(); buildVolEnvio(); buildCustoEnvio();
   buildSaidasCat(); buildSaidasTable();
   buildDFC(); buildDFCTable();
