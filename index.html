@@ -1055,7 +1055,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
 
       <div class="chart-card" style="margin-bottom:14px">
         <div class="chart-head">
-          <div><div class="chart-title">Cancelamento vs. Desistência</div><div class="chart-sub">Drill-down por motivo (em breve)</div></div>
+          <div><div class="chart-title">Cancelamento vs. Desistência</div></div>
           <div class="chart-legend"><span><span class="legend-dot" style="background:var(--negative)"></span>Cancelamento</span><span><span class="legend-dot" style="background:var(--warning)"></span>Desistência</span></div>
         </div>
         <div class="chart-canvas-wrap tall"><canvas id="chartChurn"></canvas></div>
@@ -1065,11 +1065,9 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         <div class="chart-head">
           <div>
             <div class="chart-title">Churn Mensal</div>
-            <div class="chart-sub">Cancelamentos realizados (Jan–Mar) vs. Previsão (Abr–Dez)</div>
           </div>
           <div class="chart-legend">
             <span><span class="legend-dot" style="background:var(--negative)"></span>Realizado</span>
-            <span><span class="legend-dot" style="background:#F5B8B4"></span>Previsão</span>
           </div>
         </div>
         <div class="chart-canvas-wrap tall"><canvas id="chartChurnAnual"></canvas></div>
@@ -1078,7 +1076,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <div class="section-head" style="margin:20px 0 10px"><div class="section-bar"></div><div class="section-title">Pool de Dados por Operadora</div></div>
       <div class="chart-card" style="margin-bottom:14px">
         <div class="chart-head">
-          <div><div class="chart-title">Pool de dados · status</div><div class="chart-sub">GB consumidos vs. capacidade contratada por operadora</div></div>
+          <div><div class="chart-title">Pool de dados · status</div><div class="chart-sub">% do pool consumido por operadora</div></div>
         </div>
         <div class="op-tabs" id="poolTabs"></div>
         <div id="poolBars" class="pool-grid"></div>
@@ -1903,7 +1901,7 @@ const ALL_PAGES = [
   { key: 'saidas',    label: 'Análise de Saídas'    },
 ];
 const CACHE_KEY      = 'gsm_data_cache';
-const CACHE_VERSION  = 3;                        // incrementar ao mudar estrutura do saidasData
+const CACHE_VERSION  = 4;                        // incrementar ao mudar estrutura do saidasData/pool
 const PAGE_KEY       = 'gsm_last_page';
 const CACHE_STALE_MS = 4 * 60 * 60 * 1000;      // 4 horas
 
@@ -2139,14 +2137,10 @@ const opQtdChaves = [
   'OP_VIVO_QTD','OP_VIVO_BL_QTD','OP_VIVO_C_QTD',
 ];
 
-// Pool de Dados — [contratado_GB, consumido_jan] por operadora
-// Consumo cresce ~2-4% ao mês (simulado)
+// Pool de Dados — % consumido por mês por operadora (0–100)
+// Preencher na planilha apenas o % consumido; a barra exibe 100% de trilha com fill proporcional
 const poolNomes = ['Vivo','TIM','Algar MULTI','Algar ONE','Arqia'];
-let poolContratado = [0, 0, 0, 0, 0]; // GB contratados — preenchido via Pool_Contr_X na planilha
-const poolConsumoBase = [0, 0, 0, 0, 0]; // legado
-const poolGrowth = [0, 0, 0, 0, 0];    // legado
-// Consumo mensal por operadora — preenchido via Pool_Uso_X na planilha
-let poolUsoMes = Array.from({length:5}, () => new Array(12).fill(null));
+let poolPctMes = Array.from({length:5}, () => new Array(12).fill(null)); // % consumido, chaves POOL_X_PCT
 
 // Atendimento
 const ticketsMes    = new Array(12).fill(null);
@@ -2202,8 +2196,7 @@ function saveCache(dm, tsDisplay) {
       opMensMes,
       opCustoMes,
       opQtdMes,
-      poolUsoMes,
-      poolContratado
+      poolPctMes
     }));
   } catch(e) { /* storage indisponível */ }
 }
@@ -2224,8 +2217,7 @@ function restoreCache() {
     opMensMes    = c.opMensMes    || Array.from({length:13}, () => new Array(12).fill(null));
     opCustoMes   = c.opCustoMes   || Array.from({length:13}, () => new Array(12).fill(null));
     opQtdMes     = c.opQtdMes     || Array.from({length:13}, () => new Array(12).fill(null));
-    poolUsoMes   = c.poolUsoMes   || Array.from({length:5},  () => new Array(12).fill(null));
-    if (c.poolContratado) poolContratado.splice(0, 5, ...c.poolContratado);
+    poolPctMes   = c.poolPctMes   || Array.from({length:5},  () => new Array(12).fill(null));
     computePeriodData(c.dm);
     const ts = c.tsDisplay || '—';
     const elSync    = document.getElementById('lastSyncTime');
@@ -2454,11 +2446,11 @@ function applyPeriod(p) {
   if (d.proximasAtivacoes) {
     const renderAtiv = (el) => {
       if (!el) return;
-      el.innerHTML = d.proximasAtivacoes.length
-        ? d.proximasAtivacoes.map(a =>
-            `<div class="activation-item"><div class="month-pill">${a.mes}</div><div class="qty">${a.qty}</div><div class="desc">simcards</div></div>`
-          ).join('')
-        : '<div style="font-size:12.5px;color:var(--muted);padding:8px 0">Sem dados</div>';
+      el.innerHTML = d.proximasAtivacoes.map(a =>
+        a.qty === '—'
+          ? `<div class="activation-item" style="opacity:.35"><div class="month-pill">${a.mes}</div><div class="qty">—</div><div class="desc"></div></div>`
+          : `<div class="activation-item"><div class="month-pill">${a.mes}</div><div class="qty">${a.qty}</div><div class="desc">simcards</div></div>`
+      ).join('');
     };
     renderAtiv(document.getElementById('dashAtivacaoList'));
     renderAtiv(document.getElementById('opsAtivacaoList'));
@@ -2830,7 +2822,6 @@ function buildChurnAnual() {
     return parseFloat(((c + desistMes[i]) / base * 100).toFixed(2));
   });
   const realData = churnPct.map((v, i) => isReal[i] ? v : null);
-  const prevData = churnPct.map((v, i) => isReal[i] ? null : v);
   charts.churnAnual = new Chart(ctx, {
     type: 'line',
     data: { labels: meses, datasets: [
@@ -2838,11 +2829,7 @@ function buildChurnAnual() {
         borderColor: css('--negative'), backgroundColor:'rgba(224,70,59,.12)', fill:true,
         tension:.35, borderWidth:3,
         pointRadius: realData.map((_,i) => i===sel ? 8 : 5),
-        pointBackgroundColor: realData.map((_,i) => i===sel ? '#A8261D' : css('--negative')) },
-      { label:'Previsão', data: prevData,
-        borderColor:'#F5B8B4', backgroundColor:'rgba(224,70,59,.06)', fill:true,
-        tension:.35, borderDash:[6,4], pointRadius:4,
-        pointBackgroundColor:'#F5B8B4', borderWidth:3 }
+        pointBackgroundColor: realData.map((_,i) => i===sel ? '#A8261D' : css('--negative')) }
     ]},
     options: commonOpts({
       plugins:{
@@ -2856,7 +2843,9 @@ function buildChurnAnual() {
       },
       scales:{
         ...commonOpts().scales,
-        y:{ ...commonOpts().scales.y, ticks:{ ...commonOpts().scales.y.ticks, callback: v => v + '%' } }
+        y:{ ...commonOpts().scales.y,
+          min: 0, max: 8,
+          ticks:{ ...commonOpts().scales.y.ticks, callback: v => v + '%' } }
       }
     })
   });
@@ -3911,7 +3900,7 @@ function computePeriodData(dm) {
       'Novos Clientes':         { v: fmtNum(novos), f: 'Clientes novos · '+lbl },
       'Cancelamento':           { v: fmtNum(cancel), f: 'Linhas no mês' },
       'Desistência':            { v: fmtNum(desist), f: 'Pré-ativação' },
-      'Cancelamento Acumulado': { v: fmtNum(cancelAcum), f: 'YTD '+longMon[idx] },
+      'Cancelamento Acumulado': { v: fmtNum(cancelAcum), f: 'Acumulado' },
       'Resultado Líquido':      { v: fmtAutoK(res), f: lbl },
       'Índice de Satisfação':   { v: satV!=null ? (satV*100).toFixed(1).replace('.',',')+'%' : '—', f: satV!=null?lbl:'Sincronize a planilha' },
       'Cancelamento Anual':     { v: fmtNum(cancelAcum), f: 'Média mensal: '+fmtNum(Math.round(cancelAcum/(idx+1))) },
@@ -4130,6 +4119,8 @@ function computePeriodData(dm) {
       if (atvArr[m] != null && atvArr[m] > 0)
         ativacoes.push({ mes: pillsFull[m].toUpperCase(), qty: fmtNum(atvArr[m]) });
     }
+    // Garantir mínimo de 3 slots exibidos
+    while (ativacoes.length < 3) ativacoes.push({ mes: '—', qty: '—' });
     periodData[key].proximasAtivacoes = ativacoes;
 
     // margemPanel — Margem_PCT e Margem_BRL da planilha
@@ -4279,12 +4270,10 @@ async function syncFromSheets() {
         opQtdChaves.forEach((qk, i) => {
           if (dmO[qk]) for(let m=0;m<12;m++) opQtdMes[i][m] = dmO[qk][m] ?? null;
         });
-        // Pool de dados — uso e capacidade contratada por operadora
-        const poolUsoChaves   = ['POOL_VIVO_USO','POOL_TIM_USO','POOL_ALGAR_M_USO','POOL_ALGAR_O_USO','POOL_ARQIA_USO'];
-        const poolContrChaves = ['POOL_VIVO_CONTR','POOL_TIM_CONTR','POOL_ALGAR_M_CONTR','POOL_ALGAR_O_CONTR','POOL_ARQIA_CONTR'];
-        poolUsoMes   = Array.from({length:5}, () => new Array(12).fill(null));
-        poolUsoChaves.forEach((key, i)   => { if (dmO[key]) for(let m=0;m<12;m++) poolUsoMes[i][m] = dmO[key][m] ?? null; });
-        poolContrChaves.forEach((key, i) => { if (dmO[key] && dmO[key][0] != null) poolContratado[i] = dmO[key][0]; });
+        // Pool de dados — % consumido por operadora (0–100), chave POOL_X_PCT
+        const poolPctChaves = ['POOL_VIVO_PCT','POOL_TIM_PCT','POOL_ALGAR_M_PCT','POOL_ALGAR_O_PCT','POOL_ARQIA_PCT'];
+        poolPctMes = Array.from({length:5}, () => new Array(12).fill(null));
+        poolPctChaves.forEach((key, i) => { if (dmO[key]) for(let m=0;m<12;m++) poolPctMes[i][m] = dmO[key][m] ?? null; });
       }
     } catch(e) { /* Operadoras tab optional */ }
 
@@ -4421,9 +4410,8 @@ function renderOpTable(bodyId, mesIdx) {
 function buildPool(mesIdx) {
   const wrap = document.getElementById('poolBars'); if (!wrap) return;
   wrap.innerHTML = poolNomes.map((nome, i) => {
-    const consumido   = poolUsoMes[i][mesIdx];
-    const contratado  = poolContratado[i];
-    if (consumido == null || contratado === 0) {
+    const pct = poolPctMes[i][mesIdx]; // valor já em % (ex: 50 = 50%)
+    if (pct == null) {
       return `<div class="pool-item">
         <div class="pool-bar-row">
           <div class="pool-bar-track"><div class="pool-bar-fill" style="width:0%;background:var(--border)"></div></div>
@@ -4433,15 +4421,15 @@ function buildPool(mesIdx) {
         <div class="pool-item-sub" style="color:var(--muted)">Sincronize a planilha</div>
       </div>`;
     }
-    const pct = +(consumido / contratado * 100).toFixed(1);
-    const color = pct >= 80 ? 'var(--negative)' : pct >= 60 ? 'var(--warning)' : 'var(--info)';
+    const clampedPct = Math.min(100, Math.max(0, pct));
+    const color = clampedPct >= 80 ? 'var(--negative)' : clampedPct >= 60 ? 'var(--warning)' : 'var(--info)';
     return `<div class="pool-item">
       <div class="pool-bar-row">
-        <div class="pool-bar-track"><div class="pool-bar-fill" style="width:${Math.min(100,pct)}%;background:${color}"></div></div>
-        <span class="pool-bar-pct">${pct.toFixed(1).replace('.',',')}%</span>
+        <div class="pool-bar-track"><div class="pool-bar-fill" style="width:${clampedPct}%;background:${color}"></div></div>
+        <span class="pool-bar-pct">${clampedPct.toFixed(1).replace('.',',')}%</span>
       </div>
       <div class="pool-item-name">${nome}</div>
-      <div class="pool-item-sub">${consumido.toLocaleString('pt-BR')} GB / ${contratado.toLocaleString('pt-BR')} GB</div>
+      <div class="pool-item-sub">${clampedPct.toFixed(1).replace('.',',')}% consumido</div>
     </div>`;
   }).join('');
 }
