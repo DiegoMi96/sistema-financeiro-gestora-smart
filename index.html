@@ -1022,8 +1022,8 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <div class="page-head">
         <div>
           <div class="tag">Eficiência</div>
-          <h2 class="page-title" style="margin-top:10px">Suporte Técnico - Analise Detalhada</h2>
-          <p class="page-sub">Relação anual e médias mensais · 2026</p>
+          <h2 class="page-title" style="margin-top:10px">Suporte Técnico</h2>
+          <p class="page-sub">Cancelamento e Desistência, Pool de Dados, Evolução de Tickets no Atendimento</p>
         </div>
       </div>
 
@@ -4462,7 +4462,7 @@ function buildTickets() {
   const labels = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const realData = ticketsMes.map((v, i) => isRealTickets[i] ? v : null);
   const _tMax = realData.reduce((mx, v) => v != null && v > mx ? v : mx, 0);
-  const tYMax = Math.max(6000, Math.ceil(_tMax * 1.2 / 1000) * 1000);
+  const tYMax = Math.max(8000, Math.ceil(_tMax * 1.2 / 1000) * 1000);
   charts.tickets = new Chart(ctx, {
     type:'line',
     data:{ labels, datasets:[
