@@ -4689,9 +4689,9 @@ function buildRH() {
     const fYMin = Math.max(0, Math.floor((_fLo - _fPad) / 1000) * 1000);
     const fYMax = Math.ceil((_fHi + _fPad) / 1000) * 1000;
     charts.rhFolha = new Chart(ctxFolha, { type:'bar', data:{ labels, datasets:[
-      { label:'Realizado', data:realF, backgroundColor:css('--primary'), borderRadius:6, barPercentage:.6,
+      { label:'Realizado', data:realF, backgroundColor:css('--primary-dark'), borderRadius:6, barPercentage:.6,
         datalabels:{ display:true, anchor:'end', align:'top', color:css('--text-2'), font:{size:9,weight:'700'}, formatter:v=>v==null?'':'R$'+(v/1000).toFixed(0)+'k' } },
-      { label:'Previsão', data:prevF, backgroundColor:css('--primary-soft'), borderRadius:6, barPercentage:.6,
+      { label:'Previsão', data:prevF, backgroundColor:'rgba(22,119,74,.45)', borderRadius:6, barPercentage:.6,
         datalabels:{ display:true, anchor:'end', align:'top', color:css('--muted'), font:{size:9,weight:'700'}, formatter:v=>v==null?'':'R$'+(v/1000).toFixed(0)+'k' } }
     ]}, options:commonOpts({ plugins:{ legend:{display:false}, datalabels:{display:false} },
       scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:fYMin, max:fYMax,
