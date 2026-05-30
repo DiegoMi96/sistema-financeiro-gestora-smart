@@ -1227,7 +1227,6 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           <div><div class="chart-title">Rescisão Anual</div><div class="chart-sub">Custo total de rescisões por mês (R$)</div></div>
           <div class="chart-legend">
             <span><span class="legend-dot" style="background:var(--negative)"></span>Rescisão</span>
-            <span id="rhRescLegCount" style="font-size:11px;color:var(--muted);margin-left:6px"></span>
           </div>
         </div>
         <div class="chart-canvas-wrap"><canvas id="chartRHRescisao"></canvas></div>
@@ -4674,22 +4673,23 @@ function buildRH() {
   const ctxResc = document.getElementById('chartRHRescisao');
   if (ctxResc) {
     destroyChart('rhRescisao');
-    // Eixo Y fixo: 0 – R$ 40k conforme solicitado
+    // Eixo Y fixo: 0 – R$ 40k
+    // Rótulo de dados: R$ na 1ª linha + nº de desligamentos (RH_Deslig) na 2ª linha
     charts.rhRescisao = new Chart(ctxResc, { type:'bar', data:{ labels, datasets:[
       { label:'Rescisão', data:rhRescisaoMes, backgroundColor:css('--negative'), borderRadius:6, barPercentage:.5,
         datalabels:{ display:true, anchor:'end', align:'top', color:css('--text-2'), font:{size:9,weight:'700'},
-          formatter:v => v == null ? '' : 'R$' + (v/1000).toFixed(0) + 'k' } }
+          formatter:(v, ctx) => {
+            if (v == null) return '';
+            const rLabel = 'R$' + (v/1000).toFixed(0) + 'k';
+            const deslig = rhDesligamentos[ctx.dataIndex];
+            const dLabel = deslig != null && deslig > 0
+              ? deslig + (deslig === 1 ? ' saída' : ' saídas')
+              : null;
+            return dLabel ? [rLabel, dLabel] : rLabel;
+          } } }
     ]}, options:commonOpts({ plugins:{ legend:{display:false}, datalabels:{display:false} },
       scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:0, max:40000,
         ticks:{ ...commonOpts().scales.y.ticks, callback:v => 'R$' + (v/1000).toFixed(0) + 'k' } } } }) });
-    // Contagem de desligamentos na legenda — sem tocar nos valores R$ do gráfico
-    const countEl = document.getElementById('rhRescLegCount');
-    if (countEl) {
-      const totalDeslig = rhDesligamentos.reduce((sum, v) => sum + (v != null ? v : 0), 0);
-      countEl.textContent = totalDeslig > 0
-        ? '· ' + totalDeslig + ' colaborador' + (totalDeslig === 1 ? '' : 'es') + ' no ano'
-        : '';
-    }
   }
 }
 
