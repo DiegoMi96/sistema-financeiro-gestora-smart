@@ -1584,7 +1584,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
               </div>
               <div>
                 <label style="display:block;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:6px">Senha de acesso</label>
-                <input id="newUserPass" type="password" placeholder="Mínimo 4 caracteres" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:9px;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box">
+                <input id="newUserPass" type="password" placeholder="Mínimo 8 caracteres" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:9px;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box">
               </div>
               <div>
                 <label style="display:block;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:6px">Perfil de acesso</label>
@@ -1606,7 +1606,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
                   <label class="page-check-item"><input type="checkbox" value="logistics" checked><span>Logística</span></label>
                   <label class="page-check-item"><input type="checkbox" value="rh" checked><span>RH</span></label>
                   <label class="page-check-item"><input type="checkbox" value="dfc" checked><span>DFC Gerencial</span></label>
-                  <label class="page-check-item"><input type="checkbox" value="saidas" checked><span>Análise de Saída</span></label>
+                  <label class="page-check-item"><input type="checkbox" value="saidas" checked><span>Análise de Saídas</span></label>
                 </div>
               </div>
             </div>
@@ -1734,7 +1734,7 @@ function saveUsers(users) {
         nome: u.nome || 'Colaborador', email: u.email,
         hash: u.hash || null, salt: u.salt || null,
         needsSetup: !u.hash,   // true = usuário deve definir senha no 1º login
-        perfil: u.perfil || 'Leitura', pages: u.pages || [], ultimo: '—'
+        perfil: 'Leitura', pages: u.pages || [], ultimo: '—' // perfil sempre Leitura via convite — promoção p/ Adm só via UI
       });
       saveUsers(users);
     }
@@ -1857,6 +1857,8 @@ function _applyUserUI(user) {
 function doLogout() {
   // Apaga sessão de ambos os storages
   try { localStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_KEY); } catch(e) {}
+  // A-04: limpa última página para que o próximo login comece sempre no Dashboard
+  try { localStorage.removeItem(PAGE_KEY); } catch(e) {}
   currentUserEmail = null;
   document.body.classList.add('logged-out');
   loginScreen.style.display = 'flex';
@@ -2004,7 +2006,7 @@ const ALL_PAGES = [
   { key: 'logistics', label: 'Logística'            },
   { key: 'rh',        label: 'RH'                   },
   { key: 'dfc',       label: 'DFC Gerencial'        },
-  { key: 'saidas',    label: 'Análise de Saída'     },
+  { key: 'saidas',    label: 'Análise de Saídas'    },
 ];
 
 /** Aplica restrições de página conforme o perfil do usuário logado.
@@ -2571,30 +2573,47 @@ function buildSaldo() {
 function buildBaseSim() {
   const ctx = document.getElementById('chartBaseSim'); if (!ctx) return;
   destroyChart('baseSim');
-  const yMax = 590000;
+  // E-08: range dinâmico — usa todos os meses com dado real (sem hardcode de 4 meses / 540k-590k)
+  const lastBaseIdx = baseAtiva.reduce((last, v, i) => v != null ? i : last, -1);
+  const baseCount   = Math.max(lastBaseIdx + 1, 1);
+  const baseLabels  = MES_ABREV.slice(0, baseCount);
+  const _bVals      = baseAtiva.slice(0, baseCount).filter(v => v != null);
+  const _bMax       = _bVals.length ? Math.max(..._bVals) : 590000;
+  const _bMin       = _bVals.length ? Math.min(..._bVals) : 0;
+  const bYMin       = Math.max(0, Math.floor(_bMin * 0.97));
+  const bYMax       = Math.ceil(_bMax * 1.04);
   charts.baseSim = new Chart(ctx, {
     type:'line',
-    data:{ labels:['Jan','Fev','Mar','Abr'], datasets:[
-      { data: baseAtiva.slice(0,4), borderColor: css('--primary'), backgroundColor:'rgba(29,158,94,.15)', fill:true, tension:.35, pointRadius:6, pointBackgroundColor: css('--primary'), borderWidth:3 }
+    data:{ labels: baseLabels, datasets:[
+      { data: baseAtiva.slice(0, baseCount), borderColor: css('--primary'), backgroundColor:'rgba(29,158,94,.15)', fill:true, tension:.35, pointRadius:6, pointBackgroundColor: css('--primary'), borderWidth:3 }
     ]},
     options: commonOpts({
       layout:{ padding:{ top:20 } },
       plugins:{legend:{display:false}, datalabels:{display:true, anchor:'end', align:'top', clip:false, color: css('--text-2'), font:{size:10,weight:'600'}, formatter:v => fmtNum(v) } },
-      scales:{ x: commonOpts().scales.x, y: { ...commonOpts().scales.y, min: 540000, max: yMax, ticks:{ ...commonOpts().scales.y.ticks, callback: v => fmtNum(v) } } }
+      scales:{ x: commonOpts().scales.x, y: { ...commonOpts().scales.y, min: bYMin, max: bYMax, ticks:{ ...commonOpts().scales.y.ticks, callback: v => fmtNum(v) } } }
     })
   });
 }
 function buildBaseSw() {
   const ctx = document.getElementById('chartBaseSw'); if (!ctx) return;
   destroyChart('baseSw');
+  // E-08: range dinâmico — usa todos os meses com dado real (sem hardcode de 4 meses)
+  const lastSwIdx = baseSw.reduce((last, v, i) => v != null ? i : last, -1);
+  const swCount   = Math.max(lastSwIdx + 1, 1);
+  const swLabels  = MES_ABREV.slice(0, swCount);
+  const _swVals   = baseSw.slice(0, swCount).filter(v => v != null);
+  const _swMax    = _swVals.length ? Math.max(..._swVals) : 1000;
+  const _swMin    = _swVals.length ? Math.min(..._swVals) : 0;
+  const swYMin    = Math.max(0, Math.floor(_swMin * 0.97));
+  const swYMax    = Math.ceil(_swMax * 1.04);
   charts.baseSw = new Chart(ctx, {
     type:'line',
-    data:{ labels:['Jan','Fev','Mar','Abr'], datasets:[
-      { data: baseSw.slice(0,4), borderColor: css('--allcom'), backgroundColor:'rgba(123,63,160,.15)', fill:true, tension:.35, pointRadius:6, pointBackgroundColor: css('--allcom'), borderWidth:3 }
+    data:{ labels: swLabels, datasets:[
+      { data: baseSw.slice(0, swCount), borderColor: css('--allcom'), backgroundColor:'rgba(123,63,160,.15)', fill:true, tension:.35, pointRadius:6, pointBackgroundColor: css('--allcom'), borderWidth:3 }
     ]},
     options: commonOpts({
       plugins:{legend:{display:false}, datalabels:{display:true, anchor:'end', align:'top', color: css('--text-2'), font:{size:10,weight:'600'}, formatter:v => fmtNum(v) } },
-      scales:{ x: commonOpts().scales.x, y: { ...commonOpts().scales.y, ticks:{ ...commonOpts().scales.y.ticks, callback: v => fmtNum(v) } } }
+      scales:{ x: commonOpts().scales.x, y: { ...commonOpts().scales.y, min: swYMin, max: swYMax, ticks:{ ...commonOpts().scales.y.ticks, callback: v => fmtNum(v) } } }
     })
   });
 }
@@ -2779,38 +2798,17 @@ function buildNovos() {
   });
 }
 
-function buildVendaSim() {
-  const ctx = document.getElementById('chartVendaSim'); if (!ctx) return;
-  destroyChart('vSim');
-  charts.vSim = new Chart(ctx, {
-    type:'bar',
-    data:{ labels:['Janeiro','Fevereiro','Março'], datasets:[{ data: vendasMes, backgroundColor:[css('--primary'),css('--primary-soft'),css('--primary')], borderRadius:8, barPercentage:.55 }]},
-    options: commonOpts({
-      plugins:{legend:{display:false}, datalabels:{display:true, anchor:'end', align:'top', color: css('--text-2'), font:{size:11,weight:'700'}, formatter:v=>fmtNum(v) } }
-    })
-  });
-}
-function buildVendaEq() {
-  const ctx = document.getElementById('chartVendaEq'); if (!ctx) return;
-  destroyChart('vEq');
-  charts.vEq = new Chart(ctx, {
-    type:'bar',
-    data:{ labels:['Janeiro','Fevereiro','Março'], datasets:[{ data: equipMes, backgroundColor: css('--allcom'), borderRadius:8, barPercentage:.55 }]},
-    options: commonOpts({
-      plugins:{legend:{display:false}, datalabels:{display:true, anchor:'end', align:'top', color: css('--text-2'), font:{size:11,weight:'700'}, formatter:v=>fmtNum(v) } }
-    })
-  });
-}
 
 function buildChurnAnual() {
   const ctx = document.getElementById('chartChurnAnual'); if (!ctx) return;
   destroyChart('churnAnual');
   const sel = periodMonthIdx[currentPeriod];
-  // Churn = (cancelamentos + desistências) / base ativa — para meses sem base usa o último valor conhecido
-  const lastBase = baseAtiva.reduce((acc, v) => v != null ? v : acc, 565338);
+  // Churn = (cancelamentos + desistências) / base ativa — para meses sem base usa o último valor real
+  const lastBase = baseAtiva.reduce((acc, v) => v != null ? v : acc, null);
   const churnPct = cancelMes.map((c, i) => {
     if (c == null || desistMes[i] == null) return null;
     const base = (baseAtiva[i] != null ? baseAtiva[i] : lastBase) || 1;
+    if (base === 1 && lastBase == null) return null; // sem base alguma — não exibe churn
     return parseFloat(((c + desistMes[i]) / base * 100).toFixed(2));
   });
   const realData = churnPct.map((v, i) => isReal[i] ? v : null);
@@ -2867,13 +2865,19 @@ function buildChurn() {
 function buildVolEnvio() {
   const ctx = document.getElementById('chartVolEnvio'); if (!ctx) return;
   destroyChart('vol');
+  // Eixo Y dinâmico — evita truncar dados fora do range fixo anterior (50-700)
+  const _vVals = volEnvio.filter(v => v != null && v > 0);
+  const _vMax  = _vVals.length ? Math.max(..._vVals) : 700;
+  const _vMin  = _vVals.length ? Math.min(..._vVals) : 0;
+  const vYMin  = Math.max(0, Math.floor(_vMin * 0.8));
+  const vYMax  = Math.ceil(_vMax * 1.25);
   charts.vol = new Chart(ctx, {
     type:'bar',
     data:{ labels: MES_NOME, datasets:[{ data: volEnvio, backgroundColor: css('--primary'), borderRadius:8, barPercentage:.55 }]},
     options: commonOpts({
       layout:{ padding:{ top: 50 } },
       plugins:{legend:{display:false}, datalabels:{display:true, anchor:'end', align:'top', clip:false, color: css('--text-2'), font:{size:11,weight:'700'}, formatter:v=>fmtNum(v) } },
-      scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:50, max:700 } }
+      scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:vYMin, max:vYMax } }
     })
   });
 }
@@ -3353,9 +3357,13 @@ const toastLimparMsg = document.getElementById('toastLimparMsg');
 function openModal() { modalLimpar.style.display = 'flex'; confirmLimpar.checked = false; confirmLimparBtn.disabled = true; confirmLimparBtn.style.opacity = .5; }
 function closeModal() { modalLimpar.style.display = 'none'; }
 function showToast(msg) {
-  toastLimparMsg.textContent = msg;
-  toastLimpar.style.display = 'flex';
-  setTimeout(() => { toastLimpar.style.display = 'none'; }, 3200);
+  // Usa o toastSync (sempre presente no DOM) como toast genérico do sistema
+  const _toast = document.getElementById('toastSync');
+  const _msg   = document.getElementById('toastSyncMsg');
+  if (!_toast || !_msg) return;
+  _msg.textContent = msg;
+  _toast.style.display = 'flex';
+  setTimeout(() => { _toast.style.display = 'none'; }, 3200);
 }
 
 if (btnLimparDados) btnLimparDados.addEventListener('click', openModal);
@@ -3433,6 +3441,9 @@ function clearData(period) {
     saidasData.forEach(g => g.subs.forEach(s => { s[idx + 1] = 0; }));
     const mKeys = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
     clearDFCTable([mKeys[idx]]);
+    // Reseta flags de "realizado" para o mês limpo — evita que gráficos tratem mês vazio como real
+    isReal[idx] = false; saldoIsReal[idx] = false;
+    isRealRH[idx] = false; isRealTickets[idx] = false; ebitdaIsReal[idx] = false;
   }
   applyPeriod(currentPeriod);
   rerenderAllCharts();
@@ -3501,6 +3512,7 @@ function escHtml(s) {
 function renderAcessos() {
   const tbody = document.querySelector('#acessosTbl tbody');
   if (!tbody) return;
+  // Apenas reconstrói o HTML — listeners ficam em _initAcessosListeners (adicionados uma única vez)
   tbody.innerHTML = gsmUsers.map((u) => {
     const pagesHtml = u.perfil === 'Adm'
       ? '<span style="color:var(--muted);font-size:12px">Todas</span>'
@@ -3536,8 +3548,12 @@ function renderAcessos() {
       </td>
     </tr>`;
   }).join('');
+}
 
-  // PERF-04: event delegation — um único listener para toda a tabela
+// Listeners adicionados UMA ÚNICA VEZ via event delegation — evita acúmulo a cada renderAcessos()
+(function _initAcessosListeners() {
+  const tbody = document.querySelector('#acessosTbl tbody');
+  if (!tbody) return;
   tbody.addEventListener('change', e => {
     const sel = e.target.closest('.perfil-select');
     if (!sel) return;
@@ -3552,9 +3568,9 @@ function renderAcessos() {
     }
     u.perfil = sel.value;
     saveUsers(gsmUsers);
+    renderAcessos();
     showToast(`Perfil de ${u.nome} alterado para ${u.perfil}`);
   });
-
   tbody.addEventListener('click', e => {
     const btn = e.target.closest('button[data-act="remove"]');
     if (!btn) return;
@@ -3573,7 +3589,7 @@ function renderAcessos() {
       showToast(`${u.nome} removido`);
     }
   });
-}
+})()
 
 // ── Setup URL — gera link para o colaborador ──────────────────────────────
 function generateSetupUrl(u) {
@@ -3945,7 +3961,9 @@ function computePeriodData(dm) {
   // Células com fórmula que retornam 0 (meses futuros) NÃO são "realizado".
   receitaMes.forEach((v,i) => {
     isReal[i] = v != null && v > 0;
-    if (i<3) { isRealTickets[i] = isReal[i]; isRealRH[i] = isReal[i]; }
+    // isRealTickets e isRealRH seguem isReal para todos os 12 meses (não apenas Jan-Mar)
+    isRealTickets[i] = isReal[i];
+    isRealRH[i]      = isReal[i];
   });
   lucroLiquido.forEach((v,i) => { if (v!=null && v!==0) ebitdaIsReal[i] = true; });
   saldoAcum.forEach((v,i) => { if (v!=null && v!==0) saldoIsReal[i] = true; });
@@ -4306,11 +4324,8 @@ const spinStyle = document.createElement('style');
 spinStyle.textContent = '@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }';
 document.head.appendChild(spinStyle);
 
-// Initial render — cache só restaura APÓS login bem-sucedido
-window.addEventListener('load', () => {
-  applyPeriod(getActivePeriod());
-  rerenderAllCharts();
-});
+// Renderização inicial removida do 'load' — já executada diretamente no final do script
+// (window.addEventListener 'load' causava dupla renderização: script inline + load event)
 
 // Restaura estado quando o Chrome devolve a página do back/forward cache (bfcache).
 // Sem isso, _syncInProgress pode ficar true para sempre e a página parece travada.
@@ -4520,7 +4535,7 @@ function buildRH() {
   // KPI card: Afastamentos
   const afastEl = document.getElementById('rhAfastVal');
   if (afastEl) {
-    afastEl.textContent = rhAfastMes[idx];
+    afastEl.textContent = rhAfastMes[idx] != null ? rhAfastMes[idx] : '—';
     const footAf = document.getElementById('rhAfastFoot');
     if (footAf) footAf.textContent = shortMon[idx] + ' · INSS / licença médica';
   }
