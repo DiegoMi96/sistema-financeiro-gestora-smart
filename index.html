@@ -2909,8 +2909,8 @@ function buildCustoEnvio() {
     type:'line',
     data:{ labels: MES_NOME, datasets:[{ data: custoEnvio, borderColor: css('--allcom'), backgroundColor:'rgba(123,63,160,.15)', fill:true, tension:.35, pointRadius:6, pointBackgroundColor: css('--allcom'), borderWidth:3 }]},
     options: commonOpts({
-      layout:{ padding:{ top: 50 } },
-      plugins:{legend:{display:false}, datalabels:{display:true, anchor:'end', align:'top', clip:false, color: css('--text-2'), font:{size:11,weight:'700'}, formatter:v=>fmtBRL(v) } },
+      layout:{ padding:{ top: 36 } },
+      plugins:{legend:{display:false}, datalabels:{display:true, anchor:'end', align:'top', offset:10, clip:false, color: css('--text-2'), font:{size:11,weight:'700'}, formatter:v=>fmtBRL(v) } },
       scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:ceYMin, max:22000,
         ticks:{ ...commonOpts().scales.y.ticks, callback:v=>'R$'+(v/1000).toFixed(0)+'k' } } }
     })
