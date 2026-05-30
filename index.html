@@ -970,13 +970,9 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         </div>
       </div>
 
-      <div class="chart-card" style="margin-bottom:14px">
+      <div class="chart-card" style="margin-bottom:14px;max-width:480px">
         <div class="chart-head">
-          <div><div class="chart-title">Novos Clientes</div><div class="chart-sub">Evolução ponto a ponto · Jan–Dez 2026</div></div>
-          <div class="chart-legend">
-            <span><span class="legend-dot" style="background:var(--primary)"></span>Novos Clientes</span>
-            <span><span class="legend-dot" style="background:#F59300"></span>Média acumulada</span>
-          </div>
+          <div><div class="chart-title">Novos Clientes</div><div class="chart-sub">Evolução ponto a ponto</div></div>
         </div>
         <div class="chart-canvas-wrap tall"><canvas id="chartVendasMedia"></canvas></div>
       </div>
@@ -2819,33 +2815,23 @@ function buildNovos() {
 function buildVendasMedia() {
   const ctx = document.getElementById('chartVendasMedia'); if (!ctx) return;
   destroyChart('vendasMedia');
-  // Média acumulada: a cada mês com dado, a média de todos os meses realizados até ali
-  let sum = 0, cnt = 0;
-  const mediaAcum = novosClientes.map((v, i) => {
-    if (!isReal[i] || v == null) return null;
-    sum += v; cnt++;
-    return Math.round(sum / cnt);
-  });
-  const _vmMax = [...novosClientes, ...mediaAcum].filter(v => v != null).reduce((m, v) => v > m ? v : m, 0);
-  const vmYMax = Math.max(5000, Math.ceil(_vmMax * 1.25 / 500) * 500);
+  const _ncMax = novosClientes.filter(v => v != null).reduce((m, v) => v > m ? v : m, 0);
+  // Teto: mínimo 100, sobe em incrementos de 100 quando dados atingem o teto
+  const ncYMax = Math.max(100, Math.ceil((_ncMax + 1) / 100) * 100);
   charts.vendasMedia = new Chart(ctx, {
     type: 'line',
     data: { labels: meses, datasets: [
       { label:'Novos Clientes', data: novosClientes,
         borderColor: css('--primary'), backgroundColor:'rgba(29,158,94,.12)', fill:true,
         tension:.35, borderWidth:3, pointRadius:5, pointBackgroundColor: css('--primary'),
-        datalabels:{ display:true, anchor:'end', align:'top', color: css('--text-2'), font:{size:9,weight:'700'}, formatter: v => v==null?'':fmtNum(v) } },
-      { label:'Média', data: mediaAcum,
-        borderColor:'#F59300', backgroundColor:'transparent',
-        tension:.35, borderWidth:2.5, borderDash:[6,4], pointRadius:4, pointBackgroundColor:'#F59300',
-        datalabels:{ display:false } }
+        datalabels:{ display:true, anchor:'end', align:'top', color: css('--text-2'), font:{size:9,weight:'700'}, formatter: v => v==null?'':fmtNum(v) } }
     ]},
     options: commonOpts({
       layout:{ padding:{ top:28 } },
       plugins:{ legend:{ display:false },
         tooltip:{ callbacks:{ label: c => c.dataset.label+': '+fmtNum(c.parsed.y) } },
         datalabels:{ display:false } },
-      scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:0, max:vmYMax,
+      scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:0, max:ncYMax,
         ticks:{ ...commonOpts().scales.y.ticks, callback: v => fmtNum(v) } } }
     })
   });
