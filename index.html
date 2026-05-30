@@ -2560,10 +2560,7 @@ function buildEbitda() {
   const ctx = document.getElementById('chartEbitda'); if (!ctx) return;
   destroyChart('ebitda');
   const sel = periodMonthIdx[currentPeriod];
-  const ebitdaPct = ebitda.map((v,i) => {
-    const rec = receitaMes[i];
-    return (v != null && rec) ? parseFloat((v / rec * 100).toFixed(2)) : null;
-  });
+  const ebitdaPct = ebitda; // % já vem direto da planilha (chave EBITDA)
   charts.ebitda = new Chart(ctx, {
     type: 'line',
     data: { labels: meses, datasets: [
@@ -3951,8 +3948,7 @@ function computePeriodData(dm) {
     const custoEnvioAcum = sumTo('Custo_Envio', idx);
     const volEnvioAcum = sumTo('Vol_Envio', idx);
     const lbl = isQ1 ? '1º Trimestre 2026' : isYTD ? 'Acumulado 2026' : longMon[idx]+' 2026';
-    const ebitdaVal    = isQ1||isYTD ? ebitda.slice(0,3).reduce((a,b)=>a+(b??0),0) : (ebitda[idx]??null);
-    const ebitdaPctKpi = rec && ebitdaVal != null ? ((ebitdaVal/rec)*100).toFixed(2).replace('.',',')+'%' : '—';
+    const ebitdaPctKpi = ebitda[idx] != null ? ebitda[idx].toFixed(2).replace('.',',')+'%' : '—'; // % direto da planilha
     const margemLiqPct = rec && res != null ? ((res/rec)*100).toFixed(2).replace('.',',')+'%' : '—';
     const cofPrin     = cofrePrincipalMes[idx] ?? null;
     const cof2        = cofre2Mes[idx] ?? null;
