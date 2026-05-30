@@ -1999,6 +1999,8 @@ function navigateToPage(key) {
   if (crumbPage) crumbPage.textContent = pageNames[key] || key;
   // Pool: sempre mostra o mês atual ao abrir a aba Operação
   if (key === 'ops') resetPoolToCurrentMonth();
+  // Detalhamento por Operadora: sempre mostra o mês atual ao abrir Vendas
+  if (key === 'sales') resetOpTableToCurrentMonth();
 }
 
 /** Restaura a última aba visitada (salva no localStorage). */
@@ -4772,15 +4774,23 @@ function buildOpTables() {
   const labels = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const tabsAll = document.getElementById('opTabsAll');
   if (!tabsAll) return;
+  const defaultMes = periodMonthIdx[currentPeriod] ?? 0;
   tabsAll.innerHTML = labels.map((l, m) =>
-    `<button class="op-tab${m===0?' active':''}" data-mes="${m}" data-body="opBodyAll">${l}</button>`).join('');
-  renderOpTable('opBodyAll', 0);
+    `<button class="op-tab${m===defaultMes?' active':''}" data-mes="${m}" data-body="opBodyAll">${l}</button>`).join('');
+  renderOpTable('opBodyAll', defaultMes);
   tabsAll.addEventListener('click', e => {
     const btn = e.target.closest('.op-tab'); if (!btn) return;
     tabsAll.querySelectorAll('.op-tab').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     renderOpTable(btn.dataset.body, +btn.dataset.mes);
   });
+}
+
+function resetOpTableToCurrentMonth() {
+  const tabsAll = document.getElementById('opTabsAll'); if (!tabsAll) return;
+  const mesIdx = periodMonthIdx[currentPeriod] ?? 0;
+  tabsAll.querySelectorAll('.op-tab').forEach(b => b.classList.toggle('active', +b.dataset.mes === mesIdx));
+  renderOpTable('opBodyAll', mesIdx);
 }
 
 applyPeriod(getActivePeriod());
