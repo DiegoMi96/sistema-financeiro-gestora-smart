@@ -4531,12 +4531,19 @@ function buildRH() {
     destroyChart('rhHC');
     const realHC = rhHeadcountMes.map((v,i) => isRealRH[i] ? v : null);
     const prevHC = rhHeadcountMes.map((v,i) => isRealRH[i] ? null : v);
+    const _hcVals = [...realHC, ...prevHC].filter(v => v != null);
+    const _hcLo = _hcVals.length ? Math.min(..._hcVals) : 0;
+    const _hcHi = _hcVals.length ? Math.max(..._hcVals) : 50;
+    const _hcPad = Math.max(5, (_hcHi - _hcLo) * 0.2);
+    const hcYMin = Math.max(0, Math.floor(_hcLo - _hcPad));
+    const hcYMax = Math.ceil(_hcHi + _hcPad);
     charts.rhHC = new Chart(ctxHC, { type:'line', data:{ labels, datasets:[
       { label:'Realizado', data:realHC, borderColor:css('--primary'), backgroundColor:'rgba(29,158,94,.12)', fill:true, tension:.35, borderWidth:3, pointRadius:5, pointBackgroundColor:css('--primary'),
         datalabels:{ display:true, anchor:'end', align:'top', color:css('--primary-dark'), font:{size:10,weight:'700'}, formatter:v=>v==null?'':v } },
       { label:'Previsão', data:prevHC, borderColor:css('--primary-soft'), borderDash:[5,4], fill:false, tension:.35, borderWidth:2, pointRadius:3, pointBackgroundColor:css('--primary-soft'),
         datalabels:{ display:false } }
-    ]}, options:commonOpts({ plugins:{ legend:{display:false}, datalabels:{display:false} } }) });
+    ]}, options:commonOpts({ plugins:{ legend:{display:false}, datalabels:{display:false} },
+      scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:hcYMin, max:hcYMax } } }) });
   }
 
   // Headcount por área (donut) — alimentado por RH_D_* da planilha
@@ -4569,37 +4576,55 @@ function buildRH() {
     destroyChart('rhFolha');
     const realF = rhFolhaMes.map((v,i) => isRealRH[i] ? v : null);
     const prevF = rhFolhaMes.map((v,i) => isRealRH[i] ? null : v);
+    const _fVals = [...realF, ...prevF].filter(v => v != null);
+    const _fLo = _fVals.length ? Math.min(..._fVals) : 0;
+    const _fHi = _fVals.length ? Math.max(..._fVals) : 300000;
+    const _fPad = Math.max(0, (_fHi - _fLo || _fHi) * 0.15);
+    const fYMin = Math.max(0, Math.floor((_fLo - _fPad) / 1000) * 1000);
+    const fYMax = Math.ceil((_fHi + _fPad) / 1000) * 1000;
     charts.rhFolha = new Chart(ctxFolha, { type:'bar', data:{ labels, datasets:[
       { label:'Realizado', data:realF, backgroundColor:css('--primary'), borderRadius:6, barPercentage:.6,
         datalabels:{ display:true, anchor:'end', align:'top', color:css('--text-2'), font:{size:9,weight:'700'}, formatter:v=>v==null?'':'R$'+(v/1000).toFixed(0)+'k' } },
       { label:'Previsão', data:prevF, backgroundColor:css('--primary-soft'), borderRadius:6, barPercentage:.6,
         datalabels:{ display:true, anchor:'end', align:'top', color:css('--muted'), font:{size:9,weight:'700'}, formatter:v=>v==null?'':'R$'+(v/1000).toFixed(0)+'k' } }
     ]}, options:commonOpts({ plugins:{ legend:{display:false}, datalabels:{display:false} },
-      scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, ticks:{ ...commonOpts().scales.y.ticks, callback:v=>'R$'+(v/1000).toFixed(0)+'k' } } } }) });
+      scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:fYMin, max:fYMax,
+        ticks:{ ...commonOpts().scales.y.ticks, callback:v=>'R$'+(v/1000).toFixed(0)+'k' } } } }) });
   }
 
   // Absenteísmo
   const ctxAbs = document.getElementById('chartRHAbs');
   if (ctxAbs) {
     destroyChart('rhAbs');
+    const _absVals = [...rhFaltasMes, ...rhAfastMes].filter(v => v != null && v > 0);
+    const _absHi = _absVals.length ? Math.max(..._absVals) : 10;
+    const _absPad = Math.max(2, _absHi * 0.25);
+    const absYMax = Math.ceil(_absHi + _absPad);
     charts.rhAbs = new Chart(ctxAbs, { type:'bar', data:{ labels, datasets:[
       { label:'Faltas', data:rhFaltasMes, backgroundColor:css('--warning'), borderRadius:6, barPercentage:.5,
         datalabels:{ display:true, anchor:'end', align:'top', color:css('--text-2'), font:{size:10,weight:'700'} } },
       { label:'Afastamentos', data:rhAfastMes, backgroundColor:css('--negative'), borderRadius:6, barPercentage:.5,
         datalabels:{ display:true, anchor:'end', align:'top', color:css('--text-2'), font:{size:10,weight:'700'} } }
-    ]}, options:commonOpts({ plugins:{ legend:{display:false}, datalabels:{display:false} } }) });
+    ]}, options:commonOpts({ plugins:{ legend:{display:false}, datalabels:{display:false} },
+      scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:0, max:absYMax } } }) });
   }
 
   // Rescisão Anual
   const ctxResc = document.getElementById('chartRHRescisao');
   if (ctxResc) {
     destroyChart('rhRescisao');
+    const _rVals = rhRescisaoMes.filter(v => v != null && v > 0);
+    const _rLo = _rVals.length ? Math.min(..._rVals) : 0;
+    const _rHi = _rVals.length ? Math.max(..._rVals) : 10000;
+    const _rPad = Math.max(0, (_rHi - _rLo || _rHi) * 0.15);
+    const rYMin = Math.max(0, Math.floor((_rLo - _rPad) / 1000) * 1000);
+    const rYMax = Math.ceil((_rHi + _rPad) / 1000) * 1000;
     charts.rhRescisao = new Chart(ctxResc, { type:'bar', data:{ labels, datasets:[
       { label:'Rescisão', data:rhRescisaoMes, backgroundColor:css('--negative'), borderRadius:6, barPercentage:.5,
         datalabels:{ display:true, anchor:'end', align:'top', color:css('--text-2'), font:{size:9,weight:'700'},
           formatter:v => v == null ? '' : 'R$' + (v/1000).toFixed(0) + 'k' } }
     ]}, options:commonOpts({ plugins:{ legend:{display:false}, datalabels:{display:false} },
-      scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y,
+      scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:rYMin, max:rYMax,
         ticks:{ ...commonOpts().scales.y.ticks, callback:v => 'R$' + (v/1000).toFixed(0) + 'k' } } } }) });
   }
 }
