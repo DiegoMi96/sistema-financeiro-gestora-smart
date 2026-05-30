@@ -4559,9 +4559,8 @@ function buildRH() {
     const _hcVals = [...realHC, ...prevHC].filter(v => v != null);
     const _hcLo = _hcVals.length ? Math.min(..._hcVals) : 0;
     const _hcHi = _hcVals.length ? Math.max(..._hcVals) : 50;
-    const _hcPad = Math.max(5, (_hcHi - _hcLo) * 0.2);
-    const hcYMin = Math.max(0, Math.floor(_hcLo - _hcPad));
-    const hcYMax = Math.ceil(_hcHi + _hcPad);
+    const hcYMin = Math.max(0, _hcLo - 2.5);
+    const hcYMax = _hcHi + 2.5;
     charts.rhHC = new Chart(ctxHC, { type:'line', data:{ labels, datasets:[
       { label:'Realizado', data:realHC, borderColor:css('--primary'), backgroundColor:'rgba(29,158,94,.12)', fill:true, tension:.35, borderWidth:3, pointRadius:5, pointBackgroundColor:css('--primary'),
         datalabels:{ display:true, anchor:'end', align:'top', color:css('--primary-dark'), font:{size:10,weight:'700'}, formatter:v=>v==null?'':v } },
