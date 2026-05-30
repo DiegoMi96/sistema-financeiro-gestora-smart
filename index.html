@@ -1227,6 +1227,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           <div><div class="chart-title">Rescisão Anual</div><div class="chart-sub">Custo total de rescisões por mês (R$)</div></div>
           <div class="chart-legend">
             <span><span class="legend-dot" style="background:var(--negative)"></span>Rescisão</span>
+            <span id="rhRescLegCount" style="font-size:11px;color:var(--muted);margin-left:6px"></span>
           </div>
         </div>
         <div class="chart-canvas-wrap"><canvas id="chartRHRescisao"></canvas></div>
@@ -1524,6 +1525,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_Faltas</code> Faltas no mês</div>
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_Afasta</code> Afastamentos</div>
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_Rescisao</code> Rescisão mensal (R$)</div>
+              <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_Deslig</code> Nº de desligamentos no mês</div>
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_D_Comerc</code> Headcount Comercial</div>
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_D_Oper</code> Headcount Suporte Técnico</div>
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_D_TI</code> Headcount TI</div>
@@ -3928,7 +3930,7 @@ function computePeriodData(dm) {
   lucroLiquido.fill(null); receitaMes.fill(null); custoMes.fill(null); despesaMes.fill(null);
   ebitda.fill(null); saldoAcum.fill(null); cancelMes.fill(null); desistMes.fill(null);
   ticketsMes.fill(null); rhHeadcountMes.fill(null); rhFolhaMes.fill(null); rhSalarioMes.fill(null);
-  rhFaltasMes.fill(null); rhAfastMes.fill(null); rhRescisaoMes.fill(null);
+  rhFaltasMes.fill(null); rhAfastMes.fill(null); rhRescisaoMes.fill(null); rhDesligamentos.fill(null);
   rhCLTMes.fill(null); rhPJMes.fill(null);
   rhDeptMes = Array.from({length:7}, () => new Array(12).fill(null));
   baseAtiva.fill(null); baseSw.fill(null); baseSuspensa.fill(null); smartFat.fill(null);
@@ -3957,6 +3959,7 @@ function computePeriodData(dm) {
   mapArr('RH_Faltas',   rhFaltasMes);
   mapArr('RH_Afasta',   rhAfastMes);
   mapArr('RH_Rescisao', rhRescisaoMes);
+  mapArr('RH_Deslig',   rhDesligamentos);
   mapArr('RH_CLT',      rhCLTMes);
   mapArr('RH_PJ',       rhPJMes);
   rhDeptChaves.forEach((ch, i) => mapArr(ch, rhDeptMes[i]));
@@ -4671,19 +4674,22 @@ function buildRH() {
   const ctxResc = document.getElementById('chartRHRescisao');
   if (ctxResc) {
     destroyChart('rhRescisao');
-    const _rVals = rhRescisaoMes.filter(v => v != null && v > 0);
-    const _rLo = _rVals.length ? Math.min(..._rVals) : 0;
-    const _rHi = _rVals.length ? Math.max(..._rVals) : 10000;
-    const _rPad = Math.max(0, (_rHi - _rLo || _rHi) * 0.15);
-    const rYMin = Math.max(0, Math.floor((_rLo - _rPad) / 1000) * 1000);
-    const rYMax = Math.ceil((_rHi + _rPad) / 1000) * 1000;
+    // Eixo Y fixo: 0 – R$ 40k conforme solicitado
     charts.rhRescisao = new Chart(ctxResc, { type:'bar', data:{ labels, datasets:[
       { label:'Rescisão', data:rhRescisaoMes, backgroundColor:css('--negative'), borderRadius:6, barPercentage:.5,
         datalabels:{ display:true, anchor:'end', align:'top', color:css('--text-2'), font:{size:9,weight:'700'},
           formatter:v => v == null ? '' : 'R$' + (v/1000).toFixed(0) + 'k' } }
     ]}, options:commonOpts({ plugins:{ legend:{display:false}, datalabels:{display:false} },
-      scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:rYMin, max:rYMax,
+      scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:0, max:40000,
         ticks:{ ...commonOpts().scales.y.ticks, callback:v => 'R$' + (v/1000).toFixed(0) + 'k' } } } }) });
+    // Contagem de desligamentos na legenda — sem tocar nos valores R$ do gráfico
+    const countEl = document.getElementById('rhRescLegCount');
+    if (countEl) {
+      const totalDeslig = rhDesligamentos.reduce((sum, v) => sum + (v != null ? v : 0), 0);
+      countEl.textContent = totalDeslig > 0
+        ? '· ' + totalDeslig + ' colaborador' + (totalDeslig === 1 ? '' : 'es') + ' no ano'
+        : '';
+    }
   }
 }
 
