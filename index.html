@@ -972,9 +972,9 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
 
       <div class="chart-card" style="margin-bottom:14px">
         <div class="chart-head">
-          <div><div class="chart-title">Vendas Simcards e Média Mensal</div><div class="chart-sub">Evolução ponto a ponto · Jan–Dez 2026</div></div>
+          <div><div class="chart-title">Novos Clientes</div><div class="chart-sub">Evolução ponto a ponto · Jan–Dez 2026</div></div>
           <div class="chart-legend">
-            <span><span class="legend-dot" style="background:var(--primary)"></span>Vendas</span>
+            <span><span class="legend-dot" style="background:var(--primary)"></span>Novos Clientes</span>
             <span><span class="legend-dot" style="background:#F59300"></span>Média acumulada</span>
           </div>
         </div>
@@ -2172,7 +2172,7 @@ const rhCLTMes        = new Array(12).fill(null);
 const rhPJMes         = new Array(12).fill(null);
 
 const vendasMes     = [null, null, null];
-const novosClientes = [null, null, null];
+const novosClientes = new Array(12).fill(null);
 const equipMes      = [null, null, null];
 
 const cancelMes = new Array(12).fill(null);
@@ -2819,19 +2819,19 @@ function buildNovos() {
 function buildVendasMedia() {
   const ctx = document.getElementById('chartVendasMedia'); if (!ctx) return;
   destroyChart('vendasMedia');
-  // Média acumulada: a cada mês, a média de todos os meses realizados até ali
+  // Média acumulada: a cada mês com dado, a média de todos os meses realizados até ali
   let sum = 0, cnt = 0;
-  const mediaAcum = vendasMes.map((v, i) => {
+  const mediaAcum = novosClientes.map((v, i) => {
     if (!isReal[i] || v == null) return null;
     sum += v; cnt++;
     return Math.round(sum / cnt);
   });
-  const _vmMax = [...vendasMes, ...mediaAcum].filter(v => v != null).reduce((m, v) => v > m ? v : m, 0);
-  const vmYMax = Math.max(50000, Math.ceil(_vmMax * 1.25 / 5000) * 5000);
+  const _vmMax = [...novosClientes, ...mediaAcum].filter(v => v != null).reduce((m, v) => v > m ? v : m, 0);
+  const vmYMax = Math.max(5000, Math.ceil(_vmMax * 1.25 / 500) * 500);
   charts.vendasMedia = new Chart(ctx, {
     type: 'line',
     data: { labels: meses, datasets: [
-      { label:'Vendas', data: vendasMes,
+      { label:'Novos Clientes', data: novosClientes,
         borderColor: css('--primary'), backgroundColor:'rgba(29,158,94,.12)', fill:true,
         tension:.35, borderWidth:3, pointRadius:5, pointBackgroundColor: css('--primary'),
         datalabels:{ display:true, anchor:'end', align:'top', color: css('--text-2'), font:{size:9,weight:'700'}, formatter: v => v==null?'':fmtNum(v) } },
@@ -3461,8 +3461,9 @@ function clearData(period) {
       despesaMes[i] = null; saldoAcum[i] = null; cancelMes[i] = null; desistMes[i] = null;
     }
     for (let i = 0; i < 3; i++) {
-      vendasMes[i] = null; novosClientes[i] = null; equipMes[i] = null;
+      vendasMes[i] = null; equipMes[i] = null;
     }
+    novosClientes.fill(null);
     volEnvio.fill(null); custoEnvio.fill(null);
     for (let i = 0; i < 4; i++) {
       baseAtiva[i] = null; baseSw[i] = null;
@@ -3478,8 +3479,9 @@ function clearData(period) {
     despesaMes[idx] = null; saldoAcum[idx] = null;
     cancelMes[idx] = null; desistMes[idx] = null;
     if (idx < 3) {
-      vendasMes[idx] = null; novosClientes[idx] = null; equipMes[idx] = null;
+      vendasMes[idx] = null; equipMes[idx] = null;
     }
+    novosClientes[idx] = null;
     volEnvio[idx] = null; custoEnvio[idx] = null;
     baseSuspensa[idx] = null;
     if (idx < 4) {
@@ -3969,7 +3971,8 @@ function computePeriodData(dm) {
   rhDeptMes = Array.from({length:7}, () => new Array(12).fill(null));
   baseAtiva.fill(null); baseSw.fill(null); baseSuspensa.fill(null); smartFat.fill(null);
   allcomFat.fill(null); margemSmart.fill(null); margemValorBRL.fill(null);
-  for (let i=0;i<3;i++) { vendasMes[i]=null; equipMes[i]=null; novosClientes[i]=null; }
+  for (let i=0;i<3;i++) { vendasMes[i]=null; equipMes[i]=null; }
+  novosClientes.fill(null);
   volEnvio.fill(null); custoEnvio.fill(null);
   isReal.fill(false); isRealTickets.fill(false); isRealRH.fill(false);
   ebitdaIsReal.fill(false); saldoIsReal.fill(false);
@@ -4011,7 +4014,7 @@ function computePeriodData(dm) {
   mapArr('Margem_BRL', margemValorBRL, 12);
   mapArr('Vendas_SIM', vendasMes, 3);
   mapArr('Vendas_EQ', equipMes, 3);
-  mapArr('Novos_CLI', novosClientes, 3);
+  mapArr('Novos_CLI', novosClientes);
   mapArr('Vol_Envio', volEnvio, 12);
   mapArr('Custo_Envio', custoEnvio, 12);
 
