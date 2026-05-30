@@ -3673,10 +3673,10 @@ if (confirmNovoUser) confirmNovoUser.addEventListener('click', async () => {
 // ── Modais injetados: First-Run Setup & Set Password ─────────────────────
 (function _injectAuthModals() {
   const card = `background:#fff;border-radius:18px;padding:38px 36px;width:100%;max-width:420px;box-shadow:0 30px 80px rgba(0,0,0,.30);position:relative;z-index:1;font-family:'Inter',sans-serif`;
-  const overlay = `position:fixed;inset:0;z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px`;
+  const overlay = `position:fixed;inset:0;z-index:3000;align-items:center;justify-content:center;padding:20px`;
   document.body.insertAdjacentHTML('beforeend', `
     <!-- First-run setup modal -->
-    <div id="firstRunModal" style="${overlay};display:none;background:linear-gradient(135deg,#0E5C3D 0%,#1D9E5E 50%,#46C77C 100%)">
+    <div id="firstRunModal" style="${overlay};display:none;pointer-events:none;background:linear-gradient(135deg,#0E5C3D 0%,#1D9E5E 50%,#46C77C 100%)">
       <div style="${card}">
         <div class="login-brand"><div class="login-brand-logo">G</div><div><h1 style="margin:0;font-family:'Manrope';font-weight:800;font-size:18px;color:#0F1B2D">Gestora Smart</h1><p style="margin:2px 0 0;font-size:12px;color:#8895A5;letter-spacing:.4px;text-transform:uppercase;font-weight:600">SISTEMA FINANCEIRO</p></div></div>
         <div class="login-title">Configuração Inicial</div>
@@ -3690,7 +3690,7 @@ if (confirmNovoUser) confirmNovoUser.addEventListener('click', async () => {
       </div>
     </div>
     <!-- Set-password modal (primeiro acesso via convite) -->
-    <div id="setPassModal" style="${overlay};display:none;background:rgba(0,0,0,.65);backdrop-filter:blur(4px)">
+    <div id="setPassModal" style="${overlay};display:none;pointer-events:none;background:rgba(0,0,0,.65);backdrop-filter:blur(4px)">
       <div style="${card}">
         <div class="login-brand"><div class="login-brand-logo">G</div><div><h1 style="margin:0;font-family:'Manrope';font-weight:800;font-size:18px;color:#0F1B2D">Gestora Smart</h1><p style="margin:2px 0 0;font-size:12px;color:#8895A5;letter-spacing:.4px;text-transform:uppercase;font-weight:600">PRIMEIRO ACESSO</p></div></div>
         <div class="login-title" style="margin:8px 0 4px">Defina sua senha</div>
@@ -3707,7 +3707,7 @@ if (confirmNovoUser) confirmNovoUser.addEventListener('click', async () => {
   function _showErr(id, msg) { const el = document.getElementById(id); if (el) { el.textContent = msg; el.style.display = 'block'; } }
   window._showFirstRunSetup = function() {
     if (loginScreen) loginScreen.style.display = 'none';
-    const m = document.getElementById('firstRunModal'); if (m) m.style.display = 'flex';
+    const m = document.getElementById('firstRunModal'); if (m) { m.style.display = 'flex'; m.style.pointerEvents = ''; }
   };
   const frBtn = document.getElementById('frBtn');
   if (frBtn) frBtn.addEventListener('click', async () => {
@@ -3725,7 +3725,7 @@ if (confirmNovoUser) confirmNovoUser.addEventListener('click', async () => {
     const admin = { nome, email, hash, salt, perfil:'Adm', pages:[], ultimo:'—' };
     saveUsers([admin]);
     gsmUsers = [admin];
-    document.getElementById('firstRunModal').style.display = 'none';
+    const _frm = document.getElementById('firstRunModal'); if (_frm) { _frm.style.display = 'none'; _frm.style.pointerEvents = 'none'; }
     _completeLogin(admin, [admin]);
   });
 
@@ -3734,7 +3734,7 @@ if (confirmNovoUser) confirmNovoUser.addEventListener('click', async () => {
   window._showSetPasswordModal = function(user, users) {
     _spUser = user; _spUsers = users;
     if (loginScreen) loginScreen.style.display = 'none';
-    const m = document.getElementById('setPassModal'); if (m) m.style.display = 'flex';
+    const m = document.getElementById('setPassModal'); if (m) { m.style.display = 'flex'; m.style.pointerEvents = ''; }
   };
   const spBtn = document.getElementById('spBtn');
   if (spBtn) spBtn.addEventListener('click', async () => {
@@ -3747,7 +3747,7 @@ if (confirmNovoUser) confirmNovoUser.addEventListener('click', async () => {
     const { hash, salt } = await hashPassNew(pass);
     _spUser.hash = hash; _spUser.salt = salt; delete _spUser.needsSetup;
     saveUsers(_spUsers);
-    document.getElementById('setPassModal').style.display = 'none';
+    const _spm = document.getElementById('setPassModal'); if (_spm) { _spm.style.display = 'none'; _spm.style.pointerEvents = 'none'; }
     _completeLogin(_spUser, _spUsers);
   });
 })();
