@@ -2753,36 +2753,41 @@ function buildEquipMeta() {
   destroyChart('equipMeta');
   const equipMeta = 2000;
   const realData = equipMes.filter(v => v != null);
-  const media = realData.length ? Math.round(realData.reduce((a,b)=>a+b,0) / realData.length) : 0;
-  const mediaArr = equipMes.map(() => media);
-  const total = realData.reduce((a,b)=>a+b,0);
+  const total    = realData.reduce((a,b)=>a+b,0);
+  const media    = realData.length ? Math.round(total / realData.length) : 0;
   const metaTotal = equipMeta * realData.length;
-  const pct = metaTotal > 0 ? Math.round(total / metaTotal * 100) : 0;
-  const monthPills = ['JAN','FEV','MAR'];
+  const pct      = metaTotal > 0 ? Math.round(total / metaTotal * 100) : 0;
+  const monthPills  = ['JAN','FEV','MAR'];
+  const baseLabels  = ['Janeiro','Fevereiro','Março'];
+  const nMes        = realData.length;
+  // Slot vazio no final para posicionar o rótulo da média à direita da última barra
+  const labelsExt   = [...baseLabels.slice(0, nMes), ''];
+  const barDataExt  = [...equipMes.slice(0, nMes), null];
+  const lineDataExt = [...equipMes.slice(0, nMes).map(() => media), media];
   const eH = document.getElementById('equipQ1Header');
   const eT = document.getElementById('equipQ1Total');
   const eP = document.getElementById('equipQ1Pct');
   const eL = document.getElementById('equipQ1List');
   const eSub = document.getElementById('equipMetaSub');
-  if (eH) eH.textContent = 'Média Equipamentos';
-  if (eT) eT.textContent = fmtNum(total);
-  if (eP) eP.textContent = pct + '% vs. meta (' + fmtNum(metaTotal) + ')';
+  if (eH)  eH.textContent  = 'Média Equipamentos';
+  if (eT)  eT.textContent  = fmtNum(total);
+  if (eP)  eP.textContent  = pct + '% vs. meta (' + fmtNum(metaTotal) + ')';
   if (eSub) eSub.textContent = 'Total período: ' + fmtNum(total) + ' · Meta ' + fmtNum(metaTotal) + ' (' + pct + '%)';
   if (eL) {
-    eL.innerHTML = equipMes.map((v, i) => {
+    eL.innerHTML = equipMes.slice(0, nMes).map((v, i) => {
       if (v == null) return '';
       const diff = v - equipMeta;
       return `<div class="activation-item"><div class="month-pill">${monthPills[i]}</div><div class="qty">${fmtNum(v)}</div><span class="delta-chip ${diff >= 0 ? 'up' : 'down'}">${diff >= 0 ? '+' : '−'}${fmtNum(Math.abs(diff))}</span></div>`;
     }).join('');
   }
   charts.equipMeta = new Chart(ctx, {
-    data:{ labels:['Janeiro','Fevereiro','Março'], datasets:[
-      { type:'bar', data: equipMes, backgroundColor: css('--primary'), borderRadius:8, barPercentage:.55, label:'Equipamentos',
-        datalabels:{ display: true, anchor:'center', color:'#fff', font:{size:13,weight:'700'}, formatter: v => v == null ? '' : fmtNum(v) } },
-      { type:'line', data: mediaArr, borderColor: css('--warning'), pointRadius:0, label:'Média', borderWidth:2.5,
+    data:{ labels: labelsExt, datasets:[
+      { type:'bar', data: barDataExt, backgroundColor: css('--primary'), borderRadius:8, barPercentage:.55, label:'Equipamentos',
+        datalabels:{ display: true, anchor:'center', color:'#fff', font:{size:13,weight:'700'}, formatter: v => v!=null ? fmtNum(v) : '' } },
+      { type:'line', data: lineDataExt, borderColor: css('--warning'), borderDash:[0,0], pointRadius:0, label:'Média', borderWidth:2.5,
         datalabels:{
-          display: (c) => c.dataIndex === mediaArr.length - 1,
-          anchor:'end', align:'right',
+          display: (c) => c.dataIndex === lineDataExt.length - 1,
+          anchor:'center', align:'right', clip:false,
           backgroundColor: css('--warning'),
           borderRadius: 6, padding: { top:4, bottom:4, left:7, right:7 },
           color:'#fff', font:{ size:11, weight:'700' },
