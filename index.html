@@ -2864,7 +2864,8 @@ function buildChurn() {
       plugins:{
         legend:{display:false},
         datalabels:{ display:true, anchor:'end', align:'top', color: css('--text-2'), font:{size:9,weight:'700'}, formatter: v => v==null ? '' : (v/1000).toFixed(1)+'k' }
-      }
+      },
+      scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:0, max:25000 } }
     })
   });
 }
