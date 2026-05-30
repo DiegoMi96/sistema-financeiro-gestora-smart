@@ -2764,6 +2764,8 @@ function buildEquipMeta() {
   const labelsExt   = [...baseLabels.slice(0, nMes), ''];
   const barDataExt  = [...equipMes.slice(0, nMes), null];
   const lineDataExt = [...equipMes.slice(0, nMes).map(() => media), media];
+  const _eMax  = realData.length ? Math.max(...realData) : equipMeta;
+  const eYMax  = Math.ceil(_eMax * 1.20 / 100) * 100;
   const eH = document.getElementById('equipQ1Header');
   const eT = document.getElementById('equipQ1Total');
   const eP = document.getElementById('equipQ1Pct');
@@ -2797,7 +2799,8 @@ function buildEquipMeta() {
     ]},
     options: commonOpts({
       layout:{ padding:{ right: 80 } },
-      plugins:{legend:{display:false}, datalabels:{ display: false } }
+      plugins:{legend:{display:false}, datalabels:{ display: false } },
+      scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:0, max:eYMax } }
     })
   });
 }
