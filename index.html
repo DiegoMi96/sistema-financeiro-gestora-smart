@@ -1870,6 +1870,32 @@ function doLogout() {
   document.querySelector('.page[data-page="dashboard"]')?.classList.add('active');
 }
 
+// ── Constantes movidas para antes da IIFE tryAutoLogin para evitar TDZ ───────
+// ALL_PAGES, pageNames, CACHE_KEY e CACHE_VERSION são usados dentro da IIFE via
+// applyPageAccess() e restoreCache(). Como 'const' fica em TDZ até sua linha de
+// declaração ser avaliada, declarar após a IIFE causaria ReferenceError em todo
+// auto-login de Admin (tela branca ao recarregar a página). (C-01 auditoria)
+const pageNames = {
+  dashboard: 'Resumo Executivo', pl: 'Resumo Financeiro',
+  sales: 'Vendas & Performance', ops: 'Operação',
+  logistics: 'Logística', rh: 'RH', dfc: 'DFC Gerencial',
+  saidas: 'Análise de Saídas',
+  data: 'Sincronizar Dados', settings: 'Configurações'
+};
+// Páginas disponíveis para controle de acesso por usuário Leitura
+const ALL_PAGES = [
+  { key: 'dashboard', label: 'Resumo Executivo'    },
+  { key: 'pl',        label: 'Resumo Financeiro'   },
+  { key: 'sales',     label: 'Vendas & Performance'},
+  { key: 'ops',       label: 'Operação'             },
+  { key: 'logistics', label: 'Logística'            },
+  { key: 'rh',        label: 'RH'                   },
+  { key: 'dfc',       label: 'DFC Gerencial'        },
+  { key: 'saidas',    label: 'Análise de Saídas'    },
+];
+const CACHE_KEY     = 'gsm_data_cache';
+const CACHE_VERSION = 3; // incrementar ao mudar estrutura do saidasData
+
 // ── Auto-login ao carregar / F5 ───────────────────────────────────────────────
 // Verifica localStorage (lembrar) ou sessionStorage (só esta aba)
 // Sessão localStorage expira em 30 dias; sessionStorage nunca expira enquanto a aba estiver aberta.
@@ -1931,14 +1957,15 @@ function doLogout() {
   autoSyncIfStale();   // atualiza automaticamente se dados com mais de 4h
 })();
 
-if (loginForm) loginForm.addEventListener('submit', e => { e.preventDefault(); doLogin(); });
+// E-03: loginForm submit listener removido — botão é type="button" (não dispara submit);
+// o handler estava morto e poderia causar dupla chamada se o botão fosse convertido para type="submit".
 if (btnLogout) btnLogout.addEventListener('click', () => {
   if (confirm('Deseja sair do sistema?')) doLogout();
 });
 
 // ========== Theme toggle ==========
 const themeBtn = document.getElementById('themeBtn');
-themeBtn.addEventListener('click', () => {
+themeBtn?.addEventListener('click', () => {
   const cur = document.documentElement.getAttribute('data-theme');
   document.documentElement.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
   rerenderAllCharts();
@@ -1988,26 +2015,7 @@ function autoSyncIfStale() {
   }
 }
 // ────────────────────────────────────────────────────────────────────────────
-
-const pageNames = {
-  dashboard: 'Resumo Executivo', pl: 'Resumo Financeiro',
-  sales: 'Vendas & Performance', ops: 'Operação',
-  logistics: 'Logística', rh: 'RH', dfc: 'DFC Gerencial',
-  saidas: 'Análise de Saídas',
-  data: 'Sincronizar Dados', settings: 'Configurações'
-};
-
-// Páginas disponíveis para controle de acesso por usuário Leitura
-const ALL_PAGES = [
-  { key: 'dashboard', label: 'Resumo Executivo'    },
-  { key: 'pl',        label: 'Resumo Financeiro'   },
-  { key: 'sales',     label: 'Vendas & Performance'},
-  { key: 'ops',       label: 'Operação'             },
-  { key: 'logistics', label: 'Logística'            },
-  { key: 'rh',        label: 'RH'                   },
-  { key: 'dfc',       label: 'DFC Gerencial'        },
-  { key: 'saidas',    label: 'Análise de Saídas'    },
-];
+// pageNames e ALL_PAGES foram movidos para ANTES da IIFE tryAutoLogin (C-01 TDZ)
 
 /** Aplica restrições de página conforme o perfil do usuário logado.
  *  Adm → todas as páginas (inclusive data/settings).
@@ -2165,8 +2173,7 @@ const ebitda       = new Array(12).fill(null);
 const ebitdaIsReal = new Array(12).fill(false);
 
 // ========== Cache localStorage ==========
-const CACHE_KEY     = 'gsm_data_cache';
-const CACHE_VERSION = 3; // incrementar ao mudar estrutura do saidasData
+// CACHE_KEY e CACHE_VERSION foram movidos para ANTES da IIFE tryAutoLogin (C-01 TDZ)
 
 // ── Named constants (magic numbers) ─────────────────────────────
 const META_SIMCARDS_MES = 33000;   // Meta mensal de vendas de SIM cards
@@ -3673,7 +3680,10 @@ if (confirmNovoUser) confirmNovoUser.addEventListener('click', async () => {
   } else {
     selectedPages = ALL_PAGES.map(p => p.key); // Adm: acesso total
   }
+  // E-02: desabilita botão durante PBKDF2 async para evitar double-submit
+  confirmNovoUser.disabled = true;
   const { hash: hx, salt: sx } = await hashPassNew(pass);
+  confirmNovoUser.disabled = false;
   const newUser = { nome, email, hash: hx, salt: sx, perfil, pages: selectedPages, ultimo: '—' };
   gsmUsers.push(newUser);
   saveUsers(gsmUsers);
