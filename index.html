@@ -1871,10 +1871,10 @@ function doLogout() {
 }
 
 // ── Constantes movidas para antes da IIFE tryAutoLogin para evitar TDZ ───────
-// ALL_PAGES, pageNames, CACHE_KEY e CACHE_VERSION são usados dentro da IIFE via
-// applyPageAccess() e restoreCache(). Como 'const' fica em TDZ até sua linha de
-// declaração ser avaliada, declarar após a IIFE causaria ReferenceError em todo
-// auto-login de Admin (tela branca ao recarregar a página). (C-01 auditoria)
+// Todas estas constantes são acessadas (direta ou indiretamente) de dentro da IIFE
+// tryAutoLogin: via applyPageAccess, restoreCache, restoreLastPage e autoSyncIfStale.
+// Como 'const' fica em TDZ até sua linha ser avaliada, declarar após a IIFE causava
+// ReferenceError → script halts → event listeners não registrados → botões param. (C-01)
 const pageNames = {
   dashboard: 'Resumo Executivo', pl: 'Resumo Financeiro',
   sales: 'Vendas & Performance', ops: 'Operação',
@@ -1893,8 +1893,10 @@ const ALL_PAGES = [
   { key: 'dfc',       label: 'DFC Gerencial'        },
   { key: 'saidas',    label: 'Análise de Saídas'    },
 ];
-const CACHE_KEY     = 'gsm_data_cache';
-const CACHE_VERSION = 3; // incrementar ao mudar estrutura do saidasData
+const CACHE_KEY      = 'gsm_data_cache';
+const CACHE_VERSION  = 3;                        // incrementar ao mudar estrutura do saidasData
+const PAGE_KEY       = 'gsm_last_page';
+const CACHE_STALE_MS = 4 * 60 * 60 * 1000;      // 4 horas
 
 // ── Auto-login ao carregar / F5 ───────────────────────────────────────────────
 // Verifica localStorage (lembrar) ou sessionStorage (só esta aba)
@@ -1977,8 +1979,7 @@ const navItems = document.querySelectorAll('.nav-item');
 const crumbPage = document.getElementById('crumbPage');
 
 // ── Persistência de página + Auto-sync ──────────────────────────────────────
-const PAGE_KEY       = 'gsm_last_page';
-const CACHE_STALE_MS = 4 * 60 * 60 * 1000; // 4 horas
+// PAGE_KEY e CACHE_STALE_MS foram movidos para ANTES da IIFE tryAutoLogin (C-01 TDZ)
 
 /** Navega para uma aba pelo key, respeitando permissões de acesso. */
 function navigateToPage(key) {
