@@ -1102,14 +1102,14 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <div class="page-head">
         <div>
           <div class="tag">Logística</div>
-          <h2 class="page-title" style="margin-top:10px">Volume de Envio e Custo de Frete</h2>
+          <h2 class="page-title" style="margin-top:10px">Gestão de Logística</h2>
           <p class="page-sub">Evolução do custo de envio · 2026</p>
         </div>
       </div>
 
       <div class="grid grid-4" style="margin-bottom:14px">
         <div class="card tinted-primary">
-          <div class="kpi-label">Custo de Envio YTD</div>
+          <div class="kpi-label">Custo de Envio</div>
           <div class="kpi-value lg">R$ 55.550</div>
           <div class="kpi-foot">Acumulado YTD</div>
         </div>
@@ -2902,12 +2902,17 @@ function buildVolEnvio() {
 function buildCustoEnvio() {
   const ctx = document.getElementById('chartCustoEnvio'); if (!ctx) return;
   destroyChart('custoEnv');
+  const _ceVals = custoEnvio.filter(v => v != null && v > 0);
+  const _ceMax  = _ceVals.length ? Math.max(..._ceVals) : 40000;
+  const ceYMax  = Math.ceil(_ceMax * 1.2 / 1000) * 1000;
   charts.custoEnv = new Chart(ctx, {
     type:'line',
     data:{ labels: MES_NOME, datasets:[{ data: custoEnvio, borderColor: css('--allcom'), backgroundColor:'rgba(123,63,160,.15)', fill:true, tension:.35, pointRadius:6, pointBackgroundColor: css('--allcom'), borderWidth:3 }]},
     options: commonOpts({
       layout:{ padding:{ top: 50 } },
-      plugins:{legend:{display:false}, datalabels:{display:true, anchor:'end', align:'top', clip:false, color: css('--text-2'), font:{size:11,weight:'700'}, formatter:v=>fmtBRL(v) } }
+      plugins:{legend:{display:false}, datalabels:{display:true, anchor:'end', align:'top', clip:false, color: css('--text-2'), font:{size:11,weight:'700'}, formatter:v=>fmtBRL(v) } },
+      scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:22000, max:ceYMax,
+        ticks:{ ...commonOpts().scales.y.ticks, callback:v=>'R$'+(v/1000).toFixed(0)+'k' } } }
     })
   });
 }
@@ -3914,9 +3919,9 @@ function computePeriodData(dm) {
       'Cancelamento Anual':     { v: fmtNum(cancelAcum), f: 'Média mensal: '+fmtNum(Math.round(cancelAcum/(idx+1))) },
       'Desistência Anual':      { v: fmtNum(sumTo('Desistencia',idx)), f: 'Média mensal: '+fmtNum(Math.round(sumTo('Desistencia',idx)/(idx+1))) },
       'Churn Implícito':        { v: churnPct, f: 'Cancel / Base ativa' },
-      'Custo de Envio YTD':     { v: custoEnvioAcum != null ? fmtBRL(custoEnvioAcum) : '—', f: 'Acumulado '+lbl },
-      'Pacotes Enviados':       { v: fmtNum(volEnvioAcum), f: lbl },
-      'Custo Médio / Pacote':   { v: custoEnvioAcum&&volEnvioAcum ? 'R$ '+(custoEnvioAcum/volEnvioAcum).toFixed(2).replace('.',',') : '—', f: lbl },
+      'Custo de Envio':         { v: custoEnvioAcum != null ? fmtBRL(custoEnvioAcum) : '—', f: 'Acumulado desde '+lbl },
+      'Pacotes Enviados':       { v: fmtNum(volEnvioAcum), f: 'Acumulado' },
+      'Custo Médio / Pacote':   { v: custoEnvioAcum&&volEnvioAcum ? 'R$ '+(custoEnvioAcum/volEnvioAcum).toFixed(2).replace('.',',') : '—', f: 'Custo médio acumulado' },
       'Custo / Receita':        { v: rec&&custoEnvioAcum ? (custoEnvioAcum/rec*100).toFixed(2).replace('.',',')+'%' : '—', f: 'Frete sobre faturamento' },
       'Total de Saídas':        { v: fmtAutoK(cmv?(cmv+(desp??0)):null), f: lbl },
       'Maior Categoria':        { v: 'CMV / CPS', f: '~65% das saídas totais' },
