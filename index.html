@@ -810,29 +810,37 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <!-- KPI cards — topo da visão financeira -->
       <div class="grid grid-4" style="margin-bottom:14px">
         <div class="card tinted-primary">
-          <div class="kpi-label" id="cashSaldoLabel">Saldo Acumulado Mar/26</div>
-          <div class="kpi-value lg">R$ 314k</div>
-          <div class="kpi-foot">Inicial R$ 490k · Final ano R$ 547k</div>
+          <div class="kpi-label">Margem Líquida</div>
+          <div class="kpi-value">—</div>
+          <div class="kpi-foot">—</div>
         </div>
         <div class="card">
-          <div class="kpi-label">Caixa Inicial</div>
-          <div class="kpi-value">R$ 332.640</div>
-          <div class="kpi-foot">01/03/2026</div>
+          <div class="kpi-label">Margem de Contribuição</div>
+          <div class="kpi-value">—</div>
+          <div class="kpi-foot">—</div>
         </div>
         <div class="card">
-          <div class="kpi-label">Caixa Final</div>
-          <div class="kpi-value">R$ 342.069</div>
-          <div class="kpi-foot">31/03/2026</div>
+          <div class="kpi-label">EBITDA</div>
+          <div class="kpi-value">—</div>
+          <div class="kpi-foot">—</div>
         </div>
         <div class="card">
-          <div class="kpi-label">Tesouro</div>
-          <div class="kpi-value">R$ 1,269M</div>
-          <div class="kpi-foot">Reserva financeira</div>
+          <div class="kpi-label">Tesouro Acumulado</div>
+          <div class="kpi-value">—</div>
+          <div class="kpi-foot">—</div>
         </div>
       </div>
 
-      <!-- Mini gráficos Receita / Custo / Despesas -->
-      <div class="grid grid-3" style="margin-bottom:14px">
+      <!-- Cofres -->
+      <div class="grid grid-4" style="margin-bottom:14px">
+        <div class="card"><div class="kpi-label">Cofre Principal</div><div class="kpi-value">—</div><div class="kpi-foot">—</div></div>
+        <div class="card"><div class="kpi-label">Cofre 1</div><div class="kpi-value">—</div><div class="kpi-foot">—</div></div>
+        <div class="card"><div class="kpi-label">Cofre 2</div><div class="kpi-value">—</div><div class="kpi-foot">—</div></div>
+        <div class="card tinted-primary"><div class="kpi-label">Tesouro Acumulado</div><div class="kpi-value">—</div><div class="kpi-foot">Cofre 1 + Cofre 2</div></div>
+      </div>
+
+      <!-- Mini gráficos Receita / Custo -->
+      <div class="grid grid-2" style="margin-bottom:14px">
         <div class="chart-card">
           <div class="chart-head">
             <div><div class="chart-title">Receita</div><div class="chart-sub" id="plReceitaSub">Realizado R$ 10,85M · Previsão R$ 28,58M</div></div>
@@ -845,28 +853,29 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           </div>
           <div class="chart-canvas-wrap"><canvas id="chartCusto"></canvas></div>
         </div>
+      </div>
+
+      <!-- Mini gráfico Despesas + Evolução do Lucro Líquido -->
+      <div class="grid grid-2" style="margin-bottom:14px">
         <div class="chart-card">
           <div class="chart-head">
             <div><div class="chart-title">Despesas</div><div class="chart-sub" id="plDespesaSub">Realizado R$ 3,35M · Previsão R$ 7,03M</div></div>
           </div>
           <div class="chart-canvas-wrap"><canvas id="chartDespesa"></canvas></div>
         </div>
-      </div>
-
-      <!-- Evolução do Lucro Líquido -->
-      <div class="chart-card" style="margin-bottom:14px">
-        <div class="chart-head">
-          <div>
-            <div class="chart-title">Evolução do Lucro Líquido</div>
-            <div class="chart-sub">Realizado (Jan-Mar) vs. Previsão (Abr-Dez)</div>
+        <div class="chart-card">
+          <div class="chart-head">
+            <div>
+              <div class="chart-title">Evolução do Lucro Líquido</div>
+            </div>
+            <div class="chart-legend">
+              <span><span class="legend-dot" style="background:var(--primary)"></span>Realizado</span>
+              <span><span class="legend-dot" style="background:var(--primary-soft)"></span>Previsão</span>
+              <span><span class="legend-dot" style="background:var(--negative)"></span>Negativo</span>
+            </div>
           </div>
-          <div class="chart-legend">
-            <span><span class="legend-dot" style="background:var(--primary)"></span>Realizado</span>
-            <span><span class="legend-dot" style="background:var(--primary-soft)"></span>Previsão</span>
-            <span><span class="legend-dot" style="background:var(--negative)"></span>Negativo</span>
-          </div>
+          <div class="chart-canvas-wrap tall"><canvas id="chartLucro"></canvas></div>
         </div>
-        <div class="chart-canvas-wrap tall"><canvas id="chartLucro"></canvas></div>
       </div>
 
       <!-- Saldo Acumulado -->
@@ -883,7 +892,6 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         <div class="chart-head">
           <div>
             <div class="chart-title">Evolução do EBITDA</div>
-            <div class="chart-sub">Realizado (Jan-Mar) vs. Previsão (Abr-Dez)</div>
           </div>
           <div class="chart-legend">
             <span><span class="legend-dot" style="background:var(--info)"></span>Realizado</span>
@@ -2094,6 +2102,10 @@ const receitaMes = new Array(12).fill(null);
 const custoMes   = new Array(12).fill(null);
 const despesaMes = new Array(12).fill(null);
 
+const cofrePrincipalMes = new Array(12).fill(null);
+const cofre1Mes         = new Array(12).fill(null);
+const cofre2Mes         = new Array(12).fill(null);
+
 const saldoAcum   = new Array(12).fill(null);
 const saldoIsReal = new Array(12).fill(false);
 
@@ -2201,7 +2213,10 @@ function saveCache(dm, tsDisplay) {
       opMensMes,
       opCustoMes,
       opQtdMes,
-      poolPctMes
+      poolPctMes,
+      cofrePrincipalMes: Array.from(cofrePrincipalMes),
+      cofre1Mes: Array.from(cofre1Mes),
+      cofre2Mes: Array.from(cofre2Mes)
     }));
   } catch(e) { /* storage indisponível */ }
 }
@@ -2223,6 +2238,9 @@ function restoreCache() {
     opCustoMes   = c.opCustoMes   || Array.from({length:13}, () => new Array(12).fill(null));
     opQtdMes     = c.opQtdMes     || Array.from({length:13}, () => new Array(12).fill(null));
     poolPctMes   = c.poolPctMes   || Array.from({length:5},  () => new Array(12).fill(null));
+    if(c.cofrePrincipalMes) cofrePrincipalMes.splice(0,12,...c.cofrePrincipalMes);
+    if(c.cofre1Mes) cofre1Mes.splice(0,12,...c.cofre1Mes);
+    if(c.cofre2Mes) cofre2Mes.splice(0,12,...c.cofre2Mes);
     computePeriodData(c.dm);
     const ts = c.tsDisplay || '—';
     const elSync    = document.getElementById('lastSyncTime');
@@ -2524,9 +2542,25 @@ function buildMini(id, real) {
   });
 }
 
-function buildReceita() { buildMini('chartReceita', receitaMes); }
-function buildCusto()   { buildMini('chartCusto', custoMes); }
-function buildDespesa() { buildMini('chartDespesa', despesaMes); }
+function miniSub(arr) {
+  const realTotal = arr.reduce((s,v,i) => s+(isReal[i]&&v!=null?v:0), 0);
+  const allTotal  = arr.reduce((s,v) => s+(v!=null?v:0), 0);
+  const prevTotal = allTotal - realTotal;
+  const pct = allTotal > 0 ? Math.round(realTotal/allTotal*100) : 0;
+  return 'Realizado '+fmtAutoK(realTotal)+' · Previsão '+fmtAutoK(prevTotal)+' · '+pct+'% concluído';
+}
+function buildReceita() {
+  buildMini('chartReceita', receitaMes);
+  const s = document.getElementById('plReceitaSub'); if(s) s.textContent = miniSub(receitaMes);
+}
+function buildCusto()   {
+  buildMini('chartCusto', custoMes);
+  const s = document.getElementById('plCustoSub'); if(s) s.textContent = miniSub(custoMes);
+}
+function buildDespesa() {
+  buildMini('chartDespesa', despesaMes);
+  const s = document.getElementById('plDespesaSub'); if(s) s.textContent = miniSub(despesaMes);
+}
 
 function buildEbitda() {
   const ctx = document.getElementById('chartEbitda'); if (!ctx) return;
@@ -3923,6 +3957,12 @@ function computePeriodData(dm) {
     const custoEnvioAcum = sumTo('Custo_Envio', idx);
     const volEnvioAcum = sumTo('Vol_Envio', idx);
     const lbl = isQ1 ? '1º Trimestre 2026' : isYTD ? 'Acumulado 2026' : longMon[idx]+' 2026';
+    const ebitdaVal   = isQ1||isYTD ? ebitda.slice(0,3).reduce((a,b)=>a+(b??0),0) : (ebitda[idx]??null);
+    const margemLiqPct = rec && res != null ? ((res/rec)*100).toFixed(2).replace('.',',')+'%' : '—';
+    const cofPrin     = cofrePrincipalMes[idx] ?? null;
+    const cof1        = cofre1Mes[idx] ?? null;
+    const cof2        = cofre2Mes[idx] ?? null;
+    const tesAcum     = (cof1 != null || cof2 != null) ? (cof1??0)+(cof2??0) : null;
     return {
       'Receita Bruta':          { v: fmtAutoK(rec), f: 'Faturamento bruto · '+lbl },
       'CSP / CMV':              { v: fmtAutoK(cmv), f: 'Custo de serviços · '+lbl },
@@ -3955,7 +3995,13 @@ function computePeriodData(dm) {
       'Total de Saídas':        { v: fmtAutoK(cmv?(cmv+(desp??0)):null), f: lbl },
       'Maior Categoria':        { v: 'CMV / CPS', f: '~65% das saídas totais' },
       'Maior Salto':            { v: '—', f: 'Ver tabela de saídas' },
-      'Custo CMV / Receita':    { v: rec&&cmv ? (cmv/rec*100).toFixed(1).replace('.',',')+'%' : '—', f: 'CMV sobre faturamento bruto' }
+      'Custo CMV / Receita':    { v: rec&&cmv ? (cmv/rec*100).toFixed(1).replace('.',',')+'%' : '—', f: 'CMV sobre faturamento bruto' },
+      'Margem Líquida':    { v: margemLiqPct, f: lbl },
+      'EBITDA':            { v: ebitdaVal != null ? fmtAutoK(ebitdaVal) : '—', f: lbl },
+      'Tesouro Acumulado': { v: tesAcum != null ? fmtAutoK(tesAcum) : '—', f: 'Cofre 1 + Cofre 2' },
+      'Cofre Principal':   { v: cofPrin != null ? fmtAutoK(cofPrin) : '—', f: lbl },
+      'Cofre 1':           { v: cof1 != null ? fmtAutoK(cof1) : '—', f: lbl },
+      'Cofre 2':           { v: cof2 != null ? fmtAutoK(cof2) : '—', f: lbl }
     };
   };
 
@@ -3973,6 +4019,7 @@ function computePeriodData(dm) {
   volEnvio.fill(null); custoEnvio.fill(null);
   isReal.fill(false); isRealTickets.fill(false); isRealRH.fill(false);
   ebitdaIsReal.fill(false); saldoIsReal.fill(false);
+  cofrePrincipalMes.fill(null); cofre1Mes.fill(null); cofre2Mes.fill(null);
 
   // mapArr sempre sobrescreve (inclusive null) — dados da planilha são a única fonte
   const mapArr = (key, target, len=12) => {
@@ -4014,6 +4061,9 @@ function computePeriodData(dm) {
   mapArr('Novos_CLI', novosClientes);
   mapArr('Vol_Envio', volEnvio, 12);
   mapArr('Custo_Envio', custoEnvio, 12);
+  mapArr('Cofre_Principal', cofrePrincipalMes);
+  mapArr('Cofre_1',         cofre1Mes);
+  mapArr('Cofre_2',         cofre2Mes);
 
   // isReal: meses com Receita > 0 são "realizados".
   // Células com fórmula que retornam 0 (meses futuros) NÃO são "realizado".
