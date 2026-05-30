@@ -2903,15 +2903,13 @@ function buildCustoEnvio() {
   const ctx = document.getElementById('chartCustoEnvio'); if (!ctx) return;
   destroyChart('custoEnv');
   const _ceVals = custoEnvio.filter(v => v != null && v > 0);
-  const _ceMin  = _ceVals.length ? Math.min(..._ceVals) : 0;
-  const ceYMin  = Math.max(0, Math.floor(_ceMin * 0.9 / 1000) * 1000);
   charts.custoEnv = new Chart(ctx, {
     type:'line',
     data:{ labels: MES_NOME, datasets:[{ data: custoEnvio, borderColor: css('--allcom'), backgroundColor:'rgba(123,63,160,.15)', fill:true, tension:.35, pointRadius:6, pointBackgroundColor: css('--allcom'), borderWidth:3 }]},
     options: commonOpts({
       layout:{ padding:{ top: 36 } },
       plugins:{legend:{display:false}, datalabels:{display:true, anchor:'end', align:'top', offset:10, clip:false, color: css('--text-2'), font:{size:11,weight:'700'}, formatter:v=>fmtBRL(v) } },
-      scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:ceYMin, max:20000,
+      scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:17000, max:20000,
         ticks:{ ...commonOpts().scales.y.ticks, callback:v=>'R$'+(v/1000).toFixed(0)+'k' } } }
     })
   });
