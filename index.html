@@ -602,10 +602,6 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
       Sincronizar
     </div>
-    <div class="nav-item" data-page="metas">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-      Metas
-    </div>
     <div class="nav-item" data-page="settings">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6"/></svg>
       Configurações
@@ -1642,12 +1638,15 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
     </section>
 
     <!-- =============== METAS =============== -->
-    <section class="page" data-page="metas">
+    <!-- =============== CONFIGURAÇÕES =============== -->
+    <section class="page" data-page="settings">
       <div class="page-head"><div>
-        <h2 class="page-title">Metas</h2>
-        <p class="page-sub">Objetivos mensais e anuais · Apenas Diretoria e Controladoria</p>
+        <h2 class="page-title">Configurações</h2>
+        <p class="page-sub">Permissões, metas e fórmulas (apenas Diretoria e Controladoria)</p>
       </div></div>
       <div style="display:flex;flex-direction:column;gap:14px">
+
+        <!-- ── Metas Comerciais ── -->
         <div class="chart-card">
           <div class="chart-head">
             <div>
@@ -1726,17 +1725,6 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
             <strong style="color:var(--text-2)">Como funciona:</strong> a <em>Meta Anual</em> é editável. O <em>YTD Realizado</em> é puxado automaticamente dos dados importados. <em>Falta</em> e <em>Progresso</em> são calculados em tempo real.
           </p>
         </div>
-
-      </div>
-    </section>
-
-    <!-- =============== CONFIGURAÇÕES =============== -->
-    <section class="page" data-page="settings">
-      <div class="page-head"><div>
-        <h2 class="page-title">Configurações</h2>
-        <p class="page-sub">Permissões, metas e fórmulas (apenas Diretoria e Controladoria)</p>
-      </div></div>
-      <div style="display:flex;flex-direction:column;gap:14px">
         <div class="chart-card">
           <div class="chart-head">
             <div>
