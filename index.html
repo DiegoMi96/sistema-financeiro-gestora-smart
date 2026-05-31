@@ -1317,9 +1317,9 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           <div class="kpi-foot" id="dfcKpiResultadoFoot">Resultado operacional</div>
         </div>
         <div class="card" style="border-left:4px solid var(--warning)">
-          <div class="kpi-label">Dividendos Pago até o Momento</div>
+          <div class="kpi-label">Dividendos</div>
           <div class="kpi-value lg" id="dfcKpiDividendos">—</div>
-          <div class="kpi-foot" id="dfcKpiDividendosFoot">Acumulado no ano</div>
+          <div class="kpi-foot" id="dfcKpiDividendosFoot">Acumulado Até o Momento</div>
         </div>
       </div>
 
@@ -3489,9 +3489,9 @@ function buildDFCTable() {
   }
 
   if (kD)   kD.textContent  = _hasDiv ? fmtBRL(_divAcum) : '—';
-  if (kDF)  kDF.textContent = _hasDiv ? `Acumulado até ${shortMons[selIdx]}/${year.slice(2)}` : 'Sincronize Saidas_2026';
+  if (kDF)  kDF.textContent = _hasDiv ? `Acumulado Até ${shortMons[selIdx]}/${year.slice(2)}` : 'Sincronize Saidas_2026';
   if (kDA)  kDA.textContent  = _divAnualPrev != null ? fmtBRL(_divAnualPrev) : '—';
-  if (kDAF) kDAF.textContent = _divAnualPrev != null ? 'Projeção Dez/26' : 'Preencha a Previsao_2026';
+  if (kDAF) kDAF.textContent = _divAnualPrev != null ? `Projeção Até Dez/${year.slice(2)}` : 'Preencha a Previsao_2026';
 
   // Dividendos totais da tabela principal (50% para cada sub-tabela)
   const _mainDiv = Array.from({length:12}, (_,m) => catSum('Dividendos', m));
