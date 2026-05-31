@@ -1447,28 +1447,29 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         </div>
       </div>
 
-      <div class="chart-card" style="margin-bottom:14px">
-        <div class="chart-head">
-          <div><div class="chart-title" id="saidasCatTitle">Distribuição de Saídas por Categoria</div><div class="chart-sub">Onde a maior parte do dinheiro está saindo</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <div class="chart-card">
+          <div class="chart-head">
+            <div><div class="chart-title" id="saidasCatTitle">Distribuição de Saídas por Categoria</div><div class="chart-sub">Onde a maior parte do dinheiro está saindo</div></div>
+          </div>
+          <div class="chart-canvas-wrap tall"><canvas id="chartSaidasCat"></canvas></div>
         </div>
-        <div class="chart-canvas-wrap tall"><canvas id="chartSaidasCat"></canvas></div>
-      </div>
-
-      <div class="chart-card" style="margin-bottom:14px">
-        <div class="chart-head">
-          <div><div class="chart-title">Custo / Receita por Centro de Custo</div><div class="chart-sub">Valor acumulado e % do faturamento bruto por categoria · período selecionado</div></div>
+        <div class="chart-card">
+          <div class="chart-head">
+            <div><div class="chart-title">Custo / Receita por Centro de Custo</div><div class="chart-sub">Valor acumulado e % do faturamento bruto · período selecionado</div></div>
+          </div>
+          <table class="perc-tbl" id="saidasPercTbl">
+            <thead>
+              <tr>
+                <th class="cat">CENTRO DE CUSTO</th>
+                <th class="num">VALOR</th>
+                <th class="num">% RECEITA</th>
+                <th class="bar-col">REPR.</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
         </div>
-        <table class="perc-tbl" id="saidasPercTbl">
-          <thead>
-            <tr>
-              <th class="cat">CENTRO DE CUSTO</th>
-              <th class="num">VALOR ACUMULADO</th>
-              <th class="num">% DA RECEITA</th>
-              <th class="bar-col">REPRESENTAÇÃO</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
       </div>
 
       <div class="chart-card" style="margin-bottom:14px">
