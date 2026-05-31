@@ -261,11 +261,12 @@ body { display: flex; min-height: 100vh; }
 
 /* Pre-active list */
 .activation-list { display: flex; flex-direction: column; gap: 10px; }
-.activation-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--surface-2); border-radius: 10px; border: 1px solid var(--border); }
-.month-pill { background: var(--primary-light); color: var(--primary-dark); padding: 5px 10px; border-radius: 6px; font-weight: 700; font-size: 12px; min-width: 44px; text-align: center; }
+.activation-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--surface-2); border-radius: 10px; border: 1px solid var(--border); overflow: hidden; }
+.month-pill { background: var(--primary-light); color: var(--primary-dark); padding: 5px 10px; border-radius: 6px; font-weight: 700; font-size: 12px; min-width: 44px; text-align: center; flex-shrink: 0; }
 [data-theme="dark"] .month-pill { color: #6FD8A4; }
-.activation-item .qty { font-family: 'Manrope'; font-weight: 700; font-size: 15px; flex: 1; }
-.activation-item .desc { font-size: 12px; color: var(--muted); }
+.activation-item .qty { font-family: 'Manrope'; font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.activation-item .desc { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.activation-item-body { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
 
 /* Star rating */
 .stars { display: inline-flex; gap: 2px; }
@@ -776,9 +777,9 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           <div class="card">
             <div class="kpi-label">Próximas Ativações</div>
             <div class="activation-list" style="margin-top:6px" id="dashAtivacaoList">
-              <div class="activation-item"><div class="month-pill">ABR</div><div class="qty">13.196</div><div class="desc">simcards</div></div>
-              <div class="activation-item"><div class="month-pill">MAI</div><div class="qty">16.546</div><div class="desc">simcards</div></div>
-              <div class="activation-item"><div class="month-pill">JUN</div><div class="qty">135.373</div><div class="desc">simcards</div></div>
+              <div class="activation-item"><div class="month-pill">ABR</div><div class="activation-item-body"><div class="qty">13.196</div><div class="desc">simcards</div></div></div>
+              <div class="activation-item"><div class="month-pill">MAI</div><div class="activation-item-body"><div class="qty">16.546</div><div class="desc">simcards</div></div></div>
+              <div class="activation-item"><div class="month-pill">JUN</div><div class="activation-item-body"><div class="qty">135.373</div><div class="desc">simcards</div></div></div>
             </div>
           </div>
           <div class="card tinted-primary">
@@ -1084,9 +1085,9 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         <div class="card">
           <div class="kpi-label">Próximas Ativações</div>
           <div class="activation-list" style="margin-top:6px" id="opsAtivacaoList">
-            <div class="activation-item"><div class="month-pill">ABR</div><div class="qty">13.196</div><div class="desc">simcards</div></div>
-            <div class="activation-item"><div class="month-pill">MAI</div><div class="qty">16.546</div><div class="desc">simcards</div></div>
-            <div class="activation-item"><div class="month-pill">JUN</div><div class="qty">135.373</div><div class="desc">simcards</div></div>
+            <div class="activation-item"><div class="month-pill">ABR</div><div class="activation-item-body"><div class="qty">13.196</div><div class="desc">simcards</div></div></div>
+            <div class="activation-item"><div class="month-pill">MAI</div><div class="activation-item-body"><div class="qty">16.546</div><div class="desc">simcards</div></div></div>
+            <div class="activation-item"><div class="month-pill">JUN</div><div class="activation-item-body"><div class="qty">135.373</div><div class="desc">simcards</div></div></div>
           </div>
         </div>
       </div>
@@ -2542,8 +2543,8 @@ function applyPeriod(p) {
       if (!el) return;
       el.innerHTML = d.proximasAtivacoes.map(a =>
         a.qty === '—'
-          ? `<div class="activation-item" style="opacity:.35"><div class="month-pill">${a.mes}</div><div class="qty">—</div><div class="desc"></div></div>`
-          : `<div class="activation-item"><div class="month-pill">${a.mes}</div><div class="qty">${a.qty}</div><div class="desc">simcards</div></div>`
+          ? `<div class="activation-item" style="opacity:.35"><div class="month-pill">${a.mes}</div><div class="activation-item-body"><div class="qty">—</div></div></div>`
+          : `<div class="activation-item"><div class="month-pill">${a.mes}</div><div class="activation-item-body"><div class="qty">${a.qty}</div><div class="desc">simcards</div></div></div>`
       ).join('');
     };
     renderAtiv(document.getElementById('dashAtivacaoList'));
