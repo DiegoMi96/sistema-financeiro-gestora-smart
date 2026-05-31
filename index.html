@@ -4304,22 +4304,10 @@ function computePeriodData(dm) {
         lucroLiquido[m] = rec - cmv - desp;
       }
     }
-    // Saldo acumulado nos meses de previsão:
-    // 1º opção — valor direto do Saldo_Acum na aba 2026 (rawSaldoAcum)
-    // 2º opção (fallback) — acumula sobre o último real via lucroLiquido
-    let ultimoSaldo = saldoAcum.reduce((acc, v) => v != null ? v : acc, 0);
+    // Saldo acumulado nos meses de previsão — apenas valores diretos da planilha (Saldo_Acum)
     for (let m = 0; m < 12; m++) {
-      if (saldoIsReal[m] && saldoAcum[m] != null) { ultimoSaldo = saldoAcum[m]; continue; }
-      // Prefere valor direto da planilha quando preenchido
-      if (rawSaldoAcum[m] != null && rawSaldoAcum[m] !== 0) {
-        saldoAcum[m] = rawSaldoAcum[m];
-        ultimoSaldo  = rawSaldoAcum[m];
-        continue;
-      }
-      if (lucroLiquido[m] != null) {
-        ultimoSaldo = ultimoSaldo + lucroLiquido[m];
-        saldoAcum[m] = ultimoSaldo;
-      }
+      if (saldoIsReal[m] && saldoAcum[m] != null) continue; // mês real — não altera
+      saldoAcum[m] = (rawSaldoAcum[m] != null && rawSaldoAcum[m] !== 0) ? rawSaldoAcum[m] : null;
     }
 
     // ── KPIs para meses de previsão (após arrays populados) ──────
