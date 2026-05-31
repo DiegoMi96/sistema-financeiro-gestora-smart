@@ -371,6 +371,20 @@ footer.last-update { padding: 18px 28px; text-align: center; color: var(--muted)
 [data-theme="dark"] .saidas-tbl td.forecast { background: rgba(180,59,48,.10) !important; color: #F5A99E !important; font-style: italic; }
 [data-theme="dark"] .saidas-tbl tr.cat-group td.forecast { background: rgba(180,59,48,.18) !important; color: #F5A99E !important; font-style: italic; }
 
+/* Custo/Receita summary table */
+.perc-tbl { width:100%; border-collapse:collapse; font-size:13px; margin-top:4px; }
+.perc-tbl th { text-align:left; font-weight:700; color:#fff; background:#B43B30; padding:10px 14px; font-size:11px; letter-spacing:.6px; text-transform:uppercase; }
+.perc-tbl th.num { text-align:right; }
+.perc-tbl th.bar-col { text-align:left; min-width:160px; }
+.perc-tbl th:first-child { border-radius:8px 0 0 0; min-width:220px; }
+.perc-tbl th:last-child { border-radius:0 8px 0 0; }
+.perc-tbl td { padding:10px 14px; border-bottom:1px solid var(--border); color:var(--text); }
+.perc-tbl td.cat { font-weight:600; }
+.perc-tbl td.num { text-align:right; font-family:'Manrope'; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.perc-tbl tr:hover td { background:var(--surface-2); }
+.perc-tbl tr.perc-total td { background:var(--surface-2); font-weight:800; border-top:2px solid var(--border); border-bottom:none; }
+[data-theme="dark"] .perc-tbl tr.perc-total td { background:rgba(255,255,255,.05); }
+
 /* Acessos table */
 .acessos-tbl td { vertical-align: middle; }
 .acessos-tbl td:first-child { font-weight: 600; }
@@ -1425,19 +1439,28 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         </div>
       </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
-        <div class="chart-card">
-          <div class="chart-head">
-            <div><div class="chart-title">Custo / Receita por Centro de Custo</div><div class="chart-sub">% do faturamento bruto por categoria</div></div>
-          </div>
-          <div class="chart-canvas-wrap tall"><canvas id="chartSaidasPerc"></canvas></div>
+      <div class="chart-card" style="margin-bottom:14px">
+        <div class="chart-head">
+          <div><div class="chart-title" id="saidasCatTitle">Distribuição de Saídas por Categoria</div><div class="chart-sub">Onde a maior parte do dinheiro está saindo</div></div>
         </div>
-        <div class="chart-card">
-          <div class="chart-head">
-            <div><div class="chart-title" id="saidasCatTitle">Distribuição de Saídas por Categoria</div><div class="chart-sub">Onde a maior parte do dinheiro está saindo</div></div>
-          </div>
-          <div class="chart-canvas-wrap tall"><canvas id="chartSaidasCat"></canvas></div>
+        <div class="chart-canvas-wrap tall"><canvas id="chartSaidasCat"></canvas></div>
+      </div>
+
+      <div class="chart-card" style="margin-bottom:14px">
+        <div class="chart-head">
+          <div><div class="chart-title">Custo / Receita por Centro de Custo</div><div class="chart-sub">Valor acumulado e % do faturamento bruto por categoria · período selecionado</div></div>
         </div>
+        <table class="perc-tbl" id="saidasPercTbl">
+          <thead>
+            <tr>
+              <th class="cat">CENTRO DE CUSTO</th>
+              <th class="num">VALOR ACUMULADO</th>
+              <th class="num">% DA RECEITA</th>
+              <th class="bar-col">REPRESENTAÇÃO</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
       </div>
 
       <div class="chart-card" style="margin-bottom:14px">
@@ -3808,11 +3831,9 @@ function buildSaidasTable(filter='') {
   tbody.innerHTML = parts.join('');
 }
 
-function buildSaidasPercChart() {
-  const ctx = document.getElementById('chartSaidasPerc'); if (!ctx) return;
-  destroyChart('saidasPerc');
-  const year = document.getElementById('yearSelect')?.value || '2026';
-  const shortMons = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+function buildSaidasPercTable() {
+  const tbl = document.getElementById('saidasPercTbl');
+  if (!tbl) return;
 
   const EXCL_CAT = cat => /receita|resultado|saldo/i.test(cat);
 
@@ -3825,36 +3846,46 @@ function buildSaidasPercChart() {
   };
 
   const selIdx  = periodMonthIdx[currentPeriod] ?? 0;
-  // Receita acumulada Jan → selIdx
   const revenue = receitaMes.slice(0, selIdx + 1).reduce((a, v) => a + (v ?? 0), 0);
 
-  const filteredGroups = saidasData.filter(g => !EXCL_CAT(g.cat));
-  const labels = filteredGroups.map(g => g.cat);
-  const pcts   = filteredGroups.map(g =>
-    revenue > 0
-      ? Array.from({length: selIdx + 1}, (_, m) => grpValM(g.cat, m)).reduce((a, v) => a + v, 0) / revenue * 100
-      : 0
-  );
+  const rows = saidasData
+    .filter(g => !EXCL_CAT(g.cat))
+    .map(g => {
+      const value = Array.from({length: selIdx + 1}, (_, m) => grpValM(g.cat, m)).reduce((a, v) => a + v, 0);
+      const pct   = revenue > 0 ? value / revenue * 100 : 0;
+      return { cat: g.cat, value, pct };
+    })
+    .sort((a, b) => b.value - a.value);
 
-  const colors = ['#B43B30','#E89B2B','#7B3FA0','#2C7BE5','#1583B3','#1D9E5E','#9B2A1F','#444F66','#D4AC0D','#1ABC9C','#E74C3C','#8E44AD'];
-  charts.saidasPerc = new Chart(ctx, {
-    type: 'bar',
-    data: { labels, datasets: [{ data: pcts, backgroundColor: colors.slice(0, labels.length), borderRadius: 6, barPercentage: .75 }] },
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: c => c.parsed.x.toFixed(1) + '% da receita' } },
-        datalabels: { display: true, anchor: 'end', align: 'end', color: css('--text-2'), font: { size: 11, weight: '700' }, formatter: v => v.toFixed(1) + '%' }
-      },
-      scales: {
-        x: { grid: { color: css('--border'), drawBorder: false }, ticks: { color: css('--muted'), callback: v => v.toFixed(0) + '%' } },
-        y: { grid: { display: false }, ticks: { color: css('--text-2'), font: { size: 12, weight: '600' } } }
-      }
-    }
+  const totalValue = rows.reduce((a, r) => a + r.value, 0);
+  const totalPct   = revenue > 0 ? totalValue / revenue * 100 : 0;
+  const maxVal     = rows[0]?.value || 1;
+
+  const parts = rows.map(r => {
+    const barW    = maxVal > 0 ? (r.value / maxVal * 100).toFixed(1) : 0;
+    const pctClr  = r.pct > 50 ? '#C8523B' : r.pct > 20 ? '#E89B2B' : 'var(--text-2)';
+    const pctWgt  = r.pct > 20 ? '700' : '600';
+    return `<tr>
+      <td class="cat">${escHtml(r.cat)}</td>
+      <td class="num">${fmtBRL(r.value)}</td>
+      <td class="num" style="color:${pctClr};font-weight:${pctWgt}">${r.pct.toFixed(1)}%</td>
+      <td class="bar-col">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="saidas-bar-wrap" style="width:130px"><div class="saidas-bar" style="width:${barW}%"></div></div>
+          <span style="font-size:11.5px;color:var(--muted);font-family:'Manrope';font-weight:600">${r.pct.toFixed(0)}%</span>
+        </div>
+      </td>
+    </tr>`;
   });
+
+  parts.push(`<tr class="perc-total">
+    <td class="cat">Total de Saídas</td>
+    <td class="num">${fmtBRL(totalValue)}</td>
+    <td class="num">${totalPct.toFixed(1)}%</td>
+    <td class="bar-col" style="font-size:11.5px;color:var(--muted)">${revenue > 0 ? 'Receita: ' + fmtBRL(revenue) : '—'}</td>
+  </tr>`);
+
+  tbl.querySelector('tbody').innerHTML = parts.join('');
 }
 
 function buildSaidasCat() {
@@ -3918,7 +3949,7 @@ function rerenderAllCharts() {
   buildSaldo(); buildBaseSim(); buildBaseSw(); buildConect();
   buildVendasMeta(); buildEquipMeta(); buildNovos(); buildVendasMedia();
   buildChurn(); buildChurnAnual(); buildVolEnvio(); buildCustoEnvio();
-  buildSaidasPercChart(); buildSaidasCat(); buildSaidasTable();
+  buildSaidasCat(); buildSaidasPercTable(); buildSaidasTable();
   buildDFC(); buildDFCTable();
   buildOpMediaChart();
   buildTickets();
