@@ -4390,7 +4390,7 @@ function computePeriodData(dm) {
     const periodLbl = q ? '1º Trimestre 2026' : ytd ? 'Acumulado 2026' : ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][idx]+' 2026';
     periodData[key].satisfacao = {
       val:    satV2 != null ? (satV2*100).toFixed(1).replace('.',',')+'%' : '—',
-      volume: satV2 != null ? periodLbl : '—'
+      volume: satV2 != null ? 'Pesquisa de satisfação' : '—'
     };
 
     // Próximas Ativações — chave Atv_Qtd (meses futuros com dados)
