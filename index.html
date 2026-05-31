@@ -314,6 +314,14 @@ footer.last-update { padding: 18px 28px; text-align: center; color: var(--muted)
 [data-theme="dark"] .dfc-tbl tr.saldo td.pct { background: #196F3D !important; color: #fff !important; }
 [data-theme="dark"] .dfc-tbl td { background: var(--surface-2); }
 [data-theme="dark"] .dfc-tbl td.pct { background: rgba(255,255,255,.04) !important; }
+/* DFC — coluna CATEGORIA fixa (sticky), igual ao Breakdown Detalhado */
+.dfc-tbl th:first-child { position: sticky; left: 0; z-index: 3; box-shadow: 2px 0 5px rgba(0,0,0,.10); }
+.dfc-tbl td.cat { position: sticky; left: 0; z-index: 2; background: var(--surface-2); box-shadow: 2px 0 5px rgba(0,0,0,.07); }
+.dfc-tbl tr.resultado td.cat { background: #E8F5EE; }
+.dfc-tbl tr.saldo td.cat { background: #1E8449; color: #fff; }
+[data-theme="dark"] .dfc-tbl td.cat { background: var(--surface-2); }
+[data-theme="dark"] .dfc-tbl tr.resultado td.cat { background: rgba(29,158,94,.18); }
+[data-theme="dark"] .dfc-tbl tr.saldo td.cat { background: #196F3D; }
 
 /* Metas editable */
 .metas-tbl td[data-meta] { cursor: pointer; transition: background .15s; }
