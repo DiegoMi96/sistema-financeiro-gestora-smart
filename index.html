@@ -3468,46 +3468,46 @@ function buildDFCTable() {
   // Tabela SMT — dados via catHdr/catSum (fonte: Saidas_2026)
   const _smtRec   = Array.from({length:12}, (_,m) => _recSMT(m));
   const _smtCusto = Array.from({length:12}, (_,m) => catSum('Custo SMT', m));
-  const _smtDiv   = Array.from({length:12}, (_,m) => catSum('Dividendos', m));
-  const _smtSaldo = Array.from({length:12}, (_,m) => catHdr('Saldo Acumulado', m) ?? saldoAcum[m]);
-  buildSMTTable(_smtRec, _smtCusto, _smtDiv, _smtSaldo);
+  buildSMTTable(_smtRec, _smtCusto);
 }
 
-function buildSMTTable(recData, custoData, divData, saldoData) {
+function buildSMTTable(recData, custoData) {
   const thead = document.getElementById('smtThead');
   const tbody = document.getElementById('smtTbody');
   if (!thead || !tbody) return;
   // fallback para arrays globais se chamado sem parâmetros
   recData   = recData   || smartFat;
   custoData = custoData || smartCusto;
-  divData   = divData   || dividendosMes;
-  saldoData = saldoData || saldoAcum;
 
   const shortMons = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   let thHtml = '<tr><th>Categoria</th>';
   shortMons.forEach(m => { thHtml += `<th class="num">${m}</th>`; });
-  thHtml += '<th class="num">Total / Atual</th></tr>';
+  thHtml += '<th class="num">Total</th></tr>';
   thead.innerHTML = thHtml;
 
-  const resultData = recData.map((v,i) => (v != null || custoData[i] != null) ? (v??0) - (custoData[i]??0) : null);
+  // Resultado = Receita SMT − Saída SMT
+  const resultData = recData.map((v,i) =>
+    (v != null || custoData[i] != null) ? (v??0) - (custoData[i]??0) : null
+  );
+  // Dividendo = 40% do Resultado
+  const divCalc = resultData.map(v => v != null ? v * 0.40 : null);
+  // Saldo = Receita SMT − Saída SMT − Dividendo
+  const saldoCalc = recData.map((v,i) =>
+    (v != null || custoData[i] != null)
+      ? (v??0) - (custoData[i]??0) - (divCalc[i]??0)
+      : null
+  );
 
   const rows = [
-    { label: 'Receita SMT', data: recData,    cls: 'receita',   totalMode: 'sum'  },
-    { label: 'Saída SMT',   data: custoData,  cls: '',          totalMode: 'sum'  },
-    { label: 'Resultado',   data: resultData, cls: 'resultado', totalMode: 'sum'  },
-    { label: 'Dividendo',   data: divData,    cls: '',          totalMode: 'sum'  },
-    { label: 'Saldo',       data: saldoData,  cls: 'saldo',     totalMode: 'last' }
+    { label: 'Receita SMT',    data: recData,    cls: 'receita',   totalMode: 'sum' },
+    { label: 'Saída SMT',      data: custoData,  cls: '',          totalMode: 'sum' },
+    { label: 'Resultado',      data: resultData, cls: 'resultado', totalMode: 'sum' },
+    { label: 'Dividendo (40%)',data: divCalc,    cls: '',          totalMode: 'sum' },
+    { label: 'Saldo',          data: saldoCalc,  cls: 'saldo',     totalMode: 'sum' }
   ];
 
   tbody.innerHTML = rows.map(r => {
-    let total;
-    if (r.totalMode === 'last') {
-      // Saldo acumulado: exibe último valor real disponível
-      const lastReal = r.data.reduce((acc, v, i) => (v != null && isReal[i] ? v : acc), null);
-      total = lastReal ?? r.data.filter(v => v != null).slice(-1)[0] ?? 0;
-    } else {
-      total = r.data.reduce((s, v) => s + (v ?? 0), 0);
-    }
+    const total = r.data.reduce((s, v) => s + (v ?? 0), 0);
     const cells = r.data.map((v, i) => {
       const fc = !isReal[i] ? ' forecast' : '';
       const neg = v != null && v < 0 ? ' neg' : '';
