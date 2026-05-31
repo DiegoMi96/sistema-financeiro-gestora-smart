@@ -351,7 +351,7 @@ footer.last-update { padding: 18px 28px; text-align: center; color: var(--muted)
 .saidas-tbl tr.sub td { padding:9px 14px; border-bottom:1px solid var(--border); color: var(--text); }
 .saidas-tbl tr.sub td.cat { padding-left:32px; color: var(--text-2); }
 .saidas-tbl tr.sub:hover td { background: var(--surface-2); }
-.saidas-tbl td.num { text-align:right; font-family:'Manrope'; font-weight:600; font-variant-numeric: tabular-nums; }
+.saidas-tbl td.num { text-align:right; font-family:'Manrope'; font-weight:600; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .saidas-tbl td.pct { text-align:right; font-family:'Manrope'; font-weight:700; }
 .saidas-tbl td.pct.up { color:#C8523B; }
 .saidas-tbl td.pct.down { color: var(--primary-dark); }
@@ -1400,27 +1400,29 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         </div>
       </div>
 
-      <div class="grid grid-4" style="margin-bottom:14px">
+      <div class="grid grid-3" style="margin-bottom:14px">
         <div class="card"><div class="card-top-line warn"></div>
           <div class="kpi-label">Total de Saídas</div>
-          <div class="kpi-value lg">R$ 7,04M</div>
+          <div class="kpi-value lg">—</div>
           <div class="kpi-foot">CMV + Despesas + Custo SMT</div>
         </div>
-        <div class="card"><div class="card-top-line warn"></div>
-          <div class="kpi-label">Maior Categoria</div>
-          <div class="kpi-value lg">CMV / CPS</div>
-          <div class="kpi-foot">71% das saídas totais</div>
-        </div>
         <div class="card"><div class="card-top-line" style="background:var(--negative)"></div>
-          <div class="kpi-label">Maior Salto</div>
-          <div class="kpi-value lg" style="color:#C8523B">+919%</div>
-          <div class="kpi-foot">Atividades Financeiras</div>
+          <div class="kpi-label">CMV</div>
+          <div class="kpi-value lg">—</div>
+          <div class="kpi-foot">CMV / CPS no período</div>
         </div>
         <div class="card"><div class="card-top-line info"></div>
-          <div class="kpi-label">Custo CMV / Receita</div>
-          <div class="kpi-value lg">64,9%</div>
-          <div class="kpi-foot">CMV sobre faturamento bruto</div>
+          <div class="kpi-label">Outras Despesas</div>
+          <div class="kpi-value lg">—</div>
+          <div class="kpi-foot">Despesas operacionais</div>
         </div>
+      </div>
+
+      <div class="chart-card" style="margin-bottom:14px">
+        <div class="chart-head">
+          <div><div class="chart-title">Custo / Receita por Centro de Custo</div><div class="chart-sub">% do faturamento bruto que cada categoria de custo representa</div></div>
+        </div>
+        <div class="chart-canvas-wrap tall"><canvas id="chartSaidasPerc"></canvas></div>
       </div>
 
       <div class="chart-card" style="margin-bottom:14px">
@@ -3798,6 +3800,55 @@ function buildSaidasTable(filter='') {
   tbody.innerHTML = parts.join('');
 }
 
+function buildSaidasPercChart() {
+  const ctx = document.getElementById('chartSaidasPerc'); if (!ctx) return;
+  destroyChart('saidasPerc');
+  const year = document.getElementById('yearSelect')?.value || '2026';
+  const shortMons = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+  const EXCL_CAT = cat => /receita|resultado|saldo/i.test(cat);
+
+  const grpValM = (groupCat, m) => {
+    const src = isReal[m] ? saidasData : previsaoData;
+    const grp = src.find(g => g.cat === groupCat);
+    if (!grp) return 0;
+    if (grp.subs.length > 0) return grp.subs.reduce((a, s) => a + (s[m + 1] || 0), 0);
+    return grp._headerVals ? (grp._headerVals[m] || 0) : 0;
+  };
+
+  const selIdx  = periodMonthIdx[currentPeriod] ?? 0;
+  // Receita acumulada Jan → selIdx
+  const revenue = receitaMes.slice(0, selIdx + 1).reduce((a, v) => a + (v ?? 0), 0);
+
+  const filteredGroups = saidasData.filter(g => !EXCL_CAT(g.cat));
+  const labels = filteredGroups.map(g => g.cat);
+  const pcts   = filteredGroups.map(g =>
+    revenue > 0
+      ? Array.from({length: selIdx + 1}, (_, m) => grpValM(g.cat, m)).reduce((a, v) => a + v, 0) / revenue * 100
+      : 0
+  );
+
+  const colors = ['#B43B30','#E89B2B','#7B3FA0','#2C7BE5','#1583B3','#1D9E5E','#9B2A1F','#444F66','#D4AC0D','#1ABC9C','#E74C3C','#8E44AD'];
+  charts.saidasPerc = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ data: pcts, backgroundColor: colors.slice(0, labels.length), borderRadius: 6, barPercentage: .75 }] },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => c.parsed.x.toFixed(1) + '% da receita' } },
+        datalabels: { display: true, anchor: 'end', align: 'end', color: css('--text-2'), font: { size: 11, weight: '700' }, formatter: v => v.toFixed(1) + '%' }
+      },
+      scales: {
+        x: { grid: { color: css('--border'), drawBorder: false }, ticks: { color: css('--muted'), callback: v => v.toFixed(0) + '%' } },
+        y: { grid: { display: false }, ticks: { color: css('--text-2'), font: { size: 12, weight: '600' } } }
+      }
+    }
+  });
+}
+
 function buildSaidasCat() {
   const ctx = document.getElementById('chartSaidasCat'); if (!ctx) return;
   destroyChart('saidasCat');
@@ -3859,7 +3910,7 @@ function rerenderAllCharts() {
   buildSaldo(); buildBaseSim(); buildBaseSw(); buildConect();
   buildVendasMeta(); buildEquipMeta(); buildNovos(); buildVendasMedia();
   buildChurn(); buildChurnAnual(); buildVolEnvio(); buildCustoEnvio();
-  buildSaidasCat(); buildSaidasTable();
+  buildSaidasPercChart(); buildSaidasCat(); buildSaidasTable();
   buildDFC(); buildDFCTable();
   buildOpMediaChart();
   buildTickets();
@@ -4453,10 +4504,9 @@ function computePeriodData(dm) {
       'Pacotes Enviados':       { v: fmtNum(volEnvioAcum), f: 'Acumulado' },
       'Custo Médio / Pacote':   { v: custoEnvioAcum&&volEnvioAcum ? 'R$ '+(custoEnvioAcum/volEnvioAcum).toFixed(2).replace('.',',') : '—', f: 'Custo médio acumulado' },
       'Custo / Receita':        { v: rec&&custoEnvioAcum ? (custoEnvioAcum/rec*100).toFixed(2).replace('.',',')+'%' : '—', f: 'Frete sobre faturamento' },
-      'Total de Saídas':        { v: fmtAutoK(cmv?(cmv+(desp??0)):null), f: 'CMV + Despesas + Custo SMT' },
-      'Maior Categoria':        { v: 'CMV / CPS', f: '~65% das saídas totais' },
-      'Maior Salto':            { v: '—', f: 'Ver tabela de saídas' },
-      'Custo CMV / Receita':    { v: rec&&cmv ? (cmv/rec*100).toFixed(1).replace('.',',')+'%' : '—', f: 'CMV sobre faturamento bruto' },
+      'Total de Saídas':   { v: fmtAutoK(cmv != null ? cmv + (desp ?? 0) : null), f: 'CMV + Despesas + Custo SMT' },
+      'CMV':               { v: fmtAutoK(cmv), f: 'CMV / CPS no período' },
+      'Outras Despesas':   { v: fmtAutoK(desp), f: 'Despesas operacionais' },
       'Margem Líquida':    { v: margemLiqPct, f: 'Resultado / Receita' },
       'EBITDA':            { v: ebitdaPctKpi, f: 'EBITDA / Receita' },
       'Tesouro Acumulado': { v: tesAcum != null ? fmtAutoK(tesAcum) : '—', f: 'Cofre Principal + Cofre Secundário' },
