@@ -2747,10 +2747,13 @@ function buildCofre() {
   const ctx = document.getElementById('chartCofre'); if (!ctx) return;
   destroyChart('cofre');
   const sel = periodMonthIdx[currentPeriod];
+  let _cofreRun = 0;
   const combinado = cofrePrincipalMes.map((v, i) => {
-    const c1 = v ?? null;
-    const c2 = cofre2Mes[i] ?? null;
-    return (c1 != null || c2 != null) ? (c1 ?? 0) + (c2 ?? 0) : null;
+    const c1 = cofrePrincipalMes[i];
+    const c2 = cofre2Mes[i];
+    if (c1 == null && c2 == null) return null;
+    _cofreRun += (c1 ?? 0) + (c2 ?? 0);
+    return _cofreRun;
   });
   charts.cofre = new Chart(ctx, {
     type: 'line',
@@ -4156,11 +4159,11 @@ function computePeriodData(dm) {
     const lbl = isQ1 ? '1º Trimestre 2026' : isYTD ? 'Acumulado 2026' : longMon[idx]+' 2026';
     const ebitdaPctKpi = ebitda[idx] != null ? ebitda[idx].toFixed(2).replace('.',',')+'%' : '—'; // % direto da planilha
     const margemLiqPct = rec && res != null ? ((res/rec)*100).toFixed(2).replace('.',',')+'%' : '—';
-    // Cofres — sempre somam o ano completo (independente do período selecionado)
-    const _cpVals  = cofrePrincipalMes.filter(v => v != null);
-    const _c2Vals  = cofre2Mes.filter(v => v != null);
-    const cofPrin  = _cpVals.length ? _cpVals.reduce((s,v) => s+v, 0) : null;
-    const cof2     = _c2Vals.length ? _c2Vals.reduce((s,v) => s+v, 0) : null;
+    // Cofres — soma acumulada de Jan até o mês selecionado (idx)
+    const _cpSlice = cofrePrincipalMes.slice(0, idx + 1);
+    const _c2Slice = cofre2Mes.slice(0, idx + 1);
+    const cofPrin  = _cpSlice.some(v => v != null) ? _cpSlice.reduce((s,v) => s + (v ?? 0), 0) : null;
+    const cof2     = _c2Slice.some(v => v != null) ? _c2Slice.reduce((s,v) => s + (v ?? 0), 0) : null;
     const tesAcum  = (cofPrin != null || cof2 != null) ? (cofPrin??0)+(cof2??0) : null;
     return {
       'Receita Bruta':          { v: fmtAutoK(rec), f: 'Faturamento bruto' },
@@ -4198,8 +4201,8 @@ function computePeriodData(dm) {
       'Margem Líquida':    { v: margemLiqPct, f: 'Resultado / Receita' },
       'EBITDA':            { v: ebitdaPctKpi, f: 'EBITDA / Receita' },
       'Tesouro Acumulado': { v: tesAcum != null ? fmtAutoK(tesAcum) : '—', f: 'Cofre Principal + Cofre Secundário' },
-      'Cofre Principal':   { v: cofPrin != null ? fmtAutoK(cofPrin) : '—', f: 'Acumulado anual' },
-      'Cofre Secundário':  { v: cof2 != null ? fmtAutoK(cof2) : '—', f: 'Acumulado anual' }
+      'Cofre Principal':   { v: cofPrin != null ? fmtAutoK(cofPrin) : '—', f: 'Acumulado até ' + longMon[idx] },
+      'Cofre Secundário':  { v: cof2 != null ? fmtAutoK(cof2) : '—', f: 'Acumulado até ' + longMon[idx] }
     };
   };
 
