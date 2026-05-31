@@ -364,8 +364,8 @@ function criarAba2026() {
 // logo abaixo da linha "Tesouro" sem apagar nenhum dado existente.
 function adicionarLinhasCofre() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sh = ss.getSheetByName('Dados_2026');
-  if (!sh) { SpreadsheetApp.getUi().alert('Aba Dados_2026 não encontrada.'); return; }
+  const sh = ss.getSheetByName('2026');
+  if (!sh) { SpreadsheetApp.getUi().alert('Aba "2026" não encontrada.'); return; }
 
   const lastRow = sh.getLastRow();
   const colA    = sh.getRange(1, 1, lastRow, 1).getValues().flat();
