@@ -1418,18 +1418,19 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         </div>
       </div>
 
-      <div class="chart-card" style="margin-bottom:14px">
-        <div class="chart-head">
-          <div><div class="chart-title">Custo / Receita por Centro de Custo</div><div class="chart-sub">% do faturamento bruto que cada categoria de custo representa</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <div class="chart-card">
+          <div class="chart-head">
+            <div><div class="chart-title">Custo / Receita por Centro de Custo</div><div class="chart-sub">% do faturamento bruto por categoria</div></div>
+          </div>
+          <div class="chart-canvas-wrap tall"><canvas id="chartSaidasPerc"></canvas></div>
         </div>
-        <div class="chart-canvas-wrap tall"><canvas id="chartSaidasPerc"></canvas></div>
-      </div>
-
-      <div class="chart-card" style="margin-bottom:14px">
-        <div class="chart-head">
-          <div><div class="chart-title" id="saidasCatTitle">Distribuição de Saídas por Categoria</div><div class="chart-sub">Onde a maior parte do dinheiro está saindo</div></div>
+        <div class="chart-card">
+          <div class="chart-head">
+            <div><div class="chart-title" id="saidasCatTitle">Distribuição de Saídas por Categoria</div><div class="chart-sub">Onde a maior parte do dinheiro está saindo</div></div>
+          </div>
+          <div class="chart-canvas-wrap tall"><canvas id="chartSaidasCat"></canvas></div>
         </div>
-        <div class="chart-canvas-wrap tall"><canvas id="chartSaidasCat"></canvas></div>
       </div>
 
       <div class="chart-card" style="margin-bottom:14px">
