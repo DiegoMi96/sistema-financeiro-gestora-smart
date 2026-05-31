@@ -738,7 +738,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
             <div class="kpi-foot">Licenças ativas</div>
           </div>
           <div class="card"><div class="card-top-line negative"></div>
-            <div class="kpi-label">ID Suspensão</div>
+            <div class="kpi-label">Suspensão</div>
             <div class="kpi-value">—</div>
             <div class="kpi-foot">Simcards suspensos</div>
           </div>
@@ -2410,7 +2410,7 @@ function emptyPeriod(label) {
   return {
     hero1Val: '—', hero1Desc: 'Sincronize a planilha',
     hero2Val: '—', hero2Desc: '—',
-    pageSub: 'Indicadores de Performance · ' + label,
+    pageSub: 'Indicadores de Performance',
     kpis: {},
     satisfacao: { val: '—', volume: '—' },
     proximasAtivacoes: [],
@@ -2432,7 +2432,7 @@ function applyPeriod(p) {
   if (!d) return;
   const year = document.getElementById('yearSelect')?.value || '2026';
   // Hero
-  document.getElementById('heroSub').textContent = periodLabels[p] + ' · Gestora Smart';
+  document.getElementById('heroSub').textContent = 'Gestora Smart';
   document.getElementById('heroVal1').textContent = d.hero1Val;
   document.getElementById('heroDesc1').textContent = d.hero1Desc;
   document.getElementById('heroVal2').textContent = d.hero2Val;
@@ -4122,22 +4122,22 @@ function computePeriodData(dm) {
     const cof2Target     = cof2LastIdx > idx ? cofre2Mes[cof2LastIdx] : null;
     const cof2Pct        = (cof2!=null&&cof2Target!=null&&cof2Target>0) ? Math.round(cof2/cof2Target*100) : null;
     return {
-      'Receita Bruta':          { v: fmtAutoK(rec), f: 'Faturamento bruto · '+lbl },
-      'CSP / CMV':              { v: fmtAutoK(cmv), f: 'Custo de serviços · '+lbl },
-      'Despesas':               { v: fmtAutoK(desp), f: 'Despesas operacionais · '+lbl },
+      'Receita Bruta':          { v: fmtAutoK(rec), f: 'Faturamento bruto' },
+      'CSP / CMV':              { v: fmtAutoK(cmv), f: 'Custo de serviços' },
+      'Despesas':               { v: fmtAutoK(desp), f: 'Despesas operacionais' },
       'Margem de Contribuição': { v: margemPct, f: 'Receita − CMV / Receita' },
-      'Resultado do Mês':       { v: fmtAutoK(res), f: lbl },
-      'Saldo Acumulado':        { v: fmtAutoK(saldo), f: lbl },
-      'Tesouro':                { v: fmtAutoK(tes), f: 'Aplicações financeiras' },
+      'Resultado do Mês':       { v: fmtAutoK(res), f: 'Resultado operacional' },
+      'Saldo Acumulado':        { v: fmtAutoK(saldo), f: 'Posição de caixa' },
+      'Tesouro':                { v: tesAcum != null ? fmtAutoK(tesAcum) : '—', f: 'Cofre Principal + Cofre Secundário' },
       'Caixa Inicial':          { v: fmtAutoK(caixaIni), f: isQ1||isYTD?'Saldo em 01/01':'Saldo em 01/'+(idx+1<10?'0'+(idx+1):idx+1) },
       'Caixa Final':            { v: fmtAutoK(caixaFim), f: isQ1||isYTD?'Saldo em 31/03':'Saldo em 31/'+(idx+1<10?'0'+(idx+1):idx+1) },
       'Inadimplências':         { v: fmtAutoK(inadimpl), f: 'A recuperar' },
       'Base Ativa':             { v: fmtNum(baseAtivaV), f: 'Simcards faturantes' },
       'Base Pré-Ativa':         { v: fmtNum(basePreV), f: basePreV!=null?'Aguardando ativação':'Sincronize a planilha' },
       'Base Software':          { v: fmtNum(baseSWV), f: 'Licenças ativas' },
-      'ID Suspensão':           { v: baseSuspV!=null ? fmtNum(baseSuspV) : '—', f: 'Simcards suspensos' },
+      'Suspensão':              { v: baseSuspV!=null ? fmtNum(baseSuspV) : '—', f: 'Simcards suspensos' },
       'Vendas':                 { v: fmtNum(vendasV), f: isQ1||isYTD?'Total Q1':'vs. previsto' },
-      'Novos Clientes':         { v: fmtNum(novos), f: 'Clientes novos · '+lbl },
+      'Novos Clientes':         { v: fmtNum(novos), f: 'Clientes novos' },
       'Cancelamento':           { v: fmtNum(cancel), f: 'Linhas no mês' },
       'Desistência':            { v: fmtNum(desist), f: 'Pré-ativação' },
       'Cancelamento Acumulado': { v: fmtNum(cancelAcum), f: 'Acumulado' },
