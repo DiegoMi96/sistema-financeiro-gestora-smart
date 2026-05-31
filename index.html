@@ -831,7 +831,6 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
                 <svg fill="currentColor" viewBox="0 0 24 24"><polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9"/></svg>
                 <svg fill="currentColor" viewBox="0 0 24 24" style="opacity:.4"><polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9"/></svg>
               </span>
-              <span style="margin-left:auto">Vol. 4.861 atend.</span>
             </div>
           </div>
         </div>
@@ -2653,8 +2652,6 @@ function applyPeriod(p) {
       const card = el.closest('.card');
       const v = card?.querySelector('.kpi-value');
       if (v) v.textContent = d.satisfacao?.val || '—';
-      const volSpan = card?.querySelector('.kpi-foot span[style*="margin-left:auto"]');
-      if (volSpan) volSpan.textContent = d.satisfacao?.volume || '—';
     }
   });
 
