@@ -1425,7 +1425,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
 
       <div class="chart-card" style="margin-bottom:14px">
         <div class="chart-head">
-          <div><div class="chart-title" id="saidasCatTitle">Distribuição de Saídas por Categoria · Q1</div><div class="chart-sub">Onde a maior parte do dinheiro está saindo</div></div>
+          <div><div class="chart-title" id="saidasCatTitle">Distribuição de Saídas por Categoria</div><div class="chart-sub">Onde a maior parte do dinheiro está saindo</div></div>
         </div>
         <div class="chart-canvas-wrap tall"><canvas id="chartSaidasCat"></canvas></div>
       </div>
@@ -3714,10 +3714,10 @@ function buildSaidasTable(filter='') {
   const year = document.getElementById('yearSelect')?.value || '2026';
   const shortMons = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
-  // Categories to exclude (receita / resultado / saldo)
-  const EXCL_CAT = cat => cat.startsWith('Total de RECEITA') || /resultado|saldo/i.test(cat);
+  // Exclude any group containing receita / resultado / saldo
+  const EXCL_CAT = cat => /receita|resultado|saldo/i.test(cat);
 
-  // Value for a group for month m (0-indexed): real from saidasData, forecast from previsaoData
+  // Value for a group for month m: real → saidasData, forecast → previsaoData
   const grpValM = (groupCat, m) => {
     const src = isReal[m] ? saidasData : previsaoData;
     const grp = src.find(g => g.cat === groupCat);
@@ -3735,22 +3735,21 @@ function buildSaidasTable(filter='') {
     return sub ? (sub[m + 1] || 0) : 0;
   };
 
-  // Selected & previous month for % vs Ant.
-  const selIdx  = periodMonthIdx[currentPeriod] ?? 0;
-  const prevIdx = selIdx > 0 ? selIdx - 1 : null;
+  // % vs anterior para o mês m (null se não aplicável)
+  const calcPct   = (vals, m) => (m > 0 && vals[m - 1] !== 0) ? vals[m] / vals[m - 1] : null;
+  const fmtPct    = p => p != null ? (p * 100).toFixed(0) + '%' : '—';
+  const clsPct    = p => p != null ? (p > 1 ? 'up' : p < 1 ? 'down' : '') : '';
 
-  // Build thead dynamically
+  // Build thead: mês | % vs Ant. | mês | % vs Ant. | ... | Total
   const thead = tbl.querySelector('thead') || tbl.createTHead();
   let thHtml = '<tr><th class="cat">CATEGORIA / SUBCATEGORIA</th>';
   for (let m = 0; m < 12; m++) {
     const fc = !isReal[m];
-    thHtml += `<th class="num${fc ? ' forecast-hdr' : ''}">${shortMons[m]}/${year.slice(2)}${fc ? ' <span class="prev-badge">PREV</span>' : ''}</th>`;
+    const fcCls = fc ? ' forecast-hdr' : '';
+    thHtml += `<th class="num${fcCls}" style="min-width:110px">${shortMons[m]}/${year.slice(2)}${fc ? ' <span class="prev-badge">PREV</span>' : ''}</th>`;
+    thHtml += `<th class="pct${fcCls}" style="min-width:72px">% vs Ant.</th>`;
   }
-  thHtml += '<th class="num">Total</th>';
-  const pctLbl = prevIdx != null
-    ? `% ${shortMons[selIdx]} vs ${shortMons[prevIdx]}`
-    : `% ${shortMons[selIdx]}`;
-  thHtml += `<th class="pct">${pctLbl}</th></tr>`;
+  thHtml += '<th class="num" style="min-width:115px">Total</th></tr>';
   thead.innerHTML = thHtml;
 
   // Build tbody
@@ -3767,39 +3766,31 @@ function buildSaidasTable(filter='') {
       : group.subs;
     if (ftext && subsFiltered.length === 0 && !group.cat.toLowerCase().includes(ftext)) return;
 
-    // Group: compute all 12 month values + total
-    const mVals   = Array.from({length: 12}, (_, m) => grpValM(group.cat, m));
+    const mVals    = Array.from({length: 12}, (_, m) => grpValM(group.cat, m));
     const rowTotal = mVals.reduce((a, v) => a + v, 0);
-    const selVal   = mVals[selIdx];
-    const prevVal  = prevIdx != null ? mVals[prevIdx] : null;
-    const pctVal   = prevVal != null && prevVal !== 0 ? selVal / prevVal : null;
-    const pctTxt   = pctVal != null ? (pctVal * 100).toFixed(0) + '%' : '—';
-    const pctCls   = pctVal != null ? (pctVal > 1 ? 'up' : pctVal < 1 ? 'down' : '') : '';
 
     let row = `<tr class="cat-group"><td class="cat">${escHtml(group.cat)}</td>`;
     for (let m = 0; m < 12; m++) {
-      row += `<td class="num${!isReal[m] ? ' forecast' : ''}">${fmtMoney(mVals[m])}</td>`;
+      const p = calcPct(mVals, m);
+      const fc = !isReal[m] ? ' forecast' : '';
+      row += `<td class="num${fc}">${fmtMoney(mVals[m])}</td>`;
+      row += `<td class="pct ${clsPct(p)}${fc}">${fmtPct(p)}</td>`;
     }
-    row += `<td class="num">${fmtMoney(rowTotal)}</td>`;
-    row += `<td class="pct ${pctCls}">${pctTxt}</td></tr>`;
+    row += `<td class="num">${fmtMoney(rowTotal)}</td></tr>`;
     parts.push(row);
 
-    // Sub-rows
     subsFiltered.forEach(s => {
-      const smVals   = Array.from({length: 12}, (_, m) => subValM(group.cat, s[0], m));
-      const sTotal   = smVals.reduce((a, v) => a + v, 0);
-      const sSel     = smVals[selIdx];
-      const sPrev    = prevIdx != null ? smVals[prevIdx] : null;
-      const sPct     = sPrev != null && sPrev !== 0 ? sSel / sPrev : null;
-      const sPctTxt  = sPct != null ? (sPct * 100).toFixed(0) + '%' : '—';
-      const sPctCls  = sPct != null ? (sPct > 1 ? 'up' : sPct < 1 ? 'down' : '') : '';
+      const smVals  = Array.from({length: 12}, (_, m) => subValM(group.cat, s[0], m));
+      const sTotal  = smVals.reduce((a, v) => a + v, 0);
 
       let srow = `<tr class="sub"><td class="cat">${escHtml(s[0])}</td>`;
       for (let m = 0; m < 12; m++) {
-        srow += `<td class="num${!isReal[m] ? ' forecast' : ''}">${fmtMoney(smVals[m])}</td>`;
+        const sp = calcPct(smVals, m);
+        const fc = !isReal[m] ? ' forecast' : '';
+        srow += `<td class="num${fc}">${fmtMoney(smVals[m])}</td>`;
+        srow += `<td class="pct ${clsPct(sp)}${fc}">${fmtPct(sp)}</td>`;
       }
-      srow += `<td class="num">${fmtMoney(sTotal)}</td>`;
-      srow += `<td class="pct ${sPctCls}">${sPctTxt}</td></tr>`;
+      srow += `<td class="num">${fmtMoney(sTotal)}</td></tr>`;
       parts.push(srow);
     });
   });
@@ -3813,8 +3804,8 @@ function buildSaidasCat() {
   const year = document.getElementById('yearSelect')?.value || '2026';
   const shortMons = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
-  // Categories to exclude (receita / resultado / saldo)
-  const EXCL_CAT = cat => cat.startsWith('Total de RECEITA') || /resultado|saldo/i.test(cat);
+  // Categories to exclude: any group with receita / resultado / saldo in the name
+  const EXCL_CAT = cat => /receita|resultado|saldo/i.test(cat);
 
   // Value for a group for month m: real from saidasData, forecast from previsaoData
   const grpValM = (groupCat, m) => {
@@ -3825,17 +3816,11 @@ function buildSaidasCat() {
     return grp._headerVals ? (grp._headerVals[m] || 0) : 0;
   };
 
-  // Period label for chart title
   const selIdx = periodMonthIdx[currentPeriod] ?? 0;
-  const periLblShort = {[`${year}-Q1`]: 'Q1 '+year, [`${year}-YTD`]: 'YTD '+year};
-  Object.keys(periodMonthIdx).forEach(k => {
-    if (!k.includes('Q1') && !k.includes('YTD')) {
-      const i = periodMonthIdx[k];
-      if (i != null) periLblShort[k] = shortMons[i] + '/' + year.slice(2);
-    }
-  });
+
+  // Title — sem período
   const scTitle = document.getElementById('saidasCatTitle');
-  if (scTitle) scTitle.textContent = 'Distribuição de Saídas por Categoria · ' + (periLblShort[currentPeriod] || shortMons[selIdx] + '/' + year.slice(2));
+  if (scTitle) scTitle.textContent = 'Distribuição de Saídas por Categoria';
 
   // Filter groups and compute totals up to selIdx (real + forecast)
   const filteredGroups = saidasData.filter(g => !EXCL_CAT(g.cat));
@@ -4468,7 +4453,7 @@ function computePeriodData(dm) {
       'Pacotes Enviados':       { v: fmtNum(volEnvioAcum), f: 'Acumulado' },
       'Custo Médio / Pacote':   { v: custoEnvioAcum&&volEnvioAcum ? 'R$ '+(custoEnvioAcum/volEnvioAcum).toFixed(2).replace('.',',') : '—', f: 'Custo médio acumulado' },
       'Custo / Receita':        { v: rec&&custoEnvioAcum ? (custoEnvioAcum/rec*100).toFixed(2).replace('.',',')+'%' : '—', f: 'Frete sobre faturamento' },
-      'Total de Saídas':        { v: fmtAutoK(cmv?(cmv+(desp??0)):null), f: lbl },
+      'Total de Saídas':        { v: fmtAutoK(cmv?(cmv+(desp??0)):null), f: 'CMV + Despesas + Custo SMT' },
       'Maior Categoria':        { v: 'CMV / CPS', f: '~65% das saídas totais' },
       'Maior Salto':            { v: '—', f: 'Ver tabela de saídas' },
       'Custo CMV / Receita':    { v: rec&&cmv ? (cmv/rec*100).toFixed(1).replace('.',',')+'%' : '—', f: 'CMV sobre faturamento bruto' },
