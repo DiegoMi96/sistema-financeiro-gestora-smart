@@ -823,7 +823,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           <div class="card tinted-primary">
             <div class="kpi-label">Índice de Satisfação</div>
             <div class="kpi-value lg">96%</div>
-            <div class="kpi-foot">
+            <div class="kpi-foot" style="flex-direction:column;align-items:flex-start;gap:4px">
               <span class="stars">
                 <svg fill="currentColor" viewBox="0 0 24 24"><polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9"/></svg>
                 <svg fill="currentColor" viewBox="0 0 24 24"><polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9"/></svg>
@@ -831,6 +831,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
                 <svg fill="currentColor" viewBox="0 0 24 24"><polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9"/></svg>
                 <svg fill="currentColor" viewBox="0 0 24 24" style="opacity:.4"><polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9"/></svg>
               </span>
+              <span id="satVolSpan" style="font-size:11.5px;opacity:.85"></span>
             </div>
           </div>
         </div>
@@ -2652,6 +2653,8 @@ function applyPeriod(p) {
       const card = el.closest('.card');
       const v = card?.querySelector('.kpi-value');
       if (v) v.textContent = d.satisfacao?.val || '—';
+      const volEl = document.getElementById('satVolSpan');
+      if (volEl) volEl.textContent = d.satisfacao?.volume || '';
     }
   });
 
@@ -5027,9 +5030,13 @@ function computePeriodData(dm) {
     // Satisfação — chave Satisfacao (decimal 0-1)
     const satV2 = q||ytd ? null : get('Satisfacao', idx);
     const periodLbl = q ? '1º Trimestre 2026' : ytd ? 'Acumulado 2026' : ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][idx]+' 2026';
+    // Volume de atendimentos do mês (ticketsMes)
+    const ticketVol = q||ytd
+      ? ticketsMes.slice(0, q ? 3 : idx+1).reduce((s,v) => s + (v!=null?v:0), 0)
+      : ticketsMes[idx];
     periodData[key].satisfacao = {
       val:    satV2 != null ? (satV2*100).toFixed(1).replace('.',',')+'%' : '—',
-      volume: ''
+      volume: ticketVol != null && ticketVol > 0 ? 'Vol. ' + Math.round(ticketVol).toLocaleString('pt-BR') + ' atend.' : ''
     };
 
     // Próximas Ativações — chave Atv_Qtd (meses futuros com dados)
