@@ -839,17 +839,6 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         <div class="card"><div class="kpi-label">Cofre Secundário</div><div class="kpi-value">—</div><div class="kpi-foot">—</div></div>
       </div>
 
-      <!-- Evolução do Cofre -->
-      <div class="chart-card" style="margin-bottom:14px">
-        <div class="chart-head">
-          <div>
-            <div class="chart-title">Evolução do Cofre</div>
-            <div class="chart-sub">Acumulado · Realizado + Previsão · Cofre Principal + Cofre Secundário</div>
-          </div>
-        </div>
-        <div class="chart-canvas-wrap tall"><canvas id="chartCofre"></canvas></div>
-      </div>
-
       <!-- Mini gráficos Receita / Custo -->
       <div class="grid grid-2" style="margin-bottom:14px">
         <div class="chart-card">
@@ -899,6 +888,18 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           <div class="chart-legend"><span><span class="legend-dot" style="background:var(--primary)"></span>Realizado</span><span><span class="legend-dot" style="background:var(--primary-soft)"></span>Previsão</span></div>
         </div>
         <div class="chart-canvas-wrap tall"><canvas id="chartSaldo"></canvas></div>
+      </div>
+
+      <!-- Evolução do Cofre -->
+      <div class="chart-card" style="margin-bottom:14px">
+        <div class="chart-head">
+          <div>
+            <div class="chart-title">Evolução do Cofre</div>
+            <div class="chart-sub">Acumulado · Realizado + Previsão · Cofre Principal + Cofre Secundário</div>
+          </div>
+          <div class="chart-legend"><span><span class="legend-dot" style="background:var(--warning)"></span>Realizado</span><span><span class="legend-dot" style="background:rgba(245,147,0,.45)"></span>Previsão</span></div>
+        </div>
+        <div class="chart-canvas-wrap tall"><canvas id="chartCofre"></canvas></div>
       </div>
 
       <!-- Margens -->
