@@ -1782,6 +1782,63 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
 
   </div>
 
+  <!-- Modal Editar Usuário -->
+  <div id="modalEditUser" style="display:none;position:fixed;inset:0;background:rgba(15,27,45,.55);z-index:1000;align-items:center;justify-content:center;padding:20px">
+    <div style="background:var(--surface);border-radius:14px;padding:24px;max-width:460px;width:100%;box-shadow:0 30px 60px rgba(0,0,0,.30);border:1px solid var(--border)">
+      <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:16px">
+        <div style="width:42px;height:42px;border-radius:50%;background:#EBF5FB;display:grid;place-items:center;flex-shrink:0;color:#1583B3">
+          <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </div>
+        <div>
+          <h3 style="margin:0 0 4px;font-family:'Manrope';font-weight:700;font-size:17px;color:var(--text)">Editar usuário</h3>
+          <p style="margin:0;color:var(--text-2);font-size:13px;line-height:1.5">Altere os dados do usuário. Deixe a senha em branco para mantê-la.</p>
+        </div>
+      </div>
+      <input type="hidden" id="editUserOrigEmail">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div>
+          <label style="display:block;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:6px">Nome completo</label>
+          <input id="editUserNome" placeholder="Nome do usuário" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:9px;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="display:block;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:6px">E-mail</label>
+          <input id="editUserEmail" type="email" placeholder="email@empresa.com.br" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:9px;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box">
+          <p id="editEmailNote" style="display:none;margin:4px 0 0;font-size:11.5px;color:var(--muted)">⚠️ Você está editando o próprio e-mail — será necessário fazer login novamente após salvar.</p>
+        </div>
+        <div>
+          <label style="display:block;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:6px">Nova senha <span style="font-weight:400;text-transform:none;letter-spacing:0">(em branco = manter atual)</span></label>
+          <input id="editUserPass" type="password" placeholder="Deixe em branco para não alterar" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:9px;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="display:block;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:6px">Perfil de acesso</label>
+          <select id="editUserPerfil" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:9px;font-size:14px;font-family:inherit;outline:none">
+            <option value="Adm">Adm — acesso total</option>
+            <option value="Leitura">Leitura — somente visualização</option>
+          </select>
+        </div>
+        <div id="editUserPagesSection">
+          <label style="display:block;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:8px">
+            Páginas acessíveis <span style="color:var(--negative);font-size:10px;font-weight:500;text-transform:none;letter-spacing:0">* ao menos uma</span>
+          </label>
+          <div id="editUserPagesGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:10px;background:var(--bg);border-radius:9px;border:1px solid var(--border)">
+            <label class="page-check-item"><input type="checkbox" value="dashboard"><span>Resumo Executivo</span></label>
+            <label class="page-check-item"><input type="checkbox" value="pl"><span>Resumo Financeiro</span></label>
+            <label class="page-check-item"><input type="checkbox" value="sales"><span>Vendas &amp; Performance</span></label>
+            <label class="page-check-item"><input type="checkbox" value="ops"><span>Operação</span></label>
+            <label class="page-check-item"><input type="checkbox" value="logistics"><span>Logística</span></label>
+            <label class="page-check-item"><input type="checkbox" value="rh"><span>RH</span></label>
+            <label class="page-check-item"><input type="checkbox" value="dfc"><span>DFC Gerencial</span></label>
+            <label class="page-check-item"><input type="checkbox" value="saidas"><span>Análise de Saídas</span></label>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px">
+        <button id="cancelEditUser" style="background:transparent;color:var(--text);border:1px solid var(--border);padding:9px 18px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit">Cancelar</button>
+        <button id="confirmEditUser" style="background:#1583B3;color:white;border:0;padding:9px 18px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit">Salvar alterações</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal Link de Acesso — gerado após criar novo usuário -->
   <div id="modalSetupLink" style="display:none;position:fixed;inset:0;background:rgba(15,27,45,.55);z-index:1001;align-items:center;justify-content:center;padding:20px">
     <div style="background:var(--surface);border-radius:14px;padding:24px;max-width:520px;width:100%;box-shadow:0 30px 60px rgba(0,0,0,.30);border:1px solid var(--border)">
@@ -4124,6 +4181,9 @@ function renderAcessos() {
       <td style="color:var(--muted);font-size:12.5px">${escHtml(u.ultimo || '—')}</td>
       <td class="num">
         <div class="row-actions">
+          <button title="Editar usuário" data-act="edit" data-email="${escHtml(u.email)}">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
           ${u.email !== currentUserEmail ? `<button title="Remover usuário" data-act="remove" data-email="${escHtml(u.email)}">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
           </button>` : ''}
@@ -4155,24 +4215,128 @@ function renderAcessos() {
     showToast(`Perfil de ${u.nome} alterado para ${u.perfil}`);
   });
   tbody.addEventListener('click', e => {
-    const btn = e.target.closest('button[data-act="remove"]');
-    if (!btn) return;
-    const email = btn.dataset.email;
-    const u = gsmUsers.find(x => x.email === email);
-    if (!u) return;
-    const admCount = gsmUsers.filter(x => x.perfil === 'Adm').length;
-    if (u.perfil === 'Adm' && admCount === 1) {
-      alert('Não é possível remover o único administrador do sistema.');
+    const btnRemove = e.target.closest('button[data-act="remove"]');
+    if (btnRemove) {
+      const email = btnRemove.dataset.email;
+      const u = gsmUsers.find(x => x.email === email);
+      if (!u) return;
+      const admCount = gsmUsers.filter(x => x.perfil === 'Adm').length;
+      if (u.perfil === 'Adm' && admCount === 1) {
+        alert('Não é possível remover o único administrador do sistema.');
+        return;
+      }
+      if (confirm(`Remover ${u.nome} (${u.email}) do sistema?\nEle não conseguirá mais fazer login.`)) {
+        gsmUsers.splice(gsmUsers.indexOf(u), 1);
+        saveUsers(gsmUsers);
+        renderAcessos();
+        showToast(`${u.nome} removido`);
+      }
       return;
     }
-    if (confirm(`Remover ${u.nome} (${u.email}) do sistema?\nEle não conseguirá mais fazer login.`)) {
-      gsmUsers.splice(gsmUsers.indexOf(u), 1);
-      saveUsers(gsmUsers);
-      renderAcessos();
-      showToast(`${u.nome} removido`);
-    }
+    const btnEdit = e.target.closest('button[data-act="edit"]');
+    if (btnEdit) openEditUser(btnEdit.dataset.email);
   });
 })()
+
+// ── Edit user modal ───────────────────────────────────────────────────────
+function openEditUser(email) {
+  if (!isCurrentUserAdm()) { showToast('Acesso restrito a administradores.'); return; }
+  const u = gsmUsers.find(x => x.email === email);
+  if (!u) return;
+  document.getElementById('editUserOrigEmail').value = email;
+  document.getElementById('editUserNome').value      = u.nome  || '';
+  document.getElementById('editUserEmail').value     = u.email || '';
+  document.getElementById('editUserPass').value      = '';
+  document.getElementById('editUserPerfil').value    = u.perfil || 'Leitura';
+  // Show/hide pages checkboxes
+  const pagesSection = document.getElementById('editUserPagesSection');
+  if (pagesSection) pagesSection.style.display = (u.perfil === 'Leitura') ? 'block' : 'none';
+  // Pre-check the user's allowed pages
+  const pages = u.pages && u.pages.length > 0 ? u.pages : ALL_PAGES.map(p => p.key);
+  document.querySelectorAll('#editUserPagesGrid input[type=checkbox]').forEach(cb => {
+    cb.checked = pages.includes(cb.value);
+  });
+  // Warn when editing own email
+  const note = document.getElementById('editEmailNote');
+  if (note) note.style.display = (email === currentUserEmail) ? 'block' : 'none';
+  document.getElementById('modalEditUser').style.display = 'flex';
+}
+
+const _modalEditUser   = document.getElementById('modalEditUser');
+const _cancelEditUser  = document.getElementById('cancelEditUser');
+const _confirmEditUser = document.getElementById('confirmEditUser');
+const _editUserPerfil  = document.getElementById('editUserPerfil');
+
+if (_editUserPerfil) {
+  _editUserPerfil.addEventListener('change', () => {
+    const ps = document.getElementById('editUserPagesSection');
+    if (ps) ps.style.display = _editUserPerfil.value === 'Leitura' ? 'block' : 'none';
+  });
+}
+
+if (_cancelEditUser)  _cancelEditUser.addEventListener('click', () => { _modalEditUser.style.display = 'none'; });
+if (_modalEditUser)   _modalEditUser.addEventListener('click', e => { if (e.target === _modalEditUser) _modalEditUser.style.display = 'none'; });
+
+if (_confirmEditUser) _confirmEditUser.addEventListener('click', async () => {
+  const origEmail = document.getElementById('editUserOrigEmail').value;
+  const nome      = document.getElementById('editUserNome').value.trim();
+  const email     = document.getElementById('editUserEmail').value.trim().toLowerCase();
+  const pass      = document.getElementById('editUserPass').value;
+  const perfil    = document.getElementById('editUserPerfil').value;
+
+  if (!nome)                           { document.getElementById('editUserNome').focus();  showToast('Informe o nome'); return; }
+  if (!email || !email.includes('@'))  { document.getElementById('editUserEmail').focus(); showToast('E-mail inválido'); return; }
+  const _ec = document.createElement('input'); _ec.type = 'email'; _ec.value = email;
+  if (!_ec.validity.valid)             { document.getElementById('editUserEmail').focus(); showToast('Formato de e-mail inválido'); return; }
+  if (email !== origEmail && gsmUsers.find(x => x.email === email)) { showToast('Este e-mail já está cadastrado'); return; }
+  if (pass && pass.length < 8)        { document.getElementById('editUserPass').focus(); showToast('Nova senha deve ter ao menos 8 caracteres'); return; }
+
+  const u = gsmUsers.find(x => x.email === origEmail);
+  if (!u) return;
+  const admCount = gsmUsers.filter(x => x.perfil === 'Adm').length;
+  if (u.perfil === 'Adm' && admCount === 1 && perfil !== 'Adm') {
+    showToast('Deve existir ao menos um administrador no sistema.'); return;
+  }
+
+  let selectedPages;
+  if (perfil === 'Leitura') {
+    selectedPages = Array.from(document.querySelectorAll('#editUserPagesGrid input[type=checkbox]:checked')).map(cb => cb.value);
+    if (selectedPages.length === 0) { showToast('Selecione ao menos uma página para o usuário'); return; }
+  } else {
+    selectedPages = ALL_PAGES.map(p => p.key);
+  }
+
+  _confirmEditUser.disabled = true;
+  let newHash = u.hash, newSalt = u.salt;
+  if (pass) {
+    const result = await hashPassNew(pass);
+    newHash = result.hash;
+    newSalt = result.salt;
+  }
+  _confirmEditUser.disabled = false;
+
+  u.nome   = nome;
+  u.email  = email;
+  u.hash   = newHash;
+  u.salt   = newSalt;
+  u.perfil = perfil;
+  u.pages  = selectedPages;
+
+  saveUsers(gsmUsers);
+  renderAcessos();
+  _modalEditUser.style.display = 'none';
+  showToast(`${nome} atualizado com sucesso`);
+
+  // If own email changed → must re-login
+  if (origEmail === currentUserEmail && email !== currentUserEmail) {
+    showToast('E-mail alterado — fazendo logout em instantes...');
+    setTimeout(() => {
+      currentUserEmail = null;
+      try { localStorage.removeItem('gsm_session'); } catch(e) {}
+      location.reload();
+    }, 1800);
+  }
+});
 
 // ── Setup URL — gera link para o colaborador ──────────────────────────────
 function generateSetupUrl(u) {
