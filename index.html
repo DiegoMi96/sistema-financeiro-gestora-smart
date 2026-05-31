@@ -4304,10 +4304,12 @@ function computePeriodData(dm) {
         lucroLiquido[m] = rec - cmv - desp;
       }
     }
-    // Saldo acumulado nos meses de previsão — apenas valores diretos da planilha (Saldo_Acum)
+    // Saldo acumulado nos meses de previsão — linha "Saldo Acumulado" da aba Previsao_YYYY
+    const _saldoPrevGrp = previsaoData.find(g => g.cat === 'Saldo Acumulado');
     for (let m = 0; m < 12; m++) {
       if (saldoIsReal[m] && saldoAcum[m] != null) continue; // mês real — não altera
-      saldoAcum[m] = (rawSaldoAcum[m] != null && rawSaldoAcum[m] !== 0) ? rawSaldoAcum[m] : null;
+      const prevVal = _saldoPrevGrp?._headerVals?.[m] ?? null;
+      saldoAcum[m] = (prevVal != null && prevVal !== 0) ? prevVal : null;
     }
 
     // ── KPIs para meses de previsão (após arrays populados) ──────
