@@ -562,6 +562,10 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
       Sincronizar
     </div>
+    <div class="nav-item" data-page="metas">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+      Metas
+    </div>
     <div class="nav-item" data-page="settings">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6"/></svg>
       Configurações
@@ -1529,6 +1533,55 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       </div>
     </section>
 
+    <!-- =============== METAS =============== -->
+    <section class="page" data-page="metas">
+      <div class="page-head"><div>
+        <h2 class="page-title">Metas</h2>
+        <p class="page-sub">Objetivos mensais e anuais · Apenas Diretoria e Controladoria</p>
+      </div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="chart-card">
+          <div class="chart-head">
+            <div>
+              <div class="chart-title">Metas Comerciais</div>
+              <div class="chart-sub">Clique em Editar para alterar os valores · As mudanças atualizam os gráficos imediatamente</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <span id="metasSaved" style="display:none;font-size:12px;color:var(--primary);font-weight:600">✓ Salvo</span>
+              <button id="btnEditMetas" style="background:var(--primary);color:white;border:0;padding:8px 14px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px;display:inline-flex;align-items:center;gap:6px">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                Editar
+              </button>
+              <button id="btnSaveMetas" style="display:none;background:var(--primary);color:white;border:0;padding:8px 14px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px;display:none;align-items:center;gap:6px">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                Salvar
+              </button>
+              <button id="btnCancelMetas" style="display:none;background:var(--bg);color:var(--text-2);border:1px solid var(--border);padding:8px 14px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px;display:none;align-items:center;gap:6px">
+                Cancelar
+              </button>
+            </div>
+          </div>
+          <table class="tbl metas-tbl" id="metasTbl" style="margin-top:12px">
+            <thead><tr><th>Indicador</th><th class="num">Meta</th><th>Unidade</th><th>Observação</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>Vendas Simcards</td>
+                <td class="num" data-meta="META_SIMCARDS_MES">33.000</td>
+                <td>por mês</td>
+                <td style="color:var(--muted);font-size:12px">Referência para gráfico Vendas Simcards e % vs. meta</td>
+              </tr>
+              <tr>
+                <td>Vendas Equipamentos</td>
+                <td class="num" data-meta="META_EQUIP_MES">2.000</td>
+                <td>por mês</td>
+                <td style="color:var(--muted);font-size:12px">Referência para gráfico Vendas Equipamentos e % vs. meta</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
     <!-- =============== CONFIGURAÇÕES =============== -->
     <section class="page" data-page="settings">
       <div class="page-head"><div>
@@ -2181,8 +2234,9 @@ const ebitdaIsReal = new Array(12).fill(false);
 // CACHE_KEY e CACHE_VERSION foram movidos para ANTES da IIFE tryAutoLogin (C-01 TDZ)
 
 // ── Named constants (magic numbers) ─────────────────────────────
-const META_SIMCARDS_MES = 33000;   // Meta mensal de vendas de SIM cards
-const DIAS_UTEIS_MES    = 22;      // Dias úteis médios por mês (absenteísmo RH)
+let META_SIMCARDS_MES = 33000;   // Meta mensal de vendas de SIM cards (editável na tela Metas)
+let META_EQUIP_MES    = 2000;    // Meta mensal de equipamentos (editável na tela Metas)
+const DIAS_UTEIS_MES  = 22;     // Dias úteis médios por mês (absenteísmo RH)
 
 function saveCache(dm, tsDisplay) {
   try {
@@ -2765,7 +2819,7 @@ function buildVendasMeta() {
 function buildEquipMeta() {
   const ctx = document.getElementById('chartEquipMeta'); if (!ctx) return;
   destroyChart('equipMeta');
-  const equipMeta = 2000;
+  const equipMeta = META_EQUIP_MES;
   const realData = equipMes.filter(v => v != null);
   const total    = realData.reduce((a,b)=>a+b,0);
   const media    = realData.length ? Math.round(total / realData.length) : 0;
@@ -3560,8 +3614,22 @@ function cancelEdit() {
 }
 function saveMetas() {
   setEditMode(false);
+  // Aplica valores editados nas constantes globais
+  if (metasTbl) {
+    metasTbl.querySelectorAll('td[data-meta]').forEach(td => {
+      const key = td.dataset.meta;
+      const raw = td.textContent.replace(/\./g,'').replace(',','.').trim();
+      const val = parseFloat(raw);
+      if (!isNaN(val) && val > 0) {
+        if (key === 'META_SIMCARDS_MES') META_SIMCARDS_MES = val;
+        if (key === 'META_EQUIP_MES')    META_EQUIP_MES    = val;
+      }
+    });
+    // Reconstrói gráficos afetados
+    buildVendasMeta(); buildEquipMeta();
+  }
   metasSaved.style.display = 'block';
-  setTimeout(() => { metasSaved.style.display = 'none'; }, 4000);
+  setTimeout(() => { if(metasSaved) metasSaved.style.display = 'none'; }, 4000);
 }
 if (btnEditMetas) btnEditMetas.addEventListener('click', () => setEditMode(true));
 if (btnSaveMetas) btnSaveMetas.addEventListener('click', saveMetas);
@@ -3942,6 +4010,13 @@ function computePeriodData(dm) {
     const cofPrin     = cofrePrincipalMes[idx] ?? null;
     const cof2        = cofre2Mes[idx] ?? null;
     const tesAcum     = (cofPrin != null || cof2 != null) ? (cofPrin??0)+(cof2??0) : null;
+    // Subtítulo cofres: Previsão = último valor futuro no array (ano todo planejado)
+    const cofPrinLastIdx = cofrePrincipalMes.reduce((last,v,i) => v!=null?i:last, -1);
+    const cofPrinTarget  = cofPrinLastIdx > idx ? cofrePrincipalMes[cofPrinLastIdx] : null;
+    const cofPrinPct     = (cofPrin!=null&&cofPrinTarget!=null&&cofPrinTarget>0) ? Math.round(cofPrin/cofPrinTarget*100) : null;
+    const cof2LastIdx    = cofre2Mes.reduce((last,v,i) => v!=null?i:last, -1);
+    const cof2Target     = cof2LastIdx > idx ? cofre2Mes[cof2LastIdx] : null;
+    const cof2Pct        = (cof2!=null&&cof2Target!=null&&cof2Target>0) ? Math.round(cof2/cof2Target*100) : null;
     return {
       'Receita Bruta':          { v: fmtAutoK(rec), f: 'Faturamento bruto · '+lbl },
       'CSP / CMV':              { v: fmtAutoK(cmv), f: 'Custo de serviços · '+lbl },
@@ -3978,8 +4053,8 @@ function computePeriodData(dm) {
       'Margem Líquida':    { v: margemLiqPct, f: 'Resultado / Receita' },
       'EBITDA':            { v: ebitdaPctKpi, f: 'EBITDA / Receita' },
       'Tesouro Acumulado': { v: tesAcum != null ? fmtAutoK(tesAcum) : '—', f: 'Cofre Principal + Cofre Secundário' },
-      'Cofre Principal':   { v: cofPrin != null ? fmtAutoK(cofPrin) : '—', f: 'Saldo atual' },
-      'Cofre Secundário':  { v: cof2 != null ? fmtAutoK(cof2) : '—', f: 'Saldo atual' }
+      'Cofre Principal':   { v: cofPrin != null ? fmtAutoK(cofPrin) : '—', f: cofPrinPct!=null ? 'Previsão '+fmtAutoK(cofPrinTarget)+' · <strong>'+cofPrinPct+'% concluído</strong>' : 'Saldo atual' },
+      'Cofre Secundário':  { v: cof2 != null ? fmtAutoK(cof2) : '—', f: cof2Pct!=null ? 'Previsão '+fmtAutoK(cof2Target)+' · <strong>'+cof2Pct+'% concluído</strong>' : 'Saldo atual' }
     };
   };
 
