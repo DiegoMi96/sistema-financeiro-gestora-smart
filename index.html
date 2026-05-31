@@ -358,6 +358,11 @@ footer.last-update { padding: 18px 28px; text-align: center; color: var(--muted)
 [data-theme="dark"] .saidas-tbl td.pct.down { color: #6FD8A4; }
 .saidas-bar-wrap { width:120px; background: var(--surface-2); border-radius:6px; height:10px; overflow:hidden; display:inline-block; vertical-align: middle; }
 .saidas-bar { height:100%; background: linear-gradient(90deg, #E89B2B, #B43B30); border-radius:6px; }
+.saidas-tbl th.forecast-hdr { background: #9B2A1F; opacity: .82; }
+.saidas-tbl td.forecast { background: #FDF4F2 !important; color: #9B2A1F !important; font-style: italic; }
+.saidas-tbl tr.cat-group td.forecast { background: #F9E8E5 !important; color: #9B2A1F !important; font-style: italic; }
+[data-theme="dark"] .saidas-tbl td.forecast { background: rgba(180,59,48,.10) !important; color: #F5A99E !important; font-style: italic; }
+[data-theme="dark"] .saidas-tbl tr.cat-group td.forecast { background: rgba(180,59,48,.18) !important; color: #F5A99E !important; font-style: italic; }
 
 /* Acessos table */
 .acessos-tbl td { vertical-align: middle; }
@@ -1392,7 +1397,6 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <div class="page-head">
         <div>
           <h2 class="page-title">Análise de Saídas</h2>
-          <p class="page-sub">Para onde o dinheiro está indo · Drill-down por subcategoria · 1º Trimestre 2026</p>
         </div>
       </div>
 
@@ -1410,7 +1414,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         <div class="card"><div class="card-top-line" style="background:var(--negative)"></div>
           <div class="kpi-label">Maior Salto</div>
           <div class="kpi-value lg" style="color:#C8523B">+919%</div>
-          <div class="kpi-foot">Atividades Financeiras · Mar</div>
+          <div class="kpi-foot">Atividades Financeiras</div>
         </div>
         <div class="card"><div class="card-top-line info"></div>
           <div class="kpi-label">Custo CMV / Receita</div>
@@ -1428,22 +1432,12 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
 
       <div class="chart-card" style="margin-bottom:14px">
         <div class="chart-head">
-          <div><div class="chart-title">Breakdown Detalhado · Categorias e Subcategorias</div><div class="chart-sub">Valores em R$ · Dados puxados da aba <em>Saídas Detalhadas</em> do template</div></div>
+          <div><div class="chart-title">Breakdown Detalhado · Categorias e Subcategorias</div></div>
           <input id="filterSaidas" placeholder="Filtrar subcategoria..." style="border:1px solid var(--border);background:var(--surface-2);color:var(--text);padding:7px 12px;border-radius:8px;font-size:13px;font-family:inherit;outline:none;min-width:200px">
         </div>
         <div style="overflow-x:auto">
         <table class="saidas-tbl" id="saidasTbl">
-          <thead>
-            <tr>
-              <th class="cat">CATEGORIA / SUBCATEGORIA</th>
-              <th class="num">jan/26</th>
-              <th class="num">fev/26</th>
-              <th class="num">mar/26</th>
-              <th class="num">Total Q1</th>
-              <th class="pct">% Mar vs Fev</th>
-              <th class="bar-col">Peso no total</th>
-            </tr>
-          </thead>
+          <thead></thead>
           <tbody>
             <!-- Populated by JS -->
           </tbody>
@@ -3714,50 +3708,102 @@ let previsaoData = [];
 const fmtMoney = n => 'R$ ' + new Intl.NumberFormat('pt-BR').format(Math.round(n));
 
 function buildSaidasTable(filter='') {
-  const tbody = document.querySelector('#saidasTbl tbody');
+  const tbl = document.getElementById('saidasTbl');
+  if (!tbl) return;
+
+  const year = document.getElementById('yearSelect')?.value || '2026';
+  const shortMons = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+  // Categories to exclude (receita / resultado / saldo)
+  const EXCL_CAT = cat => cat.startsWith('Total de RECEITA') || /resultado|saldo/i.test(cat);
+
+  // Value for a group for month m (0-indexed): real from saidasData, forecast from previsaoData
+  const grpValM = (groupCat, m) => {
+    const src = isReal[m] ? saidasData : previsaoData;
+    const grp = src.find(g => g.cat === groupCat);
+    if (!grp) return 0;
+    if (grp.subs.length > 0) return grp.subs.reduce((a, s) => a + (s[m + 1] || 0), 0);
+    return grp._headerVals ? (grp._headerVals[m] || 0) : 0;
+  };
+
+  // Value for a sub for month m
+  const subValM = (groupCat, subName, m) => {
+    const src = isReal[m] ? saidasData : previsaoData;
+    const grp = src.find(g => g.cat === groupCat);
+    if (!grp) return 0;
+    const sub = grp.subs.find(s => s[0] === subName);
+    return sub ? (sub[m + 1] || 0) : 0;
+  };
+
+  // Selected & previous month for % vs Ant.
+  const selIdx  = periodMonthIdx[currentPeriod] ?? 0;
+  const prevIdx = selIdx > 0 ? selIdx - 1 : null;
+
+  // Build thead dynamically
+  const thead = tbl.querySelector('thead') || tbl.createTHead();
+  let thHtml = '<tr><th class="cat">CATEGORIA / SUBCATEGORIA</th>';
+  for (let m = 0; m < 12; m++) {
+    const fc = !isReal[m];
+    thHtml += `<th class="num${fc ? ' forecast-hdr' : ''}">${shortMons[m]}/${year.slice(2)}${fc ? ' <span class="prev-badge">PREV</span>' : ''}</th>`;
+  }
+  thHtml += '<th class="num">Total</th>';
+  const pctLbl = prevIdx != null
+    ? `% ${shortMons[selIdx]} vs ${shortMons[prevIdx]}`
+    : `% ${shortMons[selIdx]}`;
+  thHtml += `<th class="pct">${pctLbl}</th></tr>`;
+  thead.innerHTML = thHtml;
+
+  // Build tbody
+  const tbody = tbl.querySelector('tbody');
   if (!tbody) return;
-  const grandTotal = saidasData.reduce((acc, g) => acc + g.subs.reduce((a,s)=>a+s[1]+s[2]+s[3],0), 0);
-  // PERF-05: use array join instead of string concatenation
-  const parts = [];
   const ftext = filter.toLowerCase().trim();
+  const parts = [];
+
   saidasData.forEach(group => {
-    const subTotalJan = group.subs.reduce((a,s)=>a+s[1],0);
-    const subTotalFev = group.subs.reduce((a,s)=>a+s[2],0);
-    const subTotalMar = group.subs.reduce((a,s)=>a+s[3],0);
-    const subTotalQ1 = subTotalJan + subTotalFev + subTotalMar;
-    const subPct = subTotalFev > 0 ? (subTotalMar/subTotalFev) : 0;
-    const subPctTxt = subTotalFev > 0 ? ((subPct*100).toFixed(0)+'%') : '—';
-    const subPctClass = subPct > 1 ? 'up' : (subPct < 1 ? 'down' : '');
-    const subWeight = grandTotal > 0 ? (subTotalQ1/grandTotal*100) : 0;
-    // Filter check
-    const subsFiltered = ftext ? group.subs.filter(s => s[0].toLowerCase().includes(ftext)) : group.subs;
+    if (EXCL_CAT(group.cat)) return;
+
+    const subsFiltered = ftext
+      ? group.subs.filter(s => s[0].toLowerCase().includes(ftext))
+      : group.subs;
     if (ftext && subsFiltered.length === 0 && !group.cat.toLowerCase().includes(ftext)) return;
-    parts.push(`<tr class="cat-group">
-      <td class="cat">${escHtml(group.cat)}</td>
-      <td class="num">${fmtMoney(subTotalJan)}</td>
-      <td class="num">${fmtMoney(subTotalFev)}</td>
-      <td class="num">${fmtMoney(subTotalMar)}</td>
-      <td class="num">${fmtMoney(subTotalQ1)}</td>
-      <td class="pct ${subPctClass}">${subPctTxt}</td>
-      <td><div class="saidas-bar-wrap"><div class="saidas-bar" style="width:${Math.min(100, subWeight*2).toFixed(1)}%"></div></div> <span style="font-size:11.5px;color:var(--muted);margin-left:4px">${subWeight.toFixed(1)}%</span></td>
-    </tr>`);
+
+    // Group: compute all 12 month values + total
+    const mVals   = Array.from({length: 12}, (_, m) => grpValM(group.cat, m));
+    const rowTotal = mVals.reduce((a, v) => a + v, 0);
+    const selVal   = mVals[selIdx];
+    const prevVal  = prevIdx != null ? mVals[prevIdx] : null;
+    const pctVal   = prevVal != null && prevVal !== 0 ? selVal / prevVal : null;
+    const pctTxt   = pctVal != null ? (pctVal * 100).toFixed(0) + '%' : '—';
+    const pctCls   = pctVal != null ? (pctVal > 1 ? 'up' : pctVal < 1 ? 'down' : '') : '';
+
+    let row = `<tr class="cat-group"><td class="cat">${escHtml(group.cat)}</td>`;
+    for (let m = 0; m < 12; m++) {
+      row += `<td class="num${!isReal[m] ? ' forecast' : ''}">${fmtMoney(mVals[m])}</td>`;
+    }
+    row += `<td class="num">${fmtMoney(rowTotal)}</td>`;
+    row += `<td class="pct ${pctCls}">${pctTxt}</td></tr>`;
+    parts.push(row);
+
+    // Sub-rows
     subsFiltered.forEach(s => {
-      const total = s[1]+s[2]+s[3];
-      const pct = s[2]>0 ? s[3]/s[2] : 0;
-      const pctTxt = s[2]>0 ? (pct*100).toFixed(0)+'%' : '—';
-      const pctClass = pct > 1 ? 'up' : (pct < 1 ? 'down' : '');
-      const weight = grandTotal > 0 ? total/grandTotal*100 : 0;
-      parts.push(`<tr class="sub">
-        <td class="cat">${escHtml(s[0])}</td>
-        <td class="num">${fmtMoney(s[1])}</td>
-        <td class="num">${fmtMoney(s[2])}</td>
-        <td class="num">${fmtMoney(s[3])}</td>
-        <td class="num">${fmtMoney(total)}</td>
-        <td class="pct ${pctClass}">${pctTxt}</td>
-        <td><div class="saidas-bar-wrap"><div class="saidas-bar" style="width:${Math.min(100, weight*4).toFixed(1)}%"></div></div> <span style="font-size:11.5px;color:var(--muted);margin-left:4px">${weight.toFixed(1)}%</span></td>
-      </tr>`);
+      const smVals   = Array.from({length: 12}, (_, m) => subValM(group.cat, s[0], m));
+      const sTotal   = smVals.reduce((a, v) => a + v, 0);
+      const sSel     = smVals[selIdx];
+      const sPrev    = prevIdx != null ? smVals[prevIdx] : null;
+      const sPct     = sPrev != null && sPrev !== 0 ? sSel / sPrev : null;
+      const sPctTxt  = sPct != null ? (sPct * 100).toFixed(0) + '%' : '—';
+      const sPctCls  = sPct != null ? (sPct > 1 ? 'up' : sPct < 1 ? 'down' : '') : '';
+
+      let srow = `<tr class="sub"><td class="cat">${escHtml(s[0])}</td>`;
+      for (let m = 0; m < 12; m++) {
+        srow += `<td class="num${!isReal[m] ? ' forecast' : ''}">${fmtMoney(smVals[m])}</td>`;
+      }
+      srow += `<td class="num">${fmtMoney(sTotal)}</td>`;
+      srow += `<td class="pct ${sPctCls}">${sPctTxt}</td></tr>`;
+      parts.push(srow);
     });
   });
+
   tbody.innerHTML = parts.join('');
 }
 
@@ -3765,23 +3811,44 @@ function buildSaidasCat() {
   const ctx = document.getElementById('chartSaidasCat'); if (!ctx) return;
   destroyChart('saidasCat');
   const year = document.getElementById('yearSelect')?.value || '2026';
-  // periLblShort — derivado de periodMonthIdx (dinâmico)
+  const shortMons = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+  // Categories to exclude (receita / resultado / saldo)
+  const EXCL_CAT = cat => cat.startsWith('Total de RECEITA') || /resultado|saldo/i.test(cat);
+
+  // Value for a group for month m: real from saidasData, forecast from previsaoData
+  const grpValM = (groupCat, m) => {
+    const src = isReal[m] ? saidasData : previsaoData;
+    const grp = src.find(g => g.cat === groupCat);
+    if (!grp) return 0;
+    if (grp.subs.length > 0) return grp.subs.reduce((a, s) => a + (s[m + 1] || 0), 0);
+    return grp._headerVals ? (grp._headerVals[m] || 0) : 0;
+  };
+
+  // Period label for chart title
+  const selIdx = periodMonthIdx[currentPeriod] ?? 0;
   const periLblShort = {[`${year}-Q1`]: 'Q1 '+year, [`${year}-YTD`]: 'YTD '+year};
   Object.keys(periodMonthIdx).forEach(k => {
     if (!k.includes('Q1') && !k.includes('YTD')) {
       const i = periodMonthIdx[k];
-      if (i != null) periLblShort[k] = MES_NOME[i];
+      if (i != null) periLblShort[k] = shortMons[i] + '/' + year.slice(2);
     }
   });
   const scTitle = document.getElementById('saidasCatTitle');
-  if (scTitle) scTitle.textContent = 'Distribuição de Saídas por Categoria · ' + (periLblShort[currentPeriod] || 'Q1');
-  const labels = saidasData.map(g => g.cat);
-  const totals = saidasData.map(g => g.subs.reduce((a,s)=>a+s[1]+s[2]+s[3],0));
-  const colors = ['#B43B30','#E89B2B','#7B3FA0','#2C7BE5','#1583B3','#1D9E5E','#9B2A1F','#444F66'];
+  if (scTitle) scTitle.textContent = 'Distribuição de Saídas por Categoria · ' + (periLblShort[currentPeriod] || shortMons[selIdx] + '/' + year.slice(2));
+
+  // Filter groups and compute totals up to selIdx (real + forecast)
+  const filteredGroups = saidasData.filter(g => !EXCL_CAT(g.cat));
+  const labels = filteredGroups.map(g => g.cat);
+  const totals = filteredGroups.map(g =>
+    Array.from({length: selIdx + 1}, (_, m) => grpValM(g.cat, m)).reduce((a, v) => a + v, 0)
+  );
+
+  const colors = ['#B43B30','#E89B2B','#7B3FA0','#2C7BE5','#1583B3','#1D9E5E','#9B2A1F','#444F66','#D4AC0D','#1ABC9C','#E74C3C','#8E44AD'];
   charts.saidasCat = new Chart(ctx, {
     type: 'bar',
     data: { labels, datasets: [
-      { data: totals, backgroundColor: colors, borderRadius:6, barPercentage:.75 }
+      { data: totals, backgroundColor: colors.slice(0, labels.length), borderRadius:6, barPercentage:.75 }
     ]},
     options: {
       indexAxis: 'y',
