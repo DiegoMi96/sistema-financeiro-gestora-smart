@@ -1372,7 +1372,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       </div>
 
       <!-- Tabela Smart: todos os centros de custo não-SMT -->
-      <div class="chart-card" style="margin-bottom:14px">
+      <div class="chart-card" style="margin-bottom:28px">
         <div class="chart-head">
           <div><div class="chart-title">Resultado Smart</div><div class="chart-sub">Receita SS − Custos Operacionais − Dividendos − Saldo</div></div>
         </div>
@@ -1382,6 +1382,18 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
             <tbody id="smartTbody"></tbody>
           </table>
         </div>
+      </div>
+
+      <!-- Conferência: SMT + Smart = DFC Principal -->
+      <div class="chart-card" style="margin-bottom:14px">
+        <div class="chart-head">
+          <div>
+            <div class="chart-title">Conferência · DFC</div>
+            <div class="chart-sub">Resultado SMT + Resultado Smart deve igualar o DFC Principal · ✓ = OK · valor = diferença</div>
+          </div>
+          <div id="dfcValidGlobal" style="font-size:16px;font-weight:700;font-family:'Manrope'">—</div>
+        </div>
+        <div id="dfcValidBody" style="overflow-x:auto"></div>
       </div>
 
     </section>
@@ -3507,6 +3519,90 @@ function buildDFCTable() {
     return vals.some(v => v != null) ? vals.reduce((s, v) => s + (v ?? 0), 0) : null;
   });
   buildSmartTable(_smartRec, _smartSaida, _mainDiv);
+  buildDFCValidation(vals, _smtRec, _smtCusto, _smartRec, _smartSaida, _mainDiv);
+}
+
+function buildDFCValidation(vals, smtRec, smtCusto, smartRec, smartSaida, mainDiv) {
+  const body    = document.getElementById('dfcValidBody');
+  const globalEl = document.getElementById('dfcValidGlobal');
+  if (!body) return;
+
+  const shortMons = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const TOL = 1; // tolerância de R$1 para arredondamento
+
+  // Checks: label | valor principal | valor somado das sub-tabelas
+  const checks = [
+    {
+      label: 'Receita SS',
+      main: Array.from({length:12}, (_,m) => vals[0][m] ?? 0),
+      sub:  Array.from({length:12}, (_,m) => smartRec[m] ?? 0),
+    },
+    {
+      label: 'Receita SMT',
+      main: Array.from({length:12}, (_,m) => vals[1][m] ?? 0),
+      sub:  Array.from({length:12}, (_,m) => smtRec[m] ?? 0),
+    },
+    {
+      label: 'Resultado',
+      main: Array.from({length:12}, (_,m) => vals[10][m] ?? 0),
+      sub:  Array.from({length:12}, (_,m) =>
+        ((smtRec[m]??0) - (smtCusto[m]??0)) + ((smartRec[m]??0) - (smartSaida[m]??0))
+      ),
+    },
+    {
+      label: 'Dividendos',
+      main: Array.from({length:12}, (_,m) => vals[11][m] ?? 0),
+      sub:  Array.from({length:12}, (_,m) => mainDiv[m] ?? 0), // 50%+50% = 100%
+    },
+  ];
+
+  const fmtDif = v => {
+    if (Math.abs(v) < TOL) return '';
+    return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0}).format(v);
+  };
+
+  let allOk = true;
+
+  const th  = 'padding:5px 8px;background:var(--primary);color:#fff;font-size:11px;font-weight:700;text-align:center;';
+  const thL = th + 'text-align:left;border-radius:6px 0 0 0;min-width:110px';
+  const thR = th + 'border-radius:0 6px 0 0;min-width:60px';
+
+  let html = `<table style="width:100%;border-collapse:collapse;font-size:11px">
+    <thead><tr>
+      <th style="${thL}">Linha</th>`;
+  shortMons.forEach(m => { html += `<th style="${th}min-width:70px">${m}</th>`; });
+  html += `<th style="${thR}">Status</th></tr></thead><tbody>`;
+
+  checks.forEach((chk, ri) => {
+    const diffs = chk.main.map((v, i) => v - chk.sub[i]);
+    const rowOk = diffs.every(d => Math.abs(d) <= TOL);
+    if (!rowOk) allOk = false;
+
+    const bg = ri % 2 === 0 ? 'var(--surface-2)' : 'var(--surface)';
+    html += `<tr><td style="padding:5px 10px;font-weight:600;background:${bg}">${chk.label}</td>`;
+    diffs.forEach((d, i) => {
+      const hasData = chk.main[i] !== 0 || chk.sub[i] !== 0;
+      const ok = Math.abs(d) <= TOL;
+      let cellBg, cellColor, txt;
+      if (!hasData) {
+        cellBg = bg; cellColor = 'var(--muted)'; txt = '—';
+      } else if (ok) {
+        cellBg = '#D5F5E3'; cellColor = '#1E8449'; txt = '✓';
+      } else {
+        cellBg = '#FDEDEC'; cellColor = '#C0392B'; txt = fmtDif(d);
+      }
+      html += `<td style="text-align:center;padding:4px 5px;background:${cellBg};color:${cellColor};font-weight:700">${txt}</td>`;
+    });
+    html += `<td style="text-align:center;padding:4px 8px;font-size:14px">${rowOk ? '✅' : '⚠️'}</td></tr>`;
+  });
+
+  html += '</tbody></table>';
+  body.innerHTML = html;
+
+  if (globalEl) {
+    globalEl.textContent = allOk ? '✅ Conferido' : '⚠️ Divergência';
+    globalEl.style.color = allOk ? '#1E8449' : '#E74C3C';
+  }
 }
 
 function buildSMTTable(recData, custoData, mainDivData) {
