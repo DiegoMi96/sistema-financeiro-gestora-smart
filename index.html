@@ -1358,7 +1358,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <!-- Tabela SMT: Receita · Saída · Resultado -->
       <div class="chart-card" style="margin-bottom:14px">
         <div class="chart-head">
-          <div><div class="chart-title">Resultado Smart · Receita vs Saída</div><div class="chart-sub">Receita SMT − Custo SMT = Resultado</div></div>
+          <div><div class="chart-title">Resultado SMT</div><div class="chart-sub">Receita − Custo − Dividendos − Saldo Acumulado</div></div>
         </div>
         <div style="overflow-x:auto">
           <table class="dfc-tbl" id="smtTbl" style="min-width:1400px">
@@ -3465,28 +3465,49 @@ function buildDFCTable() {
   if (kDA)  kDA.textContent  = divAnual > 0 ? fmtBRL(divAnual) : '—';
   if (kDAF) kDAF.textContent = divAnual > 0 ? 'Projeção Dez/26' : 'Adicione chave Dividendos na planilha';
 
-  // Tabela SMT
-  buildSMTTable();
+  // Tabela SMT — dados via catHdr/catSum (fonte: Saidas_2026)
+  const _smtRec   = Array.from({length:12}, (_,m) => _recSMT(m));
+  const _smtCusto = Array.from({length:12}, (_,m) => catSum('Custo SMT', m));
+  const _smtDiv   = Array.from({length:12}, (_,m) => catSum('Dividendos', m));
+  const _smtSaldo = Array.from({length:12}, (_,m) => catHdr('Saldo Acumulado', m) ?? saldoAcum[m]);
+  buildSMTTable(_smtRec, _smtCusto, _smtDiv, _smtSaldo);
 }
 
-function buildSMTTable() {
+function buildSMTTable(recData, custoData, divData, saldoData) {
   const thead = document.getElementById('smtThead');
   const tbody = document.getElementById('smtTbody');
   if (!thead || !tbody) return;
+  // fallback para arrays globais se chamado sem parâmetros
+  recData   = recData   || smartFat;
+  custoData = custoData || smartCusto;
+  divData   = divData   || dividendosMes;
+  saldoData = saldoData || saldoAcum;
+
   const shortMons = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   let thHtml = '<tr><th>Categoria</th>';
   shortMons.forEach(m => { thHtml += `<th class="num">${m}</th>`; });
-  thHtml += '<th class="num">Total</th></tr>';
+  thHtml += '<th class="num">Total / Atual</th></tr>';
   thead.innerHTML = thHtml;
 
+  const resultData = recData.map((v,i) => (v != null || custoData[i] != null) ? (v??0) - (custoData[i]??0) : null);
+
   const rows = [
-    { label: 'Receita SMT', data: smartFat,  cls: 'receita' },
-    { label: 'Saída SMT',   data: smartCusto, cls: '' },
-    { label: 'Resultado',   data: smartFat.map((v,i) => (v != null || smartCusto[i] != null) ? (v??0) - (smartCusto[i]??0) : null), cls: 'resultado' }
+    { label: 'Receita SMT', data: recData,    cls: 'receita',   totalMode: 'sum'  },
+    { label: 'Saída SMT',   data: custoData,  cls: '',          totalMode: 'sum'  },
+    { label: 'Resultado',   data: resultData, cls: 'resultado', totalMode: 'sum'  },
+    { label: 'Dividendo',   data: divData,    cls: '',          totalMode: 'sum'  },
+    { label: 'Saldo',       data: saldoData,  cls: 'saldo',     totalMode: 'last' }
   ];
 
   tbody.innerHTML = rows.map(r => {
-    const total = r.data.reduce((s, v) => s + (v ?? 0), 0);
+    let total;
+    if (r.totalMode === 'last') {
+      // Saldo acumulado: exibe último valor real disponível
+      const lastReal = r.data.reduce((acc, v, i) => (v != null && isReal[i] ? v : acc), null);
+      total = lastReal ?? r.data.filter(v => v != null).slice(-1)[0] ?? 0;
+    } else {
+      total = r.data.reduce((s, v) => s + (v ?? 0), 0);
+    }
     const cells = r.data.map((v, i) => {
       const fc = !isReal[i] ? ' forecast' : '';
       const neg = v != null && v < 0 ? ' neg' : '';
