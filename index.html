@@ -1356,14 +1356,27 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       </div>
 
       <!-- Tabela SMT: Receita · Saída · Resultado -->
-      <div class="chart-card" style="margin-bottom:14px">
+      <div class="chart-card" style="margin-bottom:28px">
         <div class="chart-head">
-          <div><div class="chart-title">Resultado SMT</div><div class="chart-sub">Receita − Custo − Dividendos − Saldo Acumulado</div></div>
+          <div><div class="chart-title">Resultado SMT</div><div class="chart-sub">Receita − Custo − Dividendos − Saldo</div></div>
         </div>
         <div style="overflow-x:auto">
           <table class="dfc-tbl" id="smtTbl" style="min-width:1400px">
             <thead id="smtThead"></thead>
             <tbody id="smtTbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tabela Smart: todos os centros de custo não-SMT -->
+      <div class="chart-card" style="margin-bottom:14px">
+        <div class="chart-head">
+          <div><div class="chart-title">Resultado Smart</div><div class="chart-sub">Receita SS − Custos Operacionais − Dividendos − Saldo</div></div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="dfc-tbl" id="smartTbl" style="min-width:1400px">
+            <thead id="smartThead"></thead>
+            <tbody id="smartTbody"></tbody>
           </table>
         </div>
       </div>
@@ -3469,6 +3482,18 @@ function buildDFCTable() {
   const _smtRec   = Array.from({length:12}, (_,m) => _recSMT(m));
   const _smtCusto = Array.from({length:12}, (_,m) => catSum('Custo SMT', m));
   buildSMTTable(_smtRec, _smtCusto);
+
+  // Tabela Smart — centros de custo não-SMT
+  const _smartRec = Array.from({length:12}, (_,m) => _recSS(m));
+  const _smartSaidaCats = [
+    'CMV / CPS', 'Despesas Administrativa', 'Despesas com pessoal',
+    'RH', 'Despesa Comercial', 'Despesa Tributaria', 'Atividades Financeiras'
+  ];
+  const _smartSaida = Array.from({length:12}, (_,m) => {
+    const vals = _smartSaidaCats.map(c => catSum(c, m));
+    return vals.some(v => v != null) ? vals.reduce((s, v) => s + (v ?? 0), 0) : null;
+  });
+  buildSmartTable(_smartRec, _smartSaida);
 }
 
 function buildSMTTable(recData, custoData) {
@@ -3504,6 +3529,53 @@ function buildSMTTable(recData, custoData) {
     { label: 'Resultado',      data: resultData, cls: 'resultado', totalMode: 'sum' },
     { label: 'Dividendo (40%)',data: divCalc,    cls: '',          totalMode: 'sum' },
     { label: 'Saldo',          data: saldoCalc,  cls: 'saldo',     totalMode: 'sum' }
+  ];
+
+  tbody.innerHTML = rows.map(r => {
+    const total = r.data.reduce((s, v) => s + (v ?? 0), 0);
+    const cells = r.data.map((v, i) => {
+      const fc = !isReal[i] ? ' forecast' : '';
+      const neg = v != null && v < 0 ? ' neg' : '';
+      return `<td class="num${fc}${neg}">${v != null ? fmtBRL(v) : '—'}</td>`;
+    }).join('');
+    const totNeg = total < 0 ? ' neg' : ' pos-num';
+    return `<tr class="${r.cls}"><td class="cat">${r.label}</td>${cells}<td class="num${totNeg}">${fmtBRL(total)}</td></tr>`;
+  }).join('');
+}
+
+function buildSmartTable(recData, saidaData) {
+  const thead = document.getElementById('smartThead');
+  const tbody = document.getElementById('smartTbody');
+  if (!thead || !tbody) return;
+
+  recData   = recData   || new Array(12).fill(null);
+  saidaData = saidaData || new Array(12).fill(null);
+
+  const shortMons = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  let thHtml = '<tr><th>Categoria</th>';
+  shortMons.forEach(m => { thHtml += `<th class="num">${m}</th>`; });
+  thHtml += '<th class="num">Total</th></tr>';
+  thead.innerHTML = thHtml;
+
+  // Resultado = Receita SS − Saída Smart
+  const resultData = recData.map((v,i) =>
+    (v != null || saidaData[i] != null) ? (v??0) - (saidaData[i]??0) : null
+  );
+  // Dividendo = 40% do Resultado (0 se negativo)
+  const divCalc = resultData.map(v => v != null ? (v > 0 ? v * 0.40 : 0) : null);
+  // Saldo = Receita − Saída − Dividendo
+  const saldoCalc = recData.map((v,i) =>
+    (v != null || saidaData[i] != null)
+      ? (v??0) - (saidaData[i]??0) - (divCalc[i]??0)
+      : null
+  );
+
+  const rows = [
+    { label: 'Receita Smart',    data: recData,    cls: 'receita'   },
+    { label: 'Saída Smart',      data: saidaData,  cls: ''          },
+    { label: 'Resultado',        data: resultData, cls: 'resultado' },
+    { label: 'Dividendo (40%)',  data: divCalc,    cls: ''          },
+    { label: 'Saldo',            data: saldoCalc,  cls: 'saldo'     }
   ];
 
   tbody.innerHTML = rows.map(r => {
