@@ -723,7 +723,8 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
 
       <div class="section">
         <div class="section-head"><div class="section-bar"></div><div class="section-title">BASE SMART</div></div>
-        <div class="grid grid-7">
+        <!-- Linha 1: Base + Vendas + Satisfação -->
+        <div class="grid grid-7" style="margin-bottom:10px">
           <div class="card tinted-primary">
             <div class="kpi-label">Base Ativa</div>
             <div class="kpi-value lg">565.338</div>
@@ -766,6 +767,32 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
                 <svg fill="currentColor" viewBox="0 0 24 24" style="opacity:.4"><polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9"/></svg>
               </span>
               <span style="margin-left:auto">Vol. 4.861 atend.</span>
+            </div>
+          </div>
+        </div>
+        <!-- Linha 2: Cancelamentos + Próximas Ativações -->
+        <div class="grid grid-4">
+          <div class="card"><div class="card-top-line warn"></div>
+            <div class="kpi-label">Cancelamento</div>
+            <div class="kpi-value">16.751</div>
+            <div class="kpi-foot">Linhas no mês</div>
+          </div>
+          <div class="card"><div class="card-top-line warn"></div>
+            <div class="kpi-label">Desistência</div>
+            <div class="kpi-value">10.602</div>
+            <div class="kpi-foot">Pré-ativação</div>
+          </div>
+          <div class="card"><div class="card-top-line warn"></div>
+            <div class="kpi-label">Cancelamento Acumulado</div>
+            <div class="kpi-value">78.719</div>
+            <div class="kpi-foot">Acumulado</div>
+          </div>
+          <div class="card">
+            <div class="kpi-label">Próximas Ativações</div>
+            <div class="activation-list" style="margin-top:6px" id="dashAtivacaoList">
+              <div class="activation-item"><div class="month-pill">ABR</div><div class="qty">13.196</div><div class="desc">simcards</div></div>
+              <div class="activation-item"><div class="month-pill">MAI</div><div class="qty">16.546</div><div class="desc">simcards</div></div>
+              <div class="activation-item"><div class="month-pill">JUN</div><div class="qty">135.373</div><div class="desc">simcards</div></div>
             </div>
           </div>
         </div>
