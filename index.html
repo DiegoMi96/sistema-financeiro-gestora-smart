@@ -811,6 +811,17 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         <div class="card"><div class="kpi-label">Cofre Secundário</div><div class="kpi-value">—</div><div class="kpi-foot">—</div></div>
       </div>
 
+      <!-- Evolução do Cofre -->
+      <div class="chart-card" style="margin-bottom:14px">
+        <div class="chart-head">
+          <div>
+            <div class="chart-title">Evolução do Cofre</div>
+            <div class="chart-sub">Soma mensal · Cofre Principal + Cofre Secundário</div>
+          </div>
+        </div>
+        <div class="chart-canvas-wrap tall"><canvas id="chartCofre"></canvas></div>
+      </div>
+
       <!-- Mini gráficos Receita / Custo -->
       <div class="grid grid-2" style="margin-bottom:14px">
         <div class="chart-card">
@@ -2705,6 +2716,39 @@ function buildMargemLiq() {
   });
 }
 
+function buildCofre() {
+  const ctx = document.getElementById('chartCofre'); if (!ctx) return;
+  destroyChart('cofre');
+  const sel = periodMonthIdx[currentPeriod];
+  const combinado = cofrePrincipalMes.map((v, i) => {
+    const c1 = v ?? null;
+    const c2 = cofre2Mes[i] ?? null;
+    return (c1 != null || c2 != null) ? (c1 ?? 0) + (c2 ?? 0) : null;
+  });
+  charts.cofre = new Chart(ctx, {
+    type: 'line',
+    data: { labels: meses, datasets: [
+      { label:'Cofre Total', data: combinado,
+        borderColor: css('--warning'), backgroundColor:'rgba(245,147,0,.12)', fill:true,
+        tension:.35, borderWidth:3,
+        pointRadius: combinado.map((_,i) => i===sel ? 8 : 5),
+        pointBackgroundColor: combinado.map((_,i) => i===sel ? '#B36A00' : css('--warning')) }
+    ]},
+    options: commonOpts({
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => c.parsed.y != null ? fmtBRL(c.parsed.y) : '' } },
+        datalabels: {
+          display: true, anchor: 'end', align: 'top',
+          color: css('--text-2'), font: { size: 9, weight: '700' },
+          formatter: v => v == null ? '' : fmtAutoK(v)
+        }
+      },
+      scales: { ...commonOpts().scales, y: { ...commonOpts().scales.y, ticks: { ...commonOpts().scales.y.ticks, callback: v => fmtAutoK(v) } } }
+    })
+  });
+}
+
 function buildSaldo() {
   const ctx = document.getElementById('chartSaldo'); if (!ctx) return;
   destroyChart('saldo');
@@ -3522,7 +3566,7 @@ function buildSaidasCat() {
 function rerenderAllCharts() {
   Chart.defaults.color = css('--text-2');
   buildLucro(); buildEbitda(); buildReceita(); buildCusto(); buildDespesa();
-  buildMargemContrib(); buildMargemLiq();
+  buildMargemContrib(); buildMargemLiq(); buildCofre();
   buildSaldo(); buildBaseSim(); buildBaseSw(); buildConect();
   buildVendasMeta(); buildEquipMeta(); buildNovos(); buildVendasMedia();
   buildChurn(); buildChurnAnual(); buildVolEnvio(); buildCustoEnvio();
@@ -4085,16 +4129,12 @@ function computePeriodData(dm) {
     const lbl = isQ1 ? '1º Trimestre 2026' : isYTD ? 'Acumulado 2026' : longMon[idx]+' 2026';
     const ebitdaPctKpi = ebitda[idx] != null ? ebitda[idx].toFixed(2).replace('.',',')+'%' : '—'; // % direto da planilha
     const margemLiqPct = rec && res != null ? ((res/rec)*100).toFixed(2).replace('.',',')+'%' : '—';
-    const cofPrin     = cofrePrincipalMes[idx] ?? null;
-    const cof2        = cofre2Mes[idx] ?? null;
-    const tesAcum     = (cofPrin != null || cof2 != null) ? (cofPrin??0)+(cof2??0) : null;
-    // Subtítulo cofres: Previsão = último valor futuro no array (ano todo planejado)
-    const cofPrinLastIdx = cofrePrincipalMes.reduce((last,v,i) => v!=null?i:last, -1);
-    const cofPrinTarget  = cofPrinLastIdx > idx ? cofrePrincipalMes[cofPrinLastIdx] : null;
-    const cofPrinPct     = (cofPrin!=null&&cofPrinTarget!=null&&cofPrinTarget>0) ? Math.round(cofPrin/cofPrinTarget*100) : null;
-    const cof2LastIdx    = cofre2Mes.reduce((last,v,i) => v!=null?i:last, -1);
-    const cof2Target     = cof2LastIdx > idx ? cofre2Mes[cof2LastIdx] : null;
-    const cof2Pct        = (cof2!=null&&cof2Target!=null&&cof2Target>0) ? Math.round(cof2/cof2Target*100) : null;
+    // Cofres — sempre somam o ano completo (independente do período selecionado)
+    const _cpVals  = cofrePrincipalMes.filter(v => v != null);
+    const _c2Vals  = cofre2Mes.filter(v => v != null);
+    const cofPrin  = _cpVals.length ? _cpVals.reduce((s,v) => s+v, 0) : null;
+    const cof2     = _c2Vals.length ? _c2Vals.reduce((s,v) => s+v, 0) : null;
+    const tesAcum  = (cofPrin != null || cof2 != null) ? (cofPrin??0)+(cof2??0) : null;
     return {
       'Receita Bruta':          { v: fmtAutoK(rec), f: 'Faturamento bruto' },
       'CSP / CMV':              { v: fmtAutoK(cmv), f: 'Custo de serviços' },
@@ -4131,8 +4171,8 @@ function computePeriodData(dm) {
       'Margem Líquida':    { v: margemLiqPct, f: 'Resultado / Receita' },
       'EBITDA':            { v: ebitdaPctKpi, f: 'EBITDA / Receita' },
       'Tesouro Acumulado': { v: tesAcum != null ? fmtAutoK(tesAcum) : '—', f: 'Cofre Principal + Cofre Secundário' },
-      'Cofre Principal':   { v: cofPrin != null ? fmtAutoK(cofPrin) : '—', f: cofPrinPct!=null ? 'Previsão '+fmtAutoK(cofPrinTarget)+' · <strong>'+cofPrinPct+'% concluído</strong>' : 'Saldo atual' },
-      'Cofre Secundário':  { v: cof2 != null ? fmtAutoK(cof2) : '—', f: cof2Pct!=null ? 'Previsão '+fmtAutoK(cof2Target)+' · <strong>'+cof2Pct+'% concluído</strong>' : 'Saldo atual' }
+      'Cofre Principal':   { v: cofPrin != null ? fmtAutoK(cofPrin) : '—', f: 'Acumulado anual' },
+      'Cofre Secundário':  { v: cof2 != null ? fmtAutoK(cof2) : '—', f: 'Acumulado anual' }
     };
   };
 
