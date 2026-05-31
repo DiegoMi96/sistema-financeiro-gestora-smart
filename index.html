@@ -1687,6 +1687,46 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
             </tbody>
           </table>
         </div>
+
+        <!-- ── Metas Anuais ── -->
+        <div class="chart-card">
+          <div class="chart-head">
+            <div>
+              <div class="chart-title">Metas Anuais 2026</div>
+              <div class="chart-sub">YTD calculado automaticamente dos dados importados · <span id="metasAnualMeses" style="font-weight:700;color:var(--primary-dark)">—</span></div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <span id="metasAnualSaved" style="display:none;font-size:12px;color:var(--primary);font-weight:600">✓ Salvo</span>
+              <button id="btnEditMetasAnual" style="background:var(--primary);color:white;border:0;padding:8px 14px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px;display:inline-flex;align-items:center;gap:6px">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                Editar metas
+              </button>
+              <button id="btnSaveMetasAnual" style="display:none;background:var(--primary);color:white;border:0;padding:8px 14px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px;display:none;align-items:center;gap:6px">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                Salvar
+              </button>
+              <button id="btnCancelMetasAnual" style="display:none;background:var(--bg);color:var(--text-2);border:1px solid var(--border);padding:8px 14px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px;display:none;align-items:center;gap:6px">
+                Cancelar
+              </button>
+            </div>
+          </div>
+          <table class="tbl metas-tbl" id="metasAnualTbl" style="margin-top:12px">
+            <thead>
+              <tr>
+                <th>Indicador</th>
+                <th class="num">Meta Anual</th>
+                <th class="num">YTD Realizado</th>
+                <th class="num">Falta / Status</th>
+                <th style="min-width:160px">Progresso</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <p style="margin:10px 0 0;font-size:11.5px;color:var(--muted);line-height:1.6">
+            <strong style="color:var(--text-2)">Como funciona:</strong> a <em>Meta Anual</em> é editável. O <em>YTD Realizado</em> é puxado automaticamente dos dados importados. <em>Falta</em> e <em>Progresso</em> são calculados em tempo real.
+          </p>
+        </div>
+
       </div>
     </section>
 
@@ -2403,6 +2443,12 @@ const ebitdaIsReal = new Array(12).fill(false);
 // ── Named constants (magic numbers) ─────────────────────────────
 let META_SIMCARDS_MES = 33000;   // Meta mensal de vendas de SIM cards (editável na tela Metas)
 let META_EQUIP_MES    = 2000;    // Meta mensal de equipamentos (editável na tela Metas)
+let META_RECEITA_ANO  = 28580000; // Meta de receita bruta anual (R$)
+let META_MARGEM       = 0.37;    // Meta de margem líquida (decimal)
+let META_NOVOS_ANO    = 1080;    // Meta anual de novos clientes
+let META_SAT_MIN      = 0.94;    // Meta mínima de satisfação (decimal)
+let META_CHURN_MAX    = 0.36;    // Meta máxima de churn (decimal)
+let META_CR_MAX       = 0.65;    // Meta máxima de custo/receita (decimal)
 const DIAS_UTEIS_MES  = 22;     // Dias úteis médios por mês (absenteísmo RH)
 
 function saveCache(dm, tsDisplay) {
@@ -3956,6 +4002,7 @@ function rerenderAllCharts() {
   buildChurn(); buildChurnAnual(); buildVolEnvio(); buildCustoEnvio();
   buildSaidasPercTable(); buildSaidasTable();
   buildDFC(); buildDFCTable();
+  buildMetasAnual();
   buildOpMediaChart();
   buildTickets();
   buildRH();
@@ -4132,7 +4179,7 @@ function saveMetas() {
       }
     });
     // Reconstrói gráficos afetados
-    buildVendasMeta(); buildEquipMeta();
+    buildVendasMeta(); buildEquipMeta(); buildMetasAnual();
   }
   metasSaved.style.display = 'block';
   setTimeout(() => { if(metasSaved) metasSaved.style.display = 'none'; }, 4000);
@@ -4140,6 +4187,135 @@ function saveMetas() {
 if (btnEditMetas) btnEditMetas.addEventListener('click', () => setEditMode(true));
 if (btnSaveMetas) btnSaveMetas.addEventListener('click', saveMetas);
 if (btnCancelMetas) btnCancelMetas.addEventListener('click', cancelEdit);
+
+// ── Metas Anuais ─────────────────────────────────────────────────────────
+function buildMetasAnual() {
+  const tbl = document.getElementById('metasAnualTbl');
+  if (!tbl) return;
+  const tbody = tbl.querySelector('tbody');
+
+  const realMeses = isReal.filter(Boolean).length;
+  const rmSpan = document.getElementById('metasAnualMeses');
+  if (rmSpan) rmSpan.textContent = realMeses > 0 ? `${realMeses} mes${realMeses !== 1 ? 'es' : ''} real${realMeses !== 1 ? 'is' : ''}` : 'Sem dados reais';
+  if (realMeses === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px;font-size:13px">Sincronize os dados para ver o progresso</td></tr>';
+    return;
+  }
+
+  // ── YTD helpers ─────────────────────────────────────────────────────
+  const ytdSum  = arr => arr.reduce((s, v, i) => s + (isReal[i] && v != null ? v : 0), 0);
+  const ytdLast = arr => { let v = null; arr.forEach((x, i) => { if (isReal[i] && x != null) v = x; }); return v; };
+  const ytdAvg  = arr => { let s = 0, c = 0; arr.forEach((x, i) => { if (isReal[i] && x != null) { s += x; c++; } }); return c > 0 ? s / c : null; };
+
+  const ytdReceita  = ytdSum(receitaMes);
+  const ytdCusto    = ytdSum(custoMes);
+  const ytdDesp     = ytdSum(despesaMes);
+  const ytdResult   = ytdSum(lucroLiquido);
+  const ytdMargem   = ytdReceita > 0 ? ytdResult / ytdReceita : null;
+  const ytdVendas   = vendasMes.reduce((s, v) => s + (v != null ? v : 0), 0);
+  const ytdNovos    = ytdSum(novosClientes);
+  const ytdSat      = ytdAvg(satMes);
+  const ytdCancelam = ytdSum(cancelMes);
+  const baseAtual   = ytdLast(baseAtiva);
+  const ytdChurn    = baseAtual != null && baseAtual > 0 ? ytdCancelam / baseAtual : null;
+  const ytdCR       = ytdReceita > 0 ? (ytdCusto + ytdDesp) / ytdReceita : null;
+  const metaVendasAno = META_SIMCARDS_MES * 12;
+
+  // ── Formatters ───────────────────────────────────────────────────────
+  const fmtR  = v => { if (v == null) return '—'; if (Math.abs(v) >= 1e6) return 'R$ ' + (v/1e6).toFixed(2).replace('.',',') + 'M'; if (Math.abs(v) >= 1e3) return 'R$ ' + (v/1e3).toFixed(1).replace('.',',') + 'K'; return 'R$ ' + Math.round(v).toLocaleString('pt-BR'); };
+  const fmtP  = (v, dec=1) => v != null ? (v*100).toFixed(dec).replace('.',',') + '%' : '—';
+  const fmtN  = v => v != null ? Math.round(v).toLocaleString('pt-BR') : '—';
+  const bar   = (pct, warn=false) => { const w = Math.min(100, Math.max(0, pct)).toFixed(1); const c = warn ? '#E89B2B' : 'var(--primary)'; return `<div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;min-width:90px"><div style="height:100%;width:${w}%;background:${c};border-radius:3px;transition:width .4s"></div></div><span style="font-size:11.5px;color:var(--muted);font-weight:700;min-width:34px;text-align:right">${Math.round(pct)}%</span></div>`; };
+  const badge = (ok, txt) => { const [bg, clr] = ok ? ['rgba(29,158,94,.12)', 'var(--primary-dark)'] : ['rgba(232,155,43,.12)', '#C87A15']; return `<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:700;background:${bg};color:${clr}">${ok?'✓':'⚠'} ${txt}</span>`; };
+  const bdRed = txt => `<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:700;background:rgba(224,70,59,.12);color:var(--negative)">✗ ${txt}</span>`;
+
+  const rows = [];
+
+  // 1. Receita anual (cumulative)
+  { const m = META_RECEITA_ANO; const y = ytdReceita; const pct = m > 0 ? y / m * 100 : 0; const f = m - y;
+    rows.push(`<tr><td>Receita Anual</td><td class="num"><span data-meta-a="META_RECEITA_ANO">${fmtR(m)}</span></td><td class="num">${fmtR(y)}</td><td class="num ${f<=0?'pos':'warn'}">${f <= 0 ? '✓ Meta atingida' : fmtR(f) + ' restam'}</td><td>${bar(pct, pct < 80)}</td></tr>`); }
+
+  // 2. Margem líquida (rate)
+  { const m = META_MARGEM; const y = ytdMargem; const diff = y != null ? y - m : null; const pct = y != null ? Math.min(100, y / m * 100) : 0;
+    rows.push(`<tr><td>Margem Líquida</td><td class="num"><span data-meta-a="META_MARGEM">${fmtP(m)}</span></td><td class="num">${fmtP(y)}</td><td class="num ${diff!=null&&diff>=0?'pos':'warn'}">${diff != null ? (diff >= 0 ? '+' : '') + (diff*100).toFixed(1).replace('.',',') + ' p.p.' : '—'}</td><td>${y != null ? bar(pct, diff != null && diff < 0) : '—'}</td></tr>`); }
+
+  // 3. Vendas Simcards (cumulative)
+  { const m = metaVendasAno; const y = ytdVendas; const pct = m > 0 ? y / m * 100 : 0; const f = m - y;
+    rows.push(`<tr><td>Vendas Simcards</td><td class="num">${fmtN(m)}</td><td class="num">${fmtN(y)}</td><td class="num ${f<=0?'pos':'warn'}">${f <= 0 ? '✓ Meta atingida' : fmtN(f) + ' restam'}</td><td>${bar(pct, pct < 80)}</td></tr>`); }
+
+  // 4. Novos Clientes (cumulative)
+  { const m = META_NOVOS_ANO; const y = ytdNovos; const pct = m > 0 ? y / m * 100 : 0; const f = m - y;
+    rows.push(`<tr><td>Novos Clientes</td><td class="num"><span data-meta-a="META_NOVOS_ANO">${fmtN(m)}</span></td><td class="num">${fmtN(y)}</td><td class="num ${f<=0?'pos':'warn'}">${f <= 0 ? '✓ Meta atingida' : fmtN(f) + ' restam'}</td><td>${bar(pct, pct < 80)}</td></tr>`); }
+
+  // 5. Satisfação (threshold-min)
+  { const m = META_SAT_MIN; const y = ytdSat; const ok = y != null && y >= m; const diff = y != null ? y - m : null;
+    rows.push(`<tr><td>Satisfação (mínimo)</td><td class="num"><span data-meta-a="META_SAT_MIN">≥ ${fmtP(m)}</span></td><td class="num">${fmtP(y)}</td><td class="num ${ok?'pos':'warn'}">${diff != null ? (ok ? '+' : '') + (diff*100).toFixed(1).replace('.',',') + ' p.p.' : '—'}</td><td>${y != null ? badge(ok, ok ? 'Atingida' : 'Abaixo') : '—'}</td></tr>`); }
+
+  // 6. Churn (threshold-max)
+  { const m = META_CHURN_MAX; const y = ytdChurn; const ok = y != null && y <= m; const diff = y != null ? m - y : null; const near = diff != null && diff >= 0 && diff < 0.05;
+    rows.push(`<tr><td>Churn (máximo)</td><td class="num"><span data-meta-a="META_CHURN_MAX">≤ ${fmtP(m)}</span></td><td class="num">${fmtP(y)}</td><td class="num ${ok?'pos':'warn'}">${diff != null ? (ok ? 'margem de ' + Math.abs(diff*100).toFixed(0) + ' p.p.' : Math.abs(diff*100).toFixed(0) + ' p.p. acima') : '—'}</td><td>${y != null ? (ok ? badge(!near, near ? 'No limite' : 'Dentro') : bdRed('Acima')) : '—'}</td></tr>`); }
+
+  // 7. Custo / Receita (threshold-max)
+  { const m = META_CR_MAX; const y = ytdCR; const ok = y != null && y <= m; const diff = y != null ? m - y : null; const near = diff != null && diff >= 0 && diff < 0.03;
+    rows.push(`<tr><td>Custo / Receita</td><td class="num"><span data-meta-a="META_CR_MAX">≤ ${fmtP(m)}</span></td><td class="num">${fmtP(y)}</td><td class="num ${ok?'pos':'warn'}">${diff != null ? (ok ? 'margem de ' + (diff*100).toFixed(1).replace('.',',') + ' p.p.' : (Math.abs(diff)*100).toFixed(1).replace('.',',') + ' p.p. acima') : '—'}</td><td>${y != null ? (ok ? badge(!near, near ? 'No limite' : 'Dentro') : bdRed('Acima')) : '—'}</td></tr>`); }
+
+  tbody.innerHTML = rows.join('');
+}
+
+// Edit mode for metas anuais
+let _metasAnualOrig = {};
+const _btnEditMA   = document.getElementById('btnEditMetasAnual');
+const _btnSaveMA   = document.getElementById('btnSaveMetasAnual');
+const _btnCancelMA = document.getElementById('btnCancelMetasAnual');
+const _savedMA     = document.getElementById('metasAnualSaved');
+const _tblMA       = document.getElementById('metasAnualTbl');
+
+function _setEditMA(on) {
+  if (!_tblMA) return;
+  _tblMA.classList.toggle('editing', on);
+  if (_btnEditMA) _btnEditMA.style.display = on ? 'none' : 'inline-flex';
+  if (_btnSaveMA) _btnSaveMA.style.display = on ? 'inline-flex' : 'none';
+  if (_btnCancelMA) _btnCancelMA.style.display = on ? 'inline-flex' : 'none';
+  _tblMA.querySelectorAll('span[data-meta-a]').forEach(sp => {
+    const key = sp.dataset.metaA;
+    if (on) {
+      _metasAnualOrig[key] = sp.textContent.trim();
+      const raw = sp.textContent.replace(/[^0-9,\.]/g,'').replace('.','').replace(',','.');
+      sp.innerHTML = `<input class="meta-input" data-meta-a="${key}" value="${raw}" style="width:90px">`;
+    } else {
+      const inp = sp.querySelector('input');
+      if (inp) sp.textContent = _metasAnualOrig[key] || sp.textContent;
+    }
+  });
+}
+function _cancelMA() {
+  _tblMA && _tblMA.querySelectorAll('span[data-meta-a]').forEach(sp => {
+    const key = sp.dataset.metaA;
+    if (_metasAnualOrig[key]) sp.textContent = _metasAnualOrig[key];
+  });
+  _setEditMA(false);
+}
+function _saveMA() {
+  if (!_tblMA) return;
+  _tblMA.querySelectorAll('input[data-meta-a]').forEach(inp => {
+    const key = inp.dataset.metaA;
+    const val = parseFloat(inp.value.replace(',','.').replace(/\./g, v => inp.value.lastIndexOf('.') === inp.value.indexOf(v) ? v : ''));
+    if (!isNaN(val) && val > 0) {
+      if (key === 'META_RECEITA_ANO') META_RECEITA_ANO = val;
+      if (key === 'META_MARGEM')       META_MARGEM      = val > 1 ? val / 100 : val;
+      if (key === 'META_NOVOS_ANO')    META_NOVOS_ANO   = val;
+      if (key === 'META_SAT_MIN')      META_SAT_MIN     = val > 1 ? val / 100 : val;
+      if (key === 'META_CHURN_MAX')    META_CHURN_MAX   = val > 1 ? val / 100 : val;
+      if (key === 'META_CR_MAX')       META_CR_MAX      = val > 1 ? val / 100 : val;
+    }
+  });
+  _setEditMA(false);
+  buildMetasAnual();
+  if (_savedMA) { _savedMA.style.display = 'block'; setTimeout(() => { _savedMA.style.display = 'none'; }, 3500); }
+}
+if (_btnEditMA)   _btnEditMA.addEventListener('click', () => _setEditMA(true));
+if (_btnSaveMA)   _btnSaveMA.addEventListener('click', _saveMA);
+if (_btnCancelMA) _btnCancelMA.addEventListener('click', _cancelMA);
 
 // ====== Gestão de Acessos — conectada à autenticação real ======
 function uInitials(nome) {
