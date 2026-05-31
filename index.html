@@ -5036,7 +5036,7 @@ function computePeriodData(dm) {
       : ticketsMes[idx];
     periodData[key].satisfacao = {
       val:    satV2 != null ? (satV2*100).toFixed(1).replace('.',',')+'%' : '—',
-      volume: ticketVol != null && ticketVol > 0 ? 'Vol. ' + Math.round(ticketVol).toLocaleString('pt-BR') + ' atend.' : ''
+      volume: ticketVol != null && ticketVol > 0 ? 'Volume de atendimento  ' + Math.round(ticketVol).toLocaleString('pt-BR') : ''
     };
 
     // Próximas Ativações — chave Atv_Qtd (meses futuros com dados)
