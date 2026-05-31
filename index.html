@@ -843,12 +843,14 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         <div class="chart-card">
           <div class="chart-head">
             <div><div class="chart-title">Receita</div><div class="chart-sub" id="plReceitaSub">Realizado R$ 10,85M · Previsão R$ 28,58M</div></div>
+            <div class="chart-legend"><span><span class="legend-dot" style="background:var(--primary)"></span>Realizado</span><span><span class="legend-dot" style="background:var(--primary-soft)"></span>Previsão</span></div>
           </div>
           <div class="chart-canvas-wrap"><canvas id="chartReceita"></canvas></div>
         </div>
         <div class="chart-card">
           <div class="chart-head">
             <div><div class="chart-title">Custo</div><div class="chart-sub" id="plCustoSub">Realizado R$ 7,04M · Previsão R$ 21,43M</div></div>
+            <div class="chart-legend"><span><span class="legend-dot" style="background:var(--primary)"></span>Realizado</span><span><span class="legend-dot" style="background:var(--primary-soft)"></span>Previsão</span></div>
           </div>
           <div class="chart-canvas-wrap"><canvas id="chartCusto"></canvas></div>
         </div>
@@ -859,6 +861,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         <div class="chart-card">
           <div class="chart-head">
             <div><div class="chart-title">Despesas</div><div class="chart-sub" id="plDespesaSub">Realizado R$ 3,35M · Previsão R$ 7,03M</div></div>
+            <div class="chart-legend"><span><span class="legend-dot" style="background:var(--primary)"></span>Realizado</span><span><span class="legend-dot" style="background:var(--primary-soft)"></span>Previsão</span></div>
           </div>
           <div class="chart-canvas-wrap"><canvas id="chartDespesa"></canvas></div>
         </div>
@@ -886,12 +889,31 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         <div class="chart-canvas-wrap tall"><canvas id="chartSaldo"></canvas></div>
       </div>
 
+      <!-- Margens -->
+      <div class="grid grid-2" style="margin-bottom:14px">
+        <div class="chart-card">
+          <div class="chart-head">
+            <div><div class="chart-title">Margem de Contribuição</div><div class="chart-sub">(Receita − CMV) / Receita</div></div>
+            <div class="chart-legend"><span><span class="legend-dot" style="background:var(--info)"></span>Realizado</span><span><span class="legend-dot" style="background:#B8D4F0"></span>Previsão</span></div>
+          </div>
+          <div class="chart-canvas-wrap tall"><canvas id="chartMargemContrib"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-head">
+            <div><div class="chart-title">Margem Líquida</div><div class="chart-sub">Resultado / Receita</div></div>
+            <div class="chart-legend"><span><span class="legend-dot" style="background:var(--primary)"></span>Realizado</span><span><span class="legend-dot" style="background:var(--primary-soft)"></span>Previsão</span></div>
+          </div>
+          <div class="chart-canvas-wrap tall"><canvas id="chartMargemLiq"></canvas></div>
+        </div>
+      </div>
+
       <!-- EBITDA -->
       <div class="chart-card" style="margin-bottom:14px">
         <div class="chart-head">
           <div>
             <div class="chart-title">Evolução do EBITDA</div>
           </div>
+          <div class="chart-legend"><span><span class="legend-dot" style="background:var(--info)"></span>Realizado</span><span><span class="legend-dot" style="background:#B8D4F0"></span>Previsão</span></div>
         </div>
         <div class="chart-canvas-wrap tall"><canvas id="chartEbitda"></canvas></div>
       </div>
@@ -2603,23 +2625,104 @@ function buildEbitda() {
   const ctx = document.getElementById('chartEbitda'); if (!ctx) return;
   destroyChart('ebitda');
   const sel = periodMonthIdx[currentPeriod];
-  const ebitdaPct = ebitda; // % já vem direto da planilha (chave EBITDA)
+  const ebitdaReal = ebitda.map((v,i) => ebitdaIsReal[i] ? v : null);
+  const ebitdaPrev = ebitda.map((v,i) => ebitdaIsReal[i] ? null : v);
   charts.ebitda = new Chart(ctx, {
     type: 'line',
     data: { labels: meses, datasets: [
-      { label:'EBITDA %', data: ebitdaPct,
+      { label:'Realizado', data: ebitdaReal,
         borderColor: css('--info'), backgroundColor:'rgba(44,123,229,.12)', fill:true,
         tension:.35, borderWidth:3,
         pointRadius: ebitda.map((_,i)=>i===sel?8:5),
-        pointBackgroundColor: ebitda.map((_,i)=>i===sel?'#1558B0':css('--info')) }
+        pointBackgroundColor: ebitda.map((_,i)=>i===sel?'#1558B0':css('--info')) },
+      { label:'Previsão', data: ebitdaPrev,
+        borderColor:'#B8D4F0', backgroundColor:'rgba(44,123,229,.06)', fill:true,
+        tension:.35, borderDash:[6,4], borderWidth:2, pointRadius:4, pointBackgroundColor:'#B8D4F0' }
     ]},
     options: commonOpts({
       plugins:{
         legend:{display:false},
-        tooltip:{ callbacks:{ label: c => c.parsed.y != null ? c.parsed.y.toFixed(2).replace('.',',')+' %' : '' } },
+        tooltip:{ callbacks:{ label: c => c.parsed.y != null ? c.dataset.label+': '+c.parsed.y.toFixed(2).replace('.',',')+' %' : '' } },
         datalabels:{
           display:true, anchor:'end', align:'top',
-          color: css('--text-2'), font:{size:9,weight:'700'},
+          color: ctx => ctx.datasetIndex===0 ? css('--text-2') : '#B8D4F0',
+          font:{size:9,weight:'700'},
+          formatter: v => v==null?'':v.toFixed(1).replace('.',',')+'%'
+        }
+      },
+      scales:{...commonOpts().scales, y:{...commonOpts().scales.y, ticks:{...commonOpts().scales.y.ticks, callback: v => v+'%'}}}
+    })
+  });
+}
+
+function buildMargemContrib() {
+  const ctx = document.getElementById('chartMargemContrib'); if (!ctx) return;
+  destroyChart('margemContrib');
+  const sel = periodMonthIdx[currentPeriod];
+  const pctArr = receitaMes.map((rec,i) => {
+    const cmv = custoMes[i];
+    return (rec && cmv != null) ? parseFloat(((rec - cmv) / rec * 100).toFixed(2)) : null;
+  });
+  const realData = pctArr.map((v,i) => isReal[i] ? v : null);
+  const prevData = pctArr.map((v,i) => isReal[i] ? null : v);
+  charts.margemContrib = new Chart(ctx, {
+    type: 'line',
+    data: { labels: meses, datasets: [
+      { label:'Realizado', data: realData,
+        borderColor: css('--info'), backgroundColor:'rgba(44,123,229,.12)', fill:true,
+        tension:.35, borderWidth:3,
+        pointRadius: pctArr.map((_,i)=>i===sel?8:5),
+        pointBackgroundColor: pctArr.map((_,i)=>i===sel?'#1558B0':css('--info')) },
+      { label:'Previsão', data: prevData,
+        borderColor:'#B8D4F0', backgroundColor:'rgba(44,123,229,.06)', fill:true,
+        tension:.35, borderDash:[6,4], borderWidth:2, pointRadius:4, pointBackgroundColor:'#B8D4F0' }
+    ]},
+    options: commonOpts({
+      plugins:{
+        legend:{display:false},
+        tooltip:{ callbacks:{ label: c => c.parsed.y != null ? c.dataset.label+': '+c.parsed.y.toFixed(2).replace('.',',')+' %' : '' } },
+        datalabels:{
+          display:true, anchor:'end', align:'top',
+          color: ctx => ctx.datasetIndex===0 ? css('--text-2') : '#B8D4F0',
+          font:{size:9,weight:'700'},
+          formatter: v => v==null?'':v.toFixed(1).replace('.',',')+'%'
+        }
+      },
+      scales:{...commonOpts().scales, y:{...commonOpts().scales.y, ticks:{...commonOpts().scales.y.ticks, callback: v => v+'%'}}}
+    })
+  });
+}
+
+function buildMargemLiq() {
+  const ctx = document.getElementById('chartMargemLiq'); if (!ctx) return;
+  destroyChart('margemLiq');
+  const sel = periodMonthIdx[currentPeriod];
+  const pctArr = receitaMes.map((rec,i) => {
+    const liq = lucroLiquido[i];
+    return (rec && liq != null) ? parseFloat((liq / rec * 100).toFixed(2)) : null;
+  });
+  const realData = pctArr.map((v,i) => isReal[i] ? v : null);
+  const prevData = pctArr.map((v,i) => isReal[i] ? null : v);
+  charts.margemLiq = new Chart(ctx, {
+    type: 'line',
+    data: { labels: meses, datasets: [
+      { label:'Realizado', data: realData,
+        borderColor: css('--primary'), backgroundColor:'rgba(29,158,94,.12)', fill:true,
+        tension:.35, borderWidth:3,
+        pointRadius: pctArr.map((_,i)=>i===sel?8:5),
+        pointBackgroundColor: pctArr.map((_,i)=>i===sel?css('--primary-dark'):css('--primary')) },
+      { label:'Previsão', data: prevData,
+        borderColor: css('--primary-soft'), backgroundColor:'rgba(29,158,94,.06)', fill:true,
+        tension:.35, borderDash:[6,4], borderWidth:2, pointRadius:4, pointBackgroundColor: css('--primary-soft') }
+    ]},
+    options: commonOpts({
+      plugins:{
+        legend:{display:false},
+        tooltip:{ callbacks:{ label: c => c.parsed.y != null ? c.dataset.label+': '+c.parsed.y.toFixed(2).replace('.',',')+' %' : '' } },
+        datalabels:{
+          display:true, anchor:'end', align:'top',
+          color: ctx => ctx.datasetIndex===0 ? css('--text-2') : css('--primary-soft'),
+          font:{size:9,weight:'700'},
           formatter: v => v==null?'':v.toFixed(1).replace('.',',')+'%'
         }
       },
@@ -3445,6 +3548,7 @@ function buildSaidasCat() {
 function rerenderAllCharts() {
   Chart.defaults.color = css('--text-2');
   buildLucro(); buildEbitda(); buildReceita(); buildCusto(); buildDespesa();
+  buildMargemContrib(); buildMargemLiq();
   buildSaldo(); buildBaseSim(); buildBaseSw(); buildConect();
   buildVendasMeta(); buildEquipMeta(); buildNovos(); buildVendasMedia();
   buildChurn(); buildChurnAnual(); buildVolEnvio(); buildCustoEnvio();
