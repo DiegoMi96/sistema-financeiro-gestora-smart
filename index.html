@@ -3420,8 +3420,10 @@ function buildDFCTable() {
   const latestSaldo = saldoAcum.reduce((last, v, i) => v != null ? i : last, -1);
   const selIdx = periodMonthIdx[currentPeriod] ?? Math.max(latestSaldo, 0);
 
-  // ── Anuais (não mudam com o filtro — projeção do ano inteiro) ──
-  const saldoAnual = saldoAcum[11] ?? saldoAcum[latestSaldo];
+  // ── Anuais (não mudam com o filtro — soma real + previsão) ──
+  const saldoAnual = saldoAcum.some(v => v != null)
+    ? saldoAcum.reduce((acc, v) => acc + (v ?? 0), 0)
+    : null;
   const resultadoAnual = vals[resIdx].some(v => v != null)
     ? vals[resIdx].reduce((acc, v) => acc + (v ?? 0), 0)
     : null;
