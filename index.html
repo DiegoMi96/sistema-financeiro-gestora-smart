@@ -289,7 +289,7 @@ footer.last-update { padding: 18px 28px; text-align: center; color: var(--muted)
 .dfc-tbl td.num .sign { color: var(--negative); font-weight: 700; margin-right: 3px; }
 .dfc-tbl td.num.neg { color: #B43B30; }
 .dfc-tbl td.num.pos-num { color: var(--primary-dark); font-weight: 700; }
-.dfc-tbl td.pct { text-align: right; font-weight: 700; font-family: 'Manrope'; font-size: 13.5px; }
+.dfc-tbl td.pct { text-align: right; font-weight: 700; font-family: 'Manrope'; font-size: 13.5px; background: #F2F4F5 !important; }
 .dfc-tbl td.pct.pos { color: var(--primary-dark); }
 .dfc-tbl td.pct.neg { color: #C8523B; }
 .dfc-tbl tr.receita td.cat { color: #1583B3; font-weight: 700; padding-left: 24px; border-left: 4px solid #1583B3; }
@@ -310,6 +310,7 @@ footer.last-update { padding: 18px 28px; text-align: center; color: var(--muted)
   vertical-align:middle; font-weight:600; }
 [data-theme="dark"] .dfc-tbl tr.resultado td { background: rgba(29,158,94,.18); }
 [data-theme="dark"] .dfc-tbl td { background: var(--surface-2); }
+[data-theme="dark"] .dfc-tbl td.pct { background: rgba(255,255,255,.04) !important; }
 
 /* Metas editable */
 .metas-tbl td[data-meta] { cursor: pointer; transition: background .15s; }
@@ -1300,32 +1301,28 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         </div>
       </div>
 
-      <div class="grid grid-4" style="margin-bottom:14px">
+      <!-- Top cards: Saldo Acumulado · Resultado Líquido · Dividendos até o Momento -->
+      <div class="grid grid-3" style="margin-bottom:14px">
         <div class="card tinted-primary">
           <div class="kpi-label">Saldo Acumulado</div>
           <div class="kpi-value lg" id="dfcKpiSaldo">—</div>
           <div class="kpi-foot" id="dfcKpiSaldoFoot">Sincronize a planilha</div>
         </div>
-        <div class="card" style="border-left:4px solid var(--primary-soft)">
-          <div class="kpi-label">Saldo Acumulado Anual <span class="prev-badge" style="margin-left:4px;vertical-align:middle">PREV</span></div>
-          <div class="kpi-value lg" id="dfcKpiSaldoAnual">—</div>
-          <div class="kpi-foot" id="dfcKpiSaldoAnualFoot">Projeção Dez/26</div>
-        </div>
         <div class="card tinted-primary">
           <div class="kpi-label">Resultado Líquido</div>
           <div class="kpi-value lg" id="dfcKpiResultado">—</div>
-          <div class="kpi-foot" id="dfcKpiResultadoFoot">Sincronize a planilha</div>
+          <div class="kpi-foot" id="dfcKpiResultadoFoot">Resultado operacional</div>
         </div>
-        <div class="card" style="border-left:4px solid var(--primary-soft)">
-          <div class="kpi-label">Resultado Líquido Anual <span class="prev-badge" style="margin-left:4px;vertical-align:middle">PREV</span></div>
-          <div class="kpi-value lg" id="dfcKpiResultadoAnual">—</div>
-          <div class="kpi-foot" id="dfcKpiResultadoAnualFoot">Real + Previsão 2026</div>
+        <div class="card" style="border-left:4px solid var(--warning)">
+          <div class="kpi-label">Dividendos Pago até o Momento</div>
+          <div class="kpi-value lg" id="dfcKpiDividendos">—</div>
+          <div class="kpi-foot" id="dfcKpiDividendosFoot">Acumulado no ano</div>
         </div>
       </div>
 
       <div class="chart-card">
         <div class="chart-head">
-          <div><div class="chart-title">Fluxo de Caixa Mensal · por Categoria</div><div class="chart-sub">Valores em R$ · Dados atualizados via upload da planilha mensal</div></div>
+          <div><div class="chart-title">Fluxo de Caixa Mensal · por Categoria</div></div>
         </div>
         <div style="overflow-x:auto">
         <table class="dfc-tbl" id="dfcTbl">
@@ -1341,6 +1338,39 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           <strong style="color:var(--primary-dark)">↻ Origem dos dados:</strong> esta tabela é alimentada pela aba <em>"DFC Gerencial"</em> do template Excel. Cada upload mensal substitui a coluna do mês correspondente; as colunas de % vs Mês Anterior são calculadas automaticamente.
         </div>
       </div>
+
+      <!-- Anuais + Dividendos Anual -->
+      <div class="grid grid-3" style="margin-top:14px;margin-bottom:14px">
+        <div class="card" style="border-left:4px solid var(--primary-soft)">
+          <div class="kpi-label">Saldo Acumulado Anual <span class="prev-badge" style="margin-left:4px;vertical-align:middle">PREV</span></div>
+          <div class="kpi-value lg" id="dfcKpiSaldoAnual">—</div>
+          <div class="kpi-foot" id="dfcKpiSaldoAnualFoot">Projeção Dez/26</div>
+        </div>
+        <div class="card" style="border-left:4px solid var(--primary-soft)">
+          <div class="kpi-label">Resultado Líquido Anual <span class="prev-badge" style="margin-left:4px;vertical-align:middle">PREV</span></div>
+          <div class="kpi-value lg" id="dfcKpiResultadoAnual">—</div>
+          <div class="kpi-foot" id="dfcKpiResultadoAnualFoot">Real + Previsão 2026</div>
+        </div>
+        <div class="card" style="border-left:4px solid var(--warning)">
+          <div class="kpi-label">Dividendos Anual <span class="prev-badge" style="margin-left:4px;vertical-align:middle">PREV</span></div>
+          <div class="kpi-value lg" id="dfcKpiDividendosAnual">—</div>
+          <div class="kpi-foot" id="dfcKpiDividendosAnualFoot">Projeção Dez/26</div>
+        </div>
+      </div>
+
+      <!-- Tabela SMT: Receita · Saída · Resultado -->
+      <div class="chart-card" style="margin-bottom:14px">
+        <div class="chart-head">
+          <div><div class="chart-title">Resultado Smart · Receita vs Saída</div><div class="chart-sub">Receita SMT − Custo SMT = Resultado</div></div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="dfc-tbl" id="smtTbl" style="min-width:1400px">
+            <thead id="smtThead"></thead>
+            <tbody id="smtTbody"></tbody>
+          </table>
+        </div>
+      </div>
+
     </section>
 
     <!-- =============== ANÁLISE DE SAÍDAS =============== -->
@@ -2186,6 +2216,8 @@ const baseSw         = new Array(12).fill(null);
 const baseSuspensa   = new Array(12).fill(null);
 const smartFat       = new Array(12).fill(null);
 const allcomFat      = new Array(12).fill(null);
+const smartCusto     = new Array(12).fill(null);
+const dividendosMes  = new Array(12).fill(null);
 const margemSmart    = new Array(12).fill(null);
 const margemValorBRL = new Array(12).fill(null);
 
@@ -3414,7 +3446,7 @@ function buildDFCTable() {
   // Card 3 — Resultado do último mês real
   if (kR)  kR.textContent  = latestRes >= 0 ? fmtBRL(vals[resIdx][latestRes]) : '—';
   if (kRF) kRF.textContent = latestRes >= 0
-    ? `${shortMons[latestRes]} ${year}`
+    ? 'Resultado operacional'
     : 'Sincronize a planilha';
 
   // Card 4 — Resultado Anual (Real + Previsão)
@@ -3422,6 +3454,50 @@ function buildDFCTable() {
   if (kRAF) kRAF.textContent = resultadoAnual != null
     ? `${mesesReais} meses reais + ${mesesPrev} previstos`
     : 'Preencha a Previsao_2026';
+
+  // Dividendos — acumulado até último mês real + projeção anual
+  const kD   = document.getElementById('dfcKpiDividendos');
+  const kDF  = document.getElementById('dfcKpiDividendosFoot');
+  const kDA  = document.getElementById('dfcKpiDividendosAnual');
+  const kDAF = document.getElementById('dfcKpiDividendosAnualFoot');
+  const divVals = dividendosMes.filter(v => v != null);
+  const divAcum = divVals.reduce((s, v) => s + v, 0);
+  const divAnual = dividendosMes.reduce((s, v) => s + (v ?? 0), 0);
+  if (kD)   kD.textContent  = divVals.length ? fmtBRL(divAcum) : '—';
+  if (kDF)  kDF.textContent = divVals.length ? 'Acumulado no ano' : 'Adicione chave Dividendos na planilha';
+  if (kDA)  kDA.textContent  = divAnual > 0 ? fmtBRL(divAnual) : '—';
+  if (kDAF) kDAF.textContent = divAnual > 0 ? 'Projeção Dez/26' : 'Adicione chave Dividendos na planilha';
+
+  // Tabela SMT
+  buildSMTTable();
+}
+
+function buildSMTTable() {
+  const thead = document.getElementById('smtThead');
+  const tbody = document.getElementById('smtTbody');
+  if (!thead || !tbody) return;
+  const shortMons = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  let thHtml = '<tr><th>Categoria</th>';
+  shortMons.forEach(m => { thHtml += `<th class="num">${m}</th>`; });
+  thHtml += '<th class="num">Total</th></tr>';
+  thead.innerHTML = thHtml;
+
+  const rows = [
+    { label: 'Receita SMT', data: smartFat,  cls: 'receita' },
+    { label: 'Saída SMT',   data: smartCusto, cls: '' },
+    { label: 'Resultado',   data: smartFat.map((v,i) => (v != null || smartCusto[i] != null) ? (v??0) - (smartCusto[i]??0) : null), cls: 'resultado' }
+  ];
+
+  tbody.innerHTML = rows.map(r => {
+    const total = r.data.reduce((s, v) => s + (v ?? 0), 0);
+    const cells = r.data.map((v, i) => {
+      const fc = !isReal[i] ? ' forecast' : '';
+      const neg = v != null && v < 0 ? ' neg' : '';
+      return `<td class="num${fc}${neg}">${v != null ? fmtBRL(v) : '—'}</td>`;
+    }).join('');
+    const totNeg = total < 0 ? ' neg' : ' pos-num';
+    return `<tr class="${r.cls}"><td class="cat">${r.label}</td>${cells}<td class="num${totNeg}">${fmtBRL(total)}</td></tr>`;
+  }).join('');
 }
 
 // (página de Cenários What-If removida)
@@ -4234,6 +4310,7 @@ function computePeriodData(dm) {
   rhDeptMes = Array.from({length:7}, () => new Array(12).fill(null));
   baseAtiva.fill(null); baseSw.fill(null); baseSuspensa.fill(null); smartFat.fill(null);
   allcomFat.fill(null); margemSmart.fill(null); margemValorBRL.fill(null);
+  smartCusto.fill(null); dividendosMes.fill(null);
   for (let i=0;i<3;i++) { vendasMes[i]=null; equipMes[i]=null; }
   novosClientes.fill(null);
   volEnvio.fill(null); custoEnvio.fill(null);
@@ -4275,6 +4352,8 @@ function computePeriodData(dm) {
   mapArr('Base_Susp', baseSuspensa, 12);
   mapArr('Smart_FAT', smartFat, 12);
   mapArr('Allcom_FAT', allcomFat, 12);
+  mapArr('Smart_Custo', smartCusto, 12);
+  mapArr('Dividendos', dividendosMes, 12);
   mapArr('Margem_PCT', margemSmart, 12);
   mapArr('Margem_BRL', margemValorBRL, 12);
   mapArr('Vendas_SIM', vendasMes, 3);
