@@ -3447,15 +3447,13 @@ function buildDFCTable() {
   // Card 2 — Saldo Anual Projetado (Dez) — fixo
   if (kSA)  kSA.textContent  = saldoAnual != null ? fmtBRL(saldoAnual) : '—';
   if (kSAF) kSAF.textContent = saldoAnual != null
-    ? `Projeção Dez/${year.slice(2)} · ${mesesReais} real + ${mesesPrev} prev`
+    ? `${mesesReais} meses reais + ${mesesPrev} previstos`
     : 'Preencha a Previsao_2026';
 
-  // Card 3 — Resultado do período selecionado
+  // Card 3 — Resultado do período selecionado (sem subtítulo)
   const resSel = vals[resIdx][selIdx];
   if (kR)  kR.textContent  = resSel != null ? fmtBRL(resSel) : '—';
-  if (kRF) kRF.textContent = resSel != null
-    ? `Resultado · ${shortMons[selIdx]}/${year.slice(2)}`
-    : 'Sincronize a planilha';
+  if (kRF) kRF.textContent = '';
 
   // Card 4 — Resultado Anual (Real + Previsão) — fixo
   if (kRA)  kRA.textContent  = resultadoAnual != null ? fmtBRL(resultadoAnual) : '—';
