@@ -3478,10 +3478,13 @@ function buildDFCTable() {
   if (kDA)  kDA.textContent  = divAnual > 0 ? fmtBRL(divAnual) : '—';
   if (kDAF) kDAF.textContent = divAnual > 0 ? 'Projeção Dez/26' : 'Adicione chave Dividendos na planilha';
 
+  // Dividendos totais da tabela principal (50% para cada sub-tabela)
+  const _mainDiv = Array.from({length:12}, (_,m) => catSum('Dividendos', m));
+
   // Tabela SMT — dados via catHdr/catSum (fonte: Saidas_2026)
   const _smtRec   = Array.from({length:12}, (_,m) => _recSMT(m));
   const _smtCusto = Array.from({length:12}, (_,m) => catSum('Custo SMT', m));
-  buildSMTTable(_smtRec, _smtCusto);
+  buildSMTTable(_smtRec, _smtCusto, _mainDiv);
 
   // Tabela Smart — centros de custo não-SMT
   const _smartRec = Array.from({length:12}, (_,m) => _recSS(m));
@@ -3493,16 +3496,16 @@ function buildDFCTable() {
     const vals = _smartSaidaCats.map(c => catSum(c, m));
     return vals.some(v => v != null) ? vals.reduce((s, v) => s + (v ?? 0), 0) : null;
   });
-  buildSmartTable(_smartRec, _smartSaida);
+  buildSmartTable(_smartRec, _smartSaida, _mainDiv);
 }
 
-function buildSMTTable(recData, custoData) {
+function buildSMTTable(recData, custoData, mainDivData) {
   const thead = document.getElementById('smtThead');
   const tbody = document.getElementById('smtTbody');
   if (!thead || !tbody) return;
-  // fallback para arrays globais se chamado sem parâmetros
-  recData   = recData   || smartFat;
-  custoData = custoData || smartCusto;
+  recData      = recData      || smartFat;
+  custoData    = custoData    || smartCusto;
+  mainDivData  = mainDivData  || new Array(12).fill(null);
 
   const shortMons = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   let thHtml = '<tr><th>Categoria</th>';
@@ -3514,8 +3517,8 @@ function buildSMTTable(recData, custoData) {
   const resultData = recData.map((v,i) =>
     (v != null || custoData[i] != null) ? (v??0) - (custoData[i]??0) : null
   );
-  // Dividendo = 40% do Resultado (0 se Resultado negativo)
-  const divCalc = resultData.map(v => v != null ? (v > 0 ? v * 0.40 : 0) : null);
+  // Dividendo = 50% dos dividendos da tabela principal
+  const divCalc = mainDivData.map(v => v != null ? v * 0.50 : null);
   // Saldo = Receita SMT − Saída SMT − Dividendo
   const saldoCalc = recData.map((v,i) =>
     (v != null || custoData[i] != null)
@@ -3524,11 +3527,11 @@ function buildSMTTable(recData, custoData) {
   );
 
   const rows = [
-    { label: 'Receita SMT',    data: recData,    cls: 'receita',   totalMode: 'sum' },
-    { label: 'Saída SMT',      data: custoData,  cls: '',          totalMode: 'sum' },
-    { label: 'Resultado',      data: resultData, cls: 'resultado', totalMode: 'sum' },
-    { label: 'Dividendo (40%)',data: divCalc,    cls: '',          totalMode: 'sum' },
-    { label: 'Saldo',          data: saldoCalc,  cls: 'saldo',     totalMode: 'sum' }
+    { label: 'Receita SMT',    data: recData,    cls: 'receita'   },
+    { label: 'Saída SMT',      data: custoData,  cls: ''          },
+    { label: 'Resultado',      data: resultData, cls: 'resultado' },
+    { label: 'Dividendo (50%)',data: divCalc,    cls: ''          },
+    { label: 'Saldo',          data: saldoCalc,  cls: 'saldo'     }
   ];
 
   tbody.innerHTML = rows.map(r => {
@@ -3543,13 +3546,14 @@ function buildSMTTable(recData, custoData) {
   }).join('');
 }
 
-function buildSmartTable(recData, saidaData) {
+function buildSmartTable(recData, saidaData, mainDivData) {
   const thead = document.getElementById('smartThead');
   const tbody = document.getElementById('smartTbody');
   if (!thead || !tbody) return;
 
-  recData   = recData   || new Array(12).fill(null);
-  saidaData = saidaData || new Array(12).fill(null);
+  recData     = recData     || new Array(12).fill(null);
+  saidaData   = saidaData   || new Array(12).fill(null);
+  mainDivData = mainDivData || new Array(12).fill(null);
 
   const shortMons = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   let thHtml = '<tr><th>Categoria</th>';
@@ -3561,8 +3565,8 @@ function buildSmartTable(recData, saidaData) {
   const resultData = recData.map((v,i) =>
     (v != null || saidaData[i] != null) ? (v??0) - (saidaData[i]??0) : null
   );
-  // Dividendo = 40% do Resultado (0 se negativo)
-  const divCalc = resultData.map(v => v != null ? (v > 0 ? v * 0.40 : 0) : null);
+  // Dividendo = 50% dos dividendos da tabela principal
+  const divCalc = mainDivData.map(v => v != null ? v * 0.50 : null);
   // Saldo = Receita − Saída − Dividendo
   const saldoCalc = recData.map((v,i) =>
     (v != null || saidaData[i] != null)
@@ -3574,7 +3578,7 @@ function buildSmartTable(recData, saidaData) {
     { label: 'Receita Smart',    data: recData,    cls: 'receita'   },
     { label: 'Saída Smart',      data: saidaData,  cls: ''          },
     { label: 'Resultado',        data: resultData, cls: 'resultado' },
-    { label: 'Dividendo (40%)',  data: divCalc,    cls: ''          },
+    { label: 'Dividendo (50%)',  data: divCalc,    cls: ''          },
     { label: 'Saldo',            data: saldoCalc,  cls: 'saldo'     }
   ];
 
