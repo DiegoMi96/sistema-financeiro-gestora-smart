@@ -3475,23 +3475,18 @@ function buildDFCTable() {
   const _divAcum     = _divReaisArr.filter(v => v != null).reduce((s,v) => s+v, 0);
   const _hasDiv      = _divReaisArr.some(v => v != null && v > 0);
 
-  // Anual PREV — lê diretamente de previsaoData (Previsao_2026), soma 12 meses
-  const _divPrevGrp = previsaoData.find(g => g.cat === 'Dividendos');
-  let _divAnualPrev = null;
-  if (_divPrevGrp) {
-    let tot = 0;
-    if (_divPrevGrp.subs && _divPrevGrp.subs.length > 0) {
-      tot = _divPrevGrp.subs.reduce((a,s) => a + s.slice(1,13).reduce((x,y) => x+(y||0), 0), 0);
-    } else if (_divPrevGrp._headerVals) {
-      tot = _divPrevGrp._headerVals.reduce((s,v) => s+(v||0), 0);
-    }
-    _divAnualPrev = tot > 0 ? tot : null;
-  }
+  // Anual PREV — soma todos os 12 meses (real via Saidas_2026 + previsão via Previsao_2026)
+  const _divAnualArr  = Array.from({length:12}, (_,m) => catSum('Dividendos', m) ?? 0);
+  const _divAnualPrev = _divAnualArr.some(v => v > 0) ? _divAnualArr.reduce((s,v) => s+v, 0) : null;
+  const _mesesReaisDiv = _divAnualArr.filter((v,i) => v > 0 && isReal[i]).length;
+  const _mesesPrevDiv  = _divAnualArr.filter((v,i) => v > 0 && !isReal[i]).length;
 
   if (kD)   kD.textContent  = _hasDiv ? fmtBRL(_divAcum) : '—';
   if (kDF)  kDF.textContent = _hasDiv ? `Acumulado Até ${shortMons[selIdx]}/${year.slice(2)}` : 'Sincronize Saidas_2026';
   if (kDA)  kDA.textContent  = _divAnualPrev != null ? fmtBRL(_divAnualPrev) : '—';
-  if (kDAF) kDAF.textContent = _divAnualPrev != null ? `Projeção Até Dez/${year.slice(2)}` : 'Preencha a Previsao_2026';
+  if (kDAF) kDAF.textContent = _divAnualPrev != null
+    ? `${_mesesReaisDiv} meses reais + ${_mesesPrevDiv} previstos`
+    : 'Preencha a Previsao_2026';
 
   // Dividendos totais da tabela principal (50% para cada sub-tabela)
   const _mainDiv = Array.from({length:12}, (_,m) => catSum('Dividendos', m));
