@@ -3413,25 +3413,18 @@ function buildDFCTable() {
 
   tbody.innerHTML = html;
 
-  // KPI cards do DFC
+  // KPI cards do DFC — respondem ao período selecionado
   const shortMons = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
-  // ── Saldo Acumulado (último mês real) ────────────────────────
-  const latestRealSaldo = saldoAcum.reduce((last, v, i) => (v != null && saldoIsReal[i]) ? i : last, -1);
-  const latestSaldo     = saldoAcum.reduce((last, v, i) => v != null ? i : last, -1);
+  // Mês selecionado no filtro (fallback: último mês real disponível)
+  const latestSaldo = saldoAcum.reduce((last, v, i) => v != null ? i : last, -1);
+  const selIdx = periodMonthIdx[currentPeriod] ?? Math.max(latestSaldo, 0);
 
-  // ── Resultado Líquido (último mês com dado) ──────────────────
-  const latestRes = vals[resIdx].reduce((last, v, i) => v != null ? i : last, -1);
-
-  // ── Saldo Anual (Previsão) = último saldoAcum disponível (Dez se projetado) ──
+  // ── Anuais (não mudam com o filtro — projeção do ano inteiro) ──
   const saldoAnual = saldoAcum[11] ?? saldoAcum[latestSaldo];
-
-  // ── Resultado Líquido Anual = soma de todos os meses (real + previsão) ──
   const resultadoAnual = vals[resIdx].some(v => v != null)
     ? vals[resIdx].reduce((acc, v) => acc + (v ?? 0), 0)
     : null;
-
-  // Quantos meses reais vs previsão no cálculo anual
   const mesesReais = vals[resIdx].filter((v, i) => v != null && saldoIsReal[i]).length;
   const mesesPrev  = vals[resIdx].filter((v, i) => v != null && !saldoIsReal[i]).length;
 
@@ -3444,39 +3437,41 @@ function buildDFCTable() {
   const kRA  = document.getElementById('dfcKpiResultadoAnual');
   const kRAF = document.getElementById('dfcKpiResultadoAnualFoot');
 
-  // Card 1 — Saldo atual (último real)
-  if (kS)  kS.textContent  = latestRealSaldo >= 0 ? fmtBRL(saldoAcum[latestRealSaldo]) : '—';
-  if (kSF) kSF.textContent = latestRealSaldo >= 0
-    ? `Posição atual · ${shortMons[latestRealSaldo]}/${year.slice(2)}`
+  // Card 1 — Saldo do período selecionado
+  const saldoSel = vals[12][selIdx] ?? saldoAcum[selIdx];
+  if (kS)  kS.textContent  = saldoSel != null ? fmtBRL(saldoSel) : '—';
+  if (kSF) kSF.textContent = saldoSel != null
+    ? `Posição atual · ${shortMons[selIdx]}/${year.slice(2)}`
     : 'Sincronize a planilha';
 
-  // Card 2 — Saldo Anual Projetado (Dez)
+  // Card 2 — Saldo Anual Projetado (Dez) — fixo
   if (kSA)  kSA.textContent  = saldoAnual != null ? fmtBRL(saldoAnual) : '—';
   if (kSAF) kSAF.textContent = saldoAnual != null
     ? `Projeção Dez/${year.slice(2)} · ${mesesReais} real + ${mesesPrev} prev`
     : 'Preencha a Previsao_2026';
 
-  // Card 3 — Resultado do último mês real
-  if (kR)  kR.textContent  = latestRes >= 0 ? fmtBRL(vals[resIdx][latestRes]) : '—';
-  if (kRF) kRF.textContent = latestRes >= 0
-    ? 'Resultado operacional'
+  // Card 3 — Resultado do período selecionado
+  const resSel = vals[resIdx][selIdx];
+  if (kR)  kR.textContent  = resSel != null ? fmtBRL(resSel) : '—';
+  if (kRF) kRF.textContent = resSel != null
+    ? `Resultado · ${shortMons[selIdx]}/${year.slice(2)}`
     : 'Sincronize a planilha';
 
-  // Card 4 — Resultado Anual (Real + Previsão)
+  // Card 4 — Resultado Anual (Real + Previsão) — fixo
   if (kRA)  kRA.textContent  = resultadoAnual != null ? fmtBRL(resultadoAnual) : '—';
   if (kRAF) kRAF.textContent = resultadoAnual != null
     ? `${mesesReais} meses reais + ${mesesPrev} previstos`
     : 'Preencha a Previsao_2026';
 
-  // Dividendos — "Pago até o Momento" vem de Saidas_2026 (meses reais)
+  // Dividendos — "Pago até o Momento" vem de Saidas_2026 (meses reais até período selecionado)
   //              "Anual PREV" vem de Previsao_2026 (soma dos 12 meses)
   const kD   = document.getElementById('dfcKpiDividendos');
   const kDF  = document.getElementById('dfcKpiDividendosFoot');
   const kDA  = document.getElementById('dfcKpiDividendosAnual');
   const kDAF = document.getElementById('dfcKpiDividendosAnualFoot');
 
-  // Pago até o Momento — soma catSum('Dividendos') nos meses reais (Saidas_2026)
-  const _divReaisArr = Array.from({length:12}, (_,m) => isReal[m] ? (catSum('Dividendos', m) ?? 0) : null);
+  // Pago até o Momento — acumulado até o mês selecionado (apenas meses reais)
+  const _divReaisArr = Array.from({length:12}, (_,m) => (m <= selIdx && isReal[m]) ? (catSum('Dividendos', m) ?? 0) : null);
   const _divAcum     = _divReaisArr.filter(v => v != null).reduce((s,v) => s+v, 0);
   const _hasDiv      = _divReaisArr.some(v => v != null && v > 0);
 
@@ -3494,7 +3489,7 @@ function buildDFCTable() {
   }
 
   if (kD)   kD.textContent  = _hasDiv ? fmtBRL(_divAcum) : '—';
-  if (kDF)  kDF.textContent = _hasDiv ? 'Acumulado no ano' : 'Sincronize Saidas_2026';
+  if (kDF)  kDF.textContent = _hasDiv ? `Acumulado até ${shortMons[selIdx]}/${year.slice(2)}` : 'Sincronize Saidas_2026';
   if (kDA)  kDA.textContent  = _divAnualPrev != null ? fmtBRL(_divAnualPrev) : '—';
   if (kDAF) kDAF.textContent = _divAnualPrev != null ? 'Projeção Dez/26' : 'Preencha a Previsao_2026';
 
