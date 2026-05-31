@@ -2764,6 +2764,12 @@ function buildCofre() {
   const cofreReal = combinado.map((v, i) => isReal[i] ? v : null);
   const cofrePrev = combinado.map((v, i) => isReal[i] ? null : v);
 
+  // Eixo Y: mín 5k, máx começa em 50k e sobe de 20k em 20k conforme os dados crescem
+  const _cofreVals = combinado.filter(v => v != null);
+  const _cofreMax  = _cofreVals.length ? Math.max(..._cofreVals) : 0;
+  let yMax = 50000;
+  while (yMax < _cofreMax) yMax += 20000;
+
   charts.cofre = new Chart(ctx, {
     type: 'line',
     data: { labels: meses, datasets: [
@@ -2787,7 +2793,7 @@ function buildCofre() {
           formatter: v => v == null ? '' : fmtAutoK(v)
         }
       },
-      scales: { ...commonOpts().scales, y: { ...commonOpts().scales.y, ticks: { ...commonOpts().scales.y.ticks, callback: v => fmtAutoK(v) } } }
+      scales: { ...commonOpts().scales, y: { ...commonOpts().scales.y, min: 5000, max: yMax, ticks: { ...commonOpts().scales.y.ticks, callback: v => fmtAutoK(v) } } }
     })
   });
 }
