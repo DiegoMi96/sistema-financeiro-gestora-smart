@@ -843,7 +843,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         <div class="chart-head">
           <div>
             <div class="chart-title">Evolução do Cofre</div>
-            <div class="chart-sub">Soma mensal · Cofre Principal + Cofre Secundário</div>
+            <div class="chart-sub">Valor mensal · Cofre Principal + Cofre Secundário</div>
           </div>
         </div>
         <div class="chart-canvas-wrap tall"><canvas id="chartCofre"></canvas></div>
@@ -2747,13 +2747,11 @@ function buildCofre() {
   const ctx = document.getElementById('chartCofre'); if (!ctx) return;
   destroyChart('cofre');
   const sel = periodMonthIdx[currentPeriod];
-  let _cofreRun = 0;
-  const combinado = cofrePrincipalMes.map((v, i) => {
+  const combinado = cofrePrincipalMes.map((_, i) => {
     const c1 = cofrePrincipalMes[i];
     const c2 = cofre2Mes[i];
     if (c1 == null && c2 == null) return null;
-    _cofreRun += (c1 ?? 0) + (c2 ?? 0);
-    return _cofreRun;
+    return (c1 ?? 0) + (c2 ?? 0);
   });
   charts.cofre = new Chart(ctx, {
     type: 'line',
