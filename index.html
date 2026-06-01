@@ -659,7 +659,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
     <button class="icon-btn" id="themeBtn" title="Alternar tema">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
     </button>
-    <button class="icon-btn" title="Exportar PDF">
+    <button class="icon-btn" title="Exportar PDF" onclick="window.print()">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
     </button>
   </header>
@@ -1721,6 +1721,10 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
               <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
               Novo usuário
             </button>
+            <button id="btnLimparDados" style="background:transparent;color:var(--negative);border:1px solid var(--negative);padding:8px 14px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px;display:inline-flex;align-items:center;gap:6px">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              Limpar dados
+            </button>
           </div>
           <table class="tbl acessos-tbl" id="acessosTbl" style="margin-top:12px">
             <thead><tr><th>Usuário</th><th>E-mail</th><th>Perfil</th><th>Páginas acessíveis</th><th>Último acesso</th><th class="num" style="width:80px">Ações</th></tr></thead>
@@ -1849,6 +1853,35 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px">
         <button id="cancelEditUser" style="background:transparent;color:var(--text);border:1px solid var(--border);padding:9px 18px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit">Cancelar</button>
         <button id="confirmEditUser" style="background:#1583B3;color:white;border:0;padding:9px 18px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit">Salvar alterações</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Limpar Dados -->
+  <div id="modalLimpar" style="display:none;position:fixed;inset:0;background:rgba(15,27,45,.6);z-index:1000;align-items:center;justify-content:center;padding:20px">
+    <div style="background:var(--surface);border-radius:14px;padding:24px;max-width:440px;width:100%;box-shadow:0 30px 60px rgba(0,0,0,.30);border:1px solid var(--border)">
+      <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:16px">
+        <div style="width:42px;height:42px;border-radius:50%;background:#FCEAE7;display:grid;place-items:center;flex-shrink:0;color:var(--negative)">
+          <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        </div>
+        <div>
+          <h3 style="margin:0 0 4px;font-family:'Manrope';font-weight:700;font-size:17px;color:var(--text)">Limpar dados</h3>
+          <p style="margin:0;color:var(--text-2);font-size:13px;line-height:1.5">Remove os dados importados do período selecionado. Os gráficos e KPIs serão zerados.</p>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div>
+          <label style="display:block;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:6px">Período</label>
+          <select id="selectLimparMes" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:9px;font-size:14px;font-family:inherit;outline:none"></select>
+        </div>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;background:var(--bg);border-radius:9px;border:1px solid var(--border)">
+          <input type="checkbox" id="confirmLimpar" style="width:16px;height:16px;accent-color:var(--negative)">
+          <span style="font-size:13px;color:var(--text-2)">Confirmo que desejo remover os dados do período selecionado</span>
+        </label>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px">
+        <button id="cancelLimpar" style="background:transparent;color:var(--text);border:1px solid var(--border);padding:9px 18px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit">Cancelar</button>
+        <button id="confirmLimparBtn" disabled style="background:var(--negative);color:white;border:0;padding:9px 18px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit;opacity:.5">Limpar dados</button>
       </div>
     </div>
   </div>
@@ -2399,9 +2432,9 @@ const rhRescisaoMes   = new Array(12).fill(null);
 const rhCLTMes        = new Array(12).fill(null);
 const rhPJMes         = new Array(12).fill(null);
 
-const vendasMes     = [null, null, null];
+const vendasMes     = new Array(12).fill(null);
 const novosClientes = new Array(12).fill(null);
-const equipMes      = [null, null, null];
+const equipMes      = new Array(12).fill(null);
 
 const cancelMes = new Array(12).fill(null);
 const desistMes = new Array(12).fill(null);
@@ -2423,6 +2456,30 @@ let META_NOVOS_ANO    = 1080;    // Meta anual de novos clientes
 let META_SAT_MIN      = 0.94;    // Meta mínima de satisfação (decimal)
 let META_CHURN_MAX    = 0.36;    // Meta máxima de churn (decimal)
 let META_CR_MAX       = 0.65;    // Meta máxima de custo/receita (decimal)
+// ── Restaura metas salvas pelo usuário (persistência entre reloads) ──
+(function _restoreMetas() {
+  try {
+    const m = JSON.parse(localStorage.getItem('gsm_metas') || 'null');
+    if (!m) return;
+    if (m.META_RECEITA_ANO > 0)  META_RECEITA_ANO  = m.META_RECEITA_ANO;
+    if (m.META_MARGEM > 0)       META_MARGEM       = m.META_MARGEM;
+    if (m.META_NOVOS_ANO > 0)    META_NOVOS_ANO    = m.META_NOVOS_ANO;
+    if (m.META_SAT_MIN > 0)      META_SAT_MIN      = m.META_SAT_MIN;
+    if (m.META_CHURN_MAX > 0)    META_CHURN_MAX    = m.META_CHURN_MAX;
+    if (m.META_CR_MAX > 0)       META_CR_MAX       = m.META_CR_MAX;
+    if (m.META_SIMCARDS_MES > 0) META_SIMCARDS_MES = m.META_SIMCARDS_MES;
+    if (m.META_EQUIP_MES > 0)    META_EQUIP_MES    = m.META_EQUIP_MES;
+  } catch(e) {}
+})();
+function _saveMetas() {
+  try {
+    localStorage.setItem('gsm_metas', JSON.stringify({
+      META_RECEITA_ANO, META_MARGEM, META_NOVOS_ANO,
+      META_SAT_MIN, META_CHURN_MAX, META_CR_MAX,
+      META_SIMCARDS_MES, META_EQUIP_MES
+    }));
+  } catch(e) {}
+}
 const DIAS_UTEIS_MES  = 22;     // Dias úteis médios por mês (absenteísmo RH)
 
 function saveCache(dm, tsDisplay) {
@@ -3010,7 +3067,7 @@ function buildBaseSw() {
   const _swMax    = _swVals.length ? Math.max(..._swVals) : 1000;
   const _swMin    = _swVals.length ? Math.min(..._swVals) : 0;
   const swYMin    = Math.max(0, Math.floor(_swMin * 0.97));
-  const swYMax    = 14600;
+  const swYMax    = _swVals.length ? Math.ceil(Math.max(..._swVals) * 1.15 / 100) * 100 : 14600;
   charts.baseSw = new Chart(ctx, {
     type:'line',
     data:{ labels: swLabels, datasets:[
@@ -3110,9 +3167,9 @@ function buildVendasMeta() {
   if (vSub) vSub.textContent = 'Total período: ' + fmtNum(vendasTotal) + ' · Meta ' + fmtNum(vendasMetaTotal) + ' (' + vendasPct + '%)';
   const media = realData.length ? Math.round(realData.reduce((a,b)=>a+b,0) / realData.length) : 0;
   // Adiciona um slot vazio após o último mês para posicionar o rótulo da média DEPOIS da última barra
-  const baseLabels3 = ['Janeiro','Fevereiro','Março'];
+  const MES_LONG_VND = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const nMes = realData.length;
-  const labelsExt  = [...baseLabels3.slice(0, nMes), ''];
+  const labelsExt  = [...MES_LONG_VND.slice(0, nMes), ''];
   const barDataExt = [...vendasMes.slice(0, nMes), null];
   const lineDataExt = [...vendasMes.slice(0, nMes).map(() => media), media];
   charts.vendasMeta = new Chart(ctx, {
@@ -3146,8 +3203,8 @@ function buildEquipMeta() {
   const media    = realData.length ? Math.round(total / realData.length) : 0;
   const metaTotal = equipMeta * realData.length;
   const pct      = metaTotal > 0 ? Math.round(total / metaTotal * 100) : 0;
-  const monthPills  = ['JAN','FEV','MAR'];
-  const baseLabels  = ['Janeiro','Fevereiro','Março'];
+  const monthPills  = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+  const baseLabels  = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const nMes        = realData.length;
   // Slot vazio no final para posicionar o rótulo da média à direita da última barra
   const labelsExt   = [...baseLabels.slice(0, nMes), ''];
@@ -3245,8 +3302,8 @@ function buildChurnAnual() {
   const lastBase = baseAtiva.reduce((acc, v) => v != null ? v : acc, null);
   const churnPct = cancelMes.map((c, i) => {
     if (c == null || desistMes[i] == null) return null;
-    const base = (baseAtiva[i] != null ? baseAtiva[i] : lastBase) || 1;
-    if (base === 1 && lastBase == null) return null; // sem base alguma — não exibe churn
+    const base = baseAtiva[i] != null ? baseAtiva[i] : lastBase;
+    if (base == null || base <= 0) return null; // sem base válida — não exibe churn
     return parseFloat(((c + desistMes[i]) / base * 100).toFixed(2));
   });
   const realData = churnPct.map((v, i) => isReal[i] ? v : null);
@@ -3293,7 +3350,11 @@ function buildChurn() {
         legend:{display:false},
         datalabels:{ display:true, anchor:'end', align:'top', color: css('--text-2'), font:{size:9,weight:'700'}, formatter: v => v==null ? '' : (v/1000).toFixed(1)+'k' }
       },
-      scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:0, max:25000 } }
+      (() => {
+        const _all = [...(cancelMes||[]), ...(desistMes||[])].filter(v => v != null && v > 0);
+        const _chMax = _all.length ? Math.ceil(Math.max(..._all) * 1.25 / 1000) * 1000 : 25000;
+        return { scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:0, max: Math.max(_chMax, 1000) } } };
+      })()
     })
   });
 }
@@ -3327,7 +3388,9 @@ function buildCustoEnvio() {
     options: commonOpts({
       layout:{ padding:{ top: 36 } },
       plugins:{legend:{display:false}, datalabels:{display:true, anchor:'end', align:'top', offset:10, clip:false, color: css('--text-2'), font:{size:11,weight:'700'}, formatter:v=>fmtBRL(v) } },
-      scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:17000, max:20000,
+      scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y,
+        min: _ceVals.length ? Math.floor(Math.min(..._ceVals) * 0.85 / 1000) * 1000 : 0,
+        max: _ceVals.length ? Math.ceil(Math.max(..._ceVals) * 1.20 / 1000) * 1000 : 20000,
         ticks:{ ...commonOpts().scales.y.ticks, callback:v=>'R$'+(v/1000).toFixed(0)+'k' } } }
     })
   });
@@ -4000,8 +4063,26 @@ const selectLimparMes = document.getElementById('selectLimparMes');
 const toastLimpar = document.getElementById('toastLimpar');
 const toastLimparMsg = document.getElementById('toastLimparMsg');
 
-function openModal() { modalLimpar.style.display = 'flex'; confirmLimpar.checked = false; confirmLimparBtn.disabled = true; confirmLimparBtn.style.opacity = .5; }
-function closeModal() { modalLimpar.style.display = 'none'; }
+function openModal() {
+  if (!modalLimpar) return;
+  // Popula o select com os meses disponíveis
+  if (selectLimparMes) {
+    const yr = document.getElementById('yearSelect')?.value || '2026';
+    const MES_NOME_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    const opts = ['<option value="ALL">Todos os meses</option>'];
+    isReal.forEach((real, i) => {
+      if (real) {
+        const pad = String(i+1).padStart(2,'0');
+        opts.push(`<option value="${yr}-${pad}">${MES_NOME_PT[i]}</option>`);
+      }
+    });
+    selectLimparMes.innerHTML = opts.join('');
+  }
+  if (confirmLimpar) confirmLimpar.checked = false;
+  if (confirmLimparBtn) { confirmLimparBtn.disabled = true; confirmLimparBtn.style.opacity = '0.5'; }
+  modalLimpar.style.display = 'flex';
+}
+function closeModal() { if (modalLimpar) modalLimpar.style.display = 'none'; }
 function showToast(msg) {
   // Usa o toastSync (sempre presente no DOM) como toast genérico do sistema
   const _toast = document.getElementById('toastSync');
@@ -4053,12 +4134,10 @@ function clearData(period) {
       lucroLiquido[i] = null; receitaMes[i] = null; custoMes[i] = null;
       despesaMes[i] = null; saldoAcum[i] = null; cancelMes[i] = null; desistMes[i] = null;
     }
-    for (let i = 0; i < 3; i++) {
-      vendasMes[i] = null; equipMes[i] = null;
-    }
+    vendasMes.fill(null); equipMes.fill(null);
     novosClientes.fill(null);
     volEnvio.fill(null); custoEnvio.fill(null);
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 12; i++) {
       baseAtiva[i] = null; baseSw[i] = null;
       smartFat[i] = null; allcomFat[i] = null; margemSmart[i] = null;
     }
@@ -4164,6 +4243,7 @@ function saveMetas() {
   setEditMode(false);
   // Reconstrói gráficos afetados
   buildVendasMeta(); buildEquipMeta(); buildMetasAnual();
+  _saveMetas();
   if (metasSaved) { metasSaved.style.display = 'block'; setTimeout(() => { metasSaved.style.display = 'none'; }, 4000); }
 }
 if (btnEditMetas) btnEditMetas.addEventListener('click', () => setEditMode(true));
@@ -4278,7 +4358,8 @@ function _saveMA(skipDisplay) {
   if (!_tblMA) return;
   _tblMA.querySelectorAll('input[data-meta-a]').forEach(inp => {
     const key = inp.dataset.metaA;
-    const val = parseFloat(inp.value.replace(',','.').replace(/\./g, v => inp.value.lastIndexOf('.') === inp.value.indexOf(v) ? v : ''));
+    const raw = inp.value.replace(/\./g, '').replace(',', '.');
+    const val = parseFloat(raw);
     if (!isNaN(val) && val > 0) {
       if (key === 'META_RECEITA_ANO') META_RECEITA_ANO = val;
       if (key === 'META_MARGEM')       META_MARGEM      = val > 1 ? val / 100 : val;
@@ -4288,6 +4369,7 @@ function _saveMA(skipDisplay) {
       if (key === 'META_CR_MAX')       META_CR_MAX      = val > 1 ? val / 100 : val;
     }
   });
+  _saveMetas();
   if (!skipDisplay) { _setEditMA(false, true); buildMetasAnual(); }
 }
 
@@ -4685,6 +4767,10 @@ document.getElementById('yearSelect').addEventListener('change', onPeriodChange)
 document.getElementById('monthSelect').addEventListener('change', onPeriodChange);
 
 // ========== Google Sheets Sync ==========
+// ⚠️ SEGURANÇA: O SHEET_ID abaixo é visível no código-fonte. Os dados da planilha
+// são públicos por necessidade do fetch client-side. Para proteger os dados, migrar
+// o fetch para um backend (Apps Script doGet autenticado, Cloud Function ou similar).
+// A autenticação do sistema protege a UI mas NÃO os dados do Google Sheets.
 const SHEET_ID = '1yKDb5cGWnGjbZ4DVFPAFcV7SMWTlSqncWK0O9HbzK3Y';
 const SHEET_CSV = (tab) =>
   `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
@@ -4744,10 +4830,11 @@ function computePeriodData(dm) {
   const longMon  = MES_NOME;
 
   const buildKpis = (idx, isQ1, isYTD) => {
-    const rec = isQ1||isYTD ? sumTo('Receita',2) : get('Receita',idx);
-    const cmv = isQ1||isYTD ? sumTo('CMV',2) : get('CMV',idx);
-    const desp = isQ1||isYTD ? sumTo('Despesas',2) : get('Despesas',idx);
-    const res = isQ1||isYTD ? sumTo('Resultado',2) : get('Resultado',idx);
+    const _toIdx = isQ1 ? 2 : idx;
+    const rec = isQ1||isYTD ? sumTo('Receita',_toIdx) : get('Receita',idx);
+    const cmv = isQ1||isYTD ? sumTo('CMV',_toIdx) : get('CMV',idx);
+    const desp = isQ1||isYTD ? sumTo('Despesas',_toIdx) : get('Despesas',idx);
+    const res = isQ1||isYTD ? sumTo('Resultado',_toIdx) : get('Resultado',idx);
     const saldo = get('Saldo_Acum', idx);
     const caixaIni = isQ1||isYTD ? get('Caixa_Ini',0) : get('Caixa_Ini',idx);
     const caixaFim = get('Caixa_Fim', idx);
@@ -4758,10 +4845,10 @@ function computePeriodData(dm) {
     const satV         = get('Satisfacao', idx);
     const baseSWV      = get('Base_SW', idx);
     const baseSuspV    = get('Base_Susp', idx);
-    const vendasV = isQ1||isYTD ? sumTo('Vendas_SIM',2) : get('Vendas_SIM',idx);
-    const novos = isQ1||isYTD ? sumTo('Novos_CLI',2) : get('Novos_CLI',idx);
-    const cancel = isQ1||isYTD ? sumTo('Cancelam',2) : get('Cancelam',idx);
-    const desist = isQ1||isYTD ? sumTo('Desistencia',2) : get('Desistencia',idx);
+    const vendasV = isQ1||isYTD ? sumTo('Vendas_SIM',_toIdx) : get('Vendas_SIM',idx);
+    const novos = isQ1||isYTD ? sumTo('Novos_CLI',_toIdx) : get('Novos_CLI',idx);
+    const cancel = isQ1||isYTD ? sumTo('Cancelam',_toIdx) : get('Cancelam',idx);
+    const desist = isQ1||isYTD ? sumTo('Desistencia',_toIdx) : get('Desistencia',idx);
     const cancelAcum = sumTo('Cancelam', idx);
     const margemPct = rec && cmv ? (((rec-cmv)/rec)*100).toFixed(2).replace('.',',')+'%' : '—';
     const churnPct = baseAtivaV && cancel ? (((cancel+(desist??0))/baseAtivaV)*100).toFixed(2).replace('.',',')+'%' : '—';
@@ -4826,7 +4913,7 @@ function computePeriodData(dm) {
   baseAtiva.fill(null); baseSw.fill(null); baseSuspensa.fill(null); smartFat.fill(null);
   allcomFat.fill(null); margemSmart.fill(null); margemValorBRL.fill(null);
   smartCusto.fill(null); dividendosMes.fill(null);
-  for (let i=0;i<3;i++) { vendasMes[i]=null; equipMes[i]=null; }
+  vendasMes.fill(null); equipMes.fill(null);
   novosClientes.fill(null);
   volEnvio.fill(null); custoEnvio.fill(null);
   isReal.fill(false); isRealTickets.fill(false); isRealRH.fill(false);
@@ -4872,8 +4959,8 @@ function computePeriodData(dm) {
   mapArr('Dividendos', dividendosMes, 12);
   mapArr('Margem_PCT', margemSmart, 12);
   mapArr('Margem_BRL', margemValorBRL, 12);
-  mapArr('Vendas_SIM', vendasMes, 3);
-  mapArr('Vendas_EQ', equipMes, 3);
+  mapArr('Vendas_SIM', vendasMes);
+  mapArr('Vendas_EQ', equipMes);
   mapArr('Novos_CLI', novosClientes);
   mapArr('Vol_Envio', volEnvio, 12);
   mapArr('Custo_Envio', custoEnvio, 12);
@@ -5147,7 +5234,7 @@ async function syncFromSheets() {
           saidasData.splice(0, saidasData.length, ...newSaidas);
         }
       }
-    } catch(e) { /* Saidas tab optional */ }
+    } catch(e) { console.warn('[Sync] Aba Saidas:', e.message); }
 
     // Aba Operadoras_YYYY — Detalhamento por Operadora + Pool de Dados
     try {
@@ -5178,7 +5265,7 @@ async function syncFromSheets() {
         poolPctMes = Array.from({length:5}, () => new Array(12).fill(null));
         poolPctChaves.forEach((key, i) => { if (dmO[key]) for(let m=0;m<12;m++) poolPctMes[i][m] = dmO[key][m] ?? null; });
       }
-    } catch(e) { /* Operadoras tab optional */ }
+    } catch(e) { console.warn('[Sync] Aba Operadoras:', e.message); }
 
     // Aba Previsao_YYYY — forecast de saídas (mesma estrutura de Saidas_YYYY)
     try {
@@ -5207,7 +5294,7 @@ async function syncFromSheets() {
       } else {
         previsaoData = [];
       }
-    } catch(e) { previsaoData = []; /* Previsao tab optional */ }
+    } catch(e) { previsaoData = []; console.warn('[Sync] Aba Previsao:', e.message); }
 
     computePeriodData(dm);
     applyPeriod(getActivePeriod());
@@ -5587,8 +5674,12 @@ function buildRH() {
             return dLabel ? [rLabel, dLabel] : rLabel;
           } } }
     ]}, options:commonOpts({ plugins:{ legend:{display:false}, datalabels:{display:false} },
-      scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:0, max:40000,
-        ticks:{ ...commonOpts().scales.y.ticks, callback:v => 'R$' + (v/1000).toFixed(0) + 'k' } } } }) });
+      scales:{ ...commonOpts().scales, y:(()=>{
+        const _rVals = (rhRescisaoMes||[]).filter(v => v != null && v > 0);
+        const _rMax = _rVals.length ? Math.ceil(Math.max(..._rVals)*1.25/5000)*5000 : 40000;
+        return { ...commonOpts().scales.y, min:0, max:Math.max(_rMax, 5000),
+          ticks:{ ...commonOpts().scales.y.ticks, callback:v => 'R$'+(v/1000).toFixed(0)+'k' } };
+      })() } }) });
   }
 }
 
