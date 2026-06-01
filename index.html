@@ -1646,70 +1646,56 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       </div></div>
       <div style="display:flex;flex-direction:column;gap:14px">
 
-        <!-- ── Metas Comerciais ── -->
+        <!-- ── Metas Anuais (card unificado) ── -->
         <div class="chart-card">
           <div class="chart-head">
             <div>
-              <div class="chart-title">Metas Comerciais</div>
-              <div class="chart-sub">Clique em Editar para alterar os valores · As mudanças atualizam os gráficos imediatamente</div>
+              <div class="chart-title">Metas Anuais</div>
+              <div class="chart-sub">YTD calculado automaticamente · <span id="metasAnualMeses" style="font-weight:700;color:var(--primary-dark)">—</span></div>
             </div>
             <div style="display:flex;gap:8px;align-items:center">
               <span id="metasSaved" style="display:none;font-size:12px;color:var(--primary);font-weight:600">✓ Salvo</span>
+              <span id="metasAnualSaved" style="display:none;font-size:12px;color:var(--primary);font-weight:600">✓ Salvo</span>
               <button id="btnEditMetas" style="background:var(--primary);color:white;border:0;padding:8px 14px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px;display:inline-flex;align-items:center;gap:6px">
                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                Editar
+                Editar metas
               </button>
-              <button id="btnSaveMetas" style="display:none;background:var(--primary);color:white;border:0;padding:8px 14px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px;display:none;align-items:center;gap:6px">
+              <button id="btnSaveMetas" style="display:none;background:var(--primary);color:white;border:0;padding:8px 14px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px;align-items:center;gap:6px">
                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                 Salvar
               </button>
-              <button id="btnCancelMetas" style="display:none;background:var(--bg);color:var(--text-2);border:1px solid var(--border);padding:8px 14px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px;display:none;align-items:center;gap:6px">
+              <button id="btnCancelMetas" style="display:none;background:var(--bg);color:var(--text-2);border:1px solid var(--border);padding:8px 14px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px;align-items:center;gap:6px">
                 Cancelar
               </button>
             </div>
           </div>
-          <table class="tbl metas-tbl" id="metasTbl" style="margin-top:12px">
-            <thead><tr><th>Indicador</th><th class="num">Meta</th><th>Unidade</th><th>Observação</th></tr></thead>
+
+          <!-- Metas mensais de referência -->
+          <p style="margin:0 0 6px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;font-weight:700">Referências mensais</p>
+          <table class="tbl metas-tbl" id="metasTbl">
+            <thead><tr><th>Indicador</th><th class="num">Meta mensal</th><th>Unidade</th><th>Observação</th></tr></thead>
             <tbody>
               <tr>
                 <td>Vendas Simcards</td>
                 <td class="num" data-meta="META_SIMCARDS_MES">33.000</td>
                 <td>por mês</td>
-                <td style="color:var(--muted);font-size:12px">Referência para gráfico Vendas Simcards e % vs. meta</td>
+                <td style="color:var(--muted);font-size:12px">Referência para o gráfico de Vendas e % vs. meta</td>
               </tr>
               <tr>
                 <td>Vendas Equipamentos</td>
                 <td class="num" data-meta="META_EQUIP_MES">2.000</td>
                 <td>por mês</td>
-                <td style="color:var(--muted);font-size:12px">Referência para gráfico Vendas Equipamentos e % vs. meta</td>
+                <td style="color:var(--muted);font-size:12px">Referência para o gráfico de Equipamentos e % vs. meta</td>
               </tr>
             </tbody>
           </table>
-        </div>
 
-        <!-- ── Metas Anuais ── -->
-        <div class="chart-card">
-          <div class="chart-head">
-            <div>
-              <div class="chart-title">Metas Anuais 2026</div>
-              <div class="chart-sub">YTD calculado automaticamente dos dados importados · <span id="metasAnualMeses" style="font-weight:700;color:var(--primary-dark)">—</span></div>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center">
-              <span id="metasAnualSaved" style="display:none;font-size:12px;color:var(--primary);font-weight:600">✓ Salvo</span>
-              <button id="btnEditMetasAnual" style="background:var(--primary);color:white;border:0;padding:8px 14px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px;display:inline-flex;align-items:center;gap:6px">
-                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                Editar metas
-              </button>
-              <button id="btnSaveMetasAnual" style="display:none;background:var(--primary);color:white;border:0;padding:8px 14px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px;display:none;align-items:center;gap:6px">
-                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                Salvar
-              </button>
-              <button id="btnCancelMetasAnual" style="display:none;background:var(--bg);color:var(--text-2);border:1px solid var(--border);padding:8px 14px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px;display:none;align-items:center;gap:6px">
-                Cancelar
-              </button>
-            </div>
-          </div>
-          <table class="tbl metas-tbl" id="metasAnualTbl" style="margin-top:12px">
+          <!-- Separador -->
+          <div style="border-top:1px solid var(--border);margin:18px 0 14px"></div>
+
+          <!-- Acompanhamento anual -->
+          <p style="margin:0 0 6px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;font-weight:700">Acompanhamento anual</p>
+          <table class="tbl metas-tbl" id="metasAnualTbl">
             <thead>
               <tr>
                 <th>Indicador</th>
@@ -1893,7 +1879,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
     </div>
   </div>
 
-  <footer class="last-update">Protótipo navegável · Gestora Smart Financial Suite · gerado a partir do Fechamento Mensal de Março/2026</footer>
+  <footer class="last-update">Confidencial - Alta Administração · Gestora Smart</footer>
 </div>
 
 <script>
@@ -4129,9 +4115,9 @@ let metasOriginal = {};
 function setEditMode(on) {
   if (!metasTbl) return;
   metasTbl.classList.toggle('editing', on);
-  btnEditMetas.style.display = on ? 'none' : 'inline-flex';
-  btnSaveMetas.style.display = on ? 'inline-flex' : 'none';
-  btnCancelMetas.style.display = on ? 'inline-flex' : 'none';
+  if (btnEditMetas)  btnEditMetas.style.display  = on ? 'none' : 'inline-flex';
+  if (btnSaveMetas)  btnSaveMetas.style.display  = on ? 'inline-flex' : 'none';
+  if (btnCancelMetas) btnCancelMetas.style.display = on ? 'inline-flex' : 'none';
   const cells = metasTbl.querySelectorAll('td[data-meta]');
   cells.forEach(td => {
     if (on) {
@@ -4143,22 +4129,26 @@ function setEditMode(on) {
       if (input) td.textContent = input.value || metasOriginal[td.dataset.meta] || '—';
     }
   });
+  // Aciona também a edição da tabela de metas anuais
+  _setEditMA(on, /*buttonsHandledByParent=*/true);
 }
 function cancelEdit() {
   if (!metasTbl) return;
   const cells = metasTbl.querySelectorAll('td[data-meta]');
   cells.forEach(td => { td.textContent = metasOriginal[td.dataset.meta] || td.textContent; });
   metasTbl.classList.remove('editing');
-  btnEditMetas.style.display = 'inline-flex';
-  btnSaveMetas.style.display = 'none';
-  btnCancelMetas.style.display = 'none';
+  if (btnEditMetas)   btnEditMetas.style.display   = 'inline-flex';
+  if (btnSaveMetas)   btnSaveMetas.style.display   = 'none';
+  if (btnCancelMetas) btnCancelMetas.style.display = 'none';
+  _cancelMA();
 }
 function saveMetas() {
-  setEditMode(false);
-  // Aplica valores editados nas constantes globais
+  // Salva metas comerciais
   if (metasTbl) {
     metasTbl.querySelectorAll('td[data-meta]').forEach(td => {
       const key = td.dataset.meta;
+      const inp = td.querySelector('input');
+      if (inp) td.textContent = inp.value || metasOriginal[key] || td.textContent;
       const raw = td.textContent.replace(/\./g,'').replace(',','.').trim();
       const val = parseFloat(raw);
       if (!isNaN(val) && val > 0) {
@@ -4166,11 +4156,14 @@ function saveMetas() {
         if (key === 'META_EQUIP_MES')    META_EQUIP_MES    = val;
       }
     });
-    // Reconstrói gráficos afetados
-    buildVendasMeta(); buildEquipMeta(); buildMetasAnual();
   }
-  metasSaved.style.display = 'block';
-  setTimeout(() => { if(metasSaved) metasSaved.style.display = 'none'; }, 4000);
+  // Salva metas anuais
+  _saveMA(/*skipDisplay=*/true);
+  // Fecha modo de edição
+  setEditMode(false);
+  // Reconstrói gráficos afetados
+  buildVendasMeta(); buildEquipMeta(); buildMetasAnual();
+  if (metasSaved) { metasSaved.style.display = 'block'; setTimeout(() => { metasSaved.style.display = 'none'; }, 4000); }
 }
 if (btnEditMetas) btnEditMetas.addEventListener('click', () => setEditMode(true));
 if (btnSaveMetas) btnSaveMetas.addEventListener('click', saveMetas);
@@ -4258,12 +4251,9 @@ const _btnCancelMA = document.getElementById('btnCancelMetasAnual');
 const _savedMA     = document.getElementById('metasAnualSaved');
 const _tblMA       = document.getElementById('metasAnualTbl');
 
-function _setEditMA(on) {
+function _setEditMA(on, buttonsHandledByParent) {
   if (!_tblMA) return;
   _tblMA.classList.toggle('editing', on);
-  if (_btnEditMA) _btnEditMA.style.display = on ? 'none' : 'inline-flex';
-  if (_btnSaveMA) _btnSaveMA.style.display = on ? 'inline-flex' : 'none';
-  if (_btnCancelMA) _btnCancelMA.style.display = on ? 'inline-flex' : 'none';
   _tblMA.querySelectorAll('span[data-meta-a]').forEach(sp => {
     const key = sp.dataset.metaA;
     if (on) {
@@ -4281,9 +4271,9 @@ function _cancelMA() {
     const key = sp.dataset.metaA;
     if (_metasAnualOrig[key]) sp.textContent = _metasAnualOrig[key];
   });
-  _setEditMA(false);
+  _setEditMA(false, true);
 }
-function _saveMA() {
+function _saveMA(skipDisplay) {
   if (!_tblMA) return;
   _tblMA.querySelectorAll('input[data-meta-a]').forEach(inp => {
     const key = inp.dataset.metaA;
@@ -4297,13 +4287,8 @@ function _saveMA() {
       if (key === 'META_CR_MAX')       META_CR_MAX      = val > 1 ? val / 100 : val;
     }
   });
-  _setEditMA(false);
-  buildMetasAnual();
-  if (_savedMA) { _savedMA.style.display = 'block'; setTimeout(() => { _savedMA.style.display = 'none'; }, 3500); }
+  if (!skipDisplay) { _setEditMA(false, true); buildMetasAnual(); }
 }
-if (_btnEditMA)   _btnEditMA.addEventListener('click', () => _setEditMA(true));
-if (_btnSaveMA)   _btnSaveMA.addEventListener('click', _saveMA);
-if (_btnCancelMA) _btnCancelMA.addEventListener('click', _cancelMA);
 
 // ====== Gestão de Acessos — conectada à autenticação real ======
 function uInitials(nome) {
