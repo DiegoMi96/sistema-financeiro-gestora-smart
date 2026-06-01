@@ -3340,6 +3340,8 @@ function buildChurn() {
   const ctx = document.getElementById('chartChurn'); if (!ctx) return;
   destroyChart('churn');
   const sel = periodMonthIdx[currentPeriod];
+  const _chAll  = [...(cancelMes||[]), ...(desistMes||[])].filter(v => v != null && v > 0);
+  const _chMax  = _chAll.length ? Math.ceil(Math.max(..._chAll) * 1.25 / 1000) * 1000 : 25000;
   charts.churn = new Chart(ctx, {
     data:{ labels: meses, datasets:[
       { type:'bar', label:'Cancelamento', data: cancelMes, backgroundColor: cancelMes.map((_,i)=> i===sel ? '#A8261D' : css('--negative')), borderRadius:6, barPercentage:.45 },
@@ -3350,11 +3352,7 @@ function buildChurn() {
         legend:{display:false},
         datalabels:{ display:true, anchor:'end', align:'top', color: css('--text-2'), font:{size:9,weight:'700'}, formatter: v => v==null ? '' : (v/1000).toFixed(1)+'k' }
       },
-      (() => {
-        const _all = [...(cancelMes||[]), ...(desistMes||[])].filter(v => v != null && v > 0);
-        const _chMax = _all.length ? Math.ceil(Math.max(..._all) * 1.25 / 1000) * 1000 : 25000;
-        return { scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:0, max: Math.max(_chMax, 1000) } } };
-      })()
+      scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:0, max: Math.max(_chMax, 1000) } }
     })
   });
 }
