@@ -2105,6 +2105,110 @@ const PAGE_KEY       = 'gsm_last_page';
 const CACHE_STALE_MS = 4 * 60 * 60 * 1000;      // 4 horas
 
 // ── Auto-login ao carregar / F5 ───────────────────────────────────────────────
+const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+// Todos os arrays iniciam vazios — preenchidos exclusivamente via sincronização com Google Sheets
+const lucroLiquido   = new Array(12).fill(null);
+const isReal         = new Array(12).fill(false);
+
+const receitaMes = new Array(12).fill(null);
+const custoMes   = new Array(12).fill(null);
+const despesaMes = new Array(12).fill(null);
+
+const cofrePrincipalMes = new Array(12).fill(null);
+const cofre1Mes         = new Array(12).fill(null);
+const cofre2Mes         = new Array(12).fill(null);
+
+const saldoAcum   = new Array(12).fill(null);
+const saldoIsReal = new Array(12).fill(false);
+
+const baseAtiva      = new Array(12).fill(null);
+const baseSw         = new Array(12).fill(null);
+const baseSuspensa   = new Array(12).fill(null);
+const smartFat       = new Array(12).fill(null);
+const allcomFat      = new Array(12).fill(null);
+const smartCusto     = new Array(12).fill(null);
+const dividendosMes  = new Array(12).fill(null);
+const margemSmart    = new Array(12).fill(null);
+const margemValorBRL = new Array(12).fill(null);
+
+const opNomes = ['ALGAR','ALGAR MULTI','ARQIA','ARQIA 2OP','ARQIA INTERNACIONAL','CLARO','CLARO BL','CLARO CATM1','SIERRA','TIM','VIVO','VIVO BL','VIVO CATM1'];
+const opBase = [
+  [0,0],[0,0],[0,0],[0,0],[0,0],
+  [0,0],[0,0],[0,0],[0,0],[0,0],
+  [0,0],[0,0],[0,0]
+];
+const opMensAdj  = [0,0,0,0,0,0,0,0,0,0,0,0]; // legado
+const opCustoAdj = [0,0,0,0,0,0,0,0,0,0,0,0]; // legado
+const opTotalBase = [0, 0]; // legado
+// Arrays mensais por operadora — preenchidos via aba Operadoras_YYYY
+// Índice corresponde a opNomes: 0=ALGAR, 1=ALGAR MULTI, ..., 12=VIVO CATM1
+let opMensMes  = Array.from({length:13}, () => new Array(12).fill(null));
+let opCustoMes = Array.from({length:13}, () => new Array(12).fill(null));
+let opQtdMes   = Array.from({length:13}, () => new Array(12).fill(null));
+// Chaves usadas na aba Operadoras_YYYY (mesma ordem de opNomes)
+const opChaves = [
+  ['OP_ALGAR_MENS','OP_ALGAR_CUSTO'],
+  ['OP_ALGAR_M_MENS','OP_ALGAR_M_CUSTO'],
+  ['OP_ARQIA_MENS','OP_ARQIA_CUSTO'],
+  ['OP_ARQIA_2_MENS','OP_ARQIA_2_CUSTO'],
+  ['OP_ARQIA_I_MENS','OP_ARQIA_I_CUSTO'],
+  ['OP_CLARO_MENS','OP_CLARO_CUSTO'],
+  ['OP_CLARO_BL_MENS','OP_CLARO_BL_CUSTO'],
+  ['OP_CLARO_C_MENS','OP_CLARO_C_CUSTO'],
+  ['OP_SIERRA_MENS','OP_SIERRA_CUSTO'],
+  ['OP_TIM_MENS','OP_TIM_CUSTO'],
+  ['OP_VIVO_MENS','OP_VIVO_CUSTO'],
+  ['OP_VIVO_BL_MENS','OP_VIVO_BL_CUSTO'],
+  ['OP_VIVO_C_MENS','OP_VIVO_C_CUSTO'],
+];
+// Chaves de quantidade de linhas por operadora (coluna Qtd na Operadoras_YYYY)
+const opQtdChaves = [
+  'OP_ALGAR_QTD','OP_ALGAR_M_QTD','OP_ARQIA_QTD','OP_ARQIA_2_QTD','OP_ARQIA_I_QTD',
+  'OP_CLARO_QTD','OP_CLARO_BL_QTD','OP_CLARO_C_QTD','OP_SIERRA_QTD','OP_TIM_QTD',
+  'OP_VIVO_QTD','OP_VIVO_BL_QTD','OP_VIVO_C_QTD',
+];
+
+// Pool de Dados — % consumido por mês por operadora (0–100)
+// Preencher na planilha apenas o % consumido; a barra exibe 100% de trilha com fill proporcional
+const poolNomes = ['Vivo','TIM','Algar MULTI','Algar ONE','Arqia'];
+let poolPctMes = Array.from({length:5}, () => new Array(12).fill(null)); // % consumido, chaves POOL_X_PCT
+
+// Atendimento
+const ticketsMes    = new Array(12).fill(null);
+const isRealTickets = new Array(12).fill(false);
+const tmaMes        = new Array(12).fill(null);
+const satMes        = new Array(12).fill(null);
+const satResp       = new Array(12).fill(null);
+
+// ── RH ──────────────────────────────────────────────────────────────
+const rhHeadcountMes  = new Array(12).fill(null);
+const rhDeptNomes     = ['Comercial','Suporte Técnico','TI','Financeiro','Suporte','Logística','RH / Admin'];
+const rhDeptChaves    = ['RH_D_Comerc','RH_D_Oper','RH_D_TI','RH_D_Fin','RH_D_Sup','RH_D_Log','RH_D_Admin'];
+let   rhDeptMes       = Array.from({length:7}, () => new Array(12).fill(null));
+const rhAdmissoes     = new Array(12).fill(null);
+const rhDesligamentos = new Array(12).fill(null);
+const rhFolhaMes      = new Array(12).fill(null);
+const rhSalarioMes    = new Array(12).fill(null); // RH_Salario — salário bruto do time
+const isRealRH        = new Array(12).fill(false);
+const rhFaltasMes     = new Array(12).fill(null);
+const rhAfastMes      = new Array(12).fill(null);
+const rhRescisaoMes   = new Array(12).fill(null);
+const rhCLTMes        = new Array(12).fill(null);
+const rhPJMes         = new Array(12).fill(null);
+
+const vendasMes     = new Array(12).fill(null);
+const novosClientes = new Array(12).fill(null);
+const equipMes      = new Array(12).fill(null);
+
+const cancelMes = new Array(12).fill(null);
+const desistMes = new Array(12).fill(null);
+
+const volEnvio   = new Array(12).fill(null);
+const custoEnvio = new Array(12).fill(null);
+const ebitda       = new Array(12).fill(null);
+const ebitdaIsReal = new Array(12).fill(false);
+
 // Verifica localStorage (lembrar) ou sessionStorage (só esta aba)
 // Sessão localStorage expira em 30 dias; sessionStorage nunca expira enquanto a aba estiver aberta.
 (function tryAutoLogin() {
@@ -2282,109 +2386,6 @@ navItems.forEach(item => {
 });
 
 // ========== Data ==========
-const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-
-// Todos os arrays iniciam vazios — preenchidos exclusivamente via sincronização com Google Sheets
-const lucroLiquido   = new Array(12).fill(null);
-const isReal         = new Array(12).fill(false);
-
-const receitaMes = new Array(12).fill(null);
-const custoMes   = new Array(12).fill(null);
-const despesaMes = new Array(12).fill(null);
-
-const cofrePrincipalMes = new Array(12).fill(null);
-const cofre1Mes         = new Array(12).fill(null);
-const cofre2Mes         = new Array(12).fill(null);
-
-const saldoAcum   = new Array(12).fill(null);
-const saldoIsReal = new Array(12).fill(false);
-
-const baseAtiva      = new Array(12).fill(null);
-const baseSw         = new Array(12).fill(null);
-const baseSuspensa   = new Array(12).fill(null);
-const smartFat       = new Array(12).fill(null);
-const allcomFat      = new Array(12).fill(null);
-const smartCusto     = new Array(12).fill(null);
-const dividendosMes  = new Array(12).fill(null);
-const margemSmart    = new Array(12).fill(null);
-const margemValorBRL = new Array(12).fill(null);
-
-const opNomes = ['ALGAR','ALGAR MULTI','ARQIA','ARQIA 2OP','ARQIA INTERNACIONAL','CLARO','CLARO BL','CLARO CATM1','SIERRA','TIM','VIVO','VIVO BL','VIVO CATM1'];
-const opBase = [
-  [0,0],[0,0],[0,0],[0,0],[0,0],
-  [0,0],[0,0],[0,0],[0,0],[0,0],
-  [0,0],[0,0],[0,0]
-];
-const opMensAdj  = [0,0,0,0,0,0,0,0,0,0,0,0]; // legado
-const opCustoAdj = [0,0,0,0,0,0,0,0,0,0,0,0]; // legado
-const opTotalBase = [0, 0]; // legado
-// Arrays mensais por operadora — preenchidos via aba Operadoras_YYYY
-// Índice corresponde a opNomes: 0=ALGAR, 1=ALGAR MULTI, ..., 12=VIVO CATM1
-let opMensMes  = Array.from({length:13}, () => new Array(12).fill(null));
-let opCustoMes = Array.from({length:13}, () => new Array(12).fill(null));
-let opQtdMes   = Array.from({length:13}, () => new Array(12).fill(null));
-// Chaves usadas na aba Operadoras_YYYY (mesma ordem de opNomes)
-const opChaves = [
-  ['OP_ALGAR_MENS','OP_ALGAR_CUSTO'],
-  ['OP_ALGAR_M_MENS','OP_ALGAR_M_CUSTO'],
-  ['OP_ARQIA_MENS','OP_ARQIA_CUSTO'],
-  ['OP_ARQIA_2_MENS','OP_ARQIA_2_CUSTO'],
-  ['OP_ARQIA_I_MENS','OP_ARQIA_I_CUSTO'],
-  ['OP_CLARO_MENS','OP_CLARO_CUSTO'],
-  ['OP_CLARO_BL_MENS','OP_CLARO_BL_CUSTO'],
-  ['OP_CLARO_C_MENS','OP_CLARO_C_CUSTO'],
-  ['OP_SIERRA_MENS','OP_SIERRA_CUSTO'],
-  ['OP_TIM_MENS','OP_TIM_CUSTO'],
-  ['OP_VIVO_MENS','OP_VIVO_CUSTO'],
-  ['OP_VIVO_BL_MENS','OP_VIVO_BL_CUSTO'],
-  ['OP_VIVO_C_MENS','OP_VIVO_C_CUSTO'],
-];
-// Chaves de quantidade de linhas por operadora (coluna Qtd na Operadoras_YYYY)
-const opQtdChaves = [
-  'OP_ALGAR_QTD','OP_ALGAR_M_QTD','OP_ARQIA_QTD','OP_ARQIA_2_QTD','OP_ARQIA_I_QTD',
-  'OP_CLARO_QTD','OP_CLARO_BL_QTD','OP_CLARO_C_QTD','OP_SIERRA_QTD','OP_TIM_QTD',
-  'OP_VIVO_QTD','OP_VIVO_BL_QTD','OP_VIVO_C_QTD',
-];
-
-// Pool de Dados — % consumido por mês por operadora (0–100)
-// Preencher na planilha apenas o % consumido; a barra exibe 100% de trilha com fill proporcional
-const poolNomes = ['Vivo','TIM','Algar MULTI','Algar ONE','Arqia'];
-let poolPctMes = Array.from({length:5}, () => new Array(12).fill(null)); // % consumido, chaves POOL_X_PCT
-
-// Atendimento
-const ticketsMes    = new Array(12).fill(null);
-const isRealTickets = new Array(12).fill(false);
-const tmaMes        = new Array(12).fill(null);
-const satMes        = new Array(12).fill(null);
-const satResp       = new Array(12).fill(null);
-
-// ── RH ──────────────────────────────────────────────────────────────
-const rhHeadcountMes  = new Array(12).fill(null);
-const rhDeptNomes     = ['Comercial','Suporte Técnico','TI','Financeiro','Suporte','Logística','RH / Admin'];
-const rhDeptChaves    = ['RH_D_Comerc','RH_D_Oper','RH_D_TI','RH_D_Fin','RH_D_Sup','RH_D_Log','RH_D_Admin'];
-let   rhDeptMes       = Array.from({length:7}, () => new Array(12).fill(null));
-const rhAdmissoes     = new Array(12).fill(null);
-const rhDesligamentos = new Array(12).fill(null);
-const rhFolhaMes      = new Array(12).fill(null);
-const rhSalarioMes    = new Array(12).fill(null); // RH_Salario — salário bruto do time
-const isRealRH        = new Array(12).fill(false);
-const rhFaltasMes     = new Array(12).fill(null);
-const rhAfastMes      = new Array(12).fill(null);
-const rhRescisaoMes   = new Array(12).fill(null);
-const rhCLTMes        = new Array(12).fill(null);
-const rhPJMes         = new Array(12).fill(null);
-
-const vendasMes     = new Array(12).fill(null);
-const novosClientes = new Array(12).fill(null);
-const equipMes      = new Array(12).fill(null);
-
-const cancelMes = new Array(12).fill(null);
-const desistMes = new Array(12).fill(null);
-
-const volEnvio   = new Array(12).fill(null);
-const custoEnvio = new Array(12).fill(null);
-const ebitda       = new Array(12).fill(null);
-const ebitdaIsReal = new Array(12).fill(false);
 
 // ========== Cache localStorage ==========
 // CACHE_KEY e CACHE_VERSION foram movidos para ANTES da IIFE tryAutoLogin (C-01 TDZ)
