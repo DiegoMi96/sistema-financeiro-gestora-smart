@@ -1671,52 +1671,27 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
             </div>
           </div>
 
-          <!-- Metas mensais de referência -->
-          <p style="margin:0 0 6px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;font-weight:700">Referências mensais</p>
-          <table class="tbl metas-tbl" id="metasTbl">
-            <thead><tr><th>Indicador</th><th class="num">Meta mensal</th><th>Unidade</th><th>Observação</th><th class="num btn-col-meta" style="width:36px"></th></tr></thead>
-            <tbody>
-              <tr data-meta-row="META_SIMCARDS_MES">
-                <td>Vendas Simcards</td>
-                <td class="num" data-meta="META_SIMCARDS_MES">33.000</td>
-                <td>por mês</td>
-                <td style="color:var(--muted);font-size:12px">Referência para o gráfico de Vendas e % vs. meta</td>
-                <td class="btn-col-meta"><button class="btn-remove-meta" onclick="_removeMetaRow(this)" title="Remover" style="display:none;background:transparent;border:0;cursor:pointer;color:var(--negative);padding:4px"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button></td>
-              </tr>
-              <tr data-meta-row="META_EQUIP_MES">
-                <td>Vendas Equipamentos</td>
-                <td class="num" data-meta="META_EQUIP_MES">2.000</td>
-                <td>por mês</td>
-                <td style="color:var(--muted);font-size:12px">Referência para o gráfico de Equipamentos e % vs. meta</td>
-                <td class="btn-col-meta"><button class="btn-remove-meta" onclick="_removeMetaRow(this)" title="Remover" style="display:none;background:transparent;border:0;cursor:pointer;color:var(--negative);padding:4px"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button></td>
-              </tr>
-            </tbody>
-          </table>
-          <!-- Botão incluir meta (visível apenas no modo de edição) -->
-          <button id="btnIncluirMeta" onclick="_openAddMeta()" style="display:none;margin-top:8px;background:transparent;color:var(--primary);border:1px dashed var(--primary);padding:7px 14px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px;width:100%;align-items:center;justify-content:center;gap:6px">
-            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-            Incluir meta
-          </button>
-
-          <!-- Separador -->
-          <div style="border-top:1px solid var(--border);margin:18px 0 14px"></div>
-
-          <!-- Acompanhamento anual -->
-          <p style="margin:0 0 6px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;font-weight:700">Acompanhamento anual</p>
+          <!-- Indicadores de Meta (tabela global unificada) -->
           <table class="tbl metas-tbl" id="metasAnualTbl">
             <thead>
               <tr>
                 <th>Indicador</th>
                 <th class="num">Meta Anual</th>
                 <th class="num">YTD Realizado</th>
-                <th class="num">Falta / Status</th>
+                <th class="num">Quanto falta</th>
                 <th style="min-width:160px">Progresso</th>
+                <th class="btn-col-meta" style="width:36px"></th>
               </tr>
             </thead>
             <tbody></tbody>
           </table>
+          <!-- Botão incluir meta (visível apenas no modo de edição) -->
+          <button id="btnIncluirMetaAnual" onclick="_addMetaAnual()" style="display:none;margin-top:8px;background:transparent;color:var(--primary);border:1px dashed var(--primary);padding:7px 14px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px;width:100%;align-items:center;justify-content:center;gap:6px">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            Incluir meta
+          </button>
           <p style="margin:10px 0 0;font-size:11.5px;color:var(--muted);line-height:1.6">
-            <strong style="color:var(--text-2)">Como funciona:</strong> a <em>Meta Anual</em> é editável. O <em>YTD Realizado</em> é puxado automaticamente dos dados importados. <em>Falta</em> e <em>Progresso</em> são calculados em tempo real.
+            <strong style="color:var(--text-2)">Como funciona:</strong> a <em>Meta Anual</em> é editável. O <em>YTD Realizado</em> é puxado automaticamente dos dados importados. <em>Quanto falta</em> e <em>Progresso</em> são calculados em tempo real.
           </p>
         </div>
         <div class="chart-card">
@@ -2465,8 +2440,10 @@ let META_NOVOS_ANO    = 1080;    // Meta anual de novos clientes
 let META_SAT_MIN      = 0.94;    // Meta mínima de satisfação (decimal)
 let META_CHURN_MAX    = 0.36;    // Meta máxima de churn (decimal)
 let META_CR_MAX       = 0.65;    // Meta máxima de custo/receita (decimal)
-let META_CUSTO_ANO   = 0;       // Meta anual de CMV/CSP (R$) — editável em Metas Anuais
-let META_DESP_ANO    = 0;       // Meta anual de Despesas (R$) — editável em Metas Anuais
+let META_CUSTO_ANO   = 0;       // Meta anual de CMV/CSP (R$) — editável em Metas
+let META_DESP_ANO    = 0;       // Meta anual de Despesas (R$) — editável em Metas
+let META_LUCRO_ANO   = 0;       // Meta anual de Lucro Líquido (R$) — editável em Metas
+let META_EQUIP_ANO   = 0;       // Meta anual de Equipamentos — editável em Metas (0 = usa META_EQUIP_MES×12)
 // ── Restaura metas salvas pelo usuário (persistência entre reloads) ──
 (function _restoreMetas() {
   try {
@@ -2482,6 +2459,8 @@ let META_DESP_ANO    = 0;       // Meta anual de Despesas (R$) — editável em 
     if (m.META_EQUIP_MES > 0)    META_EQUIP_MES    = m.META_EQUIP_MES;
     if (m.META_CUSTO_ANO > 0)    META_CUSTO_ANO    = m.META_CUSTO_ANO;
     if (m.META_DESP_ANO > 0)     META_DESP_ANO     = m.META_DESP_ANO;
+    if (m.META_LUCRO_ANO > 0)    META_LUCRO_ANO    = m.META_LUCRO_ANO;
+    if (m.META_EQUIP_ANO > 0)    META_EQUIP_ANO    = m.META_EQUIP_ANO;
   } catch(e) {}
 })();
 function _saveMetas() {
@@ -2490,7 +2469,8 @@ function _saveMetas() {
       META_RECEITA_ANO, META_MARGEM, META_NOVOS_ANO,
       META_SAT_MIN, META_CHURN_MAX, META_CR_MAX,
       META_SIMCARDS_MES, META_EQUIP_MES,
-      META_CUSTO_ANO, META_DESP_ANO
+      META_CUSTO_ANO, META_DESP_ANO,
+      META_LUCRO_ANO, META_EQUIP_ANO
     }));
   } catch(e) {}
 }
@@ -4197,158 +4177,90 @@ if (confirmLimparBtn) confirmLimparBtn.addEventListener('click', () => {
   showToast('Dados de ' + lbl + ' limpos · gráficos e KPIs zerados');
 });
 
-// ====== Editar Metas ======
-const metasTbl = document.getElementById('metasTbl');
-const btnEditMetas = document.getElementById('btnEditMetas');
-const btnSaveMetas = document.getElementById('btnSaveMetas');
+// ====== Editar Metas (tabela global unificada) ======
+const btnEditMetas   = document.getElementById('btnEditMetas');
+const btnSaveMetas   = document.getElementById('btnSaveMetas');
 const btnCancelMetas = document.getElementById('btnCancelMetas');
-const metasSaved = document.getElementById('metasSaved');
-let metasOriginal = {};
+const metasSaved     = document.getElementById('metasSaved');
+
+// ── Linhas ocultas (deletadas pelo usuário) ──────────────────────────────────
+let _hiddenMetaRows = new Set();
+(function _loadHiddenMetas() {
+  try {
+    const raw = localStorage.getItem('gsm_hidden_metas');
+    if (raw) JSON.parse(raw).forEach(k => _hiddenMetaRows.add(k));
+  } catch(e) {}
+})();
+function _saveHiddenMetas() {
+  try { localStorage.setItem('gsm_hidden_metas', JSON.stringify([..._hiddenMetaRows])); } catch(e) {}
+}
+
+// ── Linhas customizadas ──────────────────────────────────────────────────────
+let _customMetaRows = [];
+(function _loadCustomMetaRows() {
+  try {
+    const raw = localStorage.getItem('gsm_custom_meta_rows');
+    if (raw) _customMetaRows = JSON.parse(raw);
+  } catch(e) {}
+})();
+function _saveCustomMetaRows() {
+  try { localStorage.setItem('gsm_custom_meta_rows', JSON.stringify(_customMetaRows)); } catch(e) {}
+}
 
 function setEditMode(on) {
-  if (!metasTbl) return;
-  metasTbl.classList.toggle('editing', on);
-  if (btnEditMetas)  btnEditMetas.style.display  = on ? 'none' : 'inline-flex';
-  if (btnSaveMetas)  btnSaveMetas.style.display  = on ? 'inline-flex' : 'none';
+  if (btnEditMetas)   btnEditMetas.style.display   = on ? 'none' : 'inline-flex';
+  if (btnSaveMetas)   btnSaveMetas.style.display   = on ? 'inline-flex' : 'none';
   if (btnCancelMetas) btnCancelMetas.style.display = on ? 'inline-flex' : 'none';
-  // Botões remover linha e incluir meta
-  metasTbl.querySelectorAll('.btn-remove-meta').forEach(b => b.style.display = on ? 'inline-flex' : 'none');
-  const btnInc = document.getElementById('btnIncluirMeta');
-  if (btnInc) { btnInc.style.display = on ? 'flex' : 'none'; }
-  const cells = metasTbl.querySelectorAll('td[data-meta]');
-  cells.forEach(td => {
-    if (on) {
-      const v = td.textContent.trim();
-      metasOriginal[td.dataset.meta] = v;
-      td.innerHTML = `<input class="meta-input" value="${v.replace(/"/g,'&quot;')}">`;
-    } else {
-      const input = td.querySelector('input');
-      if (input) td.textContent = input.value || metasOriginal[td.dataset.meta] || '—';
-    }
-  });
-  // Aciona também a edição da tabela de metas anuais
   _setEditMA(on, /*buttonsHandledByParent=*/true);
 }
 function cancelEdit() {
-  if (!metasTbl) return;
-  const cells = metasTbl.querySelectorAll('td[data-meta]');
-  cells.forEach(td => { td.textContent = metasOriginal[td.dataset.meta] || td.textContent; });
-  metasTbl.classList.remove('editing');
-  if (btnEditMetas)   btnEditMetas.style.display   = 'inline-flex';
-  if (btnSaveMetas)   btnSaveMetas.style.display   = 'none';
-  if (btnCancelMetas) btnCancelMetas.style.display = 'none';
-  metasTbl.querySelectorAll('.btn-remove-meta').forEach(b => b.style.display = 'none');
-  const btnInc = document.getElementById('btnIncluirMeta');
-  if (btnInc) btnInc.style.display = 'none';
   _cancelMA();
+  setEditMode(false);
 }
 
-// ── Remover linha de meta (metasTbl) ────────────────────────────────────────
-function _removeMetaRow(btn) {
-  const tr = btn.closest('tr');
-  if (!tr) return;
-  tr.remove();
-  _persistCustomMetas();
+// ── Deletar linha da tabela unificada ────────────────────────────────────────
+function _deleteMetaAnualRow(key) {
+  if (key.startsWith('custom_')) {
+    _customMetaRows = _customMetaRows.filter(r => r.key !== key);
+    _saveCustomMetaRows();
+  } else {
+    _hiddenMetaRows.add(key);
+    _saveHiddenMetas();
+  }
+  buildMetasAnual();
+  // Mantém botões visíveis se ainda em modo edição
+  if (_tblMA && _tblMA.classList.contains('editing')) {
+    _tblMA.querySelectorAll('.btn-del-meta').forEach(b => b.style.display = 'inline-flex');
+  }
 }
 
-// ── Incluir nova meta ────────────────────────────────────────────────────────
-function _openAddMeta() {
-  const nome  = prompt('Nome do indicador:', '');
+// ── Incluir nova meta customizada ────────────────────────────────────────────
+function _addMetaAnual() {
+  const nome = prompt('Nome do indicador:', '');
   if (!nome || !nome.trim()) return;
-  const valor = prompt('Valor da meta (número):', '0');
-  const unidade = prompt('Unidade (ex: por mês, %...):', 'por mês');
-  const obs   = prompt('Observação (opcional):', '');
+  const valor = prompt('Meta anual (número):', '0');
   const n = parseFloat((valor||'0').replace(/\./g,'').replace(',','.'));
   if (isNaN(n)) { showToast('Valor inválido.'); return; }
-
-  const tbody = metasTbl.querySelector('tbody');
-  if (!tbody) return;
-  const tr = document.createElement('tr');
-  tr.dataset.metaRow = 'custom';
-  tr.innerHTML = `
-    <td>${nome.trim()}</td>
-    <td class="num" data-meta-custom>${n.toLocaleString('pt-BR')}</td>
-    <td>${(unidade||'').trim()}</td>
-    <td style="color:var(--muted);font-size:12px">${(obs||'').trim()}</td>
-    <td class="btn-col-meta"><button class="btn-remove-meta" onclick="_removeMetaRow(this)" title="Remover" style="display:inline-flex;background:transparent;border:0;cursor:pointer;color:var(--negative);padding:4px"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button></td>
-  `;
-  tbody.appendChild(tr);
-  _persistCustomMetas();
-}
-
-// ── Persiste estado atual do metasTbl (linhas customizadas) ─────────────────
-function _persistCustomMetas() {
-  try {
-    const rows = [];
-    if (!metasTbl) return;
-    metasTbl.querySelectorAll('tbody tr').forEach(tr => {
-      const cells = tr.querySelectorAll('td');
-      if (cells.length < 4) return;
-      const key  = tr.dataset.metaRow || 'custom';
-      const nome = cells[0].textContent.trim();
-      const val  = cells[1].textContent.trim();
-      const unit = cells[2].textContent.trim();
-      const obs  = cells[3].textContent.trim();
-      rows.push({ key, nome, val, unit, obs });
-    });
-    localStorage.setItem('gsm_meta_rows', JSON.stringify(rows));
-  } catch(e) {}
-}
-
-// ── Restaura linhas customizadas do metasTbl no carregamento ────────────────
-(function _restoreCustomMetaRows() {
-  try {
-    const raw = localStorage.getItem('gsm_meta_rows');
-    if (!raw) return;
-    const rows = JSON.parse(raw);
-    const tbody = document.querySelector('#metasTbl tbody');
-    if (!tbody) return;
-    // Remove as linhas fixas atuais e reconstrói conforme o estado salvo
-    tbody.innerHTML = '';
-    rows.forEach(r => {
-      const tr = document.createElement('tr');
-      tr.dataset.metaRow = r.key;
-      const isFixed = r.key === 'META_SIMCARDS_MES' || r.key === 'META_EQUIP_MES';
-      tr.innerHTML = `
-        <td>${r.nome}</td>
-        <td class="num"${isFixed ? ` data-meta="${r.key}"` : ' data-meta-custom'}>${r.val}</td>
-        <td>${r.unit}</td>
-        <td style="color:var(--muted);font-size:12px">${r.obs}</td>
-        <td class="btn-col-meta"><button class="btn-remove-meta" onclick="_removeMetaRow(this)" title="Remover" style="display:none;background:transparent;border:0;cursor:pointer;color:var(--negative);padding:4px"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button></td>
-      `;
-      tbody.appendChild(tr);
-    });
-  } catch(e) {}
-})();
-function saveMetas() {
-  // Salva metas comerciais
-  if (metasTbl) {
-    metasTbl.querySelectorAll('td[data-meta]').forEach(td => {
-      const key = td.dataset.meta;
-      const inp = td.querySelector('input');
-      if (inp) td.textContent = inp.value || metasOriginal[key] || td.textContent;
-      const raw = td.textContent.replace(/\./g,'').replace(',','.').trim();
-      const val = parseFloat(raw);
-      if (!isNaN(val) && val > 0) {
-        if (key === 'META_SIMCARDS_MES') META_SIMCARDS_MES = val;
-        if (key === 'META_EQUIP_MES')    META_EQUIP_MES    = val;
-      }
-    });
+  _customMetaRows.push({ key: 'custom_' + Date.now(), nome: nome.trim(), meta: n });
+  _saveCustomMetaRows();
+  buildMetasAnual();
+  if (_tblMA && _tblMA.classList.contains('editing')) {
+    _tblMA.querySelectorAll('.btn-del-meta').forEach(b => b.style.display = 'inline-flex');
   }
-  // Salva metas anuais
+}
+
+function saveMetas() {
   _saveMA(/*skipDisplay=*/true);
-  // Fecha modo de edição
   setEditMode(false);
-  // Reconstrói gráficos afetados
   buildVendasMeta(); buildEquipMeta(); buildMetasAnual();
   _saveMetas();
   if (metasSaved) { metasSaved.style.display = 'block'; setTimeout(() => { metasSaved.style.display = 'none'; }, 4000); }
 }
-if (btnEditMetas) btnEditMetas.addEventListener('click', () => setEditMode(true));
-if (btnSaveMetas) btnSaveMetas.addEventListener('click', saveMetas);
+if (btnEditMetas)   btnEditMetas.addEventListener('click', () => setEditMode(true));
+if (btnSaveMetas)   btnSaveMetas.addEventListener('click', saveMetas);
 if (btnCancelMetas) btnCancelMetas.addEventListener('click', cancelEdit);
 
-// ── Metas Anuais ─────────────────────────────────────────────────────────
+// ── Metas Anuais — tabela global unificada ───────────────────────────────────
 function buildMetasAnual() {
   const tbl = document.getElementById('metasAnualTbl');
   if (!tbl) return;
@@ -4358,11 +4270,11 @@ function buildMetasAnual() {
   const rmSpan = document.getElementById('metasAnualMeses');
   if (rmSpan) rmSpan.textContent = realMeses > 0 ? `${realMeses} mes${realMeses !== 1 ? 'es' : ''} real${realMeses !== 1 ? 'is' : ''}` : 'Sem dados reais';
   if (realMeses === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px;font-size:13px">Sincronize os dados para ver o progresso</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px;font-size:13px">Sincronize os dados para ver o progresso</td></tr>';
     return;
   }
 
-  // ── YTD helpers ─────────────────────────────────────────────────────
+  // ── YTD helpers ──────────────────────────────────────────────────────
   const ytdSum  = arr => arr.reduce((s, v, i) => s + (isReal[i] && v != null ? v : 0), 0);
   const ytdLast = arr => { let v = null; arr.forEach((x, i) => { if (isReal[i] && x != null) v = x; }); return v; };
   const ytdAvg  = arr => { let s = 0, c = 0; arr.forEach((x, i) => { if (isReal[i] && x != null) { s += x; c++; } }); return c > 0 ? s / c : null; };
@@ -4373,78 +4285,122 @@ function buildMetasAnual() {
   const ytdResult   = ytdSum(lucroLiquido);
   const ytdMargem   = ytdReceita > 0 ? ytdResult / ytdReceita : null;
   const ytdVendas   = vendasMes.reduce((s, v) => s + (v != null ? v : 0), 0);
+  const ytdEquip    = equipMes.reduce((s, v) => s + (v != null ? v : 0), 0);
   const ytdNovos    = ytdSum(novosClientes);
   const ytdSat      = ytdAvg(satMes);
   const ytdCancelam = ytdSum(cancelMes);
   const baseAtual   = ytdLast(baseAtiva);
   const ytdChurn    = baseAtual != null && baseAtual > 0 ? ytdCancelam / baseAtual : null;
   const ytdCR       = ytdReceita > 0 ? (ytdCusto + ytdDesp) / ytdReceita : null;
-  const metaVendasAno = META_SIMCARDS_MES * 12;
+  const metaSimAno  = META_SIMCARDS_MES * 12;
+  const metaEquipAno = META_EQUIP_ANO > 0 ? META_EQUIP_ANO : META_EQUIP_MES * 12;
 
-  // ── Formatters ───────────────────────────────────────────────────────
+  // ── Formatters ────────────────────────────────────────────────────────
   const fmtR  = v => { if (v == null) return '—'; if (Math.abs(v) >= 1e6) return 'R$ ' + (v/1e6).toFixed(2).replace('.',',') + 'M'; if (Math.abs(v) >= 1e3) return 'R$ ' + (v/1e3).toFixed(1).replace('.',',') + 'K'; return 'R$ ' + Math.round(v).toLocaleString('pt-BR'); };
   const fmtP  = (v, dec=1) => v != null ? (v*100).toFixed(dec).replace('.',',') + '%' : '—';
   const fmtN  = v => v != null ? Math.round(v).toLocaleString('pt-BR') : '—';
+  const fmtPP = v => v != null ? (v >= 0 ? '+' : '') + (v*100).toFixed(1).replace('.',',') + ' p.p.' : '—';
   const bar   = (pct, warn=false) => { const w = Math.min(100, Math.max(0, pct)).toFixed(1); const c = warn ? '#E89B2B' : 'var(--primary)'; return `<div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;min-width:90px"><div style="height:100%;width:${w}%;background:${c};border-radius:3px;transition:width .4s"></div></div><span style="font-size:11.5px;color:var(--muted);font-weight:700;min-width:34px;text-align:right">${Math.round(pct)}%</span></div>`; };
   const badge = (ok, txt) => { const [bg, clr] = ok ? ['rgba(29,158,94,.12)', 'var(--primary-dark)'] : ['rgba(232,155,43,.12)', '#C87A15']; return `<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:700;background:${bg};color:${clr}">${ok?'✓':'⚠'} ${txt}</span>`; };
   const bdRed = txt => `<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:700;background:rgba(224,70,59,.12);color:var(--negative)">✗ ${txt}</span>`;
+  const delBtn = key => `<td class="btn-col-meta"><button class="btn-del-meta" onclick="_deleteMetaAnualRow('${key}')" title="Remover" style="display:none;background:transparent;border:0;cursor:pointer;color:var(--negative);padding:4px"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button></td>`;
 
   const rows = [];
+  const H = _hiddenMetaRows;
 
-  // 1. Receita anual (cumulative)
-  { const m = META_RECEITA_ANO; const y = ytdReceita; const pct = m > 0 ? y / m * 100 : 0; const f = m - y;
-    rows.push(`<tr><td>Receita Anual</td><td class="num"><span data-meta-a="META_RECEITA_ANO">${fmtR(m)}</span></td><td class="num">${fmtR(y)}</td><td class="num ${f<=0?'pos':'warn'}">${f <= 0 ? '✓ Meta atingida' : fmtR(f) + ' restam'}</td><td>${bar(pct, pct < 80)}</td></tr>`); }
-
-  // 1b. Custo Anual — só exibe se a meta foi definida
-  if (META_CUSTO_ANO > 0) {
-    const m = META_CUSTO_ANO; const y = ytdCusto; const pct = m > 0 ? y / m * 100 : 0; const f = m - y;
-    rows.push(`<tr><td>Custo Anual (CMV)</td><td class="num"><span data-meta-a="META_CUSTO_ANO">${fmtR(m)}</span></td><td class="num">${fmtR(y)}</td><td class="num ${f<=0?'warn':'pos'}">${f <= 0 ? '⚠ Meta excedida' : fmtR(f) + ' disponível'}</td><td>${bar(pct, pct > 100)}</td></tr>`);
+  // 1. Receita Anual
+  if (!H.has('META_RECEITA_ANO')) {
+    const m = META_RECEITA_ANO, y = ytdReceita, pct = m > 0 ? y / m * 100 : 0, f = m - y;
+    rows.push(`<tr><td>Receita Anual</td><td class="num"><span data-meta-a="META_RECEITA_ANO">${fmtR(m)}</span></td><td class="num">${fmtR(y)}</td><td class="num ${f<=0?'pos':'warn'}">${fmtR(f > 0 ? f : 0)}</td><td>${bar(pct, pct < 80)}</td>${delBtn('META_RECEITA_ANO')}</tr>`);
   }
 
-  // 1c. Despesas Anuais — só exibe se a meta foi definida
-  if (META_DESP_ANO > 0) {
-    const m = META_DESP_ANO; const y = ytdDesp; const pct = m > 0 ? y / m * 100 : 0; const f = m - y;
-    rows.push(`<tr><td>Despesas Anuais</td><td class="num"><span data-meta-a="META_DESP_ANO">${fmtR(m)}</span></td><td class="num">${fmtR(y)}</td><td class="num ${f<=0?'warn':'pos'}">${f <= 0 ? '⚠ Meta excedida' : fmtR(f) + ' disponível'}</td><td>${bar(pct, pct > 100)}</td></tr>`);
+  // 2. Custo Anual (CMV)
+  if (!H.has('META_CUSTO_ANO')) {
+    const m = META_CUSTO_ANO, y = ytdCusto, pct = m > 0 ? y / m * 100 : 0, f = m - y;
+    rows.push(`<tr><td>Custo Anual (CMV)</td><td class="num"><span data-meta-a="META_CUSTO_ANO">${m > 0 ? fmtR(m) : '—'}</span></td><td class="num">${fmtR(y)}</td><td class="num ${m>0&&f>=0?'pos':m>0?'warn':''}'">${m > 0 ? fmtR(Math.abs(f)) : '—'}</td><td>${m > 0 ? bar(pct, pct > 100) : '—'}</td>${delBtn('META_CUSTO_ANO')}</tr>`);
   }
 
-  // 2. Margem líquida (rate)
-  { const m = META_MARGEM; const y = ytdMargem; const diff = y != null ? y - m : null; const pct = y != null ? Math.min(100, y / m * 100) : 0;
-    rows.push(`<tr><td>Margem Líquida</td><td class="num"><span data-meta-a="META_MARGEM">${fmtP(m)}</span></td><td class="num">${fmtP(y)}</td><td class="num ${diff!=null&&diff>=0?'pos':'warn'}">${diff != null ? (diff >= 0 ? '+' : '') + (diff*100).toFixed(1).replace('.',',') + ' p.p.' : '—'}</td><td>${y != null ? bar(pct, diff != null && diff < 0) : '—'}</td></tr>`); }
+  // 3. Despesas Anuais
+  if (!H.has('META_DESP_ANO')) {
+    const m = META_DESP_ANO, y = ytdDesp, pct = m > 0 ? y / m * 100 : 0, f = m - y;
+    rows.push(`<tr><td>Despesas Anuais</td><td class="num"><span data-meta-a="META_DESP_ANO">${m > 0 ? fmtR(m) : '—'}</span></td><td class="num">${fmtR(y)}</td><td class="num ${m>0&&f>=0?'pos':m>0?'warn':''}'">${m > 0 ? fmtR(Math.abs(f)) : '—'}</td><td>${m > 0 ? bar(pct, pct > 100) : '—'}</td>${delBtn('META_DESP_ANO')}</tr>`);
+  }
 
-  // 3. Vendas Simcards (cumulative)
-  { const m = metaVendasAno; const y = ytdVendas; const pct = m > 0 ? y / m * 100 : 0; const f = m - y;
-    rows.push(`<tr><td>Vendas Simcards</td><td class="num">${fmtN(m)}</td><td class="num">${fmtN(y)}</td><td class="num ${f<=0?'pos':'warn'}">${f <= 0 ? '✓ Meta atingida' : fmtN(f) + ' restam'}</td><td>${bar(pct, pct < 80)}</td></tr>`); }
+  // 4. Evolução do Lucro Líquido
+  if (!H.has('META_LUCRO_ANO')) {
+    const m = META_LUCRO_ANO, y = ytdResult, pct = m > 0 ? y / m * 100 : 0, f = m - y;
+    rows.push(`<tr><td>Lucro Líquido</td><td class="num"><span data-meta-a="META_LUCRO_ANO">${m > 0 ? fmtR(m) : '—'}</span></td><td class="num">${fmtR(y)}</td><td class="num ${m>0&&f<=0?'pos':m>0?'warn':''}'">${m > 0 ? fmtR(f > 0 ? f : 0) : '—'}</td><td>${m > 0 ? bar(pct, pct < 80) : '—'}</td>${delBtn('META_LUCRO_ANO')}</tr>`);
+  }
 
-  // 4. Novos Clientes (cumulative)
-  { const m = META_NOVOS_ANO; const y = ytdNovos; const pct = m > 0 ? y / m * 100 : 0; const f = m - y;
-    rows.push(`<tr><td>Novos Clientes</td><td class="num"><span data-meta-a="META_NOVOS_ANO">${fmtN(m)}</span></td><td class="num">${fmtN(y)}</td><td class="num ${f<=0?'pos':'warn'}">${f <= 0 ? '✓ Meta atingida' : fmtN(f) + ' restam'}</td><td>${bar(pct, pct < 80)}</td></tr>`); }
+  // 5. Margem Líquida
+  if (!H.has('META_MARGEM')) {
+    const m = META_MARGEM, y = ytdMargem, diff = y != null ? y - m : null, pct = y != null ? Math.min(100, y / m * 100) : 0;
+    rows.push(`<tr><td>Margem Líquida</td><td class="num"><span data-meta-a="META_MARGEM">${fmtP(m)}</span></td><td class="num">${fmtP(y)}</td><td class="num ${diff!=null&&diff>=0?'pos':'warn'}">${fmtPP(diff)}</td><td>${y != null ? bar(pct, diff != null && diff < 0) : '—'}</td>${delBtn('META_MARGEM')}</tr>`);
+  }
 
-  // 5. Satisfação (threshold-min)
-  { const m = META_SAT_MIN; const y = ytdSat; const ok = y != null && y >= m; const diff = y != null ? y - m : null;
-    rows.push(`<tr><td>Satisfação (mínimo)</td><td class="num"><span data-meta-a="META_SAT_MIN">≥ ${fmtP(m)}</span></td><td class="num">${fmtP(y)}</td><td class="num ${ok?'pos':'warn'}">${diff != null ? (ok ? '+' : '') + (diff*100).toFixed(1).replace('.',',') + ' p.p.' : '—'}</td><td>${y != null ? badge(ok, ok ? 'Atingida' : 'Abaixo') : '—'}</td></tr>`); }
+  // 6. Vendas Simcards
+  if (!H.has('META_SIMCARDS_MES')) {
+    const m = metaSimAno, y = ytdVendas, pct = m > 0 ? y / m * 100 : 0, f = m - y;
+    rows.push(`<tr><td>Vendas Simcards</td><td class="num"><span data-meta-a="META_SIMCARDS_MES">${fmtN(m)}</span></td><td class="num">${fmtN(y)}</td><td class="num ${f<=0?'pos':'warn'}">${fmtN(f > 0 ? f : 0)}</td><td>${bar(pct, pct < 80)}</td>${delBtn('META_SIMCARDS_MES')}</tr>`);
+  }
 
-  // 6. Churn (threshold-max)
-  { const m = META_CHURN_MAX; const y = ytdChurn; const ok = y != null && y <= m; const diff = y != null ? m - y : null; const near = diff != null && diff >= 0 && diff < 0.05;
-    rows.push(`<tr><td>Churn (máximo)</td><td class="num"><span data-meta-a="META_CHURN_MAX">≤ ${fmtP(m)}</span></td><td class="num">${fmtP(y)}</td><td class="num ${ok?'pos':'warn'}">${diff != null ? (ok ? 'margem de ' + Math.abs(diff*100).toFixed(0) + ' p.p.' : Math.abs(diff*100).toFixed(0) + ' p.p. acima') : '—'}</td><td>${y != null ? (ok ? badge(!near, near ? 'No limite' : 'Dentro') : bdRed('Acima')) : '—'}</td></tr>`); }
+  // 7. Vendas Equipamentos
+  if (!H.has('META_EQUIP_MES')) {
+    const m = metaEquipAno, y = ytdEquip, pct = m > 0 ? y / m * 100 : 0, f = m - y;
+    rows.push(`<tr><td>Vendas Equipamentos</td><td class="num"><span data-meta-a="META_EQUIP_MES">${fmtN(m)}</span></td><td class="num">${fmtN(y)}</td><td class="num ${f<=0?'pos':'warn'}">${fmtN(f > 0 ? f : 0)}</td><td>${bar(pct, pct < 80)}</td>${delBtn('META_EQUIP_MES')}</tr>`);
+  }
 
-  // 7. Custo / Receita (threshold-max)
-  { const m = META_CR_MAX; const y = ytdCR; const ok = y != null && y <= m; const diff = y != null ? m - y : null; const near = diff != null && diff >= 0 && diff < 0.03;
-    rows.push(`<tr><td>Custo / Receita</td><td class="num"><span data-meta-a="META_CR_MAX">≤ ${fmtP(m)}</span></td><td class="num">${fmtP(y)}</td><td class="num ${ok?'pos':'warn'}">${diff != null ? (ok ? 'margem de ' + (diff*100).toFixed(1).replace('.',',') + ' p.p.' : (Math.abs(diff)*100).toFixed(1).replace('.',',') + ' p.p. acima') : '—'}</td><td>${y != null ? (ok ? badge(!near, near ? 'No limite' : 'Dentro') : bdRed('Acima')) : '—'}</td></tr>`); }
+  // 8. Novos Clientes
+  if (!H.has('META_NOVOS_ANO')) {
+    const m = META_NOVOS_ANO, y = ytdNovos, pct = m > 0 ? y / m * 100 : 0, f = m - y;
+    rows.push(`<tr><td>Novos Clientes</td><td class="num"><span data-meta-a="META_NOVOS_ANO">${fmtN(m)}</span></td><td class="num">${fmtN(y)}</td><td class="num ${f<=0?'pos':'warn'}">${fmtN(f > 0 ? f : 0)}</td><td>${bar(pct, pct < 80)}</td>${delBtn('META_NOVOS_ANO')}</tr>`);
+  }
+
+  // 9. Satisfação (mínimo)
+  if (!H.has('META_SAT_MIN')) {
+    const m = META_SAT_MIN, y = ytdSat, ok = y != null && y >= m, diff = y != null ? y - m : null;
+    const pct = y != null ? Math.min(100, y / m * 100) : 0;
+    rows.push(`<tr><td>Satisfação (mínimo)</td><td class="num"><span data-meta-a="META_SAT_MIN">≥ ${fmtP(m)}</span></td><td class="num">${fmtP(y)}</td><td class="num ${ok?'pos':'warn'}">${fmtPP(diff)}</td><td>${y != null ? badge(ok, ok ? 'Atingida' : 'Abaixo') : '—'}</td>${delBtn('META_SAT_MIN')}</tr>`);
+  }
+
+  // 10. Churn (máximo)
+  if (!H.has('META_CHURN_MAX')) {
+    const m = META_CHURN_MAX, y = ytdChurn, ok = y != null && y <= m, diff = y != null ? m - y : null, near = diff != null && diff >= 0 && diff < 0.05;
+    rows.push(`<tr><td>Churn (máximo)</td><td class="num"><span data-meta-a="META_CHURN_MAX">≤ ${fmtP(m)}</span></td><td class="num">${fmtP(y)}</td><td class="num ${ok?'pos':'warn'}">${diff != null ? (diff*100).toFixed(1).replace('.',',') + ' p.p.' : '—'}</td><td>${y != null ? (ok ? badge(!near, near ? 'No limite' : 'Dentro') : bdRed('Acima')) : '—'}</td>${delBtn('META_CHURN_MAX')}</tr>`);
+  }
+
+  // 11. Custo / Receita (máximo)
+  if (!H.has('META_CR_MAX')) {
+    const m = META_CR_MAX, y = ytdCR, ok = y != null && y <= m, diff = y != null ? m - y : null, near = diff != null && diff >= 0 && diff < 0.03;
+    rows.push(`<tr><td>Custo / Receita</td><td class="num"><span data-meta-a="META_CR_MAX">≤ ${fmtP(m)}</span></td><td class="num">${fmtP(y)}</td><td class="num ${ok?'pos':'warn'}">${fmtPP(diff)}</td><td>${y != null ? (ok ? badge(!near, near ? 'No limite' : 'Dentro') : bdRed('Acima')) : '—'}</td>${delBtn('META_CR_MAX')}</tr>`);
+  }
+
+  // 12. Linhas customizadas
+  _customMetaRows.forEach(r => {
+    if (H.has(r.key)) return;
+    rows.push(`<tr><td>${r.nome}</td><td class="num">${fmtR(r.meta)}</td><td class="num">—</td><td class="num">—</td><td>—</td>${delBtn(r.key)}</tr>`);
+  });
 
   tbody.innerHTML = rows.join('');
+
+  // Re-aplica estado de edição se a tabela estiver em modo edição
+  if (_tblMA && _tblMA.classList.contains('editing')) {
+    _tblMA.querySelectorAll('.btn-del-meta').forEach(b => b.style.display = 'inline-flex');
+  }
 }
 
 // Edit mode for metas anuais
 let _metasAnualOrig = {};
-const _btnEditMA   = document.getElementById('btnEditMetasAnual');
-const _btnSaveMA   = document.getElementById('btnSaveMetasAnual');
-const _btnCancelMA = document.getElementById('btnCancelMetasAnual');
-const _savedMA     = document.getElementById('metasAnualSaved');
-const _tblMA       = document.getElementById('metasAnualTbl');
+const _tblMA = document.getElementById('metasAnualTbl');
 
 function _setEditMA(on, buttonsHandledByParent) {
   if (!_tblMA) return;
   _tblMA.classList.toggle('editing', on);
+  // Botões deletar linha + botão incluir meta
+  _tblMA.querySelectorAll('.btn-del-meta').forEach(b => b.style.display = on ? 'inline-flex' : 'none');
+  const btnInc = document.getElementById('btnIncluirMetaAnual');
+  if (btnInc) btnInc.style.display = on ? 'flex' : 'none';
+  // Campos editáveis
   _tblMA.querySelectorAll('span[data-meta-a]').forEach(sp => {
     const key = sp.dataset.metaA;
     if (on) {
@@ -4470,13 +4426,19 @@ function _saveMA(skipDisplay) {
     const key = inp.dataset.metaA;
     const raw = inp.value.replace(/\./g, '').replace(',', '.');
     const val = parseFloat(raw);
-    if (!isNaN(val) && val > 0) {
-      if (key === 'META_RECEITA_ANO') META_RECEITA_ANO = val;
-      if (key === 'META_MARGEM')       META_MARGEM      = val > 1 ? val / 100 : val;
-      if (key === 'META_NOVOS_ANO')    META_NOVOS_ANO   = val;
-      if (key === 'META_SAT_MIN')      META_SAT_MIN     = val > 1 ? val / 100 : val;
-      if (key === 'META_CHURN_MAX')    META_CHURN_MAX   = val > 1 ? val / 100 : val;
-      if (key === 'META_CR_MAX')       META_CR_MAX      = val > 1 ? val / 100 : val;
+    if (!isNaN(val) && val >= 0) {
+      if (key === 'META_RECEITA_ANO')  META_RECEITA_ANO  = val;
+      if (key === 'META_CUSTO_ANO')    META_CUSTO_ANO    = val;
+      if (key === 'META_DESP_ANO')     META_DESP_ANO     = val;
+      if (key === 'META_LUCRO_ANO')    META_LUCRO_ANO    = val;
+      if (key === 'META_MARGEM')       META_MARGEM       = val > 1 ? val / 100 : val;
+      if (key === 'META_SIMCARDS_MES') META_SIMCARDS_MES = val > 0 ? Math.round(val / 12) : META_SIMCARDS_MES; // tabela exibe anual; armazena mensal
+      if (key === 'META_EQUIP_MES')    META_EQUIP_MES    = val > 0 ? Math.round(val / 12) : META_EQUIP_MES;    // tabela exibe anual; armazena mensal
+      if (key === 'META_EQUIP_ANO')    META_EQUIP_ANO    = val;
+      if (key === 'META_NOVOS_ANO')    META_NOVOS_ANO    = val > 0 ? val : META_NOVOS_ANO;
+      if (key === 'META_SAT_MIN')      META_SAT_MIN      = val > 1 ? val / 100 : val;
+      if (key === 'META_CHURN_MAX')    META_CHURN_MAX    = val > 1 ? val / 100 : val;
+      if (key === 'META_CR_MAX')       META_CR_MAX       = val > 1 ? val / 100 : val;
     }
   });
   _saveMetas();
