@@ -2843,8 +2843,7 @@ function miniSub(arr, metaAnual) {
   const prevTotal = allTotal - realTotal;
   const pct = metaAnual > 0 ? Math.round(realTotal / metaAnual * 100)
             : allTotal  > 0 ? Math.round(realTotal / allTotal  * 100) : 0;
-  const label = metaAnual > 0 ? '% da meta' : '% concluído';
-  return 'Realizado '+fmtAutoK(realTotal)+' · Previsão '+fmtAutoK(prevTotal)+' · <strong>'+pct+' '+label+'</strong>';
+  return 'Realizado '+fmtAutoK(realTotal)+' · Previsão '+fmtAutoK(prevTotal)+' · <strong>'+pct+'% concluído</strong>';
 }
 function buildReceita() {
   buildMini('chartReceita', receitaMes);
