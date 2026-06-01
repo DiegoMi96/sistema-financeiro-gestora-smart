@@ -903,6 +903,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           <div class="chart-head">
             <div>
               <div class="chart-title">Evolução do Lucro Líquido</div>
+              <div class="chart-sub" id="plLucroSub">Realizado R$ 0 · Previsão R$ 0 · <strong>0% concluído</strong></div>
             </div>
             <div class="chart-legend">
               <span><span class="legend-dot" style="background:var(--primary)"></span>Realizado</span>
@@ -2787,6 +2788,7 @@ function buildLucro() {
       scales: { ...commonOpts().scales, y: { ...commonOpts().scales.y, ticks: { ...commonOpts().scales.y.ticks, callback: v => (v/1000).toFixed(0)+'k' } } }
     })
   });
+  const s = document.getElementById('plLucroSub'); if(s) s.innerHTML = miniSub(lucroLiquido, META_LUCRO_ANO);
 }
 
 function buildMini(id, real) {
