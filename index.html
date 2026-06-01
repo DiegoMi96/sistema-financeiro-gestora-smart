@@ -1674,22 +1674,29 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           <!-- Metas mensais de referência -->
           <p style="margin:0 0 6px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;font-weight:700">Referências mensais</p>
           <table class="tbl metas-tbl" id="metasTbl">
-            <thead><tr><th>Indicador</th><th class="num">Meta mensal</th><th>Unidade</th><th>Observação</th></tr></thead>
+            <thead><tr><th>Indicador</th><th class="num">Meta mensal</th><th>Unidade</th><th>Observação</th><th class="num btn-col-meta" style="width:36px"></th></tr></thead>
             <tbody>
-              <tr>
+              <tr data-meta-row="META_SIMCARDS_MES">
                 <td>Vendas Simcards</td>
                 <td class="num" data-meta="META_SIMCARDS_MES">33.000</td>
                 <td>por mês</td>
                 <td style="color:var(--muted);font-size:12px">Referência para o gráfico de Vendas e % vs. meta</td>
+                <td class="btn-col-meta"><button class="btn-remove-meta" onclick="_removeMetaRow(this)" title="Remover" style="display:none;background:transparent;border:0;cursor:pointer;color:var(--negative);padding:4px"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button></td>
               </tr>
-              <tr>
+              <tr data-meta-row="META_EQUIP_MES">
                 <td>Vendas Equipamentos</td>
                 <td class="num" data-meta="META_EQUIP_MES">2.000</td>
                 <td>por mês</td>
                 <td style="color:var(--muted);font-size:12px">Referência para o gráfico de Equipamentos e % vs. meta</td>
+                <td class="btn-col-meta"><button class="btn-remove-meta" onclick="_removeMetaRow(this)" title="Remover" style="display:none;background:transparent;border:0;cursor:pointer;color:var(--negative);padding:4px"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button></td>
               </tr>
             </tbody>
           </table>
+          <!-- Botão incluir meta (visível apenas no modo de edição) -->
+          <button id="btnIncluirMeta" onclick="_openAddMeta()" style="display:none;margin-top:8px;background:transparent;color:var(--primary);border:1px dashed var(--primary);padding:7px 14px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px;width:100%;align-items:center;justify-content:center;gap:6px">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            Incluir meta
+          </button>
 
           <!-- Separador -->
           <div style="border-top:1px solid var(--border);margin:18px 0 14px"></div>
@@ -2458,6 +2465,8 @@ let META_NOVOS_ANO    = 1080;    // Meta anual de novos clientes
 let META_SAT_MIN      = 0.94;    // Meta mínima de satisfação (decimal)
 let META_CHURN_MAX    = 0.36;    // Meta máxima de churn (decimal)
 let META_CR_MAX       = 0.65;    // Meta máxima de custo/receita (decimal)
+let META_CUSTO_ANO   = 0;       // Meta anual de CMV/CSP (R$) — editável em Metas Anuais
+let META_DESP_ANO    = 0;       // Meta anual de Despesas (R$) — editável em Metas Anuais
 // ── Restaura metas salvas pelo usuário (persistência entre reloads) ──
 (function _restoreMetas() {
   try {
@@ -2471,6 +2480,8 @@ let META_CR_MAX       = 0.65;    // Meta máxima de custo/receita (decimal)
     if (m.META_CR_MAX > 0)       META_CR_MAX       = m.META_CR_MAX;
     if (m.META_SIMCARDS_MES > 0) META_SIMCARDS_MES = m.META_SIMCARDS_MES;
     if (m.META_EQUIP_MES > 0)    META_EQUIP_MES    = m.META_EQUIP_MES;
+    if (m.META_CUSTO_ANO > 0)    META_CUSTO_ANO    = m.META_CUSTO_ANO;
+    if (m.META_DESP_ANO > 0)     META_DESP_ANO     = m.META_DESP_ANO;
   } catch(e) {}
 })();
 function _saveMetas() {
@@ -2478,7 +2489,8 @@ function _saveMetas() {
     localStorage.setItem('gsm_metas', JSON.stringify({
       META_RECEITA_ANO, META_MARGEM, META_NOVOS_ANO,
       META_SAT_MIN, META_CHURN_MAX, META_CR_MAX,
-      META_SIMCARDS_MES, META_EQUIP_MES
+      META_SIMCARDS_MES, META_EQUIP_MES,
+      META_CUSTO_ANO, META_DESP_ANO
     }));
   } catch(e) {}
 }
@@ -2825,24 +2837,26 @@ function buildMini(id, real) {
   });
 }
 
-function miniSub(arr) {
+function miniSub(arr, metaAnual) {
   const realTotal = arr.reduce((s,v,i) => s+(isReal[i]&&v!=null?v:0), 0);
   const allTotal  = arr.reduce((s,v) => s+(v!=null?v:0), 0);
   const prevTotal = allTotal - realTotal;
-  const pct = allTotal > 0 ? Math.round(realTotal/allTotal*100) : 0;
-  return 'Realizado '+fmtAutoK(realTotal)+' · Previsão '+fmtAutoK(prevTotal)+' · <strong>'+pct+'% concluído</strong>';
+  const pct = metaAnual > 0 ? Math.round(realTotal / metaAnual * 100)
+            : allTotal  > 0 ? Math.round(realTotal / allTotal  * 100) : 0;
+  const label = metaAnual > 0 ? '% da meta' : '% concluído';
+  return 'Realizado '+fmtAutoK(realTotal)+' · Previsão '+fmtAutoK(prevTotal)+' · <strong>'+pct+' '+label+'</strong>';
 }
 function buildReceita() {
   buildMini('chartReceita', receitaMes);
-  const s = document.getElementById('plReceitaSub'); if(s) s.innerHTML = miniSub(receitaMes);
+  const s = document.getElementById('plReceitaSub'); if(s) s.innerHTML = miniSub(receitaMes, META_RECEITA_ANO);
 }
 function buildCusto()   {
   buildMini('chartCusto', custoMes);
-  const s = document.getElementById('plCustoSub'); if(s) s.innerHTML = miniSub(custoMes);
+  const s = document.getElementById('plCustoSub'); if(s) s.innerHTML = miniSub(custoMes, META_CUSTO_ANO);
 }
 function buildDespesa() {
   buildMini('chartDespesa', despesaMes);
-  const s = document.getElementById('plDespesaSub'); if(s) s.innerHTML = miniSub(despesaMes);
+  const s = document.getElementById('plDespesaSub'); if(s) s.innerHTML = miniSub(despesaMes, META_DESP_ANO);
 }
 
 function buildEbitda() {
@@ -4198,6 +4212,10 @@ function setEditMode(on) {
   if (btnEditMetas)  btnEditMetas.style.display  = on ? 'none' : 'inline-flex';
   if (btnSaveMetas)  btnSaveMetas.style.display  = on ? 'inline-flex' : 'none';
   if (btnCancelMetas) btnCancelMetas.style.display = on ? 'inline-flex' : 'none';
+  // Botões remover linha e incluir meta
+  metasTbl.querySelectorAll('.btn-remove-meta').forEach(b => b.style.display = on ? 'inline-flex' : 'none');
+  const btnInc = document.getElementById('btnIncluirMeta');
+  if (btnInc) { btnInc.style.display = on ? 'flex' : 'none'; }
   const cells = metasTbl.querySelectorAll('td[data-meta]');
   cells.forEach(td => {
     if (on) {
@@ -4220,8 +4238,89 @@ function cancelEdit() {
   if (btnEditMetas)   btnEditMetas.style.display   = 'inline-flex';
   if (btnSaveMetas)   btnSaveMetas.style.display   = 'none';
   if (btnCancelMetas) btnCancelMetas.style.display = 'none';
+  metasTbl.querySelectorAll('.btn-remove-meta').forEach(b => b.style.display = 'none');
+  const btnInc = document.getElementById('btnIncluirMeta');
+  if (btnInc) btnInc.style.display = 'none';
   _cancelMA();
 }
+
+// ── Remover linha de meta (metasTbl) ────────────────────────────────────────
+function _removeMetaRow(btn) {
+  const tr = btn.closest('tr');
+  if (!tr) return;
+  tr.remove();
+  _persistCustomMetas();
+}
+
+// ── Incluir nova meta ────────────────────────────────────────────────────────
+function _openAddMeta() {
+  const nome  = prompt('Nome do indicador:', '');
+  if (!nome || !nome.trim()) return;
+  const valor = prompt('Valor da meta (número):', '0');
+  const unidade = prompt('Unidade (ex: por mês, %...):', 'por mês');
+  const obs   = prompt('Observação (opcional):', '');
+  const n = parseFloat((valor||'0').replace(/\./g,'').replace(',','.'));
+  if (isNaN(n)) { showToast('Valor inválido.'); return; }
+
+  const tbody = metasTbl.querySelector('tbody');
+  if (!tbody) return;
+  const tr = document.createElement('tr');
+  tr.dataset.metaRow = 'custom';
+  tr.innerHTML = `
+    <td>${nome.trim()}</td>
+    <td class="num" data-meta-custom>${n.toLocaleString('pt-BR')}</td>
+    <td>${(unidade||'').trim()}</td>
+    <td style="color:var(--muted);font-size:12px">${(obs||'').trim()}</td>
+    <td class="btn-col-meta"><button class="btn-remove-meta" onclick="_removeMetaRow(this)" title="Remover" style="display:inline-flex;background:transparent;border:0;cursor:pointer;color:var(--negative);padding:4px"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button></td>
+  `;
+  tbody.appendChild(tr);
+  _persistCustomMetas();
+}
+
+// ── Persiste estado atual do metasTbl (linhas customizadas) ─────────────────
+function _persistCustomMetas() {
+  try {
+    const rows = [];
+    if (!metasTbl) return;
+    metasTbl.querySelectorAll('tbody tr').forEach(tr => {
+      const cells = tr.querySelectorAll('td');
+      if (cells.length < 4) return;
+      const key  = tr.dataset.metaRow || 'custom';
+      const nome = cells[0].textContent.trim();
+      const val  = cells[1].textContent.trim();
+      const unit = cells[2].textContent.trim();
+      const obs  = cells[3].textContent.trim();
+      rows.push({ key, nome, val, unit, obs });
+    });
+    localStorage.setItem('gsm_meta_rows', JSON.stringify(rows));
+  } catch(e) {}
+}
+
+// ── Restaura linhas customizadas do metasTbl no carregamento ────────────────
+(function _restoreCustomMetaRows() {
+  try {
+    const raw = localStorage.getItem('gsm_meta_rows');
+    if (!raw) return;
+    const rows = JSON.parse(raw);
+    const tbody = document.querySelector('#metasTbl tbody');
+    if (!tbody) return;
+    // Remove as linhas fixas atuais e reconstrói conforme o estado salvo
+    tbody.innerHTML = '';
+    rows.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.dataset.metaRow = r.key;
+      const isFixed = r.key === 'META_SIMCARDS_MES' || r.key === 'META_EQUIP_MES';
+      tr.innerHTML = `
+        <td>${r.nome}</td>
+        <td class="num"${isFixed ? ` data-meta="${r.key}"` : ' data-meta-custom'}>${r.val}</td>
+        <td>${r.unit}</td>
+        <td style="color:var(--muted);font-size:12px">${r.obs}</td>
+        <td class="btn-col-meta"><button class="btn-remove-meta" onclick="_removeMetaRow(this)" title="Remover" style="display:none;background:transparent;border:0;cursor:pointer;color:var(--negative);padding:4px"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch(e) {}
+})();
 function saveMetas() {
   // Salva metas comerciais
   if (metasTbl) {
@@ -4296,6 +4395,18 @@ function buildMetasAnual() {
   // 1. Receita anual (cumulative)
   { const m = META_RECEITA_ANO; const y = ytdReceita; const pct = m > 0 ? y / m * 100 : 0; const f = m - y;
     rows.push(`<tr><td>Receita Anual</td><td class="num"><span data-meta-a="META_RECEITA_ANO">${fmtR(m)}</span></td><td class="num">${fmtR(y)}</td><td class="num ${f<=0?'pos':'warn'}">${f <= 0 ? '✓ Meta atingida' : fmtR(f) + ' restam'}</td><td>${bar(pct, pct < 80)}</td></tr>`); }
+
+  // 1b. Custo Anual — só exibe se a meta foi definida
+  if (META_CUSTO_ANO > 0) {
+    const m = META_CUSTO_ANO; const y = ytdCusto; const pct = m > 0 ? y / m * 100 : 0; const f = m - y;
+    rows.push(`<tr><td>Custo Anual (CMV)</td><td class="num"><span data-meta-a="META_CUSTO_ANO">${fmtR(m)}</span></td><td class="num">${fmtR(y)}</td><td class="num ${f<=0?'warn':'pos'}">${f <= 0 ? '⚠ Meta excedida' : fmtR(f) + ' disponível'}</td><td>${bar(pct, pct > 100)}</td></tr>`);
+  }
+
+  // 1c. Despesas Anuais — só exibe se a meta foi definida
+  if (META_DESP_ANO > 0) {
+    const m = META_DESP_ANO; const y = ytdDesp; const pct = m > 0 ? y / m * 100 : 0; const f = m - y;
+    rows.push(`<tr><td>Despesas Anuais</td><td class="num"><span data-meta-a="META_DESP_ANO">${fmtR(m)}</span></td><td class="num">${fmtR(y)}</td><td class="num ${f<=0?'warn':'pos'}">${f <= 0 ? '⚠ Meta excedida' : fmtR(f) + ' disponível'}</td><td>${bar(pct, pct > 100)}</td></tr>`);
+  }
 
   // 2. Margem líquida (rate)
   { const m = META_MARGEM; const y = ytdMargem; const diff = y != null ? y - m : null; const pct = y != null ? Math.min(100, y / m * 100) : 0;
