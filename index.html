@@ -3341,11 +3341,12 @@ function buildChurn() {
   const ctx = document.getElementById('chartChurn'); if (!ctx) return;
   destroyChart('churn');
   const sel = periodMonthIdx[currentPeriod];
-  const _chAll  = (cancelMes||[]).filter(v => v != null && v > 0);
+  const _chAll  = [...(cancelMes||[]), ...(desistMes||[])].filter(v => v != null && v > 0);
   const _chMax  = _chAll.length ? Math.ceil(Math.max(..._chAll) * 1.25 / 1000) * 1000 : 25000;
   charts.churn = new Chart(ctx, {
     data:{ labels: meses, datasets:[
-      { type:'bar', label:'Cancelamento', data: cancelMes, backgroundColor: cancelMes.map((_,i)=> i===sel ? '#A8261D' : css('--negative')), borderRadius:6, barPercentage:.6 }
+      { type:'bar', label:'Cancelamento', data: cancelMes, backgroundColor: cancelMes.map((_,i)=> i===sel ? '#A8261D' : css('--negative')), borderRadius:6, barPercentage:.45 },
+      { type:'bar', label:'Desistência',  data: desistMes, backgroundColor: desistMes.map((_,i)=> i===sel ? '#B5751F' : css('--warning')), borderRadius:6, barPercentage:.45 }
     ]},
     options: commonOpts({
       plugins:{
