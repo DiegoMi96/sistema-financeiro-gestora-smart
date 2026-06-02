@@ -4958,7 +4958,7 @@ function computePeriodData(dm) {
       'Desistência':            { v: fmtNum(desist), f: 'Pré-ativação' },
       'Cancelamento Acumulado': { v: fmtNum(cancelAcum), f: 'Acumulado' },
       'Resultado Líquido':      { v: fmtAutoK(res), f: lbl },
-      'Índice de Satisfação':   { v: satV!=null ? (satV*100).toFixed(1).replace('.',',')+'%' : '—', f: satV!=null?'Pesquisa de satisfação':'Linha Satisfacao na planilha (0 a 1)' },
+      'Índice de Satisfação':   { v: satV!=null ? Math.round(satV > 1 ? satV : satV*100)+'%' : '—', f: satV!=null?'Pesquisa de satisfação':'Linha Satisfacao na planilha (0 a 100 ou 0 a 1)' },
       'Cancelamento Anual':     { v: fmtNum(cancelAcum), f: 'Média mensal: '+fmtNum(Math.round(cancelAcum/(idx+1))) },
       'Desistência Anual':      { v: fmtNum(sumTo('Desistencia',idx)), f: 'Média mensal: '+fmtNum(Math.round(sumTo('Desistencia',idx)/(idx+1))) },
       'Churn Implícito':        { v: churnPct, f: 'Cancel / Base ativa' },
@@ -5009,6 +5009,8 @@ function computePeriodData(dm) {
   mapArr('Desistencia', desistMes);
   mapArr('Tickets', ticketsMes);
   mapArr('Satisfacao', satMes);
+  // Normaliza: usuário pode inserir 94 (inteiro) em vez de 0,94 (decimal)
+  satMes.forEach((v, i) => { if (v != null && v > 1) satMes[i] = v / 100; });
   mapArr('RH_Folha',    rhFolhaMes);
   mapArr('RH_Salario',  rhSalarioMes);
   mapArr('RH_Faltas',   rhFaltasMes);
@@ -5170,7 +5172,7 @@ function computePeriodData(dm) {
       ? ticketsMes.slice(0, q ? 3 : idx+1).reduce((s,v) => s + (v!=null?v:0), 0)
       : ticketsMes[idx];
     periodData[key].satisfacao = {
-      val:    satV2 != null ? (satV2*100).toFixed(1).replace('.',',')+'%' : '—',
+      val:    satV2 != null ? (Math.round((satV2 > 1 ? satV2 : satV2*100)))+'%' : '—',
       volume: ticketVol != null && ticketVol > 0 ? 'Volume de atendimento  ' + Math.round(ticketVol).toLocaleString('pt-BR') : ''
     };
 
