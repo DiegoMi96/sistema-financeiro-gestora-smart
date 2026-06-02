@@ -1626,11 +1626,15 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_Deslig</code> Nº de desligamentos no mês</div>
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_D_Comerc</code> Headcount Comercial</div>
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_D_Oper</code> Headcount Suporte Técnico</div>
-              <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_D_TI</code> Headcount TI</div>
+              <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_D_TI</code> Headcount Operacional</div>
+              <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_D_Log</code> Headcount Logistica</div>
+              <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_D_Dev</code> Headcount Desenvolvedor</div>
+              <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_D_Admin</code> Headcount Administrativo</div>
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_D_Fin</code> Headcount Financeiro</div>
-              <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_D_Sup</code> Headcount Suporte</div>
-              <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_D_Log</code> Headcount Logística</div>
-              <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_D_Admin</code> Headcount RH/Admin</div>
+              <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_D_Fac</code> Headcount Facilitis</div>
+              <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_D_Sup</code> Headcount Supervisores</div>
+              <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_D_Dir</code> Headcount Diretoria</div>
+              <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">RH_D_Cons</code> Headcount Conselho de Administração</div>
             </div>
           </div>
         </div>
@@ -2225,9 +2229,9 @@ const satResp       = new Array(12).fill(null);
 
 // ── RH ──────────────────────────────────────────────────────────────
 const rhHeadcountMes  = new Array(12).fill(null);
-const rhDeptNomes     = ['Comercial','Suporte Técnico','TI','Financeiro','Suporte','Logística','RH / Admin'];
-const rhDeptChaves    = ['RH_D_Comerc','RH_D_Oper','RH_D_TI','RH_D_Fin','RH_D_Sup','RH_D_Log','RH_D_Admin'];
-let   rhDeptMes       = Array.from({length:7}, () => new Array(12).fill(null));
+const rhDeptNomes     = ['Comercial','Suporte Técnico','Operacional','Logistica','Desenvolvedor','Administrativo','Financeiro','Facilitis','Supervisores','Diretoria','Conselho de Administração'];
+const rhDeptChaves    = ['RH_D_Comerc','RH_D_Oper','RH_D_TI','RH_D_Log','RH_D_Dev','RH_D_Admin','RH_D_Fin','RH_D_Fac','RH_D_Sup','RH_D_Dir','RH_D_Cons'];
+let   rhDeptMes       = Array.from({length:11}, () => new Array(12).fill(null));
 const rhAdmissoes     = new Array(12).fill(null);
 const rhDesligamentos = new Array(12).fill(null);
 const rhFolhaMes      = new Array(12).fill(null);
@@ -4983,7 +4987,7 @@ function computePeriodData(dm) {
   ticketsMes.fill(null); rhHeadcountMes.fill(null); rhFolhaMes.fill(null); rhSalarioMes.fill(null);
   rhFaltasMes.fill(null); rhAfastMes.fill(null); rhRescisaoMes.fill(null); rhDesligamentos.fill(null);
   rhCLTMes.fill(null); rhPJMes.fill(null);
-  rhDeptMes = Array.from({length:7}, () => new Array(12).fill(null));
+  rhDeptMes = Array.from({length:11}, () => new Array(12).fill(null));
   baseAtiva.fill(null); baseSw.fill(null); baseSuspensa.fill(null); smartFat.fill(null);
   allcomFat.fill(null); margemSmart.fill(null); margemValorBRL.fill(null);
   smartCusto.fill(null); dividendosMes.fill(null);
