@@ -2862,6 +2862,12 @@ function buildEbitda() {
   const sel = periodMonthIdx[currentPeriod];
   const ebitdaReal = ebitda.map((v,i) => ebitdaIsReal[i] ? v : null);
   const ebitdaPrev = ebitda.map((v,i) => ebitdaIsReal[i] ? null : v);
+  // Eixo Y: max = maior valor * 1.10 (10% de margem) arredondado para múltiplo de 5
+  const _eVals = ebitda.filter(v => v != null && isFinite(v));
+  const _eMax  = _eVals.length ? Math.max(..._eVals) : 50;
+  const _eMin  = _eVals.length ? Math.min(..._eVals) : 0;
+  const yMax = Math.ceil(_eMax * 1.10 / 5) * 5;
+  const yMin = _eMin < 0 ? Math.floor(_eMin * 1.10 / 5) * 5 : 0;
   charts.ebitda = new Chart(ctx, {
     type: 'line',
     data: { labels: meses, datasets: [
@@ -2885,7 +2891,7 @@ function buildEbitda() {
           formatter: v => v==null?'':v.toFixed(1).replace('.',',')+'%'
         }
       },
-      scales:{...commonOpts().scales, y:{...commonOpts().scales.y, ticks:{...commonOpts().scales.y.ticks, callback: v => v+'%'}}}
+      scales:{...commonOpts().scales, y:{...commonOpts().scales.y, min: yMin, max: yMax, ticks:{...commonOpts().scales.y.ticks, callback: v => v+'%'}}}
     })
   });
 }
