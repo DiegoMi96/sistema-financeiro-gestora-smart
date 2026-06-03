@@ -2907,6 +2907,12 @@ function buildMargemContrib() {
   });
   const realData = pctArr.map((v,i) => isReal[i] ? v : null);
   const prevData = pctArr.map((v,i) => isReal[i] ? null : v);
+  // Eixo Y: max = maior valor * 1.10 (10% de margem) arredondado para múltiplo de 5
+  const _mcVals = pctArr.filter(v => v != null && isFinite(v));
+  const _mcMax  = _mcVals.length ? Math.max(..._mcVals) : 50;
+  const _mcMin  = _mcVals.length ? Math.min(..._mcVals) : 0;
+  const mcYMax  = Math.ceil(_mcMax * 1.10 / 5) * 5;
+  const mcYMin  = _mcMin < 0 ? Math.floor(_mcMin * 1.10 / 5) * 5 : 0;
   charts.margemContrib = new Chart(ctx, {
     type: 'line',
     data: { labels: meses, datasets: [
@@ -2930,7 +2936,7 @@ function buildMargemContrib() {
           formatter: v => v==null?'':v.toFixed(1).replace('.',',')+'%'
         }
       },
-      scales:{...commonOpts().scales, y:{...commonOpts().scales.y, ticks:{...commonOpts().scales.y.ticks, callback: v => v+'%'}}}
+      scales:{...commonOpts().scales, y:{...commonOpts().scales.y, min: mcYMin, max: mcYMax, ticks:{...commonOpts().scales.y.ticks, callback: v => v+'%'}}}
     })
   });
 }
