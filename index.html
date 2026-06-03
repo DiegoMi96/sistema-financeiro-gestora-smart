@@ -3900,12 +3900,17 @@ function buildSaidasTable(filter='') {
   const EXCL_CAT = cat => /receita|resultado|saldo|dividendo/i.test(cat);
 
   // Value for a group for month m: real → saidasData, forecast → previsaoData
+  // Prefere total do cabeçalho (_headerVals) quando disponível
   const grpValM = (groupCat, m) => {
     const src = isReal[m] ? saidasData : previsaoData;
     const grp = src.find(g => g.cat === groupCat);
     if (!grp) return 0;
+    if (grp._headerVals) {
+      const hv = grp._headerVals[m] ?? null;
+      if (hv != null && hv !== 0) return hv;
+    }
     if (grp.subs.length > 0) return grp.subs.reduce((a, s) => a + (s[m + 1] || 0), 0);
-    return grp._headerVals ? (grp._headerVals[m] || 0) : 0;
+    return 0;
   };
 
   // Value for a sub for month m
@@ -4025,14 +4030,19 @@ function buildSaidasPercTable() {
   const tbl = document.getElementById('saidasPercTbl');
   if (!tbl) return;
 
-  const EXCL_CAT = cat => /receita|resultado|saldo/i.test(cat);
+  const EXCL_CAT = cat => /receita|resultado|saldo|dividendo/i.test(cat);
 
   const grpValM = (groupCat, m) => {
     const src = isReal[m] ? saidasData : previsaoData;
     const grp = src.find(g => g.cat === groupCat);
     if (!grp) return 0;
+    // Prefere total do cabeçalho (fórmula do Sheets) quando disponível
+    if (grp._headerVals) {
+      const hv = grp._headerVals[m] ?? null;
+      if (hv != null && hv !== 0) return hv;
+    }
     if (grp.subs.length > 0) return grp.subs.reduce((a, s) => a + (s[m + 1] || 0), 0);
-    return grp._headerVals ? (grp._headerVals[m] || 0) : 0;
+    return 0;
   };
 
   const selIdx  = periodMonthIdx[currentPeriod] ?? 0;
