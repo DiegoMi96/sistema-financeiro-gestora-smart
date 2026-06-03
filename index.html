@@ -3896,8 +3896,8 @@ function buildSaidasTable(filter='') {
   const year = document.getElementById('yearSelect')?.value || '2026';
   const shortMons = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
-  // Exclude any group containing receita / resultado / saldo
-  const EXCL_CAT = cat => /receita|resultado|saldo/i.test(cat);
+  // Exclude groups that appear in fixed positions or are not cost centers
+  const EXCL_CAT = cat => /receita|resultado|saldo|dividendo/i.test(cat);
 
   // Value for a group for month m: real → saidasData, forecast → previsaoData
   const grpValM = (groupCat, m) => {
@@ -3983,7 +3983,27 @@ function buildSaidasTable(filter='') {
     });
   });
 
-  // Linha de Custo Total — soma de todos os centros de custo
+  // Linha de Dividendos — antes do total
+  if (!ftext) {
+    const divMes = Array.from({length: 12}, (_, m) => grpValM('Dividendos', m));
+    const divTotal = divMes.reduce((a, v) => a + v, 0);
+    if (divTotal > 0 || divMes.some(v => v > 0)) {
+      let drow = `<tr class="cat-group" style="border-top:2px solid var(--border)">
+        <td class="cat">Dividendos</td>`;
+      for (let m = 0; m < 12; m++) {
+        const p = calcPct(divMes, m);
+        const fc = !isReal[m] ? ' forecast' : '';
+        drow += `<td class="num${fc}">${fmtMoney(divMes[m])}</td>`;
+        drow += `<td class="pct ${clsPct(p)}${fc}">${fmtPct(p)}</td>`;
+      }
+      drow += `<td class="num">${fmtMoney(divTotal)}</td></tr>`;
+      parts.push(drow);
+      // Inclui dividendos no custo total
+      divMes.forEach((v, m) => { totalByMonth[m] += v; });
+    }
+  }
+
+  // Linha de Custo Total — soma de todos os centros de custo + dividendos
   if (!ftext) {
     const grandTotal = totalByMonth.reduce((a, v) => a + v, 0);
     let trow = `<tr class="cat-group" style="border-top:2px solid var(--border);background:var(--bg)">
