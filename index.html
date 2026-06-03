@@ -4852,7 +4852,7 @@ document.getElementById('monthSelect').addEventListener('change', onPeriodChange
 // A autenticação do sistema protege a UI mas NÃO os dados do Google Sheets.
 const SHEET_ID = '1yKDb5cGWnGjbZ4DVFPAFcV7SMWTlSqncWK0O9HbzK3Y';
 const SHEET_CSV = (tab) =>
-  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
+  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}&t=${Date.now()}`;
 
 function parseCSV(text) {
   // Normaliza CRLF e CR isolado para LF antes de processar
@@ -5269,7 +5269,7 @@ async function syncFromSheets() {
 
   try {
     // Fetch tab named after the year ("2026", "2025", ...)
-    const resp = await fetch(SHEET_CSV(year));
+    const resp = await fetch(SHEET_CSV(year), { cache: 'no-store' });
     if (!resp.ok) throw new Error(`HTTP ${resp.status} — verifique se a planilha está pública e se a aba "${year}" existe`);
     const text = await resp.text();
     const rows = parseCSV(text);
@@ -5288,7 +5288,7 @@ async function syncFromSheets() {
     // Try to fetch Saidas_YEAR tab (e.g. "Saidas_2026")
     try {
       const saidasTab = `Saidas_${year}`;
-      const respS = await fetch(SHEET_CSV(saidasTab));
+      const respS = await fetch(SHEET_CSV(saidasTab), { cache: 'no-store' });
       if (respS.ok) {
         const textS = await respS.text();
         const rowsS = parseCSV(textS);
@@ -5320,7 +5320,7 @@ async function syncFromSheets() {
     // Aba Operadoras_YYYY — Detalhamento por Operadora + Pool de Dados
     try {
       const opTab = `Operadoras_${year}`;
-      const respO = await fetch(SHEET_CSV(opTab));
+      const respO = await fetch(SHEET_CSV(opTab), { cache: 'no-store' });
       if (respO.ok) {
         const textO = await respO.text();
         const rowsO = parseCSV(textO);
@@ -5351,7 +5351,7 @@ async function syncFromSheets() {
     // Aba Previsao_YYYY — forecast de saídas (mesma estrutura de Saidas_YYYY)
     try {
       const prevTab = `Previsao_${year}`;
-      const respP = await fetch(SHEET_CSV(prevTab));
+      const respP = await fetch(SHEET_CSV(prevTab), { cache: 'no-store' });
       if (respP.ok) {
         const textP = await respP.text();
         const rowsP = parseCSV(textP);
