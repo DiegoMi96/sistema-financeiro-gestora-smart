@@ -2625,9 +2625,14 @@ function refreshPeriodFilter(year, lastRealIdx) {
   optYTD.value = 'YTD'; optYTD.textContent = 'Acumulado';
   sel.appendChild(optYTD);
 
-  // Seleciona o mês mais recente com dados; mantém seleção atual se ainda válida
-  const latestVal = lastRealIdx >= 0 ? MES_PAD[lastRealIdx] : MES_PAD[0];
-  sel.value = Array.from(sel.options).some(o => o.value === prevVal) ? prevVal : latestVal;
+  // Prioridade de seleção:
+  // 1. Seleção prévia do usuário (durante a sessão, ao sincronizar)
+  // 2. Mês atual do calendário (ao carregar/recarregar a página, prevVal = '')
+  // 3. Último mês com dados reais (fallback se o mês atual não tiver dados)
+  const opts = Array.from(sel.options).map(o => o.value);
+  const latestVal  = lastRealIdx >= 0 ? MES_PAD[lastRealIdx] : MES_PAD[0];
+  const defaultVal = opts.includes(_nowMonth) ? _nowMonth : latestVal;
+  sel.value = opts.includes(prevVal) ? prevVal : defaultVal;
   currentPeriod = `${year}-${sel.value}`;
 }
 
