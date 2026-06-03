@@ -1614,6 +1614,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">Cancelam</code> Cancelamentos</div>
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">Desistencia</code> Desistências pré-at.</div>
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">Tickets</code> Tickets de suporte</div>
+              <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">Rec_AtvFin</code> Receita de Atividades Financeiras (excluída da Margem de Contribuição e Margem Líquida)</div>
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">Satisfacao</code> Índice de satisfação (0 a 1)</div>
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">Vol_Envio</code> Pacotes enviados</div>
               <div><code style="font-size:10.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--primary-dark)">Custo_Envio</code> Custo frete (R$)</div>
@@ -2160,9 +2161,10 @@ const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov'
 const lucroLiquido   = new Array(12).fill(null);
 const isReal         = new Array(12).fill(false);
 
-const receitaMes = new Array(12).fill(null);
-const custoMes   = new Array(12).fill(null);
-const despesaMes = new Array(12).fill(null);
+const receitaMes    = new Array(12).fill(null);
+const custoMes      = new Array(12).fill(null);
+const despesaMes    = new Array(12).fill(null);
+const recAtvFinMes  = new Array(12).fill(null); // Receita de Atividades Financeiras (excluída da margem)
 
 const cofrePrincipalMes = new Array(12).fill(null);
 const cofre1Mes         = new Array(12).fill(null);
@@ -2893,8 +2895,9 @@ function buildMargemContrib() {
   destroyChart('margemContrib');
   const sel = periodMonthIdx[currentPeriod];
   const pctArr = receitaMes.map((rec,i) => {
-    const cmv = custoMes[i];
-    return (rec && cmv != null) ? parseFloat(((rec - cmv) / rec * 100).toFixed(2)) : null;
+    const cmv  = custoMes[i];
+    const recL = rec != null ? rec - (recAtvFinMes[i] ?? 0) : null; // desconta Atividades Financeiras
+    return (recL && cmv != null) ? parseFloat(((recL - cmv) / recL * 100).toFixed(2)) : null;
   });
   const realData = pctArr.map((v,i) => isReal[i] ? v : null);
   const prevData = pctArr.map((v,i) => isReal[i] ? null : v);
@@ -2931,8 +2934,9 @@ function buildMargemLiq() {
   destroyChart('margemLiq');
   const sel = periodMonthIdx[currentPeriod];
   const pctArr = receitaMes.map((rec,i) => {
-    const liq = lucroLiquido[i];
-    return (rec && liq != null) ? parseFloat((liq / rec * 100).toFixed(2)) : null;
+    const liq  = lucroLiquido[i];
+    const recL = rec != null ? rec - (recAtvFinMes[i] ?? 0) : null; // desconta Atividades Financeiras
+    return (recL && liq != null) ? parseFloat((liq / recL * 100).toFixed(2)) : null;
   });
   const realData = pctArr.map((v,i) => isReal[i] ? v : null);
   const prevData = pctArr.map((v,i) => isReal[i] ? null : v);
@@ -4995,7 +4999,8 @@ function computePeriodData(dm) {
     const cancel = isQ1||isYTD ? sumTo('Cancelam',_toIdx) : get('Cancelam',idx);
     const desist = isQ1||isYTD ? sumTo('Desistencia',_toIdx) : get('Desistencia',idx);
     const cancelAcum = sumTo('Cancelam', idx);
-    const margemPct = rec && cmv ? (((rec-cmv)/rec)*100).toFixed(2).replace('.',',')+'%' : '—';
+    const recL      = rec != null ? rec - (recAtvFinMes[idx] ?? 0) : null; // desconta Ativ. Financeiras
+    const margemPct = recL && cmv ? (((recL-cmv)/recL)*100).toFixed(2).replace('.',',')+'%' : '—';
     const churnPct = baseAtivaV && cancel ? (((cancel+(desist??0))/baseAtivaV)*100).toFixed(2).replace('.',',')+'%' : '—';
     const custoEnvioAcum = sumTo('Custo_Envio', idx);
     const volEnvioAcum = sumTo('Vol_Envio', idx);
@@ -5050,6 +5055,7 @@ function computePeriodData(dm) {
 
   // ── Zera TODOS os arrays antes de preencher — garante que nada do ciclo anterior persiste
   lucroLiquido.fill(null); receitaMes.fill(null); custoMes.fill(null); despesaMes.fill(null);
+  recAtvFinMes.fill(null);
   ebitda.fill(null); saldoAcum.fill(null); cancelMes.fill(null); desistMes.fill(null);
   ticketsMes.fill(null); rhHeadcountMes.fill(null); rhFolhaMes.fill(null); rhSalarioMes.fill(null);
   rhFaltasMes.fill(null); rhAfastMes.fill(null); rhRescisaoMes.fill(null); rhDesligamentos.fill(null);
@@ -5071,6 +5077,7 @@ function computePeriodData(dm) {
     for (let i=0;i<len;i++) target[i] = dm[key][i] ?? null;
   };
   mapArr('Receita', receitaMes);
+  mapArr('Rec_AtvFin', recAtvFinMes); // Atividades Financeiras excluídas da margem
   mapArr('CMV', custoMes);
   mapArr('Despesas', despesaMes);
   mapArr('EBITDA', ebitda);
