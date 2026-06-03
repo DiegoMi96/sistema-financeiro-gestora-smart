@@ -2804,7 +2804,7 @@ function buildLucro() {
       scales: { ...commonOpts().scales, y: { ...commonOpts().scales.y, ticks: { ...commonOpts().scales.y.ticks, callback: v => (v/1000).toFixed(0)+'k' } } }
     })
   });
-  const s = document.getElementById('plLucroSub'); if(s) s.innerHTML = miniSub(lucroLiquido, META_LUCRO_ANO);
+  const s = document.getElementById('plLucroSub'); if(s) s.innerHTML = miniSub(lucroLiquido);
 }
 
 function buildMini(id, real) {
@@ -2835,25 +2835,23 @@ function buildMini(id, real) {
   });
 }
 
-function miniSub(arr, metaAnual) {
+function miniSub(arr) {
   const realTotal = arr.reduce((s,v,i) => s+(isReal[i]&&v!=null?v:0), 0);
-  const allTotal  = arr.reduce((s,v) => s+(v!=null?v:0), 0);
-  const prevTotal = allTotal - realTotal;
-  const pct = metaAnual > 0 ? Math.round(realTotal / metaAnual * 100)
-            : allTotal  > 0 ? Math.round(realTotal / allTotal  * 100) : 0;
-  return 'Realizado '+fmtAutoK(realTotal)+' · Previsão '+fmtAutoK(prevTotal)+' · <strong>'+pct+'% concluído</strong>';
+  const allTotal  = arr.reduce((s,v) => s+(v!=null?v:0), 0); // real + previsão (Previsao_2026)
+  const pct = allTotal > 0 ? Math.round(realTotal / allTotal * 100) : 0;
+  return 'Realizado '+fmtAutoK(realTotal)+' · Previsão '+fmtAutoK(allTotal)+' · <strong>'+pct+'% concluído</strong>';
 }
 function buildReceita() {
   buildMini('chartReceita', receitaMes);
-  const s = document.getElementById('plReceitaSub'); if(s) s.innerHTML = miniSub(receitaMes, META_RECEITA_ANO);
+  const s = document.getElementById('plReceitaSub'); if(s) s.innerHTML = miniSub(receitaMes);
 }
 function buildCusto()   {
   buildMini('chartCusto', custoMes);
-  const s = document.getElementById('plCustoSub'); if(s) s.innerHTML = miniSub(custoMes, META_CUSTO_ANO);
+  const s = document.getElementById('plCustoSub'); if(s) s.innerHTML = miniSub(custoMes);
 }
 function buildDespesa() {
   buildMini('chartDespesa', despesaMes);
-  const s = document.getElementById('plDespesaSub'); if(s) s.innerHTML = miniSub(despesaMes, META_DESP_ANO);
+  const s = document.getElementById('plDespesaSub'); if(s) s.innerHTML = miniSub(despesaMes);
 }
 
 function buildEbitda() {
