@@ -3940,6 +3940,9 @@ function buildSaidasTable(filter='') {
   const ftext = filter.toLowerCase().trim();
   const parts = [];
 
+  // Totais mensais para a linha de custo total
+  const totalByMonth = new Array(12).fill(0);
+
   saidasData.forEach(group => {
     if (EXCL_CAT(group.cat)) return;
 
@@ -3950,6 +3953,9 @@ function buildSaidasTable(filter='') {
 
     const mVals    = Array.from({length: 12}, (_, m) => grpValM(group.cat, m));
     const rowTotal = mVals.reduce((a, v) => a + v, 0);
+
+    // Acumula no total mensal
+    mVals.forEach((v, m) => { totalByMonth[m] += v; });
 
     let row = `<tr class="cat-group"><td class="cat">${escHtml(group.cat)}</td>`;
     for (let m = 0; m < 12; m++) {
@@ -3976,6 +3982,21 @@ function buildSaidasTable(filter='') {
       parts.push(srow);
     });
   });
+
+  // Linha de Custo Total — soma de todos os centros de custo
+  if (!ftext) {
+    const grandTotal = totalByMonth.reduce((a, v) => a + v, 0);
+    let trow = `<tr class="cat-group" style="border-top:2px solid var(--border);background:var(--bg)">
+      <td class="cat" style="font-weight:700;color:var(--text)">CUSTO TOTAL</td>`;
+    for (let m = 0; m < 12; m++) {
+      const p = calcPct(totalByMonth, m);
+      const fc = !isReal[m] ? ' forecast' : '';
+      trow += `<td class="num${fc}" style="font-weight:700">${fmtMoney(totalByMonth[m])}</td>`;
+      trow += `<td class="pct ${clsPct(p)}${fc}">${fmtPct(p)}</td>`;
+    }
+    trow += `<td class="num" style="font-weight:700">${fmtMoney(grandTotal)}</td></tr>`;
+    parts.push(trow);
+  }
 
   tbody.innerHTML = parts.join('');
 }
