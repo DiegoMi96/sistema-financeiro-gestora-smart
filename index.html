@@ -288,6 +288,7 @@ footer.last-update { padding: 18px 28px; text-align: center; color: var(--muted)
 .dfc-tbl td.num { text-align: right; font-variant-numeric: tabular-nums; font-family: 'Manrope'; font-weight: 600; color: var(--text); min-width: 110px; white-space: nowrap; }
 .dfc-tbl td.num .sign { color: var(--negative); font-weight: 700; margin-right: 3px; }
 .dfc-tbl td.num.neg { color: #B43B30; }
+.dfc-tbl td.num.neg .sign { color: #B43B30; }
 .dfc-tbl td.num.pos-num { color: var(--primary-dark); font-weight: 700; }
 .dfc-tbl td.pct { text-align: right; font-weight: 700; font-family: 'Manrope'; font-size: 13.5px; background: #F2F4F5 !important; }
 .dfc-tbl td.pct.pos { color: var(--primary-dark); }
@@ -297,6 +298,7 @@ footer.last-update { padding: 18px 28px; text-align: center; color: var(--muted)
 .dfc-tbl tr.resultado td.cat { color: var(--primary-dark); border-left: 4px solid var(--primary); padding-left: 24px; }
 .dfc-tbl tr.saldo td { background: #1E8449; color: #fff; font-weight: 700; }
 .dfc-tbl tr.saldo td.num { color: #fff; }
+.dfc-tbl tr.saldo td.num.neg { background: #922B21 !important; color: #fff !important; }
 .dfc-tbl tr.saldo td.cat { padding-left: 24px; }
 .dfc-tbl tr.saldo td.pct { background: #1E8449 !important; color: #fff !important; }
 /* Previsão / Forecast */
@@ -3566,8 +3568,9 @@ function buildDFCTable() {
     const fcCls = fc ? ' forecast' : '';
     if (v == null) return `<td class="num${fcCls}">—</td>`;
     const formatted = fmtN(v);
-    const showNeg = isExp ? (v !== 0) : v < 0;
-    return showNeg
+    // isExp: mostra como saída (− sempre). Qualquer v < 0 também fica vermelho.
+    const isNeg = isExp ? (v !== 0) : v < 0;
+    return isNeg
       ? `<td class="num neg${fcCls}"><span class="sign">−</span>${formatted}</td>`
       : `<td class="num${fcCls}">${formatted}</td>`;
   };
