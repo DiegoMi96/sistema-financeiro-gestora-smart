@@ -1140,7 +1140,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
             <span><span class="legend-dot" style="background:#E74C3C"></span>Claro</span>
             <span><span class="legend-dot" style="background:#1ABC9C"></span>TIM</span>
             <span><span class="legend-dot" style="background:#F39C12"></span>Vivo</span>
-            <span><span class="legend-dot" style="background:#2E3440"></span>Média</span>
+            <span style="font-size:11px;color:var(--muted)">— Mensalidade &nbsp; ╌ Custo</span>
           </div>
         </div>
         <div class="chart-canvas-wrap"><canvas id="chartOpMedia"></canvas></div>
@@ -6104,46 +6104,47 @@ function buildOpMediaChart() {
     { idx: 10, nome: 'Vivo',        cor: '#F39C12' }
   ];
 
-  // Dados por operadora (mensalidade / chip)
-  const opDatasets = MAIN.map(op => ({
-    label: op.nome,
-    data: labels.map((_, m) => opMensMes[op.idx][m]),
-    borderColor: op.cor,
-    backgroundColor: 'transparent',
-    tension: .35, borderWidth: 1.5, pointRadius: 2,
-    borderDash: [],
-    datalabels: { display: false }
-  }));
-
-  // Linha de média das 5 operadoras por mês
-  const avgData = labels.map((_, m) => {
-    const vals = MAIN.map(op => opMensMes[op.idx][m]).filter(v => v != null);
-    return vals.length ? +(vals.reduce((a,b)=>a+b,0) / vals.length).toFixed(2) : null;
-  });
-
-  const avgDataset = {
-    label: 'Média',
-    data: avgData,
-    borderColor: '#2E3440',
-    backgroundColor: 'transparent',
-    tension: .35, borderWidth: 3, pointRadius: 4,
-    pointBackgroundColor: '#2E3440',
-    datalabels: {
-      display: (c) => c.dataIndex === avgData.reduce((last,v,i) => v!=null?i:last, 0),
-      anchor:'center', align:'top', offset:6,
-      color:'#2E3440', font:{size:10,weight:'700'},
-      formatter: v => v!=null ? 'Méd: R$ '+v.toFixed(2).replace('.',',') : ''
-    }
+  // Dados por operadora — usa mensalidade/SIM e custo/SIM (igual à tabela)
+  const perSIM = (op, m) => {
+    const mens  = opMensMes[op.idx][m];
+    const custo = opCustoMes[op.idx][m];
+    const qtd   = opQtdMes[op.idx][m];
+    const mensMedia  = mens  != null && qtd && qtd > 0 ? +(mens  / qtd).toFixed(2) : null;
+    const custoMedia = custo != null && qtd && qtd > 0 ? +(custo / qtd).toFixed(2) : null;
+    return { mensMedia, custoMedia };
   };
 
+  const opDatasets = MAIN.flatMap(op => [
+    {
+      label: op.nome + ' Mens.',
+      data: labels.map((_, m) => perSIM(op, m).mensMedia),
+      borderColor: op.cor,
+      backgroundColor: 'transparent',
+      tension: .35, borderWidth: 1.5, pointRadius: 2,
+      datalabels: { display: false }
+    },
+    {
+      label: op.nome + ' Custo',
+      data: labels.map((_, m) => perSIM(op, m).custoMedia),
+      borderColor: op.cor,
+      backgroundColor: 'transparent',
+      tension: .35, borderWidth: 1.5, pointRadius: 2,
+      borderDash: [4, 3],
+      datalabels: { display: false }
+    }
+  ]);
+
   // Eixo Y dinâmico
-  const allVals = [...MAIN.flatMap(op => labels.map((_,m) => opMensMes[op.idx][m])), ...avgData].filter(v => v != null);
+  const allVals = MAIN.flatMap(op => labels.map((_, m) => {
+    const d = perSIM(op, m);
+    return [d.mensMedia, d.custoMedia];
+  })).flat().filter(v => v != null);
   const yMax = allVals.length ? Math.ceil(Math.max(...allVals) * 1.15 * 10) / 10 : 20;
   const yMin = allVals.length ? Math.max(0, Math.floor(Math.min(...allVals) * 0.85 * 10) / 10) : 0;
 
   charts.opMedia = new Chart(ctx, {
     type: 'line',
-    data: { labels, datasets: [...opDatasets, avgDataset] },
+    data: { labels, datasets: opDatasets },
     options: commonOpts({
       layout: { padding: { top: 30 } },
       plugins: {
