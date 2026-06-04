@@ -1005,7 +1005,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
             <div><div class="chart-title">Curva de Eficiência</div><div class="chart-sub">Conectividade M2M: Receita SS (Smart) × CMV (Allcom) × Margem</div></div>
             <div class="chart-legend"><span><span class="legend-dot" style="background:var(--primary)"></span>Smart</span><span><span class="legend-dot" style="background:var(--allcom)"></span>Allcom</span><span><span class="legend-dot" style="background:var(--warning)"></span>Margem</span></div>
           </div>
-          <div class="chart-canvas-wrap tall"><canvas id="chartConect"></canvas></div>
+          <div class="chart-canvas-wrap" style="height:260px"><canvas id="chartConect"></canvas></div>
         </div>
         <div class="insight">
           <h4>Margem de Contribuição</h4>
@@ -1045,7 +1045,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           <div class="chart-head">
             <div><div class="chart-title">Vendas Simcards</div><div class="chart-sub" id="vendasMetaSub">Total trimestre: 102.664 · Meta 102.000 (+103%)</div></div>
           </div>
-          <div class="chart-canvas-wrap tall"><canvas id="chartVendasMeta"></canvas></div>
+          <div class="chart-canvas-wrap" style="height:260px"><canvas id="chartVendasMeta"></canvas></div>
         </div>
         <div class="insight">
           <h4>Média Simcards</h4>
@@ -1083,7 +1083,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           <div class="chart-head">
             <div><div class="chart-title">Vendas Equipamentos</div><div class="chart-sub" id="equipMetaSub">Total trimestre: 5.946 · Meta 6.000 (99%)</div></div>
           </div>
-          <div class="chart-canvas-wrap tall"><canvas id="chartEquipMeta"></canvas></div>
+          <div class="chart-canvas-wrap" style="height:260px"><canvas id="chartEquipMeta"></canvas></div>
         </div>
         <div class="insight">
           <h4>Média Equipamentos</h4>
@@ -2997,7 +2997,7 @@ function buildInsightPanels() {
       if (divs[2]) divs[2].textContent = sumVal ? fmtAutoK(sumVal) : '—';
     }
     if (lst) lst.innerHTML = slice.map(d => {
-      if (d.pct == null) return `<div class="activation-item" style="font-size:12px;opacity:.25"><div class="month-pill">${d.mes}</div><div class="qty">—</div></div>`;
+      if (d.pct == null) return '';
       if (d.real) {
         return `<div class="activation-item" style="font-size:12px"><div class="month-pill">${d.mes}</div><div class="qty">${d.pct.toFixed(1).replace('.',',')}%</div><div class="desc">${fmtAutoK(d.val)}</div></div>`;
       }
@@ -3027,7 +3027,7 @@ function buildInsightPanels() {
       if (divs[2]) divs[2].textContent = pct != null ? pct+'% vs meta' : '—';
     }
     if (lst) lst.innerHTML = slice.map(d => {
-      if (d.v == null || d.v === 0) return `<div class="activation-item" style="font-size:12px;opacity:.25"><div class="month-pill">${d.mes}</div><div class="qty">—</div></div>`;
+      if (d.v == null || d.v === 0) return '';
       const diff = d.v - simMeta;
       const chip = `<span class="delta-chip ${diff>=0?'up':'down'}">${diff>=0?'+':'−'}${fmtNum(Math.abs(diff))}</span>`;
       if (d.real) return `<div class="activation-item" style="font-size:12px"><div class="month-pill">${d.mes}</div><div class="qty">${fmtNum(d.v)}</div>${chip}</div>`;
@@ -3056,7 +3056,7 @@ function buildInsightPanels() {
       if (divs[2]) divs[2].textContent = pct != null ? pct+'% vs meta' : '—';
     }
     if (lst) lst.innerHTML = slice.map(d => {
-      if (d.v == null || d.v === 0) return `<div class="activation-item" style="font-size:12px;opacity:.25"><div class="month-pill">${d.mes}</div><div class="qty">—</div></div>`;
+      if (d.v == null || d.v === 0) return '';
       const diff = d.v - equipMeta;
       const chip = `<span class="delta-chip ${diff>=0?'up':'down'}">${diff>=0?'+':'−'}${fmtNum(Math.abs(diff))}</span>`;
       if (d.real) return `<div class="activation-item" style="font-size:12px"><div class="month-pill">${d.mes}</div><div class="qty">${fmtNum(d.v)}</div>${chip}</div>`;
