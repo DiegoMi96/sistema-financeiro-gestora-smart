@@ -1144,6 +1144,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           </div>
           <div class="chart-legend">
             <span><span class="legend-dot" style="background:var(--negative)"></span>Realizado</span>
+            <span><span class="legend-dot" style="background:#E89B2B;border-radius:2px;height:3px;width:14px;display:inline-block"></span>Média</span>
           </div>
         </div>
         <div class="chart-canvas-wrap tall"><canvas id="chartChurnAnual"></canvas></div>
@@ -1162,6 +1163,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           <div><div class="chart-title">Evolução de Tickets</div><div class="chart-sub">Volume mensal de atendimentos</div></div>
           <div class="chart-legend">
             <span><span class="legend-dot" style="background:var(--info)"></span>Realizado</span>
+            <span><span class="legend-dot" style="background:#E89B2B;border-radius:2px;height:3px;width:14px;display:inline-block"></span>Média</span>
           </div>
         </div>
         <div class="chart-canvas-wrap tall"><canvas id="chartTickets"></canvas></div>
@@ -3348,11 +3350,15 @@ function buildChurnAnual() {
       { label:'Média', data: avgLine,
         borderColor:'#E89B2B', borderDash:[6,4], borderWidth:2,
         pointRadius:0, fill:false, tension:0,
-        datalabels:{ display:false } }
+        datalabels:{
+          display: (ctx) => ctx.dataIndex === 11, // só no último ponto
+          anchor:'end', align:'right', color:'#C87A15', font:{size:10,weight:'700'},
+          formatter: v => v != null ? 'Média: ' + v.toFixed(2).replace('.',',') + '%' : ''
+        } }
     ]},
     options: commonOpts({
       plugins:{
-        legend:{ display:true, labels:{ boxWidth:12, font:{size:11} } },
+        legend:{ display:false },
         tooltip:{ callbacks:{ label: c => c.parsed.y.toFixed(2) + '% churn' } },
         datalabels:{
           display: true, anchor:'end', align:'top',
@@ -5643,10 +5649,14 @@ function buildTickets() {
       { label:'Média', data: tAvgLine,
         borderColor:'#E89B2B', borderDash:[6,4], borderWidth:2,
         pointRadius:0, fill:false, tension:0,
-        datalabels:{ display:false } }
+        datalabels:{
+          display: (ctx) => ctx.dataIndex === 11, // só no último ponto
+          anchor:'end', align:'right', color:'#C87A15', font:{size:10,weight:'700'},
+          formatter: v => v != null ? 'Média: ' + fmtNum(v) : ''
+        } }
     ]},
     options: commonOpts({
-      plugins:{ legend:{ display:true, labels:{ boxWidth:12, font:{size:11} } },
+      plugins:{ legend:{ display:false },
         tooltip:{ callbacks:{ label: c => c.dataset.label+': '+fmtNum(c.parsed.y)+' tickets' } },
         datalabels:{ display:false } },
       scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:0, max:tYMax } }
