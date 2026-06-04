@@ -2388,11 +2388,18 @@ function getCacheAge() {
   } catch(e) { return null; }
 }
 
-/** Dispara sync automático se cache ausente ou com mais de 4 horas. */
+/** Dispara sync automático se cache ausente ou de um dia diferente do atual. */
 function autoSyncIfStale() {
-  const age = getCacheAge();
-  if (age === null || age > CACHE_STALE_MS) {
-    setTimeout(() => syncFromSheets(), 1500); // pequeno delay para UI terminar de renderizar
+  try {
+    const c = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+    if (!c.ts) { setTimeout(() => syncFromSheets(), 1500); return; }
+    const cacheDate = new Date(c.ts).toLocaleDateString('pt-BR');
+    const today     = new Date().toLocaleDateString('pt-BR');
+    if (cacheDate !== today) {
+      setTimeout(() => syncFromSheets(), 1500); // dia diferente — sincroniza automaticamente
+    }
+  } catch(e) {
+    setTimeout(() => syncFromSheets(), 1500);
   }
 }
 // ────────────────────────────────────────────────────────────────────────────
