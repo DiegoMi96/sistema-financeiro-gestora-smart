@@ -5064,7 +5064,7 @@ function computePeriodData(dm) {
         const _aArr = dm['Atv_Qtd'] || [];
         const _aSum = sumTo('Atv_Qtd', 11);
         const _aLast = _aArr.reduce((l, v, i) => v != null && v > 0 ? i : l, -1);
-        const _aLbl = _aLast >= 0 ? 'Allcom até ' + shortMon[_aLast] + '/' + year.slice(2) : '';
+        const _aLbl = _aLast >= 0 ? 'Smart com a Allcom Até ' + shortMon[_aLast] + '/' + year.slice(2) : '';
         return { v: _aSum != null ? fmtNum(_aSum) : '—', f: _aLbl };
       })(),
       'Resultado Líquido':      { v: fmtAutoK(res), f: lbl },
