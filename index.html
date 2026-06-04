@@ -1002,7 +1002,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <div class="grid grid-3-2" style="margin-bottom:14px">
         <div class="chart-card">
           <div class="chart-head">
-            <div><div class="chart-title">Curva de Eficiência</div><div class="chart-sub">Conectividade M2M: Receita SS (Smart) × CMV (Allcom) × Margem</div></div>
+            <div><div class="chart-title">Curva de Eficiência</div></div>
             <div class="chart-legend"><span><span class="legend-dot" style="background:var(--primary)"></span>Smart</span><span><span class="legend-dot" style="background:var(--allcom)"></span>Allcom</span><span><span class="legend-dot" style="background:var(--warning)"></span>Margem</span></div>
           </div>
           <div class="chart-canvas-wrap" style="height:260px"><canvas id="chartConect"></canvas></div>
@@ -1043,7 +1043,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <div class="grid grid-3-2" style="margin-bottom:14px">
         <div class="chart-card">
           <div class="chart-head">
-            <div><div class="chart-title">Vendas Simcards</div><div class="chart-sub" id="vendasMetaSub">Total trimestre: 102.664 · Meta 102.000 (+103%)</div></div>
+            <div><div class="chart-title">Vendas Simcards</div></div>
           </div>
           <div class="chart-canvas-wrap" style="height:260px"><canvas id="chartVendasMeta"></canvas></div>
         </div>
@@ -1081,7 +1081,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <div class="grid grid-3-2" style="margin-bottom:14px">
         <div class="chart-card">
           <div class="chart-head">
-            <div><div class="chart-title">Vendas Equipamentos</div><div class="chart-sub" id="equipMetaSub">Total trimestre: 5.946 · Meta 6.000 (99%)</div></div>
+            <div><div class="chart-title">Vendas Equipamentos</div></div>
           </div>
           <div class="chart-canvas-wrap" style="height:260px"><canvas id="chartEquipMeta"></canvas></div>
         </div>
@@ -1118,7 +1118,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
 
       <div class="chart-card" style="margin-bottom:14px">
         <div class="chart-head">
-          <div><div class="chart-title">Novos Clientes</div><div class="chart-sub">Evolução ponto a ponto</div></div>
+          <div><div class="chart-title">Novos Clientes</div></div>
         </div>
         <div class="chart-canvas-wrap" style="height:220px"><canvas id="chartVendasMedia"></canvas></div>
       </div>
@@ -1126,22 +1126,11 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <div class="section-head" style="margin:4px 0 10px"><div class="section-bar"></div><div class="section-title">Custo × Faturamento por Operadora</div></div>
 
       <div class="chart-card" style="margin-bottom:14px">
-        <div class="chart-head"><div><div class="chart-title">Detalhamento por Operadora</div><div class="chart-sub">Mensalidade média, custo médio e margem · selecione o mês</div></div></div>
+        <div class="chart-head"><div><div class="chart-title">Detalhamento por Operadora</div></div></div>
         <div class="op-tabs" id="opTabsAll"></div>
         <div style="overflow-x:auto"><table class="op-tbl"><thead><tr><th>Operadora</th><th class="r">Qtd Linhas</th><th class="r">Mensalidade</th><th class="r">Custo</th><th class="r">Margem</th><th class="r">Margem %</th></tr></thead><tbody id="opBodyAll"></tbody></table></div>
       </div>
 
-      <div class="chart-card" style="margin-bottom:14px">
-        <div class="chart-head">
-          <div><div class="chart-title">Evolução da Média Ponderada</div><div class="chart-sub">Mensalidade e custo médio ponderado por mês · eixo direito: margem R$</div></div>
-          <div class="chart-legend">
-            <span><span class="legend-dot" style="background:var(--primary)"></span>Mensalidade</span>
-            <span><span class="legend-dot" style="background:var(--negative)"></span>Custo</span>
-            <span><span class="legend-dot" style="background:var(--warning)"></span>Margem R$</span>
-          </div>
-        </div>
-        <div class="chart-canvas-wrap"><canvas id="chartOpMedia"></canvas></div>
-      </div>
     </section>
 
     <!-- =============== OPERAÇÃO =============== -->
