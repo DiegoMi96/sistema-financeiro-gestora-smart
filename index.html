@@ -1671,53 +1671,6 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         </div>
       </div>
 
-        <!-- ── Metas Anuais (card unificado) ── -->
-        <div class="chart-card">
-          <div class="chart-head">
-            <div>
-              <div class="chart-title">Metas Anuais</div>
-              <div class="chart-sub">YTD calculado automaticamente · <span id="metasAnualMeses" style="font-weight:700;color:var(--primary-dark)">—</span></div>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center">
-              <span id="metasSaved" style="display:none;font-size:12px;color:var(--primary);font-weight:600">✓ Salvo</span>
-              <span id="metasAnualSaved" style="display:none;font-size:12px;color:var(--primary);font-weight:600">✓ Salvo</span>
-              <button id="btnEditMetas" style="background:var(--primary);color:white;border:0;padding:8px 14px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px;display:inline-flex;align-items:center;gap:6px">
-                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                Editar metas
-              </button>
-              <button id="btnSaveMetas" style="display:none;background:var(--primary);color:white;border:0;padding:8px 14px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px;align-items:center;gap:6px">
-                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                Salvar
-              </button>
-              <button id="btnCancelMetas" style="display:none;background:var(--bg);color:var(--text-2);border:1px solid var(--border);padding:8px 14px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px;align-items:center;gap:6px">
-                Cancelar
-              </button>
-            </div>
-          </div>
-
-          <!-- Indicadores de Meta (tabela global unificada) -->
-          <table class="tbl metas-tbl" id="metasAnualTbl">
-            <thead>
-              <tr>
-                <th>Indicador</th>
-                <th class="num">Meta Anual</th>
-                <th class="num">YTD Realizado</th>
-                <th class="num">Quanto falta</th>
-                <th style="min-width:160px">Progresso</th>
-                <th class="btn-col-meta" style="width:36px"></th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-          <!-- Botão incluir meta (visível apenas no modo de edição) -->
-          <button id="btnIncluirMetaAnual" onclick="_addMetaAnual()" style="display:none;margin-top:8px;background:transparent;color:var(--primary);border:1px dashed var(--primary);padding:7px 14px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px;width:100%;align-items:center;justify-content:center;gap:6px">
-            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-            Incluir meta
-          </button>
-          <p style="margin:10px 0 0;font-size:11.5px;color:var(--muted);line-height:1.6">
-            <strong style="color:var(--text-2)">Como funciona:</strong> a <em>Meta Anual</em> é editável. O <em>YTD Realizado</em> é puxado automaticamente dos dados importados. <em>Quanto falta</em> e <em>Progresso</em> são calculados em tempo real.
-          </p>
-        </div>
         <div class="chart-card">
           <div class="chart-head">
             <div>
