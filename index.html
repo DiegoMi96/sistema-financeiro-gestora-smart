@@ -3759,8 +3759,8 @@ function buildDFCTable() {
   };
 
   const rowDefs = [
-    ['RECEITA - SS',            'receita',   false, m => _recSS(m)],
-    ['RECEITA - SMT',           'receita',   false, m => _recSMT(m)],
+    // ['RECEITA - SS',  'receita', false, m => _recSS(m)],   // desativado
+    // ['RECEITA - SMT', 'receita', false, m => _recSMT(m)],  // desativado
     ['CMV / CPS',               '',          true,  m => subCatSum('CMV / CPS', 'Conectividade M2M', m)],
     ['Despesas Administrativa', '',          true,  m => catSum('Despesas Administrativa', m)],
     ['Despesas com pessoal',    '',          true,  m => catSum('Despesas com pessoal', m)],
