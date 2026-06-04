@@ -1105,7 +1105,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <div class="section-head" style="margin:0 0 10px"><div class="section-bar"></div><div class="section-title">Cancelamento e Desistência</div></div>
       <div class="grid grid-4" style="margin-bottom:14px">
         <div class="card"><div class="card-top-line warn"></div>
-          <div class="kpi-label">Cancelamento Anual</div>
+          <div class="kpi-label">Cancelamento Anual (Real)</div>
           <div class="kpi-value lg">50.181</div>
           <div class="kpi-foot">Média mensal: 16.727</div>
         </div>
@@ -1115,9 +1115,9 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           <div class="kpi-foot">Média mensal: 8.634</div>
         </div>
         <div class="card tinted-primary">
-          <div class="kpi-label">Cancelamento Acumulado</div>
-          <div class="kpi-value lg">78.719</div>
-          <div class="kpi-foot">YTD Março</div>
+          <div class="kpi-label">Cancelamento Anual (Previsão)</div>
+          <div class="kpi-value lg">—</div>
+          <div class="kpi-foot">Soma Atv_Qtd</div>
         </div>
         <div class="card">
           <div class="kpi-label">Próximas Ativações</div>
@@ -5057,9 +5057,11 @@ function computePeriodData(dm) {
       'Cancelamento':           { v: fmtNum(cancel), f: 'Linhas no mês' },
       'Desistência':            { v: fmtNum(desist), f: 'Pré-ativação' },
       'Cancelamento Acumulado': { v: fmtNum(cancelAcum), f: 'Acumulado' },
+      'Cancelamento Anual (Previsão)': { v: sumTo('Atv_Qtd',11) != null ? fmtNum(sumTo('Atv_Qtd',11)) : '—', f: '' },
       'Resultado Líquido':      { v: fmtAutoK(res), f: lbl },
       'Índice de Satisfação':   { v: satV!=null ? Math.round(satV > 1 ? satV : satV*100)+'%' : '—', f: satV!=null?'Pesquisa de satisfação':'Linha Satisfacao na planilha (0 a 100 ou 0 a 1)' },
-      'Cancelamento Anual':     { v: fmtNum(cancelAcum), f: 'Média mensal: '+fmtNum(Math.round(cancelAcum/(idx+1))) },
+      'Cancelamento Anual (Real)': { v: fmtNum(cancelAcum), f: 'Média mensal: '+fmtNum(Math.round(cancelAcum/(idx+1))) },
+      'Cancelamento Anual':        { v: fmtNum(cancelAcum), f: 'Média mensal: '+fmtNum(Math.round(cancelAcum/(idx+1))) },
       'Desistência Anual':      { v: fmtNum(sumTo('Desistencia',idx)), f: 'Média mensal: '+fmtNum(Math.round(sumTo('Desistencia',idx)/(idx+1))) },
       'Churn Implícito':        { v: churnPct, f: 'Cancel / Base ativa' },
       'Custo de Envio':         { v: custoEnvioAcum != null ? fmtBRL(custoEnvioAcum) : '—', f: 'Acumulado desde Janeiro '+(document.getElementById('yearSelect')?.value||'2026') },
