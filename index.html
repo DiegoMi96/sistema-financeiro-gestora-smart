@@ -2647,11 +2647,8 @@ function refreshPeriodFilter(year, lastRealIdx) {
   // 2. Mês atual do calendário (ao carregar/recarregar a página, prevVal = '')
   // 3. Último mês com dados reais (fallback se o mês atual não tiver dados)
   const opts = Array.from(sel.options).map(o => o.value);
-  const latestVal  = lastRealIdx >= 0 ? MES_PAD[lastRealIdx] : MES_PAD[0];
-  // Só usa o mês atual como padrão se ele tiver dados reais; senão cai no último mês real
-  const nowIdx     = parseInt(_nowMonth) - 1;
-  const nowHasReal = isReal[nowIdx] === true;
-  const defaultVal = (nowHasReal && opts.includes(_nowMonth)) ? _nowMonth : latestVal;
+  // Padrão: sempre abre no mês atual do calendário
+  const defaultVal = opts.includes(_nowMonth) ? _nowMonth : (lastRealIdx >= 0 ? MES_PAD[lastRealIdx] : MES_PAD[0]);
   sel.value = opts.includes(prevVal) ? prevVal : defaultVal;
   currentPeriod = `${year}-${sel.value}`;
 }
