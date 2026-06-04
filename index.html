@@ -2954,30 +2954,40 @@ function buildInsightPanels() {
   const GROUPS = [[0,4],[4,8],[8,12]];
 
   // ── Margem de Contribuição ────────────────────────────────────────────────
+  const GRD_REAL = 'linear-gradient(135deg,var(--primary),var(--primary-dark))';
+  const GRD_PREV = 'linear-gradient(135deg,#7D8AA0,#5A6478)'; // cinza-azulado para previsão
   const margemData = receitaMes.map((rec,i) => {
     const recL = rec != null ? rec - (recAtvFinMes[i] ?? 0) : null;
     const cmv  = custoMes[i];
     const pct  = (recL && recL > 0 && cmv != null) ? (recL - cmv) / recL * 100 : null;
     const val  = (recL && cmv != null) ? recL - cmv : null;
-    return { mes: PILLS[i], pct, val };
+    return { mes: PILLS[i], pct, val, real: !!isReal[i] };
   });
   GROUPS.forEach(([s,e], ci) => {
-    const slice  = margemData.slice(s, e);
-    const real   = slice.filter(d => d.pct != null);
-    const avgPct = real.length ? real.reduce((a,d)=>a+d.pct,0)/real.length : null;
-    const sumVal = real.reduce((a,d)=>a+(d.val??0), 0);
+    const slice     = margemData.slice(s, e);
+    const realSlice = slice.filter(d => d.pct != null && d.real);
+    const prevSlice = slice.filter(d => d.pct != null && !d.real);
+    const hasReal   = realSlice.length > 0;
+    const avgPct    = hasReal
+      ? realSlice.reduce((a,d)=>a+d.pct,0)/realSlice.length
+      : prevSlice.length ? prevSlice.reduce((a,d)=>a+d.pct,0)/prevSlice.length : null;
+    const sumVal = (hasReal ? realSlice : prevSlice).reduce((a,d)=>a+(d.val??0), 0);
     const hdr = document.getElementById(`margemCol${ci+1}Hdr`);
     const lst = document.getElementById(`margemCol${ci+1}List`);
     if (hdr) {
+      hdr.style.background = hasReal ? GRD_REAL : GRD_PREV;
       const divs = hdr.querySelectorAll('div');
       if (divs[1]) divs[1].textContent = avgPct != null ? avgPct.toFixed(1).replace('.',',')+'%' : '—';
       if (divs[2]) divs[2].textContent = sumVal ? fmtAutoK(sumVal) : '—';
     }
-    if (lst) lst.innerHTML = slice.map(d =>
-      d.pct != null
-        ? `<div class="activation-item" style="font-size:12px"><div class="month-pill">${d.mes}</div><div class="qty">${d.pct.toFixed(1).replace('.',',')}%</div><div class="desc">${fmtAutoK(d.val)}</div></div>`
-        : `<div class="activation-item" style="font-size:12px;opacity:.3"><div class="month-pill">${d.mes}</div><div class="qty">—</div></div>`
-    ).join('');
+    if (lst) lst.innerHTML = slice.map(d => {
+      if (d.pct == null) return `<div class="activation-item" style="font-size:12px;opacity:.25"><div class="month-pill">${d.mes}</div><div class="qty">—</div></div>`;
+      if (d.real) {
+        return `<div class="activation-item" style="font-size:12px"><div class="month-pill">${d.mes}</div><div class="qty">${d.pct.toFixed(1).replace('.',',')}%</div><div class="desc">${fmtAutoK(d.val)}</div></div>`;
+      }
+      // Previsão — cor muted
+      return `<div class="activation-item" style="font-size:12px;opacity:.7"><div class="month-pill" style="background:#7D8AA0">${d.mes}</div><div class="qty" style="color:var(--muted)">${d.pct.toFixed(1).replace('.',',')}%</div><div class="desc" style="color:var(--muted)">${fmtAutoK(d.val)}</div></div>`;
+    }).join('');
   });
 
   // ── Média Simcards ────────────────────────────────────────────────────────
