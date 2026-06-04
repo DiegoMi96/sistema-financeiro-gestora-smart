@@ -1131,6 +1131,18 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         <div style="overflow-x:auto"><table class="op-tbl"><thead><tr><th>Operadora</th><th class="r">Qtd Linhas</th><th class="r">Mensalidade</th><th class="r">Custo</th><th class="r">Margem</th><th class="r">Margem %</th></tr></thead><tbody id="opBodyAll"></tbody></table></div>
       </div>
 
+      <div class="chart-card" style="margin-bottom:14px">
+        <div class="chart-head">
+          <div><div class="chart-title">Evolução da Média Ponderada</div></div>
+          <div class="chart-legend">
+            <span><span class="legend-dot" style="background:var(--primary)"></span>Mensalidade</span>
+            <span><span class="legend-dot" style="background:var(--negative)"></span>Custo</span>
+            <span><span class="legend-dot" style="background:var(--warning)"></span>Margem R$</span>
+          </div>
+        </div>
+        <div class="chart-canvas-wrap"><canvas id="chartOpMedia"></canvas></div>
+      </div>
+
     </section>
 
     <!-- =============== OPERAÇÃO =============== -->
@@ -6061,8 +6073,18 @@ function buildOpMediaChart() {
   const ctx = document.getElementById('chartOpMedia'); if (!ctx) return;
   destroyChart('opMedia');
   const labels = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  // Média ponderada derivada do Detalhamento por Operadora (aba Operadoras_YYYY)
-  const _opByMonth = labels.map((_, i) => getOpMes(i).total);
+  // Apenas as 5 principais operadoras: Algar(0), Algar Multi(1), Claro(5), Tim(9), Vivo(10)
+  const MAIN_IDX = [0, 1, 5, 9, 10];
+  const _opByMonth = labels.map((_, m) => {
+    const valid = MAIN_IDX.map(i => ({
+      mens:  opMensMes[i][m],
+      custo: opCustoMes[i][m]
+    })).filter(r => r.mens != null);
+    if (!valid.length) return { mens: null, custo: null, marg: null };
+    const tM    = +(valid.reduce((a,r) => a + r.mens, 0) / valid.length).toFixed(2);
+    const tC    = +(valid.reduce((a,r) => a + (r.custo||0), 0) / valid.length).toFixed(2);
+    return { mens: tM, custo: tC, marg: +(tM - tC).toFixed(2) };
+  });
   const mens  = _opByMonth.map(t => t.mens);
   const custo = _opByMonth.map(t => t.custo);
   const marg  = _opByMonth.map(t => t.marg);
