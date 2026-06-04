@@ -2949,20 +2949,36 @@ function buildEbitda() {
   });
 }
 
+// ── Helper: extrai valores M2M de 12 meses (mesma fonte da Curva de Eficiência) ──────────
+function getM2MArrays() {
+  const _sub = (src, groupName, subName) => {
+    const g = src.find(g => g.cat === groupName);
+    return g ? g.subs.find(s => s[0] === subName) : null;
+  };
+  return Array.from({length:12}, (_, i) => {
+    const src     = isReal[i] ? saidasData : previsaoData;
+    const subSS   = _sub(src, 'Receita SS', 'Conectividade M2M')
+                 || _sub(src, 'Total de RECEITA - SS', 'Conectividade M2M');
+    const subCMV  = _sub(src, 'CMV / CPS', 'Conectividade M2M');
+    const smart   = subSS  ? (subSS [i+1] ?? 0) : 0;
+    const allcom  = subCMV ? (subCMV[i+1] ?? 0) : 0;
+    const margem  = (smart > 0 || allcom > 0) ? smart - allcom : null;
+    const pct     = smart > 0 ? (smart - allcom) / smart * 100 : null;
+    return { smart: smart||null, allcom: allcom||null, margem, pct };
+  });
+}
+
 function buildInsightPanels() {
   const PILLS = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
   const GROUPS = [[0,4],[4,8],[8,12]];
 
-  // ── Margem de Contribuição ────────────────────────────────────────────────
+  // ── Margem de Contribuição — usa mesma fonte da Curva de Eficiência (M2M) ─
   const GRD_REAL = 'linear-gradient(135deg,var(--primary),var(--primary-dark))';
-  const GRD_PREV = 'linear-gradient(135deg,#7D8AA0,#5A6478)'; // cinza-azulado para previsão
-  const margemData = receitaMes.map((rec,i) => {
-    const recL = rec != null ? rec - (recAtvFinMes[i] ?? 0) : null;
-    const cmv  = custoMes[i];
-    const pct  = (recL && recL > 0 && cmv != null) ? (recL - cmv) / recL * 100 : null;
-    const val  = (recL && cmv != null) ? recL - cmv : null;
-    return { mes: PILLS[i], pct, val, real: !!isReal[i] };
-  });
+  const GRD_PREV = 'linear-gradient(135deg,#7D8AA0,#5A6478)';
+  const m2mData  = getM2MArrays();
+  const margemData = m2mData.map((d, i) => ({
+    mes: PILLS[i], pct: d.pct, val: d.margem, real: !!isReal[i]
+  }));
   GROUPS.forEach(([s,e], ci) => {
     const slice     = margemData.slice(s, e);
     const realSlice = slice.filter(d => d.pct != null && d.real);
@@ -3040,12 +3056,9 @@ function buildInsightPanels() {
 function buildMargemContrib() {
   const ctx = document.getElementById('chartMargemContrib'); if (!ctx) return;
   destroyChart('margemContrib');
-  const sel = periodMonthIdx[currentPeriod];
-  const pctArr = receitaMes.map((rec,i) => {
-    const cmv  = custoMes[i];
-    const recL = rec != null ? rec - (recAtvFinMes[i] ?? 0) : null; // desconta Atividades Financeiras
-    return (recL && cmv != null) ? parseFloat(((recL - cmv) / recL * 100).toFixed(2)) : null;
-  });
+  const sel    = periodMonthIdx[currentPeriod];
+  const m2m    = getM2MArrays();
+  const pctArr = m2m.map(d => d.pct != null ? parseFloat(d.pct.toFixed(2)) : null);
   const realData = pctArr.map((v,i) => isReal[i] ? v : null);
   const prevData = pctArr.map((v,i) => isReal[i] ? null : v);
   // Eixo Y: max = maior valor * 1.10 (10% de margem) arredondado para múltiplo de 5
