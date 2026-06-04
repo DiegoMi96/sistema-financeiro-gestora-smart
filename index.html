@@ -2633,7 +2633,9 @@ function refreshPeriodFilter(year, lastRealIdx) {
   if (!periodData[`${year}-YTD`]) periodData[`${year}-YTD`] = emptyPeriod('Acumulado ' + year);
 
   // Reconstrói as opções: Jan→Dez (ordem crescente) + Q1 + Acumulado
-  const prevVal = sel.value;
+  // prevVal: só confia se já foi definido NESTA sessão (via _periodSetInSession)
+  // Browser memoriza o último valor do <select> entre sessões — não usar como base
+  const prevVal = window._periodSetInSession ? sel.value : '';
   sel.innerHTML = '';
   for (let i = 0; i < 12; i++) {
     const opt = document.createElement('option');
@@ -2649,14 +2651,11 @@ function refreshPeriodFilter(year, lastRealIdx) {
   optYTD.value = 'YTD'; optYTD.textContent = 'Acumulado';
   sel.appendChild(optYTD);
 
-  // Prioridade de seleção:
-  // 1. Seleção prévia do usuário (durante a sessão, ao sincronizar)
-  // 2. Mês atual do calendário (ao carregar/recarregar a página, prevVal = '')
-  // 3. Último mês com dados reais (fallback se o mês atual não tiver dados)
   const opts = Array.from(sel.options).map(o => o.value);
-  // Padrão: sempre abre no mês atual do calendário
+  // 1ª vez: sempre mês atual. Troca de mês pelo usuário durante sessão: preserva escolha.
   const defaultVal = opts.includes(_nowMonth) ? _nowMonth : (lastRealIdx >= 0 ? MES_PAD[lastRealIdx] : MES_PAD[0]);
-  sel.value = opts.includes(prevVal) ? prevVal : defaultVal;
+  sel.value = (prevVal && opts.includes(prevVal)) ? prevVal : defaultVal;
+  window._periodSetInSession = true; // marca que já foi definido nesta sessão
   currentPeriod = `${year}-${sel.value}`;
 }
 
