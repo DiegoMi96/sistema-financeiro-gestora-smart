@@ -5549,6 +5549,19 @@ function computePeriodData(dm) {
     periodData[key].hero2Desc = rec != null ? 'Receita prev.: ' + fmtAutoK(rec) : '—';
   }
 
+  // ── Volume de atendimento para TODOS os 12 meses ──────────────────────────
+  // Garante que qualquer mês com dados em ticketsMes mostre o volume no card,
+  // independentemente de ser mês real, de previsão ou ainda sem receita.
+  for (let m = 0; m < 12; m++) {
+    const key = `${year}-${MES_PAD[m]}`;
+    if (!periodData[key]) continue;
+    const tVol = ticketsMes[m];
+    if (tVol != null && tVol > 0) {
+      if (!periodData[key].satisfacao) periodData[key].satisfacao = { val: '—', volume: '' };
+      periodData[key].satisfacao.volume = 'Volume de atendimento  ' + Math.round(tVol).toLocaleString('pt-BR');
+    }
+  }
+
   // Atualiza tabela DFC após recalcular todos os arrays
   buildDFCTable();
 }
