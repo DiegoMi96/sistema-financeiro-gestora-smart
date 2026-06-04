@@ -3651,6 +3651,23 @@ function buildDFCTable() {
   thHtml += '</tr>';
   if (thead) thead.innerHTML = thHtml;
 
+  // subCatSum: lê uma subcategoria específica dentro de um grupo (mesma lógica do gráfico)
+  const subCatSum = (groupName, subName, m) => {
+    const trySource = (src) => {
+      const g = src.find(g => g.cat === groupName);
+      if (!g) return null;
+      const sub = g.subs.find(s => s[0] === subName);
+      if (!sub) return null;
+      const v = sub[m + 1] ?? null;
+      return v === 0 ? null : v;
+    };
+    if (isReal[m]) {
+      const real = trySource(saidasData);
+      return real != null ? real : trySource(previsaoData);
+    }
+    return trySource(previsaoData);
+  };
+
   // catSum: prefere o total do cabeçalho (_headerVals) quando disponível — esse valor
   // corresponde à fórmula da planilha (=SOMA das subs). Caso não exista, soma as subs.
   const catSum = (catName, m) => {
@@ -3705,18 +3722,19 @@ function buildDFCTable() {
   // Resultado do Mês: calculado como (Rec SS + Rec SMT) − todos os custos via Saidas_2026,
   //   garantindo que Resultado SMT + Resultado Smart = Resultado do Mês.
   //   Fallback para lucroLiquido[] se não houver dados em Saidas_2026.
-  const _custoCats = ['CMV / CPS','Despesas Administrativa','Despesas com pessoal',
+  const _cmvM2M = m => subCatSum('CMV / CPS', 'Conectividade M2M', m) ?? 0;
+  const _custoCats = ['Despesas Administrativa','Despesas com pessoal',
     'RH','Despesa Comercial','Despesa Tributaria','Atividades Financeiras','Custo SMT'];
   const _calcResultado = m => {
     const rec = (_recSS(m) ?? 0) + (_recSMT(m) ?? 0);
-    const cst = _custoCats.reduce((s,c) => s + (catSum(c,m) ?? 0), 0);
+    const cst = _cmvM2M(m) + _custoCats.reduce((s,c) => s + (catSum(c,m) ?? 0), 0);
     return (rec > 0 || cst > 0) ? rec - cst : (lucroLiquido[m] ?? null);
   };
 
   const rowDefs = [
     ['RECEITA - SS',            'receita',   false, m => _recSS(m)],
     ['RECEITA - SMT',           'receita',   false, m => _recSMT(m)],
-    ['CMV / CPS',               '',          true,  m => catSum('CMV / CPS', m)],
+    ['CMV / CPS',               '',          true,  m => subCatSum('CMV / CPS', 'Conectividade M2M', m)],
     ['Despesas Administrativa', '',          true,  m => catSum('Despesas Administrativa', m)],
     ['Despesas com pessoal',    '',          true,  m => catSum('Despesas com pessoal', m)],
     ['RH',                      '',          true,  m => catSum('RH', m)],
