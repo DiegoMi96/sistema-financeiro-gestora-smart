@@ -3008,47 +3008,59 @@ function buildInsightPanels() {
 
   // ── Média Simcards ────────────────────────────────────────────────────────
   const simMeta = META_SIMCARDS_MES;
-  const simData = vendasMes.map((v, i) => ({ mes: PILLS[i], v }));
+  const simData = vendasMes.map((v, i) => ({ mes: PILLS[i], v, real: !!isReal[i] }));
   GROUPS.forEach(([s,e], ci) => {
-    const slice = simData.slice(s, e);
-    const real  = slice.filter(d => d.v != null && d.v > 0);
-    const total = real.reduce((a,d)=>a+d.v,0);
-    const metaT = simMeta * real.length;
-    const pct   = metaT > 0 ? Math.round(total / metaT * 100) : null;
+    const slice     = simData.slice(s, e);
+    const realSlice = slice.filter(d => d.v != null && d.v > 0 && d.real);
+    const prevSlice = slice.filter(d => d.v != null && d.v > 0 && !d.real);
+    const hasReal   = realSlice.length > 0;
+    const active    = hasReal ? realSlice : prevSlice;
+    const total     = active.reduce((a,d)=>a+d.v,0);
+    const metaT     = simMeta * active.length;
+    const pct       = metaT > 0 ? Math.round(total / metaT * 100) : null;
     const hdr = document.getElementById(`simCol${ci+1}Hdr`);
     const lst = document.getElementById(`simCol${ci+1}List`);
     if (hdr) {
+      hdr.style.background = hasReal ? GRD_REAL : GRD_PREV;
       const divs = hdr.querySelectorAll('div');
       if (divs[1]) divs[1].textContent = total > 0 ? fmtNum(total) : '—';
       if (divs[2]) divs[2].textContent = pct != null ? pct+'% vs meta' : '—';
     }
     if (lst) lst.innerHTML = slice.map(d => {
-      if (d.v == null || d.v === 0) return `<div class="activation-item" style="font-size:12px;opacity:.3"><div class="month-pill">${d.mes}</div><div class="qty">—</div></div>`;
+      if (d.v == null || d.v === 0) return `<div class="activation-item" style="font-size:12px;opacity:.25"><div class="month-pill">${d.mes}</div><div class="qty">—</div></div>`;
       const diff = d.v - simMeta;
-      return `<div class="activation-item" style="font-size:12px"><div class="month-pill">${d.mes}</div><div class="qty">${fmtNum(d.v)}</div><span class="delta-chip ${diff>=0?'up':'down'}">${diff>=0?'+':'−'}${fmtNum(Math.abs(diff))}</span></div>`;
+      const chip = `<span class="delta-chip ${diff>=0?'up':'down'}">${diff>=0?'+':'−'}${fmtNum(Math.abs(diff))}</span>`;
+      if (d.real) return `<div class="activation-item" style="font-size:12px"><div class="month-pill">${d.mes}</div><div class="qty">${fmtNum(d.v)}</div>${chip}</div>`;
+      return `<div class="activation-item" style="font-size:12px;opacity:.7"><div class="month-pill" style="background:#7D8AA0">${d.mes}</div><div class="qty" style="color:var(--muted)">${fmtNum(d.v)}</div>${chip}</div>`;
     }).join('');
   });
 
   // ── Média Equipamentos ────────────────────────────────────────────────────
   const equipMeta = META_EQUIP_MES;
-  const equipData = equipMes.map((v, i) => ({ mes: PILLS[i], v }));
+  const equipData = equipMes.map((v, i) => ({ mes: PILLS[i], v, real: !!isReal[i] }));
   GROUPS.forEach(([s,e], ci) => {
-    const slice = equipData.slice(s, e);
-    const real  = slice.filter(d => d.v != null && d.v > 0);
-    const total = real.reduce((a,d)=>a+d.v,0);
-    const metaT = equipMeta * real.length;
-    const pct   = metaT > 0 ? Math.round(total / metaT * 100) : null;
+    const slice     = equipData.slice(s, e);
+    const realSlice = slice.filter(d => d.v != null && d.v > 0 && d.real);
+    const prevSlice = slice.filter(d => d.v != null && d.v > 0 && !d.real);
+    const hasReal   = realSlice.length > 0;
+    const active    = hasReal ? realSlice : prevSlice;
+    const total     = active.reduce((a,d)=>a+d.v,0);
+    const metaT     = equipMeta * active.length;
+    const pct       = metaT > 0 ? Math.round(total / metaT * 100) : null;
     const hdr = document.getElementById(`equipCol${ci+1}Hdr`);
     const lst = document.getElementById(`equipCol${ci+1}List`);
     if (hdr) {
+      hdr.style.background = hasReal ? GRD_REAL : GRD_PREV;
       const divs = hdr.querySelectorAll('div');
       if (divs[1]) divs[1].textContent = total > 0 ? fmtNum(total) : '—';
       if (divs[2]) divs[2].textContent = pct != null ? pct+'% vs meta' : '—';
     }
     if (lst) lst.innerHTML = slice.map(d => {
-      if (d.v == null || d.v === 0) return `<div class="activation-item" style="font-size:12px;opacity:.3"><div class="month-pill">${d.mes}</div><div class="qty">—</div></div>`;
+      if (d.v == null || d.v === 0) return `<div class="activation-item" style="font-size:12px;opacity:.25"><div class="month-pill">${d.mes}</div><div class="qty">—</div></div>`;
       const diff = d.v - equipMeta;
-      return `<div class="activation-item" style="font-size:12px"><div class="month-pill">${d.mes}</div><div class="qty">${fmtNum(d.v)}</div><span class="delta-chip ${diff>=0?'up':'down'}">${diff>=0?'+':'−'}${fmtNum(Math.abs(diff))}</span></div>`;
+      const chip = `<span class="delta-chip ${diff>=0?'up':'down'}">${diff>=0?'+':'−'}${fmtNum(Math.abs(diff))}</span>`;
+      if (d.real) return `<div class="activation-item" style="font-size:12px"><div class="month-pill">${d.mes}</div><div class="qty">${fmtNum(d.v)}</div>${chip}</div>`;
+      return `<div class="activation-item" style="font-size:12px;opacity:.7"><div class="month-pill" style="background:#7D8AA0">${d.mes}</div><div class="qty" style="color:var(--muted)">${fmtNum(d.v)}</div>${chip}</div>`;
     }).join('');
   });
 }
