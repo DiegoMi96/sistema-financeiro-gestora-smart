@@ -3302,10 +3302,12 @@ function buildConect() {
         datalabels:{ display:true, anchor:'end', align:'top', clip:false, color: css('--text-2'),
           font:{size:9,weight:'700'}, formatter: v => v==null ? '' : fmtAutoK(v) } },
       { type:'line', label:'Margem R$', data: margemM2M.slice(0, count),
-        borderColor:'#4A5260', backgroundColor:'#4A5260',
+        borderColor:'#F59300', backgroundColor:'#F59300',
         tension:.35, pointRadius:6, yAxisID:'y1', borderWidth:3, order:1,
         datalabels:{ display:true, anchor:'end', align:'top', clip:false,
-          color:'#2E3440', font:{size:10,weight:'800'},
+          color:'#fff', font:{size:10,weight:'800'},
+          backgroundColor:'#F59300', borderRadius:5,
+          padding:{ top:3, bottom:3, left:6, right:6 },
           formatter: v => v==null ? '' : fmtAutoK(v), offset:8 } }
     ]},
     options: commonOpts({
