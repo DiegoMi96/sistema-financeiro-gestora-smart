@@ -1919,7 +1919,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
     </div>
   </div>
 
-  <footer class="last-update">Confidencial - Alta Administração · Gestora Smart</footer>
+  <footer class="last-update">Gestora SMART. Todos os direitos reservados.</footer>
 </div>
 
 <script>
@@ -2648,7 +2648,10 @@ function refreshPeriodFilter(year, lastRealIdx) {
   // 3. Último mês com dados reais (fallback se o mês atual não tiver dados)
   const opts = Array.from(sel.options).map(o => o.value);
   const latestVal  = lastRealIdx >= 0 ? MES_PAD[lastRealIdx] : MES_PAD[0];
-  const defaultVal = opts.includes(_nowMonth) ? _nowMonth : latestVal;
+  // Só usa o mês atual como padrão se ele tiver dados reais; senão cai no último mês real
+  const nowIdx     = parseInt(_nowMonth) - 1;
+  const nowHasReal = isReal[nowIdx] === true;
+  const defaultVal = (nowHasReal && opts.includes(_nowMonth)) ? _nowMonth : latestVal;
   sel.value = opts.includes(prevVal) ? prevVal : defaultVal;
   currentPeriod = `${year}-${sel.value}`;
 }
