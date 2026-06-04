@@ -3375,19 +3375,17 @@ function buildVendasMeta() {
     data:{ labels: labelsExt, datasets:[
       { type:'bar', data: barDataExt, backgroundColor: css('--primary'), borderRadius:8, barPercentage:.55, label:'Vendas',
         datalabels:{ display: true, anchor:'end', align:'top', clip:false, color: css('--text-2'), font:{size:11,weight:'700'}, formatter: v => v!=null ? fmtNum(v) : '' } },
-      { type:'line', data: lineDataExt, borderColor: css('--warning'), borderDash:[0,0], pointRadius:0, label:'Média', borderWidth:2.5,
+      { type:'line', data: lineDataExt, borderColor:'#E89B2B', borderDash:[6,4], pointRadius:0, label:'Média', borderWidth:2,
         datalabels:{
           display: (c) => c.dataIndex === lineDataExt.length - 1,
-          anchor:'center', align:'right', clip:false,
-          backgroundColor: css('--warning'),
-          borderRadius: 6, padding: { top:4, bottom:4, left:7, right:7 },
-          color:'#fff', font:{ size:11, weight:'700' },
-          formatter: () => 'Méd: ' + fmtNum(media)
+          anchor:'center', align:'top', offset:6, clip:false,
+          color:'#C87A15', font:{ size:10, weight:'700' },
+          formatter: v => v != null ? 'Média ' + fmtNum(v) : ''
         }
       }
     ]},
     options: commonOpts({
-      layout:{ padding:{ top: 30, right: 80 } },
+      layout:{ padding:{ top: 30, right: 60 } },
       plugins:{legend:{display:false}, datalabels:{ display: false } }
     })
   });
@@ -3431,19 +3429,17 @@ function buildEquipMeta() {
     data:{ labels: labelsExt, datasets:[
       { type:'bar', data: barDataExt, backgroundColor: css('--primary'), borderRadius:8, barPercentage:.55, label:'Equipamentos',
         datalabels:{ display: true, anchor:'end', align:'top', clip:false, color: css('--text-2'), font:{size:11,weight:'700'}, formatter: v => v!=null ? fmtNum(v) : '' } },
-      { type:'line', data: lineDataExt, borderColor: css('--warning'), borderDash:[0,0], pointRadius:0, label:'Média', borderWidth:2.5,
+      { type:'line', data: lineDataExt, borderColor:'#E89B2B', borderDash:[6,4], pointRadius:0, label:'Média', borderWidth:2,
         datalabels:{
           display: (c) => c.dataIndex === lineDataExt.length - 1,
-          anchor:'center', align:'right', clip:false,
-          backgroundColor: css('--warning'),
-          borderRadius: 6, padding: { top:4, bottom:4, left:7, right:7 },
-          color:'#fff', font:{ size:11, weight:'700' },
-          formatter: () => 'Méd: ' + fmtNum(media)
+          anchor:'center', align:'top', offset:6, clip:false,
+          color:'#C87A15', font:{ size:10, weight:'700' },
+          formatter: v => v != null ? 'Média ' + fmtNum(v) : ''
         }
       }
     ]},
     options: commonOpts({
-      layout:{ padding:{ top: 30, right: 80 } },
+      layout:{ padding:{ top: 30, right: 60 } },
       plugins:{legend:{display:false}, datalabels:{ display: false } },
       scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:0, max:eYMax } }
     })
