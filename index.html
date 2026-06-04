@@ -599,10 +599,6 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       Análise de Saídas
     </div>
     <div class="nav-section">Sistema</div>
-    <div class="nav-item" data-page="data">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-      Sincronizar
-    </div>
     <div class="nav-item" data-page="settings">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6"/></svg>
       Configurações
@@ -1507,22 +1503,24 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       </div>
     </section>
 
-    <!-- =============== IMPORTAR DADOS =============== -->
-    <section class="page" data-page="data">
+    <!-- Toast de sucesso (global) -->
+    <div id="toastSync" style="display:none;position:fixed;bottom:24px;right:24px;background:var(--text);color:#fff;padding:14px 18px;border-radius:10px;box-shadow:var(--shadow-lg);font-size:13.5px;font-weight:600;z-index:1001;align-items:center;gap:10px">
+      <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+      <span id="toastSyncMsg">Dados sincronizados com sucesso</span>
+    </div>
+
+    <!-- =============== CONFIGURAÇÕES =============== -->
+    <section class="page" data-page="settings">
       <div class="page-head">
         <div>
-          <h2 class="page-title">Sincronizar Dados</h2>
-          <p class="page-sub">Os indicadores são atualizados diretamente da planilha no Google Drive</p>
+          <h2 class="page-title">Configurações</h2>
+          <p class="page-sub">Sincronização, metas e permissões</p>
         </div>
       </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
 
-      <!-- Toast de sucesso -->
-      <div id="toastSync" style="display:none;position:fixed;bottom:24px;right:24px;background:var(--text);color:#fff;padding:14px 18px;border-radius:10px;box-shadow:var(--shadow-lg);font-size:13.5px;font-weight:600;z-index:1001;align-items:center;gap:10px">
-        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-        <span id="toastSyncMsg">Dados sincronizados com sucesso</span>
-      </div>
-
-      <div class="grid grid-3-2" style="margin-bottom:14px">
+        <!-- ── Sincronização ── -->
+        <div class="grid grid-3-2" style="margin-bottom:0">
         <!-- Painel principal de sync -->
         <div class="chart-card">
           <div class="chart-head">
@@ -1672,18 +1670,6 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           </div>
         </div>
       </div>
-    </section>
-
-    <!-- =============== METAS =============== -->
-    <!-- =============== CONFIGURAÇÕES =============== -->
-    <section class="page" data-page="settings">
-      <div class="page-head">
-        <div>
-          <h2 class="page-title">Configurações</h2>
-          <p class="page-sub">Permissões, metas e fórmulas (apenas Diretoria e Controladoria)</p>
-        </div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:14px">
 
         <!-- ── Metas Anuais (card unificado) ── -->
         <div class="chart-card">
@@ -2165,7 +2151,7 @@ const pageNames = {
   sales: 'Vendas & Performance', ops: 'Operação',
   logistics: 'Logística', rh: 'RH', dfc: 'DFC Gerencial',
   saidas: 'Análise de Saídas',
-  data: 'Sincronizar Dados', settings: 'Configurações'
+  settings: 'Configurações'
 };
 // Páginas disponíveis para controle de acesso por usuário Leitura
 const ALL_PAGES = [
@@ -2423,7 +2409,7 @@ function applyPageAccess(user) {
 
   document.querySelectorAll('.nav-item[data-page]').forEach(item => {
     const pg = item.dataset.page;
-    if (pg === 'data' || pg === 'settings') {
+    if (pg === 'settings') {
       item.style.display = isAdm ? '' : 'none';
     } else {
       item.style.display = allowed.includes(pg) ? '' : 'none';
@@ -2434,7 +2420,7 @@ function applyPageAccess(user) {
   const activeNav = document.querySelector('.nav-item.active');
   const activePg  = activeNav ? activeNav.dataset.page : null;
   const blocked   = activePg && !isAdm &&
-    (activePg === 'data' || activePg === 'settings' || !allowed.includes(activePg));
+    (activePg === 'settings' || !allowed.includes(activePg));
   if (blocked) {
     const first = allowed[0] || 'dashboard';
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
