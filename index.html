@@ -5060,7 +5060,13 @@ function computePeriodData(dm) {
       'Cancelamento':           { v: fmtNum(cancel), f: 'Linhas no mês' },
       'Desistência':            { v: fmtNum(desist), f: 'Pré-ativação' },
       'Cancelamento Acumulado': { v: fmtNum(cancelAcum), f: 'Acumulado' },
-      'Cancelamento Anual (Previsão)': { v: sumTo('Atv_Qtd',11) != null ? fmtNum(sumTo('Atv_Qtd',11)) : '—', f: '' },
+      'Cancelamento Anual (Previsão)': (() => {
+        const _aArr = dm['Atv_Qtd'] || [];
+        const _aSum = sumTo('Atv_Qtd', 11);
+        const _aLast = _aArr.reduce((l, v, i) => v != null && v > 0 ? i : l, -1);
+        const _aLbl = _aLast >= 0 ? 'Allcom até ' + shortMon[_aLast] + '/' + year.slice(2) : '';
+        return { v: _aSum != null ? fmtNum(_aSum) : '—', f: _aLbl };
+      })(),
       'Resultado Líquido':      { v: fmtAutoK(res), f: lbl },
       'Índice de Satisfação':   { v: satV!=null ? Math.round(satV > 1 ? satV : satV*100)+'%' : '—', f: satV!=null?'Pesquisa de satisfação':'Linha Satisfacao na planilha (0 a 100 ou 0 a 1)' },
       'Cancelamento Anual (Real)': { v: fmtNum(cancelAcum), f: 'Média mensal: '+fmtNum(Math.round(cancelAcum/(idx+1))) },
