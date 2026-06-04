@@ -3351,9 +3351,9 @@ function buildChurnAnual() {
         borderColor:'#E89B2B', borderDash:[6,4], borderWidth:2,
         pointRadius:0, fill:false, tension:0,
         datalabels:{
-          display: (ctx) => ctx.dataIndex === 11, // só no último ponto
-          anchor:'end', align:'right', color:'#C87A15', font:{size:10,weight:'700'},
-          formatter: v => v != null ? 'Média: ' + v.toFixed(2).replace('.',',') + '%' : ''
+          display: (ctx) => ctx.dataIndex === (realData.lastIndexOf(realData.filter(v=>v!=null).slice(-1)[0])),
+          anchor:'center', align:'top', offset:6, color:'#C87A15', font:{size:10,weight:'700'},
+          formatter: v => v != null ? 'Média ' + v.toFixed(2).replace('.',',') + '%' : ''
         } }
     ]},
     options: commonOpts({
@@ -5650,9 +5650,9 @@ function buildTickets() {
         borderColor:'#E89B2B', borderDash:[6,4], borderWidth:2,
         pointRadius:0, fill:false, tension:0,
         datalabels:{
-          display: (ctx) => ctx.dataIndex === 11, // só no último ponto
-          anchor:'end', align:'right', color:'#C87A15', font:{size:10,weight:'700'},
-          formatter: v => v != null ? 'Média: ' + fmtNum(v) : ''
+          display: (ctx) => ctx.dataIndex === (realData.reduce((l,v,i) => v!=null?i:l, 0)),
+          anchor:'center', align:'top', offset:6, color:'#C87A15', font:{size:10,weight:'700'},
+          formatter: v => v != null ? 'Média ' + fmtNum(v) : ''
         } }
     ]},
     options: commonOpts({
