@@ -1009,15 +1009,31 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         </div>
         <div class="insight">
           <h4>Margem de Contribuição</h4>
-          <div style="background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:white;border-radius:12px;padding:16px;text-align:center">
-            <div id="margemMesLabel" style="font-size:11.5px;letter-spacing:.6px;text-transform:uppercase;opacity:.85">Mês atual</div>
-            <div id="margemPctValue" style="font-family:'Manrope';font-weight:800;font-size:38px;line-height:1.1;margin-top:4px">41,55%</div>
-            <div id="margemVsMeta" style="font-size:12px;opacity:.85;margin-top:4px">+108% vs. meta</div>
-          </div>
-          <div class="activation-list" id="margemHistorico">
-            <div class="activation-item"><div class="month-pill">JAN</div><div class="qty">23,12%</div><div class="desc">R$ 520.606</div></div>
-            <div class="activation-item"><div class="month-pill">FEV</div><div class="qty">27,78%</div><div class="desc">R$ 523.251</div></div>
-            <div class="activation-item"><div class="month-pill">MAR</div><div class="qty">41,55%</div><div class="desc">R$ 532.829</div></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+            <div>
+              <div id="margemCol1Hdr" style="background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:white;border-radius:8px;padding:8px 6px;text-align:center;margin-bottom:4px">
+                <div style="font-size:9px;letter-spacing:.5px;text-transform:uppercase;opacity:.85">Jan–Abr</div>
+                <div style="font-family:'Manrope';font-weight:800;font-size:18px;line-height:1.1;margin-top:2px">—</div>
+                <div style="font-size:10px;opacity:.8;margin-top:1px">—</div>
+              </div>
+              <div class="activation-list" id="margemCol1List" style="gap:2px"></div>
+            </div>
+            <div>
+              <div id="margemCol2Hdr" style="background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:white;border-radius:8px;padding:8px 6px;text-align:center;margin-bottom:4px">
+                <div style="font-size:9px;letter-spacing:.5px;text-transform:uppercase;opacity:.85">Mai–Ago</div>
+                <div style="font-family:'Manrope';font-weight:800;font-size:18px;line-height:1.1;margin-top:2px">—</div>
+                <div style="font-size:10px;opacity:.8;margin-top:1px">—</div>
+              </div>
+              <div class="activation-list" id="margemCol2List" style="gap:2px"></div>
+            </div>
+            <div>
+              <div id="margemCol3Hdr" style="background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:white;border-radius:8px;padding:8px 6px;text-align:center;margin-bottom:4px">
+                <div style="font-size:9px;letter-spacing:.5px;text-transform:uppercase;opacity:.85">Set–Dez</div>
+                <div style="font-family:'Manrope';font-weight:800;font-size:18px;line-height:1.1;margin-top:2px">—</div>
+                <div style="font-size:10px;opacity:.8;margin-top:1px">—</div>
+              </div>
+              <div class="activation-list" id="margemCol3List" style="gap:2px"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -1032,16 +1048,32 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           <div class="chart-canvas-wrap tall"><canvas id="chartVendasMeta"></canvas></div>
         </div>
         <div class="insight">
-          <h4 id="salesQ1Header">Média Simcards</h4>
-          <div style="background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:white;border-radius:12px;padding:16px">
-            <div style="font-size:11.5px;letter-spacing:.6px;text-transform:uppercase;opacity:.85">Total Trimestre</div>
-            <div id="salesQ1Total" style="font-family:'Manrope';font-weight:800;font-size:32px;margin-top:2px">102.664</div>
-            <div id="salesQ1Pct" style="font-size:12px;opacity:.85;margin-top:2px">103% vs. meta (102.000)</div>
-          </div>
-          <div class="activation-list" id="salesQ1List">
-            <div class="activation-item"><div class="month-pill">JAN</div><div class="qty">34.639</div><span class="delta-chip up">+1.639</span></div>
-            <div class="activation-item"><div class="month-pill">FEV</div><div class="qty">31.590</div><span class="delta-chip down">−1.410</span></div>
-            <div class="activation-item"><div class="month-pill">MAR</div><div class="qty">36.435</div><span class="delta-chip up">+3.435</span></div>
+          <h4>Média Simcards</h4>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+            <div>
+              <div id="simCol1Hdr" style="background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:white;border-radius:8px;padding:8px 6px;text-align:center;margin-bottom:4px">
+                <div style="font-size:9px;letter-spacing:.5px;text-transform:uppercase;opacity:.85">Jan–Abr</div>
+                <div style="font-family:'Manrope';font-weight:800;font-size:18px;line-height:1.1;margin-top:2px">—</div>
+                <div style="font-size:10px;opacity:.8;margin-top:1px">—</div>
+              </div>
+              <div class="activation-list" id="simCol1List" style="gap:2px"></div>
+            </div>
+            <div>
+              <div id="simCol2Hdr" style="background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:white;border-radius:8px;padding:8px 6px;text-align:center;margin-bottom:4px">
+                <div style="font-size:9px;letter-spacing:.5px;text-transform:uppercase;opacity:.85">Mai–Ago</div>
+                <div style="font-family:'Manrope';font-weight:800;font-size:18px;line-height:1.1;margin-top:2px">—</div>
+                <div style="font-size:10px;opacity:.8;margin-top:1px">—</div>
+              </div>
+              <div class="activation-list" id="simCol2List" style="gap:2px"></div>
+            </div>
+            <div>
+              <div id="simCol3Hdr" style="background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:white;border-radius:8px;padding:8px 6px;text-align:center;margin-bottom:4px">
+                <div style="font-size:9px;letter-spacing:.5px;text-transform:uppercase;opacity:.85">Set–Dez</div>
+                <div style="font-family:'Manrope';font-weight:800;font-size:18px;line-height:1.1;margin-top:2px">—</div>
+                <div style="font-size:10px;opacity:.8;margin-top:1px">—</div>
+              </div>
+              <div class="activation-list" id="simCol3List" style="gap:2px"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -1054,16 +1086,32 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           <div class="chart-canvas-wrap tall"><canvas id="chartEquipMeta"></canvas></div>
         </div>
         <div class="insight">
-          <h4 id="equipQ1Header">Média Equipamentos</h4>
-          <div style="background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:white;border-radius:12px;padding:16px">
-            <div style="font-size:11.5px;letter-spacing:.6px;text-transform:uppercase;opacity:.85">Total Período</div>
-            <div id="equipQ1Total" style="font-family:'Manrope';font-weight:800;font-size:32px;margin-top:2px">5.946</div>
-            <div id="equipQ1Pct" style="font-size:12px;opacity:.85;margin-top:2px">99% vs. meta (6.000)</div>
-          </div>
-          <div class="activation-list" id="equipQ1List">
-            <div class="activation-item"><div class="month-pill">JAN</div><div class="qty">2.102</div><span class="delta-chip up">+102</span></div>
-            <div class="activation-item"><div class="month-pill">FEV</div><div class="qty">1.632</div><span class="delta-chip down">−368</span></div>
-            <div class="activation-item"><div class="month-pill">MAR</div><div class="qty">2.212</div><span class="delta-chip up">+212</span></div>
+          <h4>Média Equipamentos</h4>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+            <div>
+              <div id="equipCol1Hdr" style="background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:white;border-radius:8px;padding:8px 6px;text-align:center;margin-bottom:4px">
+                <div style="font-size:9px;letter-spacing:.5px;text-transform:uppercase;opacity:.85">Jan–Abr</div>
+                <div style="font-family:'Manrope';font-weight:800;font-size:18px;line-height:1.1;margin-top:2px">—</div>
+                <div style="font-size:10px;opacity:.8;margin-top:1px">—</div>
+              </div>
+              <div class="activation-list" id="equipCol1List" style="gap:2px"></div>
+            </div>
+            <div>
+              <div id="equipCol2Hdr" style="background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:white;border-radius:8px;padding:8px 6px;text-align:center;margin-bottom:4px">
+                <div style="font-size:9px;letter-spacing:.5px;text-transform:uppercase;opacity:.85">Mai–Ago</div>
+                <div style="font-family:'Manrope';font-weight:800;font-size:18px;line-height:1.1;margin-top:2px">—</div>
+                <div style="font-size:10px;opacity:.8;margin-top:1px">—</div>
+              </div>
+              <div class="activation-list" id="equipCol2List" style="gap:2px"></div>
+            </div>
+            <div>
+              <div id="equipCol3Hdr" style="background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:white;border-radius:8px;padding:8px 6px;text-align:center;margin-bottom:4px">
+                <div style="font-size:9px;letter-spacing:.5px;text-transform:uppercase;opacity:.85">Set–Dez</div>
+                <div style="font-family:'Manrope';font-weight:800;font-size:18px;line-height:1.1;margin-top:2px">—</div>
+                <div style="font-size:10px;opacity:.8;margin-top:1px">—</div>
+              </div>
+              <div class="activation-list" id="equipCol3List" style="gap:2px"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -2901,6 +2949,84 @@ function buildEbitda() {
   });
 }
 
+function buildInsightPanels() {
+  const PILLS = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+  const GROUPS = [[0,4],[4,8],[8,12]];
+
+  // ── Margem de Contribuição ────────────────────────────────────────────────
+  const margemData = receitaMes.map((rec,i) => {
+    const recL = rec != null ? rec - (recAtvFinMes[i] ?? 0) : null;
+    const cmv  = custoMes[i];
+    const pct  = (recL && recL > 0 && cmv != null) ? (recL - cmv) / recL * 100 : null;
+    const val  = (recL && cmv != null) ? recL - cmv : null;
+    return { mes: PILLS[i], pct, val };
+  });
+  GROUPS.forEach(([s,e], ci) => {
+    const slice  = margemData.slice(s, e);
+    const real   = slice.filter(d => d.pct != null);
+    const avgPct = real.length ? real.reduce((a,d)=>a+d.pct,0)/real.length : null;
+    const sumVal = real.reduce((a,d)=>a+(d.val??0), 0);
+    const hdr = document.getElementById(`margemCol${ci+1}Hdr`);
+    const lst = document.getElementById(`margemCol${ci+1}List`);
+    if (hdr) {
+      const divs = hdr.querySelectorAll('div');
+      if (divs[1]) divs[1].textContent = avgPct != null ? avgPct.toFixed(1).replace('.',',')+'%' : '—';
+      if (divs[2]) divs[2].textContent = sumVal ? fmtAutoK(sumVal) : '—';
+    }
+    if (lst) lst.innerHTML = slice.map(d =>
+      d.pct != null
+        ? `<div class="activation-item" style="font-size:12px"><div class="month-pill">${d.mes}</div><div class="qty">${d.pct.toFixed(1).replace('.',',')}%</div><div class="desc">${fmtAutoK(d.val)}</div></div>`
+        : `<div class="activation-item" style="font-size:12px;opacity:.3"><div class="month-pill">${d.mes}</div><div class="qty">—</div></div>`
+    ).join('');
+  });
+
+  // ── Média Simcards ────────────────────────────────────────────────────────
+  const simMeta = META_SIMCARDS_MES;
+  const simData = vendasMes.map((v, i) => ({ mes: PILLS[i], v }));
+  GROUPS.forEach(([s,e], ci) => {
+    const slice = simData.slice(s, e);
+    const real  = slice.filter(d => d.v != null && d.v > 0);
+    const total = real.reduce((a,d)=>a+d.v,0);
+    const metaT = simMeta * real.length;
+    const pct   = metaT > 0 ? Math.round(total / metaT * 100) : null;
+    const hdr = document.getElementById(`simCol${ci+1}Hdr`);
+    const lst = document.getElementById(`simCol${ci+1}List`);
+    if (hdr) {
+      const divs = hdr.querySelectorAll('div');
+      if (divs[1]) divs[1].textContent = total > 0 ? fmtNum(total) : '—';
+      if (divs[2]) divs[2].textContent = pct != null ? pct+'% vs meta' : '—';
+    }
+    if (lst) lst.innerHTML = slice.map(d => {
+      if (d.v == null || d.v === 0) return `<div class="activation-item" style="font-size:12px;opacity:.3"><div class="month-pill">${d.mes}</div><div class="qty">—</div></div>`;
+      const diff = d.v - simMeta;
+      return `<div class="activation-item" style="font-size:12px"><div class="month-pill">${d.mes}</div><div class="qty">${fmtNum(d.v)}</div><span class="delta-chip ${diff>=0?'up':'down'}">${diff>=0?'+':'−'}${fmtNum(Math.abs(diff))}</span></div>`;
+    }).join('');
+  });
+
+  // ── Média Equipamentos ────────────────────────────────────────────────────
+  const equipMeta = META_EQUIP_MES;
+  const equipData = equipMes.map((v, i) => ({ mes: PILLS[i], v }));
+  GROUPS.forEach(([s,e], ci) => {
+    const slice = equipData.slice(s, e);
+    const real  = slice.filter(d => d.v != null && d.v > 0);
+    const total = real.reduce((a,d)=>a+d.v,0);
+    const metaT = equipMeta * real.length;
+    const pct   = metaT > 0 ? Math.round(total / metaT * 100) : null;
+    const hdr = document.getElementById(`equipCol${ci+1}Hdr`);
+    const lst = document.getElementById(`equipCol${ci+1}List`);
+    if (hdr) {
+      const divs = hdr.querySelectorAll('div');
+      if (divs[1]) divs[1].textContent = total > 0 ? fmtNum(total) : '—';
+      if (divs[2]) divs[2].textContent = pct != null ? pct+'% vs meta' : '—';
+    }
+    if (lst) lst.innerHTML = slice.map(d => {
+      if (d.v == null || d.v === 0) return `<div class="activation-item" style="font-size:12px;opacity:.3"><div class="month-pill">${d.mes}</div><div class="qty">—</div></div>`;
+      const diff = d.v - equipMeta;
+      return `<div class="activation-item" style="font-size:12px"><div class="month-pill">${d.mes}</div><div class="qty">${fmtNum(d.v)}</div><span class="delta-chip ${diff>=0?'up':'down'}">${diff>=0?'+':'−'}${fmtNum(Math.abs(diff))}</span></div>`;
+    }).join('');
+  });
+}
+
 function buildMargemContrib() {
   const ctx = document.getElementById('chartMargemContrib'); if (!ctx) return;
   destroyChart('margemContrib');
@@ -4130,7 +4256,7 @@ function buildSaidasPercTable() {
 function rerenderAllCharts() {
   Chart.defaults.color = css('--text-2');
   buildLucro(); buildEbitda(); buildReceita(); buildCusto(); buildDespesa();
-  buildMargemContrib(); buildMargemLiq(); buildCofre();
+  buildInsightPanels(); buildMargemContrib(); buildMargemLiq(); buildCofre();
   buildSaldo(); buildBaseSim(); buildBaseSw(); buildConect();
   buildVendasMeta(); buildEquipMeta(); buildNovos(); buildVendasMedia();
   buildChurn(); buildChurnAnual(); buildVolEnvio(); buildCustoEnvio();
