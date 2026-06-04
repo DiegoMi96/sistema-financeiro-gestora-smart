@@ -1128,7 +1128,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <div class="chart-card" style="margin-bottom:14px">
         <div class="chart-head"><div><div class="chart-title">Detalhamento por Operadora</div></div></div>
         <div class="op-tabs" id="opTabsAll"></div>
-        <div style="overflow-x:auto"><table class="op-tbl"><thead><tr><th>Operadora</th><th class="r">Qtd Linhas</th><th class="r">Mensalidade (Smart)</th><th class="r">Mensalidade</th><th class="r">Custo (Allcom)</th><th class="r">Custo</th><th class="r">Margem / SIM</th><th class="r">Margem %</th></tr></thead><tbody id="opBodyAll"></tbody></table></div>
+        <div style="overflow-x:auto"><table class="op-tbl"><thead><tr><th>Operadora</th><th class="r">Qtd Linhas</th><th class="r">Mensalidade</th><th class="r">Custo</th><th class="r">Margem</th><th class="r">Margem %</th></tr></thead><tbody id="opBodyAll"></tbody></table></div>
       </div>
 
     </section>
@@ -5712,27 +5712,22 @@ window.addEventListener('pageshow', (e) => {
 });
 function getOpMes(mesIdx) {
   const rows = opNomes.map((nome, i) => {
-    const fatTotal   = opMensMes[i][mesIdx];  // faturamento total
-    const custoTotal = opCustoMes[i][mesIdx]; // custo total
-    const qtd        = opQtdMes[i][mesIdx];
-    if (fatTotal == null) return { nome, qtd, fatTotal:null, mensMedia:null, custoTotal:null, custoMedia:null, marg:null, pct:null };
-    const mensMedia  = qtd && qtd > 0 ? +(fatTotal / qtd).toFixed(2) : null;
-    const custoMedia = (custoTotal != null && qtd && qtd > 0) ? +(custoTotal / qtd).toFixed(2) : null;
-    const marg       = mensMedia != null && custoMedia != null ? +(mensMedia - custoMedia).toFixed(2) : null;
-    const pct        = mensMedia && mensMedia > 0 && marg != null ? +(marg / mensMedia * 100).toFixed(1) : null;
-    return { nome, qtd, fatTotal, mensMedia, custoTotal, custoMedia, marg, pct };
+    const mens  = opMensMes[i][mesIdx];
+    const custo = opCustoMes[i][mesIdx];
+    const qtd   = opQtdMes[i][mesIdx];
+    if (mens == null) return { nome, qtd, mens: null, custo: null, marg: null, pct: null };
+    const marg = +(mens - (custo || 0)).toFixed(2);
+    const pct  = mens > 0 ? +(marg / mens * 100).toFixed(1) : 0;
+    return { nome, qtd, mens, custo, marg, pct };
   });
-  // Total — soma faturamento e custo, média ponderada por SIM
-  const valid = rows.filter(r => r.fatTotal != null);
-  if (valid.length === 0) return { rows, total: { qtd:null, fatTotal:null, mensMedia:null, custoTotal:null, custoMedia:null, marg:null, pct:null } };
-  const tQtd       = valid.reduce((a,r) => a + (r.qtd||0), 0);
-  const tFat       = valid.reduce((a,r) => a + (r.fatTotal||0), 0);
-  const tCusto     = valid.reduce((a,r) => a + (r.custoTotal||0), 0);
-  const tMensMedia = tQtd > 0 ? +(tFat / tQtd).toFixed(2) : null;
-  const tCustoMedia= tQtd > 0 ? +(tCusto / tQtd).toFixed(2) : null;
-  const tMarg      = tMensMedia != null && tCustoMedia != null ? +(tMensMedia - tCustoMedia).toFixed(2) : null;
-  const tPct       = tMensMedia && tMensMedia > 0 && tMarg != null ? +(tMarg / tMensMedia * 100).toFixed(1) : null;
-  return { rows, total: { qtd:tQtd, fatTotal:tFat, mensMedia:tMensMedia, custoTotal:tCusto, custoMedia:tCustoMedia, marg:tMarg, pct:tPct } };
+  const valid = rows.filter(r => r.mens != null);
+  if (valid.length === 0) return { rows, total: { qtd: null, mens: null, custo: null, marg: null, pct: null } };
+  const tM    = +(valid.reduce((a, r) => a + r.mens, 0) / valid.length).toFixed(2);
+  const tC    = +(valid.reduce((a, r) => a + (r.custo || 0), 0) / valid.length).toFixed(2);
+  const tMarg = +(tM - tC).toFixed(2);
+  const tPct  = tM > 0 ? +(tMarg / tM * 100).toFixed(1) : 0;
+  const tQtd  = valid.some(r => r.qtd != null) ? valid.reduce((a, r) => a + (r.qtd || 0), 0) : null;
+  return { rows, total: { qtd: tQtd, mens: tM, custo: tC, marg: tMarg, pct: tPct } };
 }
 
 function fmtOp(v) { return v != null ? 'R$ ' + v.toFixed(2).replace('.',',') : '—'; }
@@ -5745,26 +5740,21 @@ function renderOpTable(bodyId, mesIdx) {
   const isNegRow = r => r.marg != null && r.marg < 0;
   const pctCls = pct => pct != null && pct < 0 ? 'neg' : pct != null && pct >= 20 ? 'pos' : 'mid';
   const fQ = v => v != null ? fmtNum(v) : '—';
-  const fBRL = v => v != null ? 'R$ ' + Math.round(v).toLocaleString('pt-BR') : '—';
   tbody.innerHTML = d.rows.map(r => {
     const negRow = isNegRow(r);
-    return `<tr${r.fatTotal == null ? ' style="opacity:.45"' : negRow ? ' class="marg-neg"' : ''}>
+    return `<tr${r.mens == null ? ' style="opacity:.45"' : negRow ? ' class="marg-neg"' : ''}>
     <td>${r.nome}</td>
     <td class="r">${fQ(r.qtd)}</td>
-    <td class="r">${fBRL(r.fatTotal)}</td>
-    <td class="r">${fO(r.mensMedia)}</td>
-    <td class="r">${fBRL(r.custoTotal)}</td>
-    <td class="r">${fO(r.custoMedia)}</td>
+    <td class="r">${fO(r.mens)}</td>
+    <td class="r">${fO(r.custo)}</td>
     <td class="r marg-cell">${fO(r.marg)}</td>
     <td class="r"><span class="pct-chip ${pctCls(r.pct)}">${fP(r.pct)}</span></td>
   </tr>`;
   }).join('') + `<tr class="op-total${isNegRow(d.total) ? ' marg-neg' : ''}">
-    <td>Total / Média Ponderada</td>
+    <td>Média Ponderada</td>
     <td class="r">${fQ(d.total.qtd)}</td>
-    <td class="r">${fBRL(d.total.fatTotal)}</td>
-    <td class="r">${fO(d.total.mensMedia)}</td>
-    <td class="r">${fBRL(d.total.custoTotal)}</td>
-    <td class="r">${fO(d.total.custoMedia)}</td>
+    <td class="r">${fO(d.total.mens)}</td>
+    <td class="r">${fO(d.total.custo)}</td>
     <td class="r marg-cell">${fO(d.total.marg)}</td>
     <td class="r"><span class="pct-chip ${pctCls(d.total.pct)}">${fP(d.total.pct)}</span></td>
   </tr>`;
