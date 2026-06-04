@@ -2961,12 +2961,12 @@ function buildMargemLiq() {
     type: 'line',
     data: { labels: meses, datasets: [
       { label:'Realizado', data: realData,
-        borderColor: css('--primary'), backgroundColor:'rgba(29,158,94,.12)', fill:true,
+        borderColor: css('--primary'), backgroundColor:'rgba(100,105,115,.18)', fill:true,
         tension:.35, borderWidth:3,
         pointRadius: pctArr.map((_,i)=>i===sel?8:5),
         pointBackgroundColor: pctArr.map((_,i)=>i===sel?css('--primary-dark'):css('--primary')) },
       { label:'Previsão', data: prevData,
-        borderColor: css('--primary-soft'), backgroundColor:'rgba(29,158,94,.06)', fill:true,
+        borderColor: css('--primary-soft'), backgroundColor:'rgba(100,105,115,.09)', fill:true,
         tension:.35, borderDash:[6,4], borderWidth:2, pointRadius:4, pointBackgroundColor: css('--primary-soft') }
     ]},
     options: commonOpts({
