@@ -1341,17 +1341,17 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         <div class="card tinted-primary">
           <div class="kpi-label">Saldo Acumulado</div>
           <div class="kpi-value lg" id="dfcKpiSaldo">—</div>
-          <div class="kpi-foot" id="dfcKpiSaldoFoot">Sincronize a planilha</div>
+          <div class="kpi-foot" id="dfcKpiSaldoFoot"></div>
         </div>
         <div class="card tinted-primary">
-          <div class="kpi-label">Resultado Líquido</div>
+          <div class="kpi-label">Resultado Líquido Anual</div>
           <div class="kpi-value lg" id="dfcKpiResultado">—</div>
-          <div class="kpi-foot" id="dfcKpiResultadoFoot">Resultado operacional</div>
+          <div class="kpi-foot" id="dfcKpiResultadoFoot"></div>
         </div>
         <div class="card" style="border-left:4px solid var(--warning)">
-          <div class="kpi-label">Dividendos</div>
+          <div class="kpi-label">Dividendos Acumulado</div>
           <div class="kpi-value lg" id="dfcKpiDividendos">—</div>
-          <div class="kpi-foot" id="dfcKpiDividendosFoot">Acumulado Até o Momento</div>
+          <div class="kpi-foot" id="dfcKpiDividendosFoot"></div>
         </div>
       </div>
 
@@ -3334,6 +3334,9 @@ function buildChurnAnual() {
     return parseFloat(((c + desistMes[i]) / base * 100).toFixed(2));
   });
   const realData = churnPct.map((v, i) => isReal[i] ? v : null);
+  const _chVals  = realData.filter(v => v != null);
+  const _chAvg   = _chVals.length ? parseFloat((_chVals.reduce((s,v)=>s+v,0) / _chVals.length).toFixed(2)) : null;
+  const avgLine  = new Array(12).fill(_chAvg);
   charts.churnAnual = new Chart(ctx, {
     type: 'line',
     data: { labels: meses, datasets: [
@@ -3341,11 +3344,15 @@ function buildChurnAnual() {
         borderColor: css('--negative'), backgroundColor:'rgba(224,70,59,.12)', fill:true,
         tension:.35, borderWidth:3,
         pointRadius: realData.map((_,i) => i===sel ? 8 : 5),
-        pointBackgroundColor: realData.map((_,i) => i===sel ? '#A8261D' : css('--negative')) }
+        pointBackgroundColor: realData.map((_,i) => i===sel ? '#A8261D' : css('--negative')) },
+      { label:'Média', data: avgLine,
+        borderColor:'#E89B2B', borderDash:[6,4], borderWidth:2,
+        pointRadius:0, fill:false, tension:0,
+        datalabels:{ display:false } }
     ]},
     options: commonOpts({
       plugins:{
-        legend:{ display:false },
+        legend:{ display:true, labels:{ boxWidth:12, font:{size:11} } },
         tooltip:{ callbacks:{ label: c => c.parsed.y.toFixed(2) + '% churn' } },
         datalabels:{
           display: true, anchor:'end', align:'top',
@@ -3649,9 +3656,7 @@ function buildDFCTable() {
   // Card 1 — Saldo do período selecionado
   const saldoSel = vals[12][selIdx] ?? saldoAcum[selIdx];
   if (kS)  kS.textContent  = saldoSel != null ? fmtBRL(saldoSel) : '—';
-  if (kSF) kSF.textContent = saldoSel != null
-    ? `Posição atual · ${shortMons[selIdx]}/${year.slice(2)}`
-    : 'Sincronize a planilha';
+  if (kSF) kSF.textContent = ''; // legenda removida
 
   // Card 2 — Saldo Anual Projetado (Dez) — fixo
   if (kSA)  kSA.textContent  = saldoAnual != null ? fmtBRL(saldoAnual) : '—';
@@ -3659,9 +3664,10 @@ function buildDFCTable() {
     ? `${mesesReais} meses reais + ${mesesPrev} previstos`
     : 'Preencha a Previsao_2026';
 
-  // Card 3 — Resultado do período selecionado (sem subtítulo)
-  const resSel = vals[resIdx][selIdx];
-  if (kR)  kR.textContent  = resSel != null ? fmtBRL(resSel) : '—';
+  // Card 3 — Resultado Líquido Anual: soma Jan até o mês selecionado
+  const resAcum = vals[resIdx].slice(0, selIdx + 1).reduce((s, v) => s + (v ?? 0), 0);
+  const resAcumHasData = vals[resIdx].slice(0, selIdx + 1).some(v => v != null);
+  if (kR)  kR.textContent  = resAcumHasData ? fmtBRL(resAcum) : '—';
   if (kRF) kRF.textContent = '';
 
   // Card 4 — Resultado Anual (Real + Previsão) — fixo
@@ -3689,7 +3695,7 @@ function buildDFCTable() {
   const _mesesPrevDiv  = _divAnualArr.filter((v,i) => v > 0 && !isReal[i]).length;
 
   if (kD)   kD.textContent  = _hasDiv ? fmtBRL(_divAcum) : '—';
-  if (kDF)  kDF.textContent = _hasDiv ? `Acumulado Até ${shortMons[selIdx]}/${year.slice(2)}` : 'Sincronize Saidas_2026';
+  if (kDF)  kDF.textContent = ''; // legenda removida
   if (kDA)  kDA.textContent  = _divAnualPrev != null ? fmtBRL(_divAnualPrev) : '—';
   if (kDAF) kDAF.textContent = _divAnualPrev != null
     ? `${_mesesReaisDiv} meses reais + ${_mesesPrevDiv} previstos`
@@ -5622,6 +5628,9 @@ function buildTickets() {
   destroyChart('tickets');
   const labels = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const realData = ticketsMes.map((v, i) => isRealTickets[i] ? v : null);
+  const _tVals  = realData.filter(v => v != null);
+  const _tAvg   = _tVals.length ? Math.round(_tVals.reduce((s,v)=>s+v,0) / _tVals.length) : null;
+  const tAvgLine = new Array(12).fill(_tAvg);
   const _tMax = realData.reduce((mx, v) => v != null && v > mx ? v : mx, 0);
   const tYMax = Math.max(8000, Math.ceil(_tMax * 1.2 / 1000) * 1000);
   charts.tickets = new Chart(ctx, {
@@ -5630,10 +5639,14 @@ function buildTickets() {
       { label:'Realizado', data: realData,
         borderColor: css('--info'), backgroundColor:'rgba(44,123,229,.12)', fill:true,
         tension:.35, borderWidth:3, pointRadius:5, pointBackgroundColor: css('--info'),
-        datalabels:{ display:true, anchor:'end', align:'top', color: css('--info'), font:{size:10,weight:'700'}, formatter: v => v==null?'':fmtNum(v) } }
+        datalabels:{ display:true, anchor:'end', align:'top', color: css('--info'), font:{size:10,weight:'700'}, formatter: v => v==null?'':fmtNum(v) } },
+      { label:'Média', data: tAvgLine,
+        borderColor:'#E89B2B', borderDash:[6,4], borderWidth:2,
+        pointRadius:0, fill:false, tension:0,
+        datalabels:{ display:false } }
     ]},
     options: commonOpts({
-      plugins:{ legend:{ display:false },
+      plugins:{ legend:{ display:true, labels:{ boxWidth:12, font:{size:11} } },
         tooltip:{ callbacks:{ label: c => c.dataset.label+': '+fmtNum(c.parsed.y)+' tickets' } },
         datalabels:{ display:false } },
       scales:{ ...commonOpts().scales, y:{ ...commonOpts().scales.y, min:0, max:tYMax } }
