@@ -3820,6 +3820,7 @@ function buildDFCTable() {
   const mesLabels = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
   let thHtml = '<tr><th class="cat">CATEGORIA</th>';
   thHtml += `<th class="num${!isReal[0]?' forecast-hdr':''}">${mesLabels[0]}/${year.slice(2)}${!isReal[0]?' <span class="prev-badge">PREV</span>':''}</th>`;
+  thHtml += `<th class="pct${!isReal[0]?' forecast-hdr':''}">% vs Ant.</th>`;
   for (let m = 1; m < 12; m++) {
     const fc = !isReal[m];
     const lbl = `${mesLabels[m]}/${year.slice(2)}${fc?' <span class="prev-badge">PREV</span>':''}`;
@@ -4058,7 +4059,7 @@ function buildDFCTable() {
   rowDefs.forEach(([label, cls, isExp,, lookupKey, rowType, subsFilter, excludeSubs], ri) => {
     // ── Cabeçalho de seção (sem dados numéricos) ──────────────────────────────
     if (rowType === 'hdr') {
-      html += `<tr class="dfc-section"><td class="cat">${label}</td><td colspan="23"></td></tr>`;
+      html += `<tr class="dfc-section"><td class="cat">${label}</td><td colspan="24"></td></tr>`;
       return;
     }
 
@@ -4072,6 +4073,7 @@ function buildDFCTable() {
 
     html += `<tr class="${cls}"><td class="cat">${expandBtn}${label}</td>`;
     html += cellHtml(vals[ri][0], isExp, !isReal[0]);
+    html += pctHtml(vals[ri][0], null, isExp, !isReal[0]);
     for (let m = 1; m < 12; m++) {
       const fc = !isReal[m];
       html += cellHtml(vals[ri][m], isExp, fc);
@@ -4085,8 +4087,8 @@ function buildDFCTable() {
         const isLast = si === subs.length - 1;
         html += `<tr class="dfc-sub${isLast?' dfc-sub-last':''}" data-grp="dfc-grp-${ri}" style="display:none">`;
         html += `<td class="cat">${subLabel}</td>`;
-        // Janeiro — sem coluna %
         html += subCellHtml(subVals[0], isExp, !isReal[0]);
+        html += pctHtml(subVals[0], null, isExp, !isReal[0]);
         for (let m = 1; m < 12; m++) {
           const fc = !isReal[m];
           html += subCellHtml(subVals[m], isExp, fc);
