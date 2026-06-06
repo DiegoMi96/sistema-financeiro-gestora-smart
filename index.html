@@ -3948,7 +3948,7 @@ function buildDFCTable() {
     ['TOTAL ENTRADAS',         'dfc-total', false, m=>_totEntradas(m),        null,  'total'],
     // ── SAÍDAS OPERACIONAIS ───────────────────────────────────────────────────
     ['— SAÍDAS OPERACIONAIS',  '',          false, null,                      null,  'hdr'],
-    ['CMV / CPS',              '',          true,  m=>catSum('CMV / CPS',m),  'CMV / CPS', undefined, undefined, ['Conectividade Cheque']],
+    ['CMV / CPS',              '',          true,  m=>catSum('CMV / CPS',m),  'CMV / CPS'],
     ['Despesas Administrativas','',         true,  m=>catSum('Despesas Administrativa',m), 'Despesas Administrativa'],
     ['Despesas com Pessoal',   '',          true,  m=>_despPessoalOp(m),      'Despesas com pessoal', undefined, _dpOpSubs],
     ['Despesa Tributária',     '',          true,  m=>catSum('Despesa Tributaria',m), 'Despesa Tributaria'],
@@ -4559,11 +4559,14 @@ const saidasData = [
     _sub12('Outros')
   ]},
   { cat: 'CMV / CPS', subs: [
-    _sub12('Conectividade M2M'),
-    _sub12('Conectividade Cheque'),
-    _sub12('Equipamentos'),
-    _sub12('Software'),
-    _sub12('Outros (SMS, Aportes, Apto etc..)')
+    _sub12('Ativo'),
+    _sub12('Ativação'),
+    _sub12('Cancelado'),
+    _sub12('Suspenso'),
+    _sub12('Excedente'),
+    _sub12('SMS'),
+    _sub12('Multa'),
+    _sub12('Frete'),
   ]},
   { cat: 'Despesas Administrativa', subs: [
     _sub12('Contabilidade'),
