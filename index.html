@@ -411,8 +411,9 @@ body { display: flex; min-height: 100vh; }
 footer.last-update { padding: 18px 28px; text-align: center; color: var(--muted); font-size: 11.5px; }
 
 /* DFC table (match print layout) */
-.dfc-tbl { width: 100%; border-collapse: separate; border-spacing: 0 4px; font-family: 'Inter', sans-serif; min-width: 2800px; }
+.dfc-tbl { width: 100%; border-collapse: separate; border-spacing: 0 4px; font-family: 'Inter', sans-serif; min-width: 1500px; }
 .dfc-tbl th { background: var(--primary); color: #fff; font-weight: 700; padding: 12px 14px; font-size: 12px; letter-spacing: .5px; text-transform: uppercase; text-align: left; vertical-align: middle; }
+.dfc-tbl th.num { width: 110px; max-width: 110px; text-align: right; }
 .dfc-tbl th.num, .dfc-tbl th.pct { text-align: right; min-width: 110px; }
 .dfc-tbl th:first-child { border-radius: 8px 0 0 8px; min-width: 260px; }
 .dfc-tbl th:last-child { border-radius: 0 8px 8px 0; }
