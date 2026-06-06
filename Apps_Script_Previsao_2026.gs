@@ -71,6 +71,16 @@ function criarAbaPrevisao2026() {
         'Software',
         'Outros (SMS, Aportes, Apto etc..)',
         'Rendimento (CDI)',
+        'Ativo',
+        'Ativação',
+        'Cancelado',
+        'Suspenso',
+        'Excedente',
+        'SMS',
+        'Multa',
+        'Frete',
+        'PCT Mensageria',
+        'Juros',
       ]
     },
     {
