@@ -3942,7 +3942,7 @@ function buildDFCTable() {
   const rowDefs = [
     // ── ENTRADAS DE CAIXA ─────────────────────────────────────────────────────
     ['— ENTRADAS DE CAIXA',    '',          false, null,                      null,  'hdr'],
-    ['Receita SS',             'receita',   false, m=>_recSS(m),  ['Receita SS','Total de RECEITA - SS','RECEITA - SS','RECEITA SS'], undefined, undefined, ['Conectividade Cheque']],
+    ['Receita SS',             'receita',   false, m=>_recSS(m),  ['Receita SS','Total de RECEITA - SS','RECEITA - SS','RECEITA SS']],
     ['Receita SMT',            'receita',   false, m=>_recSMT(m), ['Receita SMT','Total de RECEITA - SMT','RECEITA - SMT','RECEITA SMT']],
     ['Outras Entradas',        '',          false, m=>null],
     ['TOTAL ENTRADAS',         'dfc-total', false, m=>_totEntradas(m),        null,  'total'],
@@ -4538,12 +4538,6 @@ const _sub12 = n => [n,0,0,0,0,0,0,0,0,0,0,0,0];
 
 const saidasData = [
   { cat: 'Total de RECEITA - SS', subs: [
-    _sub12('Conectividade M2M'),
-    _sub12('Conectividade Cheque'),
-    _sub12('Equipamentos'),
-    _sub12('Software'),
-    _sub12('Outros (SMS, Aportes, Apto etc..)'),
-    _sub12('Rendimento (CDI)'),
     _sub12('Ativo'),
     _sub12('Ativação'),
     _sub12('Cancelado'),
@@ -4554,6 +4548,10 @@ const saidasData = [
     _sub12('Frete'),
     _sub12('PCT Mensageria'),
     _sub12('Juros'),
+    _sub12('Equipamentos'),
+    _sub12('Software'),
+    _sub12('Outros (SMS, Aportes, Apto etc..)'),
+    _sub12('Rendimento (CDI)'),
   ]},
   { cat: 'Total de RECEITA - SMT', subs: [
     _sub12('Brasil'),
