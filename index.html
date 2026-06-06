@@ -1639,7 +1639,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <div class="chart-card" style="margin-top:16px" id="kpiDfcCard">
         <div class="chart-head" style="flex-wrap:wrap;gap:8px">
           <div style="flex:1;min-width:200px">
-            <div class="chart-title" id="kpiDfcTitle">INDICADORES DE CAIXA — DFC ANALÍTICO · GESTORA SMART · 2026</div>
+            <div class="chart-title" id="kpiDfcTitle">INDICADORES DE CAIXA — DFC ANALÍTICO</div>
             <div class="chart-sub">Calculado automaticamente a partir de 'DFC Gerencial' · <span style="color:#1583B3;font-weight:600">Azul = benchmark</span> · <span style="color:var(--positive,#1DAE5E);font-weight:600">Verde = OK</span> · <span style="color:#E59400;font-weight:600">Laranja = atenção</span> · <span style="color:var(--negative,#C8523B);font-weight:600">Vermelho = crítico</span></div>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
@@ -4248,7 +4248,7 @@ function buildKpiDFCTable() {
 
   // Atualiza título
   const tt = document.getElementById('kpiDfcTitle');
-  if (tt) tt.textContent = `INDICADORES DE CAIXA — DFC ANALÍTICO · GESTORA SMART · ${year}`;
+  if (tt) tt.textContent = `INDICADORES DE CAIXA — DFC ANALÍTICO`;
 
   // Cabeçalho
   let th = '<tr><th>INDICADOR</th><th>BENCHMARK</th>';
