@@ -2513,6 +2513,11 @@ if (btnLogout) btnLogout.addEventListener('click', () => {
   if (confirm('Deseja sair do sistema?')) doLogout();
 });
 
+// F5 / fechar aba → limpa cache para garantir tela em branco no próximo acesso
+window.addEventListener('beforeunload', () => {
+  try { localStorage.removeItem(CACHE_KEY); } catch(e) {}
+});
+
 // ========== Theme toggle ==========
 const themeBtn = document.getElementById('themeBtn');
 themeBtn?.addEventListener('click', () => {
