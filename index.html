@@ -110,6 +110,9 @@ body { display: flex; min-height: 100vh; }
 .icon-btn:hover { color: var(--text); }
 .icon-btn svg { width: 16px; height: 16px; }
 
+/* Hamburger — oculto no desktop, visível no mobile via media query */
+#btnHamburger { display: none; width: 36px; height: 36px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface); place-items: center; cursor: pointer; color: var(--text-2); flex-shrink: 0; }
+
 /* Content */
 .content { padding: 28px 28px 64px; max-width: 1480px; width: 100%; }
 .page-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 22px; gap: 24px; flex-wrap: wrap; }
@@ -139,6 +142,132 @@ body { display: flex; min-height: 100vh; }
   .grid-5 { grid-template-columns: repeat(3, 1fr); }
   .grid-4 { grid-template-columns: repeat(2, 1fr); }
   .grid-2-3, .grid-3-2 { grid-template-columns: 1fr; }
+}
+
+/* ── Mobile overlay (sidebar aberta) ─────────────────────────────── */
+#sidebarOverlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45);
+  z-index: 99; backdrop-filter: blur(2px);
+}
+#sidebarOverlay.active { display: block; }
+
+/* ── Tablet (≤ 900px) ──────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .grid-7, .grid-6, .grid-5 { grid-template-columns: repeat(2, 1fr); }
+  .grid-4, .grid-3 { grid-template-columns: repeat(2, 1fr); }
+  .grid-2-3, .grid-3-2 { grid-template-columns: 1fr; }
+  .hero { grid-template-columns: 1fr 1fr; }
+  .hero > *:first-child { grid-column: 1 / -1; }
+  .content { padding: 20px 20px 60px; }
+}
+
+/* ── Mobile (≤ 640px) ─────────────────────────────────────────── */
+@media (max-width: 640px) {
+  /* Sidebar desliza pelo overlay */
+  .sidebar {
+    position: fixed; left: -260px; top: 0; bottom: 0; z-index: 100;
+    width: 260px; transition: left .25s ease; box-shadow: none;
+    height: 100dvh; overflow-y: auto;
+  }
+  .sidebar.mobile-open { left: 0; box-shadow: 4px 0 30px rgba(0,0,0,.22); }
+
+  /* Botão hamburger */
+  #btnHamburger { display: grid; }
+
+  /* Main ocupa tudo */
+  .main { width: 100%; }
+
+  /* Topbar compacta */
+  .topbar { padding: 12px 16px; gap: 8px; flex-wrap: nowrap; }
+  .crumbs { display: none; }
+  .topbar-title { font-size: 14px; }
+  .tb-control { padding: 5px 8px; font-size: 12px; }
+  .tb-control select { font-size: 12px; max-width: 90px; }
+
+  /* Content */
+  .content { padding: 16px 14px 60px; }
+  .page-head { margin-bottom: 16px; gap: 12px; }
+  .page-title { font-size: 20px; }
+  .page-sub { font-size: 12.5px; }
+
+  /* Grids: 2 colunas */
+  .grid-7, .grid-6, .grid-5,
+  .grid-4, .grid-3 { grid-template-columns: repeat(2, 1fr); }
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid-2-3, .grid-3-2 { grid-template-columns: 1fr; }
+
+  /* Card ímpar sozinho na última linha → ocupa linha inteira */
+  .grid-7 > *:last-child:nth-child(odd),
+  .grid-6 > *:last-child:nth-child(odd),
+  .grid-5 > *:last-child:nth-child(odd),
+  .grid-4 > *:last-child:nth-child(odd),
+  .grid-3 > *:last-child:nth-child(odd) { grid-column: 1 / -1; }
+
+  /* Gráficos em grid-2 sempre empilham */
+  .grid-2 > .chart-card { grid-column: 1 / -1; }
+
+  /* ── RESUMO EXECUTIVO — Hero stats (Resultado Líquido) ── */
+  .hero { grid-template-columns: 1fr; gap: 10px; padding: 18px 16px; }
+  .hero-title { font-size: 21px; }
+  .hero-stat { padding: 10px 14px; display: flex; flex-direction: column; gap: 3px; }
+  .hero-stat .lbl { font-size: 10px; letter-spacing: .8px; }
+  .hero-stat .val { font-size: clamp(18px, 5.5vw, 24px); white-space: nowrap; margin-top: 2px; }
+  .hero-stat .sub { font-size: 11px; opacity: .8; margin-top: 1px; }
+
+  /* ── DFC — kpi-value.lg escala com viewport (evita "R$\n1.574.869") ── */
+  .kpi-value.lg { font-size: clamp(14px, 4vw, 20px); letter-spacing: -.4px; }
+
+  /* KPI cards */
+  .card { padding: 14px 12px; }
+  .kpi-label { font-size: 10.5px; margin-bottom: 7px; }
+  .kpi-value { font-size: clamp(17px, 4.5vw, 20px); word-break: break-word; overflow-wrap: break-word; }
+  .kpi-foot { font-size: 11px; }
+
+  /* ── SUPORTE — Próximas Ativações sempre ocupa linha inteira ── */
+  .card:has(#opsAtivacaoList),
+  .card:has(#dashAtivacaoList) { grid-column: 1 / -1; }
+
+  /* ── VENDAS — Insight panels (Margem/Sim/Equip) mantêm 3 colunas compactas ── */
+  .insight [style*="grid-template-columns"] { grid-template-columns: 1fr 1fr 1fr !important; gap: 4px !important; }
+  .insight [style*="grid-template-columns"] > div > [id$="Hdr"] { padding: 6px 4px !important; }
+  .insight [style*="grid-template-columns"] > div > [id$="Hdr"] > div:first-child { font-size: 8px !important; }
+  .insight [style*="grid-template-columns"] > div > [id$="Hdr"] > div:nth-child(2) { font-size: 14px !important; }
+  .activation-item { padding: 4px 6px; gap: 5px; }
+  .activation-item .qty { font-size: 12px; }
+  .activation-item .desc { font-size: 10.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 44px; }
+  .month-pill { font-size: 10px; padding: 3px 5px; min-width: 28px; }
+
+  /* Gráficos */
+  .chart-card { padding: 14px 12px; overflow: hidden; }
+  .chart-canvas-wrap { height: 230px; }
+  .chart-canvas-wrap.tall { height: 290px; }
+  .chart-canvas-wrap.short { height: 180px; }
+  .chart-head { flex-direction: column; gap: 6px; }
+  .chart-title { font-size: 14px; }
+  .chart-sub { font-size: 11px; }
+  .chart-legend { gap: 8px; font-size: 11px; }
+
+  /* Seções */
+  .section { margin-bottom: 20px; }
+  .section-head { margin-bottom: 10px; }
+  .section-title { font-size: 12px; }
+}
+
+/* ── iOS safe area (notch/dynamic island) ─────────────────────── */
+.ios .topbar { padding-top: max(12px, env(safe-area-inset-top, 12px)); }
+.ios .content { padding-bottom: max(60px, calc(env(safe-area-inset-bottom, 0px) + 50px)); }
+
+/* ── Telas muito pequenas (≤ 380px — iPhone SE, Android compacto) ── */
+@media (max-width: 380px) {
+  .grid-7, .grid-6, .grid-5,
+  .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+  .kpi-value { font-size: 18px; }
+  .kpi-value.lg { font-size: clamp(13px, 3.8vw, 17px); }
+  .topbar { padding: 10px 12px; }
+  .tb-control select { max-width: 72px; }
+  .hero-stat .val { font-size: 18px; }
+  /* Insight panels viram 1 coluna em telas muito pequenas */
+  .insight [style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
 }
 
 /* Cards */
@@ -262,6 +391,10 @@ body { display: flex; min-height: 100vh; }
 /* Pre-active list */
 .activation-list { display: flex; flex-direction: column; gap: 10px; }
 .activation-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--surface-2); border-radius: 10px; border: 1px solid var(--border); overflow: hidden; }
+.activation-item.compact { gap: 5px; padding: 6px 7px; }
+.activation-item.compact .month-pill { min-width: 34px; padding: 3px 5px; font-size: 10.5px; letter-spacing: 0; }
+.activation-item.compact .qty { font-size: 11.5px; }
+.activation-item.compact .delta-chip { font-size: 10px; padding: 2px 5px; }
 .month-pill { background: var(--primary-light); color: var(--primary-dark); padding: 5px 10px; border-radius: 6px; font-weight: 700; font-size: 12px; min-width: 44px; text-align: center; flex-shrink: 0; }
 [data-theme="dark"] .month-pill { color: #6FD8A4; }
 .activation-item .qty { font-family: 'Manrope'; font-weight: 700; font-size: 14px; white-space: nowrap; flex-shrink: 1; min-width: 0; }
@@ -281,10 +414,10 @@ footer.last-update { padding: 18px 28px; text-align: center; color: var(--muted)
 .dfc-tbl { width: 100%; border-collapse: separate; border-spacing: 0 4px; font-family: 'Inter', sans-serif; min-width: 2800px; }
 .dfc-tbl th { background: var(--primary); color: #fff; font-weight: 700; padding: 12px 14px; font-size: 12px; letter-spacing: .5px; text-transform: uppercase; text-align: left; vertical-align: middle; }
 .dfc-tbl th.num, .dfc-tbl th.pct { text-align: right; min-width: 110px; }
-.dfc-tbl th:first-child { border-radius: 8px 0 0 8px; min-width: 200px; }
+.dfc-tbl th:first-child { border-radius: 8px 0 0 8px; min-width: 260px; }
 .dfc-tbl th:last-child { border-radius: 0 8px 8px 0; }
 .dfc-tbl td { padding: 12px 14px; background: var(--surface-2); font-size: 13px; vertical-align: middle; }
-.dfc-tbl td.cat { font-weight: 500; color: var(--text); min-width: 200px; }
+.dfc-tbl td.cat { font-weight: 500; color: var(--text); min-width: 260px; white-space: nowrap; }
 .dfc-tbl td.num { text-align: right; font-variant-numeric: tabular-nums; font-family: 'Manrope'; font-weight: 600; color: var(--text); min-width: 110px; white-space: nowrap; }
 .dfc-tbl td.num .sign { color: var(--negative); font-weight: 700; margin-right: 3px; }
 .dfc-tbl td.num.neg { color: #B43B30; }
@@ -324,6 +457,63 @@ footer.last-update { padding: 18px 28px; text-align: center; color: var(--muted)
 [data-theme="dark"] .dfc-tbl td.cat { background: var(--surface-2); }
 [data-theme="dark"] .dfc-tbl tr.resultado td.cat { background: rgba(29,158,94,.18); }
 [data-theme="dark"] .dfc-tbl tr.saldo td.cat { background: #196F3D; }
+
+/* DFC — Expandir centros de custo */
+.dfc-expand-btn {
+  background: none; border: none; cursor: pointer; padding: 0 6px 0 0;
+  color: var(--muted); font-size: 10px; line-height: 1; vertical-align: middle;
+  transition: transform .2s, color .15s; display: inline-flex; align-items: center;
+}
+.dfc-expand-btn.open { transform: rotate(90deg); color: var(--primary); }
+.dfc-expand-btn:hover { color: var(--primary); }
+/* Sub-linhas (centros de custo expandidos) */
+.dfc-tbl tr.dfc-sub td { background: var(--bg) !important; font-size: 12.5px; border-top: 1px dashed var(--border); }
+.dfc-tbl tr.dfc-sub td.cat {
+  background: var(--bg) !important; color: var(--text-2); font-weight: 400;
+  padding-left: 36px !important; font-size: 12.5px;
+  box-shadow: none !important;
+}
+.dfc-tbl tr.dfc-sub td.cat::before { content: '↳ '; color: var(--muted); margin-right: 2px; }
+.dfc-tbl tr.dfc-sub td.num { font-size: 12.5px; font-weight: 500; }
+.dfc-tbl tr.dfc-sub td.pct { background: rgba(0,0,0,.03) !important; font-size: 12.5px; }
+.dfc-tbl tr.dfc-sub-last td { border-bottom: 2px solid var(--border); }
+[data-theme="dark"] .dfc-tbl tr.dfc-sub td,
+[data-theme="dark"] .dfc-tbl tr.dfc-sub td.cat { background: rgba(255,255,255,.03) !important; }
+/* Cabeçalhos de seção */
+.dfc-tbl tr.dfc-section td { background: #1E8449; color: #fff; font-weight: 700; font-size: 11px; letter-spacing: .5px; text-transform: uppercase; padding: 7px 14px; border: none; }
+.dfc-tbl tr.dfc-section td.cat { background: #1E8449 !important; color: #fff !important; box-shadow: none !important; }
+[data-theme="dark"] .dfc-tbl tr.dfc-section td { background: #145E30; }
+[data-theme="dark"] .dfc-tbl tr.dfc-section td.cat { background: #145E30 !important; }
+/* Linhas de total (TOTAL ENTRADAS, TOTAL SAÍDAS, etc.) */
+.dfc-tbl tr.dfc-total td { background: #EDF6F0; font-weight: 800; border-top: 2px solid #A9D4B7; border-bottom: 1px solid #A9D4B7; }
+.dfc-tbl tr.dfc-total td.cat { background: #EDF6F0 !important; }
+.dfc-tbl tr.dfc-total td.num { color: var(--text); }
+[data-theme="dark"] .dfc-tbl tr.dfc-total td { background: rgba(29,158,94,.12); border-color: rgba(29,158,94,.28); }
+[data-theme="dark"] .dfc-tbl tr.dfc-total td.cat { background: rgba(29,158,94,.12) !important; }
+/* Indicadores FCO / FCF */
+.dfc-tbl tr.dfc-indicator td { background: #EAF5FB; font-style: italic; font-weight: 700; }
+.dfc-tbl tr.dfc-indicator td.cat { background: #EAF5FB !important; color: #1583B3 !important; }
+[data-theme="dark"] .dfc-tbl tr.dfc-indicator td { background: #0D2A36; }
+[data-theme="dark"] .dfc-tbl tr.dfc-indicator td.cat { background: #0D2A36 !important; color: #5BC0EB !important; }
+
+/* ══ KPI DFC ANALÍTICO ══════════════════════════════════════════════════════ */
+.kpi-dfc-tbl { width:100%; border-collapse:collapse; font-size:12.5px; min-width:1100px; }
+.kpi-dfc-tbl th { background:var(--primary); color:#fff; font-weight:700; padding:10px 12px; font-size:11px; letter-spacing:.5px; text-transform:uppercase; text-align:right; white-space:nowrap; }
+.kpi-dfc-tbl th:first-child  { text-align:left; min-width:230px; border-radius:8px 0 0 0; }
+.kpi-dfc-tbl th:nth-child(2) { text-align:left; min-width:130px; color:#A8E6C0; }
+.kpi-dfc-tbl th:last-child   { border-radius:0 8px 0 0; background:var(--primary-dark,#145E30); }
+.kpi-dfc-tbl td { padding:8px 12px; border-bottom:1px solid var(--border); text-align:right; white-space:nowrap; color:var(--text); font-variant-numeric:tabular-nums; }
+.kpi-dfc-tbl td:first-child  { text-align:left; font-weight:600; color:var(--text); }
+.kpi-dfc-tbl td:nth-child(2) { text-align:left; color:#1583B3; font-weight:700; font-size:12px; }
+.kpi-dfc-tbl tr.kpi-section td { background:var(--primary); color:#fff !important; font-weight:700; font-size:11px; letter-spacing:.5px; text-transform:uppercase; padding:7px 12px; border:none; }
+.kpi-dfc-tbl td.kpi-ok   { color:var(--positive,#1DAE5E)!important; font-weight:700; }
+.kpi-dfc-tbl td.kpi-warn { color:#E59400!important; font-weight:700; }
+.kpi-dfc-tbl td.kpi-bad  { color:var(--negative,#C8523B)!important; font-weight:700; }
+.kpi-dfc-tbl td.kpi-avg  { background:var(--primary-dark,#145E30); color:#fff!important; font-weight:800; }
+.kpi-dfc-tbl td.kpi-avg.kpi-ok   { background:#145E30; }
+.kpi-dfc-tbl td.kpi-avg.kpi-warn { background:#7A5000; }
+.kpi-dfc-tbl td.kpi-avg.kpi-bad  { background:#7A1A0A; }
+[data-theme="dark"] .kpi-dfc-tbl td:nth-child(2) { color:#5BC0EB; }
 
 /* Metas editable */
 .metas-tbl td[data-meta] { cursor: pointer; transition: background .15s; }
@@ -496,6 +686,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
 </style>
 </head>
 <body class="logged-out">
+<div id="sidebarOverlay" onclick="closeMobileSidebar()"></div>
 <!-- Inline: detecta sessão no localStorage ANTES de renderizar o DOM.
      Adiciona gsm-has-session ao <html> → CSS esconde o loginScreen instantaneamente.
      Se o JS principal falhar, o fallback de 4s remove a classe e mostra o login. -->
@@ -594,18 +785,19 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg>
       DFC Gerencial
     </div>
-    <div class="nav-item" data-page="saidas">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17L7 7M7 17L17 7"/><circle cx="12" cy="12" r="10"/></svg>
-      Análise de Saídas
-    </div>
     <div class="nav-section">Sistema</div>
     <div class="nav-item" data-page="settings">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6"/></svg>
       Configurações
     </div>
   </nav>
-  <div class="sidebar-foot">
-    Última atualização<br><strong id="sidebarLastSync" style="color:var(--text)">—</strong>
+  <div class="sidebar-foot" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+    <div>
+      Última atualização<br><strong id="sidebarLastSync" style="color:var(--text)">—</strong>
+    </div>
+    <button onclick="syncFromSheets()" title="Atualizar dados" id="btnSyncSidebar" style="background:var(--bg);border:1px solid var(--border);color:var(--text-2);border-radius:10px;padding:9px 10px;cursor:pointer;display:grid;place-items:center;flex-shrink:0;transition:background .15s,color .15s" onmouseover="this.style.background='var(--primary)';this.style.color='#fff';this.style.borderColor='var(--primary)'" onmouseout="this.style.background='var(--bg)';this.style.color='var(--text-2)';this.style.borderColor='var(--border)'">
+      <svg width="19" height="19" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+    </button>
   </div>
   <div class="logout-wrap">
     <div class="user-avatar" id="userAvatar">DM</div>
@@ -621,6 +813,9 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
 
 <div class="main">
   <header class="topbar">
+    <button id="btnHamburger" onclick="toggleMobileSidebar()" title="Menu">
+      <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
     <div>
       <div class="crumbs">Diretoria / <strong id="crumbPage">Resumo Executivo</strong></div>
     </div>
@@ -1440,68 +1635,70 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         </div>
       </div>
 
-
+      <!-- ═══ INDICADORES DE CAIXA — DFC ANALÍTICO ═══ -->
+      <div class="chart-card" style="margin-top:16px" id="kpiDfcCard">
+        <div class="chart-head" style="flex-wrap:wrap;gap:8px">
+          <div style="flex:1;min-width:200px">
+            <div class="chart-title" id="kpiDfcTitle">INDICADORES DE CAIXA — DFC ANALÍTICO · GESTORA SMART · 2026</div>
+            <div class="chart-sub">Calculado automaticamente a partir de 'DFC Gerencial' · <span style="color:#1583B3;font-weight:600">Azul = benchmark</span> · <span style="color:var(--positive,#1DAE5E);font-weight:600">Verde = OK</span> · <span style="color:#E59400;font-weight:600">Laranja = atenção</span> · <span style="color:var(--negative,#C8523B);font-weight:600">Vermelho = crítico</span></div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button onclick="showBenchmarkEditor()" title="Editar benchmarks" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text-2);border-radius:8px;padding:7px 14px;cursor:pointer;font-size:12.5px;font-family:inherit;font-weight:600">Benchmarks ⚙</button>
+            <button onclick="showDFCHelp()" title="Memória de cálculo" style="background:var(--primary);border:none;color:#fff;border-radius:8px;padding:7px 14px;cursor:pointer;font-size:12.5px;font-family:inherit;font-weight:700">Memória ?</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;margin-top:4px">
+          <table class="kpi-dfc-tbl" id="kpiDfcTbl">
+            <thead id="kpiDfcThead"></thead>
+            <tbody id="kpiDfcTbody"></tbody>
+          </table>
+        </div>
+      </div>
 
     </section>
 
-    <!-- =============== ANÁLISE DE SAÍDAS =============== -->
-    <section class="page" data-page="saidas">
-      <div class="page-head">
-        <div>
-          <h2 class="page-title">Análise de Saídas</h2>
+    <!-- Modal: Memória de Cálculo DFC -->
+    <div id="dfcHelpModal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.45);backdrop-filter:blur(3px);overflow-y:auto">
+      <div style="background:var(--surface);border-radius:14px;max-width:800px;width:calc(100% - 32px);margin:40px auto;padding:0 0 24px;box-shadow:var(--shadow-lg)">
+        <div style="background:var(--primary-dark,#145E30);color:#fff;padding:18px 24px;border-radius:14px 14px 0 0;display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-weight:800;font-size:15px;letter-spacing:.3px">MEMÓRIA DE CÁLCULO — DEFINIÇÃO DOS INDICADORES</div>
+            <div style="font-size:12px;opacity:.8;margin-top:2px">GESTORA SMART · DFC ANALÍTICO</div>
+          </div>
+          <button onclick="document.getElementById('dfcHelpModal').style.display='none'" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:14px;font-weight:700">✕</button>
+        </div>
+        <div style="padding:0 24px;overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:16px">
+            <thead>
+              <tr style="background:var(--primary);color:#fff">
+                <th style="text-align:left;padding:10px 14px;font-size:11px;letter-spacing:.5px;text-transform:uppercase;min-width:160px">Indicador</th>
+                <th style="text-align:left;padding:10px 14px;font-size:11px;letter-spacing:.5px;text-transform:uppercase">Fórmula / Definição</th>
+                <th style="text-align:left;padding:10px 14px;font-size:11px;letter-spacing:.5px;text-transform:uppercase;min-width:150px;color:#A8E6C0">Benchmark</th>
+              </tr>
+            </thead>
+            <tbody id="dfcHelpTbody"></tbody>
+          </table>
         </div>
       </div>
+    </div>
 
-      <div class="grid grid-3" style="margin-bottom:14px">
-        <div class="card"><div class="card-top-line warn"></div>
-          <div class="kpi-label">Total de Saídas</div>
-          <div class="kpi-value lg">—</div>
-          <div class="kpi-foot">CMV + Despesas + Custo SMT</div>
+    <!-- Modal: Editor de Benchmarks -->
+    <div id="dfcBenchModal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.45);backdrop-filter:blur(3px);overflow-y:auto">
+      <div style="background:var(--surface);border-radius:14px;max-width:520px;width:calc(100% - 32px);margin:60px auto;padding:0 0 24px;box-shadow:var(--shadow-lg)">
+        <div style="background:var(--primary-dark,#145E30);color:#fff;padding:18px 24px;border-radius:14px 14px 0 0;display:flex;align-items:center;justify-content:space-between">
+          <div style="font-weight:800;font-size:15px">⚙ Editar Benchmarks</div>
+          <button onclick="document.getElementById('dfcBenchModal').style.display='none'" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:14px;font-weight:700">✕</button>
         </div>
-        <div class="card"><div class="card-top-line" style="background:var(--negative)"></div>
-          <div class="kpi-label">CMV</div>
-          <div class="kpi-value lg">—</div>
-          <div class="kpi-foot">CMV / CPS no período</div>
-        </div>
-        <div class="card"><div class="card-top-line info"></div>
-          <div class="kpi-label">Outras Despesas</div>
-          <div class="kpi-value lg">—</div>
-          <div class="kpi-foot">Despesas operacionais</div>
-        </div>
-      </div>
-
-      <div class="chart-card" style="margin-bottom:14px">
-        <div class="chart-head">
-          <div><div class="chart-title">Custo / Receita por Centro de Custo</div><div class="chart-sub">Valor acumulado e % do faturamento bruto · período selecionado</div></div>
-        </div>
-        <table class="perc-tbl" id="saidasPercTbl">
-          <thead>
-            <tr>
-              <th class="cat">CENTRO DE CUSTO</th>
-              <th class="num">VALOR ACUMULADO</th>
-              <th class="num">% DA RECEITA</th>
-              <th class="bar-col">REPRESENTAÇÃO</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-
-      <div class="chart-card" style="margin-bottom:14px">
-        <div class="chart-head">
-          <div><div class="chart-title">Breakdown Detalhado · Categorias e Subcategorias</div></div>
-          <input id="filterSaidas" placeholder="Filtrar subcategoria..." style="border:1px solid var(--border);background:var(--surface-2);color:var(--text);padding:7px 12px;border-radius:8px;font-size:13px;font-family:inherit;outline:none;min-width:200px">
-        </div>
-        <div style="overflow-x:auto">
-        <table class="saidas-tbl" id="saidasTbl">
-          <thead></thead>
-          <tbody>
-            <!-- Populated by JS -->
-          </tbody>
-        </table>
+        <div style="padding:20px 24px">
+          <p style="font-size:13px;color:var(--text-2);margin:0 0 16px">Ajuste os limites que definem OK / Atenção / Crítico para cada indicador. Os valores são salvos localmente.</p>
+          <div id="benchFormRows"></div>
+          <div style="display:flex;gap:10px;margin-top:20px">
+            <button onclick="saveBenchmarks()" style="flex:1;background:var(--primary);color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:13.5px;font-weight:700">Salvar</button>
+            <button onclick="resetBenchmarks()" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text-2);border-radius:8px;padding:10px 16px;cursor:pointer;font-size:13px">Restaurar padrões</button>
+          </div>
         </div>
       </div>
-    </section>
+    </div>
 
     <!-- Toast de sucesso (global) -->
     <div id="toastSync" style="display:none;position:fixed;bottom:24px;right:24px;background:var(--text);color:#fff;padding:14px 18px;border-radius:10px;box-shadow:var(--shadow-lg);font-size:13.5px;font-weight:600;z-index:1001;align-items:center;gap:10px">
@@ -1744,7 +1941,6 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
                   <label class="page-check-item"><input type="checkbox" value="logistics" checked><span>Logística</span></label>
                   <label class="page-check-item"><input type="checkbox" value="rh" checked><span>RH</span></label>
                   <label class="page-check-item"><input type="checkbox" value="dfc" checked><span>DFC Gerencial</span></label>
-                  <label class="page-check-item"><input type="checkbox" value="saidas" checked><span>Análise de Saídas</span></label>
                 </div>
               </div>
             </div>
@@ -1806,7 +2002,6 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
             <label class="page-check-item"><input type="checkbox" value="logistics"><span>Logística</span></label>
             <label class="page-check-item"><input type="checkbox" value="rh"><span>RH</span></label>
             <label class="page-check-item"><input type="checkbox" value="dfc"><span>DFC Gerencial</span></label>
-            <label class="page-check-item"><input type="checkbox" value="saidas"><span>Análise de Saídas</span></label>
           </div>
         </div>
       </div>
@@ -2032,6 +2227,15 @@ async function doLogin() {
 
   const users = ensureAdminUser();
   const user  = users.find(u => u.email === email);
+
+  // ── Primeiro acesso via convite: redireciona para definir senha ─────────
+  // Deve vir ANTES da verificação de senha — conta convite não tem hash ainda
+  if (user?.needsSetup) {
+    gsmUsers = users;
+    _showSetPasswordModal(user, users);
+    return;
+  }
+
   const valid = user ? await verifyPass(pass, user.hash, user.salt) : false;
 
   if (!valid) {
@@ -2054,13 +2258,6 @@ async function doLogin() {
     user.hash = upgraded.hash;
     user.salt = upgraded.salt;
     saveUsers(users);
-  }
-
-  // ── Primeiro acesso via convite: pede para definir senha ────────────────
-  if (user.needsSetup) {
-    gsmUsers = users;
-    _showSetPasswordModal(user, users);
-    return;
   }
 
   _completeLogin(user, users);
@@ -2127,7 +2324,6 @@ const pageNames = {
   dashboard: 'Resumo Executivo', pl: 'Resumo Financeiro',
   sales: 'Vendas & Performance', ops: 'Operação',
   logistics: 'Logística', rh: 'RH', dfc: 'DFC Gerencial',
-  saidas: 'Análise de Saídas',
   settings: 'Configurações'
 };
 // Páginas disponíveis para controle de acesso por usuário Leitura
@@ -2139,7 +2335,6 @@ const ALL_PAGES = [
   { key: 'logistics', label: 'Logística'            },
   { key: 'rh',        label: 'RH'                   },
   { key: 'dfc',       label: 'DFC Gerencial'        },
-  { key: 'saidas',    label: 'Análise de Saídas'    },
 ];
 const CACHE_KEY      = 'gsm_data_cache';
 const CACHE_VERSION  = 5;                        // incrementar ao mudar estrutura do saidasData/pool
@@ -2584,6 +2779,10 @@ const MES_PAD   = ['01','02','03','04','05','06','07','08','09','10','11','12'];
 
 const _nowMonth = String(new Date().getMonth() + 1).padStart(2, '0'); // mês atual (01-12)
 const _nowYear  = String(new Date().getFullYear());
+// Mês anterior — apresentação sempre exibe o mês fechado (mês atual - 1)
+const _prevDate  = new Date(); _prevDate.setDate(1); _prevDate.setMonth(_prevDate.getMonth() - 1);
+const _prevMonth = String(_prevDate.getMonth() + 1).padStart(2, '0'); // mês anterior (01-12)
+const _prevYear  = String(_prevDate.getFullYear());
 let currentPeriod = `${_nowYear}-${_nowMonth}`;
 const periodLabels    = {};
 const periodMonthIdx  = {};
@@ -2629,8 +2828,9 @@ function refreshPeriodFilter(year, lastRealIdx) {
   sel.appendChild(optYTD);
 
   const opts = Array.from(sel.options).map(o => o.value);
-  // 1ª vez: sempre mês atual. Troca de mês pelo usuário durante sessão: preserva escolha.
-  const defaultVal = opts.includes(_nowMonth) ? _nowMonth : (lastRealIdx >= 0 ? MES_PAD[lastRealIdx] : MES_PAD[0]);
+  // 1ª vez / sync: seleciona o mês anterior (apresentação sempre exibe mês fechado).
+  // Se o usuário trocou manualmente durante a sessão: preserva a escolha dele.
+  const defaultVal = opts.includes(_prevMonth) ? _prevMonth : (lastRealIdx >= 0 ? MES_PAD[lastRealIdx] : MES_PAD[0]);
   sel.value = (prevVal && opts.includes(prevVal)) ? prevVal : defaultVal;
   window._periodSetInSession = true; // marca que já foi definido nesta sessão
   currentPeriod = `${year}-${sel.value}`;
@@ -2897,14 +3097,23 @@ function buildEbitda() {
 // ── Helper: extrai valores M2M de 12 meses (mesma fonte da Curva de Eficiência) ──────────
 function getM2MArrays() {
   const _sub = (src, groupName, subName) => {
-    const g = src.find(g => g.cat === groupName);
-    return g ? g.subs.find(s => s[0] === subName) : null;
+    const g = src.find(g => g.cat === groupName)
+           || src.find(g => g.cat.toLowerCase() === groupName.toLowerCase());
+    return g ? (g.subs.find(s => s[0] === subName)
+             || g.subs.find(s => s[0].toLowerCase() === subName.toLowerCase())) : null;
+  };
+  const _findSS = (src) => {
+    const names = ['Receita SS','Total de RECEITA - SS','RECEITA - SS','RECEITA SS'];
+    for (const n of names) { const r = _sub(src, n, 'Conectividade M2M'); if (r) return r; }
+    const g = src.find(g => /receita.*ss/i.test(g.cat));
+    return g ? g.subs.find(s => /conectividade\s*m2m/i.test(s[0])) : null;
   };
   return Array.from({length:12}, (_, i) => {
     const src     = isReal[i] ? saidasData : previsaoData;
-    const subSS   = _sub(src, 'Receita SS', 'Conectividade M2M')
-                 || _sub(src, 'Total de RECEITA - SS', 'Conectividade M2M');
-    const subCMV  = _sub(src, 'CMV / CPS', 'Conectividade M2M');
+    const subSS   = _findSS(src);
+    const subCMV  = _sub(src, 'CMV / CPS', 'Conectividade M2M')
+                 || src.find(g => /cmv/i.test(g.cat))?.subs.find(s => /conectividade\s*m2m/i.test(s[0]))
+                 || null;
     const smart   = subSS  ? (subSS [i+1] ?? 0) : 0;
     const allcom  = subCMV ? (subCMV[i+1] ?? 0) : 0;
     const margem  = (smart > 0 || allcom > 0) ? smart - allcom : null;
@@ -2944,10 +3153,10 @@ function buildInsightPanels() {
     if (lst) lst.innerHTML = slice.map(d => {
       if (d.pct == null) return '';
       if (d.real) {
-        return `<div class="activation-item" style="font-size:12px"><div class="month-pill">${d.mes}</div><div class="qty">${d.pct.toFixed(1).replace('.',',')}%</div><div class="desc">${fmtAutoK(d.val)}</div></div>`;
+        return `<div class="activation-item compact" style="font-size:12px"><div class="month-pill">${d.mes}</div><div class="qty">${d.pct.toFixed(1).replace('.',',')}%</div><div class="desc">${fmtAutoK(d.val)}</div></div>`;
       }
       // Previsão — cor muted
-      return `<div class="activation-item" style="font-size:12px;opacity:.7"><div class="month-pill" style="background:#7D8AA0">${d.mes}</div><div class="qty" style="color:var(--muted)">${d.pct.toFixed(1).replace('.',',')}%</div><div class="desc" style="color:var(--muted)">${fmtAutoK(d.val)}</div></div>`;
+      return `<div class="activation-item compact" style="font-size:12px;opacity:.7"><div class="month-pill" style="background:#7D8AA0">${d.mes}</div><div class="qty" style="color:var(--muted)">${d.pct.toFixed(1).replace('.',',')}%</div><div class="desc" style="color:var(--muted)">${fmtAutoK(d.val)}</div></div>`;
     }).join('');
   });
 
@@ -2975,8 +3184,8 @@ function buildInsightPanels() {
       if (d.v == null || d.v === 0) return '';
       const diff = d.v - simMeta;
       const chip = `<span class="delta-chip ${diff>=0?'up':'down'}">${diff>=0?'+':'−'}${fmtNum(Math.abs(diff))}</span>`;
-      if (d.real) return `<div class="activation-item" style="font-size:12px"><div class="month-pill">${d.mes}</div><div class="qty">${fmtNum(d.v)}</div>${chip}</div>`;
-      return `<div class="activation-item" style="font-size:12px;opacity:.7"><div class="month-pill" style="background:#7D8AA0">${d.mes}</div><div class="qty" style="color:var(--muted)">${fmtNum(d.v)}</div>${chip}</div>`;
+      if (d.real) return `<div class="activation-item compact" style="font-size:12px"><div class="month-pill">${d.mes}</div><div class="qty">${fmtNum(d.v)}</div>${chip}</div>`;
+      return `<div class="activation-item compact" style="font-size:12px;opacity:.7"><div class="month-pill" style="background:#7D8AA0">${d.mes}</div><div class="qty" style="color:var(--muted)">${fmtNum(d.v)}</div>${chip}</div>`;
     }).join('');
   });
 
@@ -3004,8 +3213,8 @@ function buildInsightPanels() {
       if (d.v == null || d.v === 0) return '';
       const diff = d.v - equipMeta;
       const chip = `<span class="delta-chip ${diff>=0?'up':'down'}">${diff>=0?'+':'−'}${fmtNum(Math.abs(diff))}</span>`;
-      if (d.real) return `<div class="activation-item" style="font-size:12px"><div class="month-pill">${d.mes}</div><div class="qty">${fmtNum(d.v)}</div>${chip}</div>`;
-      return `<div class="activation-item" style="font-size:12px;opacity:.7"><div class="month-pill" style="background:#7D8AA0">${d.mes}</div><div class="qty" style="color:var(--muted)">${fmtNum(d.v)}</div>${chip}</div>`;
+      if (d.real) return `<div class="activation-item compact" style="font-size:12px"><div class="month-pill">${d.mes}</div><div class="qty">${fmtNum(d.v)}</div>${chip}</div>`;
+      return `<div class="activation-item compact" style="font-size:12px;opacity:.7"><div class="month-pill" style="background:#7D8AA0">${d.mes}</div><div class="qty" style="color:var(--muted)">${fmtNum(d.v)}</div>${chip}</div>`;
     }).join('');
   });
 }
@@ -3686,42 +3895,97 @@ function buildDFCTable() {
   };
   const _recSMT = m => catHdr('Receita SMT', m);
 
-  // [label, rowClass, isExpense, valueFn]
-  // Resultado do Mês: calculado como (Rec SS + Rec SMT) − todos os custos via Saidas_2026,
-  //   garantindo que Resultado SMT + Resultado Smart = Resultado do Mês.
-  //   Fallback para lucroLiquido[] se não houver dados em Saidas_2026.
-  const _cmvM2M = m => subCatSum('CMV / CPS', 'Conectividade M2M', m) ?? 0;
-  const _custoCats = ['Despesas Administrativa','Despesas com pessoal',
-    'RH','Despesa Comercial','Despesa Tributaria','Atividades Financeiras','Custo SMT'];
+  // ── Funções auxiliares de cálculo ───────────────────────────────────────────
+  // Resultado do Mês = FCO + FCF  (FCF já é negativo pois representa saídas)
+  // Fallback para lucroLiquido[] se não houver dados suficientes em Saidas_2026.
+  const _sv = (grp, sub, m) => subCatSum(grp, sub, m) ?? 0;
   const _calcResultado = m => {
-    const rec = (_recSS(m) ?? 0) + (_recSMT(m) ?? 0);
-    const cst = _cmvM2M(m) + _custoCats.reduce((s,c) => s + (catSum(c,m) ?? 0), 0);
-    return (rec > 0 || cst > 0) ? rec - cst : (lucroLiquido[m] ?? null);
+    const fco = _fco(m) ?? 0;
+    const fcf = _fcf(m) ?? 0;
+    if (fco || fcf) return fco + fcf;
+    return lucroLiquido[m] ?? null;
   };
 
+  // Despesas com Pessoal operacional (exclui Retirada dos Sócios / Diretoria)
+  const _dpOpSubs = ['Folha de pagamento','Beneficios','Impostos folha de pagamento','Pró-labore','Comissão','Rescisão'];
+  const _despPessoalOp = m => {
+    const v = _dpOpSubs.reduce((s, n) => s + _sv('Despesas com pessoal', n, m), 0);
+    return v || null;
+  };
+
+  // Totalizadores de seção
+  const _totEntradas  = m => { const v = (_recSS(m)??0) + (_recSMT(m)??0); return v || null; };
+  const _totSaidasOp  = m => {
+    const cats = ['CMV / CPS','Despesas Administrativa','Despesa Tributaria','Despesa Comercial','RH','Custo SMT'];
+    const v = cats.reduce((s,c) => s + (catSum(c,m)??0), 0) + (_despPessoalOp(m)??0);
+    return v || null;
+  };
+  const _totRetiradas = m => {
+    const v = _sv('Despesas com pessoal','Retirada dos Sócios',m) + _sv('Despesas com pessoal','Diretoria',m);
+    return v || null;
+  };
+  // Atividades Financeiras: o grupo pode chamar 'Atividades Financeiras' (pós-sync) ou 'D - Atividades Financeiras' (template)
+  const _atFinGrps = ['Atividades Financeiras', 'D - Atividades Financeiras'];
+  const _catSumFlex  = (groups, m) => groups.reduce((found, g) => found ?? catSum(g, m), null);
+  const _svFlex = (groups, sub, m) => groups.reduce((found, g) => found ?? subCatSum(g, sub, m), null);
+  const _dAtivFin = m => _catSumFlex(_atFinGrps, m);
+  // FCO = Entradas − Saídas Operacionais
+  const _fco = m => { const e=_totEntradas(m)??0, s=_totSaidasOp(m)??0; return (e||s) ? e-s : null; };
+  // FCF = −(Ativ. Financeiras + Retiradas)  → valor negativo (saídas financeiras)
+  const _fcf = m => { const r=_totRetiradas(m)??0, af=_dAtivFin(m)??0; return (r||af) ? -(r+af) : null; };
+
+  // ── rowDefs ─────────────────────────────────────────────────────────────────
+  // Formato: [label, cls, isExp, fn, lookupKey, rowType?, subsFilter?, excludeSubs?]
+  // rowType 'hdr'   → cabeçalho de seção (sem dados numéricos)
+  // rowType 'total' → linha de totalizador
+  // rowType 'ind'   → indicador FCO/FCF (estilo itálico)
   const rowDefs = [
-    // ['RECEITA - SS',  'receita', false, m => _recSS(m)],   // desativado
-    // ['RECEITA - SMT', 'receita', false, m => _recSMT(m)],  // desativado
-    ['CMV / CPS',               '',          true,  m => subCatSum('CMV / CPS', 'Conectividade M2M', m)],
-    ['Despesas Administrativa', '',          true,  m => catSum('Despesas Administrativa', m)],
-    ['Despesas com pessoal',    '',          true,  m => catSum('Despesas com pessoal', m)],
-    ['RH',                      '',          true,  m => catSum('RH', m)],
-    ['Despesa Comercial',       '',          true,  m => catSum('Despesa Comercial', m)],
-    ['Despesa Tributaria',      '',          true,  m => catSum('Despesa Tributaria', m)],
-    ['Atividades Financeiras',  '',          true,  m => catSum('Atividades Financeiras', m)],
-    ['Custo SMT',               '',          true,  m => catSum('Custo SMT', m)],
-    ['Resultado do Mês',        'resultado', false, m => _calcResultado(m)],
-    ['Dividendos',              '',          true,  m => catSum('Dividendos', m)],
-    ['Saldo Acumulado',         'saldo',     false, m => catHdr('Saldo Acumulado', m)],
+    // ── ENTRADAS DE CAIXA ─────────────────────────────────────────────────────
+    ['— ENTRADAS DE CAIXA',    '',          false, null,                      null,  'hdr'],
+    ['Receita SS',             'receita',   false, m=>_recSS(m),  ['Receita SS','Total de RECEITA - SS','RECEITA - SS','RECEITA SS'], undefined, undefined, ['Conectividade Cheque']],
+    ['Receita SMT',            'receita',   false, m=>_recSMT(m), ['Receita SMT','Total de RECEITA - SMT','RECEITA - SMT','RECEITA SMT']],
+    ['Outras Entradas',        '',          false, m=>null],
+    ['TOTAL ENTRADAS',         'dfc-total', false, m=>_totEntradas(m),        null,  'total'],
+    // ── SAÍDAS OPERACIONAIS ───────────────────────────────────────────────────
+    ['— SAÍDAS OPERACIONAIS',  '',          false, null,                      null,  'hdr'],
+    ['CMV / CPS',              '',          true,  m=>catSum('CMV / CPS',m),  'CMV / CPS', undefined, undefined, ['Conectividade Cheque']],
+    ['Despesas Administrativas','',         true,  m=>catSum('Despesas Administrativa',m), 'Despesas Administrativa'],
+    ['Despesas com Pessoal',   '',          true,  m=>_despPessoalOp(m),      'Despesas com pessoal', undefined, _dpOpSubs],
+    ['Despesa Tributária',     '',          true,  m=>catSum('Despesa Tributaria',m), 'Despesa Tributaria'],
+    ['Despesa Comercial',      '',          true,  m=>catSum('Despesa Comercial',m)],
+    ['RH',                     '',          true,  m=>catSum('RH',m),         'RH',        undefined, undefined, ['RH']],
+    ['Custo SMT',              '',          true,  m=>catSum('Custo SMT',m)],
+    ['TOTAL SAÍDAS OPERACIONAIS','dfc-total',false, m=>_totSaidasOp(m),       null,  'total'],
+    // ── RETIRADAS DE SÓCIOS ───────────────────────────────────────────────────
+    ['— RETIRADAS DE SÓCIOS',  '',          false, null,                      null,  'hdr'],
+    ['Retirada dos Sócios',    '',          true,  m=>_sv('Despesas com pessoal','Retirada dos Sócios',m)||null],
+    ['Diretoria',              '',          true,  m=>_sv('Despesas com pessoal','Diretoria',m)||null],
+    ['TOTAL RETIRADAS',        'dfc-total', false, m=>_totRetiradas(m),       null,  'total'],
+    // ── ATIVIDADES FINANCEIRAS ────────────────────────────────────────────────
+    ['— ATIVIDADES FINANCEIRAS','',         false, null,                                                          null,  'hdr'],
+    ['Empréstimos PGTO',       '',          true,  m=>_svFlex(_atFinGrps,'Empréstimos PGTO',m)||null],
+    ['Empréstimos',            '',          true,  m=>_svFlex(_atFinGrps,'Empréstimos',m)||null],
+    ['Tarifa Bancária',        '',          true,  m=>_svFlex(_atFinGrps,'Tarifa Bancaria',m)||null],
+    ['Investimentos',          '',          true,  m=>_svFlex(_atFinGrps,'Investimentos',m)||null],
+    ['Investimento Externo',   '',          true,  m=>_svFlex(_atFinGrps,'Investimento Externo',m)||null],
+    ['Estorno',                '',          true,  m=>_svFlex(_atFinGrps,'Estorno',m)||null],
+    ['TOTAL ATIV. FINANCEIRAS','dfc-total', false, m=>_dAtivFin(m),                                               null,  'total'],
+    // ── INDICADORES DE CAIXA ─────────────────────────────────────────────────
+    ['— INDICADORES DE CAIXA', '',          false, null,                      null,  'hdr'],
+    ['FCO — Fluxo de Caixa Operacional','dfc-indicator',false,m=>_fco(m),     null,  'ind'],
+    ['FCF — Fluxo de Caixa Financeiro', 'dfc-indicator',false,m=>_fcf(m),     null,  'ind'],
+    ['Resultado do Mês',       'resultado', false, m=>_calcResultado(m)],
+    ['Dividendos',             '',          true,  m=>catSum('Dividendos',m)],
+    ['Saldo Acumulado',        'saldo',     false, m=>catHdr('Saldo Acumulado',m)],
   ];
 
-  // Todos os valores vêm diretamente das funções definidas em rowDefs (catSum / _recSS / _recSMT)
-  // Resultado do Mês → lucroLiquido[] | Saldo Acumulado → saldoAcum[] | Dividendos → catSum Saidas_2026
+  // Todos os valores vêm diretamente das funções definidas em rowDefs
   const vals = rowDefs.map(([,,, fn]) =>
     Array.from({length: 12}, (_, m) => fn ? fn(m) : null)
   );
-  // índice de Resultado do Mês no novo rowDefs (0-based): SS, SMT, CMV, AdmDesp, Pessoal, RH, Comercial, Trib, AtivFin, CustoSMT, Resultado…
-  const resIdx = 10;
+  const resIdx  = rowDefs.findIndex(r => r[0] === 'Resultado do Mês');
+  const saldoIdx = rowDefs.findIndex(r => r[0] === 'Saldo Acumulado');
+  const divIdx   = rowDefs.findIndex(r => r[0] === 'Dividendos');
 
   const fmtN = v => new Intl.NumberFormat('pt-BR').format(Math.round(Math.abs(v)));
 
@@ -3744,16 +4008,93 @@ function buildDFCTable() {
     return `<td class="pct ${cls}${fcCls}">${pct}%</td>`;
   };
 
+  // Resolução de subcategorias por mês (real → saidasData, forecast → previsaoData)
+  // subsFilter: array de nomes a exibir; null = todos
+  // excludeSubs: array de nomes a ocultar (aplicado após subsFilter)
+  const getGroupSubsResolved = (label, lookupKey, subsFilter, excludeSubs) => {
+    // lookupKey pode ser string ou array de strings candidatas
+    const keys = Array.isArray(lookupKey)
+      ? lookupKey
+      : [lookupKey || label, label];
+    const findGrp = src => keys.reduce((found, k) =>
+      found || src.find(g => g.cat === k || g.cat.toLowerCase() === k.toLowerCase()),
+    null);
+    const grpReal = findGrp(saidasData);
+    const grpPrev = findGrp(previsaoData);
+    if (!grpReal && !grpPrev) return null;
+
+    // Nomes únicos de subcategorias (mantendo ordem do grupo real, depois eventuais extras do prev)
+    let names = [];
+    const seen  = new Set();
+    [(grpReal?.subs || []), (grpPrev?.subs || [])].flat().forEach(s => {
+      if (!seen.has(s[0])) { seen.add(s[0]); names.push(s[0]); }
+    });
+    if (subsFilter)  names = names.filter(n =>  subsFilter.includes(n));
+    if (excludeSubs) names = names.filter(n => !excludeSubs.includes(n));
+    if (names.length === 0) return null;
+
+    // Para cada sub: 12 valores resolvidos pelo mês (real ou forecast)
+    return names.map(name => {
+      const rSub = grpReal?.subs.find(s => s[0] === name);
+      const pSub = grpPrev?.subs.find(s => s[0] === name);
+      const monthVals = Array.from({length: 12}, (_, m) => {
+        const s = isReal[m] ? rSub : pSub;
+        return s ? (s[m + 1] || 0) : 0;
+      });
+      return [name, ...monthVals];   // [label, jan, fev, …, dez]
+    });
+  };
+
+  const subCellHtml = (v, isExp, fc) => {
+    const fcCls = fc ? ' forecast' : '';
+    if (!v) return `<td class="num${fcCls}">—</td>`;
+    const isNeg = isExp ? true : v < 0;
+    return isNeg
+      ? `<td class="num neg${fcCls}"><span class="sign">−</span>${fmtN(v)}</td>`
+      : `<td class="num${fcCls}">${fmtN(v)}</td>`;
+  };
+
   let html = '';
-  rowDefs.forEach(([label, cls, isExp], ri) => {
-    html += `<tr class="${cls}"><td class="cat">${label}</td>`;
-    html += cellHtml(vals[ri][0], isExp, !isReal[0]); // Janeiro — sem % col
+  rowDefs.forEach(([label, cls, isExp,, lookupKey, rowType, subsFilter, excludeSubs], ri) => {
+    // ── Cabeçalho de seção (sem dados numéricos) ──────────────────────────────
+    if (rowType === 'hdr') {
+      html += `<tr class="dfc-section"><td class="cat">${label}</td><td colspan="23"></td></tr>`;
+      return;
+    }
+
+    const isTotal = rowType === 'total';
+    const isInd   = rowType === 'ind';
+    const noSubs  = isTotal || isInd || cls === 'resultado' || cls === 'saldo';
+    const subs = noSubs ? null : getGroupSubsResolved(label, lookupKey, subsFilter, excludeSubs);
+    const expandBtn = subs
+      ? `<button class="dfc-expand-btn" onclick="toggleDFCGroup(this,'dfc-grp-${ri}')" title="Expandir subcategorias">▶</button>`
+      : '';
+
+    html += `<tr class="${cls}"><td class="cat">${expandBtn}${label}</td>`;
+    html += cellHtml(vals[ri][0], isExp, !isReal[0]);
     for (let m = 1; m < 12; m++) {
       const fc = !isReal[m];
       html += cellHtml(vals[ri][m], isExp, fc);
       html += pctHtml(vals[ri][m], vals[ri][m - 1], isExp, fc);
     }
     html += '</tr>';
+
+    // Sub-linhas (ocultas por padrão)
+    if (subs) {
+      subs.forEach(([subLabel, ...subVals], si) => {
+        const isLast = si === subs.length - 1;
+        html += `<tr class="dfc-sub${isLast?' dfc-sub-last':''}" data-grp="dfc-grp-${ri}" style="display:none">`;
+        html += `<td class="cat">${subLabel}</td>`;
+        // Janeiro — sem coluna %
+        html += subCellHtml(subVals[0], isExp, !isReal[0]);
+        for (let m = 1; m < 12; m++) {
+          const fc = !isReal[m];
+          html += subCellHtml(subVals[m], isExp, fc);
+          html += pctHtml(subVals[m], subVals[m - 1], isExp, fc);
+        }
+        html += '</tr>';
+      });
+    }
   });
 
   tbody.innerHTML = html;
@@ -3785,7 +4126,7 @@ function buildDFCTable() {
   const kRAF = document.getElementById('dfcKpiResultadoAnualFoot');
 
   // Card 1 — Saldo do período selecionado
-  const saldoSel = (vals[rowDefs.length - 1]?.[selIdx]) ?? saldoAcum[selIdx];
+  const saldoSel = (vals[saldoIdx]?.[selIdx]) ?? saldoAcum[selIdx];
   if (kS)  kS.textContent  = saldoSel != null ? fmtBRL(saldoSel) : '—';
   if (kSF) kSF.textContent = ''; // legenda removida
 
@@ -3851,6 +4192,246 @@ function buildDFCTable() {
     return vals.some(v => v != null) ? vals.reduce((s, v) => s + (v ?? 0), 0) : null;
   });
   buildSmartTable(_smartRec, _smartSaida, _mainDiv);
+
+  // ── Exportar valores para a tabela de Indicadores ─────────────────────────
+  window._dfcVals = {
+    fco:        Array.from({length:12}, (_,m) => _fco(m)),
+    fcf:        Array.from({length:12}, (_,m) => _fcf(m)),
+    resultado:  vals[resIdx],
+    saldo:      saldoAcum.slice(),
+    totEnt:     Array.from({length:12}, (_,m) => _totEntradas(m)),
+    totSaOp:    Array.from({length:12}, (_,m) => _totSaidasOp(m)),
+    totRet:     Array.from({length:12}, (_,m) => _totRetiradas(m)),
+    atFin:      Array.from({length:12}, (_,m) => _dAtivFin(m)),
+    cmv:        Array.from({length:12}, (_,m) => catSum('CMV / CPS', m)),
+    recSS:      Array.from({length:12}, (_,m) => _recSS(m)),
+    despPes:    Array.from({length:12}, (_,m) => _despPessoalOp(m)),
+    despAdm:    Array.from({length:12}, (_,m) => catSum('Despesas Administrativa', m)),
+    div:        Array.from({length:12}, (_,m) => catSum('Dividendos', m)),
+    isReal:     isReal.slice(),
+  };
+  buildKpiDFCTable();
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// KPI DFC ANALÍTICO
+// ════════════════════════════════════════════════════════════════════════════
+
+const DFC_BENCH_KEY = 'gsm_kpi_bench_v1';
+const DFC_BENCH_DEF = {
+  cmvRec:    48,    // CMV/Receita SS ≤ X%
+  margemFco: 15,    // Margem FCO ≥ X%
+  custoPes:  15,    // Custo Pessoal/Receita ≤ X%
+  atFinOp:   8,     // Ativ.Fin/Saídas Op ≤ X%
+  cobFixas:  1.3,   // Cobertura Desp.Fixas ≥ Xx
+  retiradas: 10,    // Retiradas/Receita ≤ X%
+  dividendos:30,    // Dividendos/Resultado ≤ X%
+  crescRec:  0,     // Crescimento Receita ≥ X% (Positivo = 0)
+};
+
+function getDFCBench() {
+  try { return Object.assign({}, DFC_BENCH_DEF, JSON.parse(localStorage.getItem(DFC_BENCH_KEY) || '{}')); }
+  catch(e) { return Object.assign({}, DFC_BENCH_DEF); }
+}
+
+function buildKpiDFCTable() {
+  const thead = document.getElementById('kpiDfcThead');
+  const tbody = document.getElementById('kpiDfcTbody');
+  if (!thead || !tbody || !window._dfcVals) return;
+
+  const V = window._dfcVals;
+  const B = getDFCBench();
+  const year = document.getElementById('yearSelect')?.value || '2026';
+  const shortM = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+  // Atualiza título
+  const tt = document.getElementById('kpiDfcTitle');
+  if (tt) tt.textContent = `INDICADORES DE CAIXA — DFC ANALÍTICO · GESTORA SMART · ${year}`;
+
+  // Cabeçalho
+  let th = '<tr><th>INDICADOR</th><th>BENCHMARK</th>';
+  shortM.forEach((m,i) => { th += `<th>${m}/${String(year).slice(-2)}</th>`; });
+  th += '<th>MÉDIA REAL</th></tr>';
+  thead.innerHTML = th;
+
+  // Helpers
+  const fmtR  = v => v == null ? '—' : new Intl.NumberFormat('pt-BR').format(Math.round(v));
+  const fmtP  = v => v == null ? '—' : (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
+  const fmtX  = v => v == null ? '—' : (v >= 0 ? '' : '') + v.toFixed(2) + 'x';
+  const pct   = (a, b) => (a == null || b == null || b === 0) ? null : (a / b) * 100;
+  const mom   = (arr, m) => {
+    if (m === 0 || arr[m] == null || arr[m-1] == null || arr[m-1] === 0) return null;
+    return (arr[m] - arr[m-1]) / Math.abs(arr[m-1]) * 100;
+  };
+  const avg   = arr => { const r = arr.filter(v => v != null); return r.length ? r.reduce((s,v)=>s+v,0)/r.length : null; };
+
+  // Colorização
+  const col = (v, type) => {
+    if (v == null) return '';
+    switch(type) {
+      case 'pos':     return v >  0 ? 'kpi-ok' : 'kpi-bad';
+      case 'pos-w':   return v >  0 ? 'kpi-ok' : (v > -B.margemFco*0.5 ? 'kpi-warn' : 'kpi-bad');
+      case 'grow':    return v >= B.crescRec ? 'kpi-ok' : 'kpi-bad';
+      case 'cmv':     return v <= B.cmvRec*0.85 ? 'kpi-ok' : v <= B.cmvRec ? 'kpi-warn' : 'kpi-bad';
+      case 'mfco':    return v >= B.margemFco ? 'kpi-ok' : v >= B.margemFco*0.6 ? 'kpi-warn' : 'kpi-bad';
+      case 'cpes':    return v <= B.custoPes*0.85 ? 'kpi-ok' : v <= B.custoPes ? 'kpi-warn' : 'kpi-bad';
+      case 'afop':    return v <= B.atFinOp*0.75 ? 'kpi-ok' : v <= B.atFinOp ? 'kpi-warn' : 'kpi-bad';
+      case 'cob':     return v >= B.cobFixas*1.3 ? 'kpi-ok' : v >= B.cobFixas ? 'kpi-warn' : 'kpi-bad';
+      case 'ret':     return v <= B.retiradas*0.75 ? 'kpi-ok' : v <= B.retiradas ? 'kpi-warn' : 'kpi-bad';
+      case 'div':     return v <= B.dividendos*0.75 ? 'kpi-ok' : v <= B.dividendos ? 'kpi-warn' : 'kpi-bad';
+      case 'saldo':   return v >= 0 ? 'kpi-ok' : 'kpi-bad';
+    }
+    return '';
+  };
+
+  // Linha de seção
+  const secRow = label => `<tr class="kpi-section"><td colspan="15">${label}</td></tr>`;
+
+  // Linha de dado
+  const row = (label, bench, vals12, fmt, colorType) => {
+    const realVals = vals12.filter((v,i) => v != null && V.isReal[i]);
+    const avgVal   = realVals.length ? realVals.reduce((s,v)=>s+v,0)/realVals.length : null;
+    let tr = `<tr><td>${label}</td><td>${bench}</td>`;
+    vals12.forEach(v => {
+      const c = col(v, colorType);
+      tr += `<td class="${c}">${fmt(v)}</td>`;
+    });
+    const avgC = col(avgVal, colorType);
+    tr += `<td class="kpi-avg ${avgC}">${fmt(avgVal)}</td>`;
+    tr += '</tr>';
+    return tr;
+  };
+
+  // Montar dados por mês
+  const fco12    = V.fco;
+  const fcf12    = V.fcf;
+  const res12    = V.resultado;
+  const saldo12  = V.saldo;
+  const cmvRec12 = Array.from({length:12}, (_,m) => pct(V.cmv[m], V.recSS[m]));
+  const mfco12   = Array.from({length:12}, (_,m) => pct(V.fco[m], V.totEnt[m]));
+  const cpes12   = Array.from({length:12}, (_,m) => pct(V.despPes[m], V.totEnt[m]));
+  const afop12   = Array.from({length:12}, (_,m) => pct(V.atFin[m], V.totSaOp[m]));
+  const cob12    = Array.from({length:12}, (_,m) => {
+    const den = (V.despAdm[m]??0) + (V.despPes[m]??0);
+    return (V.fco[m] != null && den > 0) ? V.fco[m] / den : null;
+  });
+  const ret12    = Array.from({length:12}, (_,m) => pct(V.totRet[m], V.totEnt[m]));
+  const divRes12 = Array.from({length:12}, (_,m) => pct(V.div[m], V.resultado[m]));
+  const crescRec = Array.from({length:12}, (_,m) => mom(V.recSS, m));
+  const crescCmv = Array.from({length:12}, (_,m) => mom(V.cmv, m));
+
+  let html = '';
+  html += secRow('— QUALIDADE DO CAIXA');
+  html += row('FCO — Fluxo de Caixa Operacional (R$)',    'Positivo todo mês',          fco12,    fmtR, 'pos');
+  html += row('FCF — Fluxo de Caixa Financeiro (R$)',     'Controlado, &lt; FCO',       fcf12,    fmtR, 'pos-w');
+  html += row('Resultado do Mês (R$)',                    'Positivo',                   res12,    fmtR, 'pos');
+  html += row('Saldo Acumulado (R$)',                     'Crescente',                  saldo12,  fmtR, 'saldo');
+  html += secRow('— EFICIÊNCIA OPERACIONAL');
+  html += row('CMV / Receita SS (%)',                     `≤ ${B.cmvRec}%`,             cmvRec12, fmtP, 'cmv');
+  html += row('Margem FCO (%)',                           `≥ ${B.margemFco}%`,          mfco12,   fmtP, 'mfco');
+  html += row('Custo Pessoal / Receita Total (%)',        `≤ ${B.custoPes}%`,           cpes12,   fmtP, 'cpes');
+  html += row('Ativ. Financeiras / Saídas Op. (%)',       `≤ ${B.atFinOp}%`,            afop12,   fmtP, 'afop');
+  html += secRow('— ESTRUTURA E SUSTENTABILIDADE');
+  html += row('Cobertura Desp. Fixas (x)',                `≥ ${B.cobFixas}x`,           cob12,    fmtX, 'cob');
+  html += row('Retiradas de Sócios / Receita (%)',        `≤ ${B.retiradas}%`,          ret12,    fmtP, 'ret');
+  html += row('Dividendos / Resultado do Mês (%)',        `≤ ${B.dividendos}%`,         divRes12, fmtP, 'div');
+  html += secRow('— CRESCIMENTO');
+  html += row('Crescimento Receita SS MoM (%)',           'Positivo',                   crescRec, fmtP, 'grow');
+  html += row('Crescimento CMV MoM (%)',                  '≤ Receita MoM',              crescCmv, fmtP, 'grow');
+
+  tbody.innerHTML = html;
+}
+
+// Modal: Memória de Cálculo
+function showDFCHelp() {
+  // type: 'normal' | 'alert' | 'monitor'
+  const HELP_ROWS = [
+    ['normal',  'FCO',                        'Total Entradas − Total Saídas Operacionais. Mede se a operação gera caixa por si só, sem depender de capital externo ou financiamento.',                                                                                                  'Positivo todo mês'],
+    ['normal',  'FCF',                        'Total Atividades Financeiras + Total Retiradas de Sócios. Impacto das decisões de financiamento e distribuição no caixa.',                                                                                                                'Controlado, &lt; FCO'],
+    ['normal',  'Resultado do Mês',           'FCO + FCF. Variação líquida de caixa no período, antes de dividendos.',                                                                                                                                                                   'Positivo'],
+    ['normal',  'CMV / Receita SS',           'CMV ÷ Receita SS. Mede quanto da receita principal é consumida pelo custo direto de conectividade M2M.',                                                                                                                                  '≤ 48%'],
+    ['normal',  'Margem FCO',                 'FCO ÷ Total Entradas. Percentual da receita que efetivamente vira caixa operacional.',                                                                                                                                                    '≥ 15%'],
+    ['normal',  'Custo Pessoal / Receita',    'Despesas com Pessoal ÷ Total Entradas. Eficiência da estrutura de RH sobre a receita gerada.',                                                                                                                                           '≤ 15%'],
+    ['normal',  'Ativ. Financeiras / Saídas Op.', 'Total Ativ. Financeiras ÷ Total Saídas Operacionais. Peso do custo financeiro na estrutura de custos. Acima de 8% indica alavancagem excessiva.',                                                                                    '≤ 8%'],
+    ['normal',  'Cobertura Desp. Fixas',      'FCO ÷ (Desp. Administrativas + Desp. Pessoal). Quantas vezes o caixa operacional cobre as despesas fixas.',                                                                                                                              '≥ 1,3x'],
+    ['normal',  'Retiradas / Receita',        '(Retirada Sócios + Diretoria) ÷ Total Entradas. Peso das retiradas de sócios sobre a receita total gerada.',                                                                                                                             '≤ 10%'],
+    ['normal',  'Dividendos / Resultado',     'Dividendos ÷ Resultado do Mês. Percentual do resultado líquido distribuído. Acima de 30% pode comprometer a reserva de caixa.',                                                                                                          '≤ 30%'],
+    ['alert',   '⚠ Investimento Externo',    'R$ 783K lançado em Mar/26 como saída operacional. Verificar: se for aporte patrimonial ou mútuo, deve ser reclassificado no FCI. Impacto: distorce EBITDA, FCO e Resultado do Mês de março.',                                             'Reclassificar urgente'],
+    ['monitor', 'ICMS — Comportamento',       'Zero em Jan e Fev/26, R$ 8,2K em Mar e R$ 15K em Abr. Investigar se há competência acumulada, mudança de enquadramento M2M ou risco de autuação pela Reforma Tributária.',                                                               'Monitorar'],
+  ];
+  const tbody = document.getElementById('dfcHelpTbody');
+  if (!tbody) return;
+  tbody.innerHTML = HELP_ROWS.map(([type, ind, def, bench]) => {
+    const isAlert   = type === 'alert';
+    const isMonitor = type === 'monitor';
+    const bg        = isAlert ? 'rgba(229,148,0,.08)' : isMonitor ? 'var(--surface-2)' : 'var(--bg)';
+    const indStyle  = isAlert ? 'color:#E59400;font-weight:800' : 'color:var(--text);font-weight:700';
+    const bStyle    = isAlert ? 'color:#C8523B;font-weight:800' : 'color:#1583B3;font-weight:700';
+    return `
+    <tr style="background:${bg}">
+      <td style="padding:10px 14px;${indStyle};border-bottom:1px solid var(--border);white-space:nowrap">${ind}</td>
+      <td style="padding:10px 14px;color:var(--text-2);border-bottom:1px solid var(--border);line-height:1.5">${def}</td>
+      <td style="padding:10px 14px;${bStyle};border-bottom:1px solid var(--border);white-space:nowrap">${bench}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('dfcHelpModal').style.display = 'flex';
+  document.getElementById('dfcHelpModal').style.alignItems = 'flex-start';
+}
+
+// Modal: Editor de Benchmarks
+function showBenchmarkEditor() {
+  const B = getDFCBench();
+  const FIELDS = [
+    { key:'cmvRec',    label:'CMV / Receita SS (%)',           dir:'≤', unit:'%' },
+    { key:'margemFco', label:'Margem FCO (%)',                 dir:'≥', unit:'%' },
+    { key:'custoPes',  label:'Custo Pessoal / Receita (%)',    dir:'≤', unit:'%' },
+    { key:'atFinOp',   label:'Ativ. Financeiras / Saídas (%)', dir:'≤', unit:'%' },
+    { key:'cobFixas',  label:'Cobertura Desp. Fixas (x)',      dir:'≥', unit:'x' },
+    { key:'retiradas', label:'Retiradas / Receita (%)',        dir:'≤', unit:'%' },
+    { key:'dividendos',label:'Dividendos / Resultado (%)',     dir:'≤', unit:'%' },
+    { key:'crescRec',  label:'Crescimento Receita MoM (%)',    dir:'≥', unit:'%' },
+  ];
+  const rows = document.getElementById('benchFormRows');
+  rows.innerHTML = FIELDS.map(f => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-weight:600;font-size:13px">${f.label}</div>
+        <div style="font-size:11.5px;color:var(--text-2)">Benchmark: ${f.dir} valor${f.unit}</div>
+      </div>
+      <input type="number" step="0.1" id="bench_${f.key}" value="${B[f.key]}"
+        style="width:80px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);border-radius:6px;padding:6px 8px;font-size:13px;text-align:right">
+    </div>`).join('');
+  document.getElementById('dfcBenchModal').style.display = 'flex';
+  document.getElementById('dfcBenchModal').style.alignItems = 'flex-start';
+}
+
+function saveBenchmarks() {
+  const KEYS = ['cmvRec','margemFco','custoPes','atFinOp','cobFixas','retiradas','dividendos','crescRec'];
+  const obj = {};
+  KEYS.forEach(k => {
+    const el = document.getElementById('bench_'+k);
+    if (el) obj[k] = parseFloat(el.value) || DFC_BENCH_DEF[k];
+  });
+  localStorage.setItem(DFC_BENCH_KEY, JSON.stringify(obj));
+  document.getElementById('dfcBenchModal').style.display = 'none';
+  buildKpiDFCTable();
+}
+
+function resetBenchmarks() {
+  localStorage.removeItem(DFC_BENCH_KEY);
+  document.getElementById('dfcBenchModal').style.display = 'none';
+  buildKpiDFCTable();
+}
+
+// Expandir / colapsar sub-linhas da DFC Gerencial
+function toggleDFCGroup(btn, grpId) {
+  const tbl   = btn.closest('table');
+  if (!tbl) return;
+  const subs  = tbl.querySelectorAll(`tr[data-grp="${grpId}"]`);
+  const open  = btn.classList.toggle('open');
+  subs.forEach(tr => {
+    tr.style.display = open ? '' : 'none';
+  });
 }
 
 function buildSMTTable(recData, custoData, mainDivData) {
@@ -5293,6 +5874,7 @@ function computePeriodData(dm) {
     isRealTickets[i] = isReal[i];
     isRealRH[i]      = isReal[i];
   });
+  ebitda.forEach((v,i) => { if (v!=null && v!==0) ebitdaIsReal[i] = true; });
   lucroLiquido.forEach((v,i) => { if (v!=null && v!==0) ebitdaIsReal[i] = true; });
   saldoAcum.forEach((v,i) => { if (v!=null && v!==0) saldoIsReal[i] = true; });
 
@@ -6133,6 +6715,68 @@ applyPeriod(getActivePeriod());
 rerenderAllCharts();
 buildOpTables();
 buildPoolTabs();
+</script>
+
+<script>
+// ── Detecção automática de dispositivo ───────────────────────────
+(function detectDevice() {
+  const ua  = navigator.userAgent;
+  const w   = window.innerWidth;
+  const dpr = window.devicePixelRatio || 1;
+  const html = document.documentElement;
+
+  // Plataforma
+  const isIOS     = /iPhone|iPad|iPod/i.test(ua);
+  const isAndroid = /Android/i.test(ua);
+  if (isIOS)     html.classList.add('ios');
+  if (isAndroid) html.classList.add('android');
+
+  // Tamanho lógico da tela
+  let size = 'desktop';
+  if (w <= 380)       size = 'xs';   // iPhone SE, Android compacto
+  else if (w <= 390)  size = 'sm';   // iPhone 14 / padrão
+  else if (w <= 430)  size = 'md';   // iPhone 14 Plus/Pro Max
+  else if (w <= 640)  size = 'lg';   // Outros mobiles
+  else if (w <= 1024) size = 'tablet';
+
+  html.setAttribute('data-screen', size);
+  html.setAttribute('data-dpr', dpr >= 3 ? 'hd' : dpr >= 2 ? 'retina' : 'std');
+
+  // Reaplica ao redimensionar (rotação de tela)
+  window.addEventListener('resize', () => {
+    const nw = window.innerWidth;
+    let ns = 'desktop';
+    if (nw <= 380) ns = 'xs';
+    else if (nw <= 390) ns = 'sm';
+    else if (nw <= 430) ns = 'md';
+    else if (nw <= 640) ns = 'lg';
+    else if (nw <= 1024) ns = 'tablet';
+    html.setAttribute('data-screen', ns);
+  }, { passive: true });
+})();
+
+// ── Mobile sidebar toggle ─────────────────────────────────────────
+function toggleMobileSidebar() {
+  const sidebar  = document.querySelector('.sidebar');
+  const overlay  = document.getElementById('sidebarOverlay');
+  const isOpen   = sidebar.classList.contains('mobile-open');
+  if (isOpen) { closeMobileSidebar(); } else {
+    sidebar.classList.add('mobile-open');
+    overlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+}
+function closeMobileSidebar() {
+  document.querySelector('.sidebar').classList.remove('mobile-open');
+  document.getElementById('sidebarOverlay').classList.remove('active');
+  document.body.style.overflow = '';
+}
+// Fechar sidebar ao clicar em item de menu no mobile
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    if (window.innerWidth <= 640) closeMobileSidebar();
+  });
+});
 </script>
 </body>
 </html>
