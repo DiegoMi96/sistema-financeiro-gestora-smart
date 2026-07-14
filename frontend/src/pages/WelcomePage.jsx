@@ -13,7 +13,7 @@ const MODULE_HOME = {
   contestacao:     '/contestacao',
   comissionamento: '/comissionamento',
   logistica:       '/logistica',
-  controladoria:   'https://dashboard.gestorasmart.com.br',
+  controladoria:   '/dashboard',
   organograma:     '/organograma',
 }
 

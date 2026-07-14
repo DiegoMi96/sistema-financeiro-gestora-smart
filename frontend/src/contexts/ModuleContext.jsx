@@ -67,7 +67,7 @@ export const MODULES = [
     icon:        'BarChart2',
     color:       'teal',
     status:      'active',
-    permission:  null,
+    permission:  'can_view_controladoria',
     nav: [
       { to: '/dashboard',     label: 'Painel',         permission: 'can_view_dashboard' },
       { to: '/faturamento',   label: 'Faturamento'                                      },

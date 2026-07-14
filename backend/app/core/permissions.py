@@ -177,8 +177,8 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
 # Nome amigável de cada perfil
 ROLE_LABELS = {
     UserRole.ADMIN:           "Administrador",
-    UserRole.GESTOR:          "Gestor",
-    UserRole.CONTAS_RECEBER:  "Contas a Receber",
+    UserRole.GESTOR:          "Diretoria / Analista Administrativo",
+    UserRole.CONTAS_RECEBER:  "Analista Financeiro",
     UserRole.SUPORTE_TECNICO: "Suporte Técnico",
     UserRole.LOGISTICA:       "Logística",
     UserRole.BACKOFFICE:      "Backoffice",
@@ -187,12 +187,12 @@ ROLE_LABELS = {
 
 ROLE_DESCRIPTIONS = {
     "admin":           "Acesso completo a todas as funcionalidades do sistema.",
-    "gestor":          "Acesso gerencial — aprovação de faturamento, relatórios e ajustes.",
-    "contas_receber":  "Operações de faturamento, ajustes e exportações.",
-    "suporte_tecnico": "Acesso somente à contestação e logística.",
-    "logistica":       "Gestão de logística e upload de planilhas.",
-    "backoffice":      "Operações internas — faturamento, ajustes e relatórios.",
-    "comercial":       "Painel comercial — comissionamento e visão de resultados.",
+    "gestor":          "Diretoria e Analista Administrativo — Controladoria, faturamento, aprovações e relatórios gerenciais.",
+    "contas_receber":  "Analista Financeiro — faturamento, ajustes e exportações.",
+    "suporte_tecnico": "Suporte Técnico — acesso somente à contestação e logística.",
+    "logistica":       "Logística — gestão de fretes e upload de planilhas.",
+    "backoffice":      "Backoffice — operações internas, faturamento e ajustes.",
+    "comercial":       "Comercial — comissionamento e painel de resultados.",
 }
 
 
