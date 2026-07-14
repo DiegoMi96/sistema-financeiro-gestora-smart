@@ -100,7 +100,7 @@ export default function WelcomePage() {
       style={{ background: 'linear-gradient(135deg, #060E07 0%, #0D1F10 50%, #060E07 100%)' }}>
 
       {/* Logo + Saudação */}
-      <div className="flex flex-col items-center mb-4">
+      <div className="flex flex-col items-center mb-4" style={{ marginTop: companyLogo ? 0 : 80 }}>
         {companyLogo ? (
           <img src={companyLogo} alt="Logo" style={{ height: 230, maxWidth: 780, objectFit: 'contain' }} />
         ) : (
@@ -112,7 +112,7 @@ export default function WelcomePage() {
             </div>
           </div>
         )}
-        <div className="text-center" style={{ marginTop: companyLogo ? -50 : 8 }}>
+        <div className="text-center" style={{ marginTop: companyLogo ? -50 : 16 }}>
           <h1 className="text-xl font-bold text-white mb-0.5">
             Olá, {firstName}!
           </h1>
