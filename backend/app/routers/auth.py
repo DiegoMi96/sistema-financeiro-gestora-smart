@@ -256,3 +256,15 @@ def deactivate_user(
     user.is_active = False
     db.commit()
     return {"message": "Usuário desativado"}
+
+
+@router.get("/controladoria-url")
+def controladoria_sso_url(current_user: User = Depends(get_current_user)):
+    """Gera URL com token SSO para abrir o sistema de Controladoria sem segundo login."""
+    if not get_permission(current_user, "can_view_controladoria"):
+        raise HTTPException(status_code=403, detail="Sem permissão para Controladoria")
+    import os
+    sso_key = os.getenv("CONTROLADORIA_SSO_KEY", "")
+    if not sso_key:
+        raise HTTPException(status_code=503, detail="SSO não configurado")
+    return {"url": f"https://dashboard.gestorasmart.com.br?sso={sso_key}"}

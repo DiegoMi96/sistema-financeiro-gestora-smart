@@ -75,13 +75,18 @@ export default function WelcomePage() {
 
   if (availableModules.length === 1) return null
 
-  const handleSelect = (module) => {
-    const route = MODULE_HOME[module.id]
-    if (!route) return
-    if (route.startsWith('http')) {
-      window.open(route, '_blank', 'noopener,noreferrer')
+  const handleSelect = async (module) => {
+    if (module.id === 'controladoria') {
+      try {
+        const { data } = await api.get('/auth/controladoria-url')
+        window.open(data.url, '_blank', 'noopener,noreferrer')
+      } catch {
+        window.open('https://dashboard.gestorasmart.com.br', '_blank', 'noopener,noreferrer')
+      }
       return
     }
+    const route = MODULE_HOME[module.id]
+    if (!route) return
     selectModule(module.id)
     navigate(route)
   }
