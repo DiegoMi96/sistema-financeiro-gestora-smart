@@ -55,6 +55,15 @@ export default function WelcomePage() {
   const { availableModules, selectModule } = useModule()
   const navigate                           = useNavigate()
 
+  // Pré-busca URL SSO da Controladoria para evitar bloqueio de popup
+  const { data: ctrlData } = useQuery({
+    queryKey: ['controladoria-url'],
+    queryFn: () => api.get('/auth/controladoria-url').then(r => r.data),
+    enabled: availableModules.some(m => m.id === 'controladoria'),
+    staleTime: 1000 * 60 * 5,
+    retry: false,
+  })
+
   const { data: appCfg } = useQuery({
     queryKey: ['settings'],
     queryFn: () => api.get('/settings').then(r => r.data),
@@ -75,14 +84,10 @@ export default function WelcomePage() {
 
   if (availableModules.length === 1) return null
 
-  const handleSelect = async (module) => {
+  const handleSelect = (module) => {
     if (module.id === 'controladoria') {
-      try {
-        const { data } = await api.get('/auth/controladoria-url')
-        window.open(data.url, '_blank', 'noopener,noreferrer')
-      } catch {
-        window.open('https://dashboard.gestorasmart.com.br', '_blank', 'noopener,noreferrer')
-      }
+      const url = ctrlData?.url || 'https://dashboard.gestorasmart.com.br'
+      window.open(url, '_blank', 'noopener,noreferrer')
       return
     }
     const route = MODULE_HOME[module.id]

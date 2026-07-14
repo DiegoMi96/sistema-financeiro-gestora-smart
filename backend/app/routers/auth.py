@@ -267,4 +267,4 @@ def controladoria_sso_url(current_user: User = Depends(get_current_user)):
     sso_key = os.getenv("CONTROLADORIA_SSO_KEY", "")
     if not sso_key:
         raise HTTPException(status_code=503, detail="SSO não configurado")
-    return {"url": f"https://dashboard.gestorasmart.com.br?sso={sso_key}"}
+    return {"url": f"https://dashboard.gestorasmart.com.br/sso?key={sso_key}"}
