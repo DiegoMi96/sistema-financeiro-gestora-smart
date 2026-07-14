@@ -39,7 +39,7 @@ export default function LoginPage() {
       style={{ background: 'linear-gradient(135deg, #060E07 0%, #0D1F10 100%)' }}>
 
       {/* Logo — marginBottom negativo compensa o espaço transparente da imagem */}
-      <div className="text-center" style={{ marginBottom: -30 }}>
+      <div className="text-center" style={{ marginBottom: logo ? -30 : 16 }}>
         {logo ? (
           <img src={logo} alt="Logo" style={{ height: 260, maxWidth: 480, objectFit: 'contain', objectPosition: 'center top' }} />
         ) : (

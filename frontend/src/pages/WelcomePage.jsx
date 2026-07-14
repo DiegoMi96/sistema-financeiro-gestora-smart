@@ -112,7 +112,7 @@ export default function WelcomePage() {
             </div>
           </div>
         )}
-        <div className="text-center" style={{ marginTop: -50 }}>
+        <div className="text-center" style={{ marginTop: companyLogo ? -50 : 8 }}>
           <h1 className="text-xl font-bold text-white mb-0.5">
             Olá, {firstName}!
           </h1>
