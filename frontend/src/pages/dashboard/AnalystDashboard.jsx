@@ -528,6 +528,14 @@ export default function AnalystDashboard() {
   })
 
   const [agingBucket, setAgingBucket] = useState(null)
+  const [reguaModal, setReguaModal]   = useState(false)
+
+  const { data: reguaClientes, isLoading: reguaLoading } = useQuery({
+    queryKey: ['regua-clientes', selectedMonth, selectedYear],
+    queryFn: () => api.get(`/analyst/regua-clientes?month=${selectedMonth}&year=${selectedYear}`).then(r => r.data),
+    enabled: reguaModal,
+    staleTime: 5 * 60 * 1000,
+  })
 
   if (isLoading) return <Skeleton />
 
@@ -639,7 +647,17 @@ export default function AnalystDashboard() {
           year={selectedYear}
         />
         <div className="gs-card p-6 flex flex-col items-center justify-center text-center gap-2">
-          <h2 className="gs-section-title self-start">Taxa de conversão da régua</h2>
+          <div className="flex items-center justify-between w-full">
+            <h2 className="gs-section-title">Taxa de conversão da régua</h2>
+            {(op?.taxa_conversao_regua?.total_overdue ?? 0) > 0 && (
+              <button
+                onClick={() => setReguaModal(true)}
+                className="flex items-center gap-1 text-xs text-gray-400 hover:text-[#3CB54A] border border-gray-200 hover:border-[#3CB54A] rounded-lg px-2.5 py-1 transition-colors"
+              >
+                <Users size={11} /> Ver clientes
+              </button>
+            )}
+          </div>
           {(() => {
             const r = op?.taxa_conversao_regua || {}
             const pct = r.pct ?? 0
@@ -768,6 +786,62 @@ export default function AnalystDashboard() {
       {/* Lista de vencidos ordenada por valor */}
       {(op?.lista_vencidos || []).length > 0 && (
         <ListaVencidos rows={op.lista_vencidos} />
+      )}
+
+      {/* Modal — clientes da régua */}
+      {reguaModal && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={e => { if (e.target === e.currentTarget) setReguaModal(false) }}
+        >
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-gray-800 text-sm">Clientes da régua</h3>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Inadimplentes em {reguaClientes?.mes_ref || '—'} — status atual
+                </p>
+              </div>
+              <button onClick={() => setReguaModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1">
+              {reguaLoading ? (
+                <div className="p-8 text-center text-sm text-gray-400">Carregando...</div>
+              ) : !reguaClientes?.clientes?.length ? (
+                <div className="p-8 text-center text-sm text-gray-400">Nenhum cliente encontrado.</div>
+              ) : (
+                <table className="w-full text-xs">
+                  <thead className="sticky top-0 bg-white border-b border-gray-100">
+                    <tr className="text-gray-400 uppercase tracking-wide">
+                      <th className="text-left py-2.5 px-4">Cliente</th>
+                      <th className="text-right py-2.5 px-4">Valor</th>
+                      <th className="text-center py-2.5 px-4">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reguaClientes.clientes.map((c, i) => (
+                      <tr key={i} className="border-t border-gray-50 hover:bg-gray-50">
+                        <td className="py-2.5 px-4">
+                          <p className="font-medium text-gray-800 truncate max-w-[220px]">{c.nome}</p>
+                          {c.cnpj && <p className="text-gray-400 font-mono text-[10px]">{c.cnpj}</p>}
+                        </td>
+                        <td className="py-2.5 px-4 text-right text-gray-700 whitespace-nowrap">{fmt(c.valor_vencido)}</td>
+                        <td className="py-2.5 px-4 text-center">
+                          {c.pagou
+                            ? <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">Pagou</span>
+                            : <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-600 font-medium">Pendente</span>
+                          }
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Modal central — clientes do bucket */}

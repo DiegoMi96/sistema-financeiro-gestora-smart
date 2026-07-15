@@ -1058,7 +1058,7 @@ async def get_operational_summary(
             WHERE due_date IS NOT NULL
             GROUP BY cnpj, banco, bucket
             ORDER BY valor DESC
-        """), {"inicio": date(sel_year, sel_month, 1), "lim": _aging_limit}).fetchall()
+        """), {"inicio": date(sel_year, 1, 1), "lim": _aging_limit}).fetchall()
 
         lista_vencidos = [
             {
@@ -1432,6 +1432,76 @@ async def acumulado_detail(
         pass
     rows.sort(key=lambda r: (r["pagamento"] or "", r["nome"]))
     return {"rows": rows}
+
+
+@router.get("/regua-clientes")
+def regua_clientes(
+    month: int = Query(default=None),
+    year:  int = Query(default=None),
+    current_user: User = Depends(get_current_user),
+):
+    """Clientes com OVERDUE no mês anterior (M-1) — quem pagou e quem não pagou."""
+    hoje = date.today()
+    m = month or hoje.month
+    y = year  or hoje.year
+    pm = m - 1 if m > 1 else 12
+    py = y   if m > 1 else y - 1
+    prev_first = date(py, pm, 1)
+
+    db2 = SessionLocal()
+    try:
+        rows = db2.execute(text("""
+            WITH overdue_prev AS (
+                SELECT DISTINCT customer_id, customer_name, customer_cpf_cnpj,
+                       SUM(value) AS valor_vencido
+                FROM asaas_payments_sync
+                WHERE status = 'OVERDUE'
+                  AND customer_id IS NOT NULL
+                  AND EXTRACT(YEAR  FROM due_date) = :py
+                  AND EXTRACT(MONTH FROM due_date) = :pm
+                GROUP BY customer_id, customer_name, customer_cpf_cnpj
+            ),
+            regularizados AS (
+                SELECT DISTINCT p.customer_id
+                FROM asaas_payments_sync p
+                JOIN overdue_prev o ON o.customer_id = p.customer_id
+                WHERE p.status IN ('RECEIVED', 'CONFIRMED')
+                  AND p.credit_date IS NOT NULL
+                  AND p.credit_date >= :from_date
+            )
+            SELECT
+                o.customer_id, o.customer_name AS nome, o.customer_cpf_cnpj AS cnpj,
+                o.valor_vencido,
+                CASE WHEN r.customer_id IS NOT NULL THEN true ELSE false END AS pagou
+            FROM overdue_prev o
+            LEFT JOIN regularizados r ON r.customer_id = o.customer_id
+            ORDER BY pagou DESC, o.valor_vencido DESC
+        """), {"py": py, "pm": pm, "from_date": prev_first}).fetchall()
+        db2.close()
+    except Exception:
+        db2.close()
+        return {"mes_ref": f"{pm:02d}/{py}", "clientes": []}
+
+    def _fmt(raw):
+        d = (raw or "").replace(".", "").replace("/", "").replace("-", "").strip()
+        if len(d) == 14:
+            return f"{d[:2]}.{d[2:5]}.{d[5:8]}/{d[8:12]}-{d[12:]}"
+        if len(d) == 11:
+            return f"{d[:3]}.{d[3:6]}.{d[6:9]}-{d[9:]}"
+        return raw or ""
+
+    return {
+        "mes_ref": f"{pm:02d}/{py}",
+        "clientes": [
+            {
+                "nome":         r.nome or "Não identificado",
+                "cnpj":         _fmt(r.cnpj),
+                "valor_vencido": round(float(r.valor_vencido or 0), 2),
+                "pagou":        bool(r.pagou),
+            }
+            for r in rows
+        ],
+    }
 
 
 @router.get("/sync-status")
