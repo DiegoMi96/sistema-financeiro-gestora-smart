@@ -23,6 +23,7 @@ import ComissionamentoInternoPage from './pages/comissionamento/ComissionamentoI
 import ClientsPage from './pages/clients/ClientsPage'
 import OrganoPage from './pages/organograma/OrganoPage'
 import IndicadoresPage from './pages/controladoria/IndicadoresPage'
+import ControladoriaDashboard from './pages/controladoria/ControladoriaDashboard'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } }
@@ -78,6 +79,9 @@ function AppRoutes() {
       <Route path="/comissionamento"           element={<PrivateRoute permission="can_view_comissao"><ComissionamentoPage /></PrivateRoute>} />
       <Route path="/comissionamento/parceiros" element={<PrivateRoute permission="can_view_comissao"><ParceirosRegionaisPage /></PrivateRoute>} />
       <Route path="/comissionamento/interno"   element={<PrivateRoute permission="can_view_comissao"><ComissionamentoInternoPage /></PrivateRoute>} />
+
+      {/* Controladoria — dashboard externo em iframe, sem sidebar */}
+      <Route path="/controladoria/dash" element={<PrivateRoute permission="can_view_controladoria"><ControladoriaDashboard /></PrivateRoute>} />
 
       {/* Área interna (com sidebar) */}
       <Route

@@ -93,7 +93,7 @@ export default function WelcomePage() {
 
   const handleSelect = (module) => {
     if (module.id === 'controladoria') {
-      window.open('/controladoria/', '_blank', 'noopener,noreferrer')
+      navigate('/controladoria/dash')
       return
     }
     if (module.id === 'smt') {
