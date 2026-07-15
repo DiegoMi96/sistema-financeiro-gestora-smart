@@ -33,6 +33,11 @@ ALL_PERMISSIONS = [
     # EXPORTAÇÃO
     "can_export_excel",
     "can_export_pdf",
+    # CONTROLADORIA — abas do dashboard externo
+    "can_view_ctrl_dre",
+    "can_view_ctrl_fluxo_caixa",
+    "can_view_ctrl_balanco",
+    "can_view_ctrl_indicadores",
 ]
 
 # ─────────────────────────────────────────────
@@ -57,6 +62,10 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_financial_values":True,
         "can_export_excel":         True,
         "can_export_pdf":           True,
+        "can_view_ctrl_dre":        True,
+        "can_view_ctrl_fluxo_caixa":True,
+        "can_view_ctrl_balanco":    True,
+        "can_view_ctrl_indicadores":True,
     },
     UserRole.GESTOR: {
         "can_view_dashboard":       True,
@@ -76,6 +85,10 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_financial_values":True,
         "can_export_excel":         True,
         "can_export_pdf":           True,
+        "can_view_ctrl_dre":        True,
+        "can_view_ctrl_fluxo_caixa":True,
+        "can_view_ctrl_balanco":    True,
+        "can_view_ctrl_indicadores":True,
     },
     UserRole.CONTAS_RECEBER: {
         "can_view_dashboard":       True,
@@ -95,6 +108,10 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_financial_values":True,
         "can_export_excel":         True,
         "can_export_pdf":           False,
+        "can_view_ctrl_dre":        False,
+        "can_view_ctrl_fluxo_caixa":False,
+        "can_view_ctrl_balanco":    False,
+        "can_view_ctrl_indicadores":False,
     },
     UserRole.SUPORTE_TECNICO: {
         "can_view_dashboard":       False,
@@ -114,6 +131,10 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_financial_values":False,
         "can_export_excel":         False,
         "can_export_pdf":           False,
+        "can_view_ctrl_dre":        False,
+        "can_view_ctrl_fluxo_caixa":False,
+        "can_view_ctrl_balanco":    False,
+        "can_view_ctrl_indicadores":False,
     },
     UserRole.LOGISTICA: {
         "can_view_dashboard":       False,
@@ -133,6 +154,10 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_financial_values":False,
         "can_export_excel":         True,
         "can_export_pdf":           False,
+        "can_view_ctrl_dre":        False,
+        "can_view_ctrl_fluxo_caixa":False,
+        "can_view_ctrl_balanco":    False,
+        "can_view_ctrl_indicadores":False,
     },
     UserRole.BACKOFFICE: {
         "can_view_dashboard":       True,
@@ -152,6 +177,10 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_financial_values":True,
         "can_export_excel":         True,
         "can_export_pdf":           False,
+        "can_view_ctrl_dre":        False,
+        "can_view_ctrl_fluxo_caixa":False,
+        "can_view_ctrl_balanco":    False,
+        "can_view_ctrl_indicadores":False,
     },
     UserRole.COMERCIAL: {
         "can_view_dashboard":       True,
@@ -171,6 +200,10 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_financial_values":True,
         "can_export_excel":         False,
         "can_export_pdf":           False,
+        "can_view_ctrl_dre":        False,
+        "can_view_ctrl_fluxo_caixa":False,
+        "can_view_ctrl_balanco":    False,
+        "can_view_ctrl_indicadores":False,
     },
 }
 

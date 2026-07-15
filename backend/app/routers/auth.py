@@ -259,12 +259,24 @@ def deactivate_user(
 
 
 @router.get("/controladoria-url")
-def controladoria_sso_url(current_user: User = Depends(get_current_user)):
-    """Gera URL com token SSO para abrir o sistema de Controladoria sem segundo login."""
-    if not get_permission(current_user, "can_view_controladoria"):
+def controladoria_sso_url(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Gera URL SSO para o dashboard externo incluindo quais abas o usuário pode ver."""
+    if not get_permission(current_user, "can_view_controladoria", db):
         raise HTTPException(status_code=403, detail="Sem permissão para Controladoria")
     import os
     sso_key = os.getenv("CONTROLADORIA_SSO_KEY", "")
     if not sso_key:
         raise HTTPException(status_code=503, detail="SSO não configurado")
-    return {"url": f"https://dashboard.gestorasmart.com.br/sso?key={sso_key}"}
+
+    tab_map = {
+        "dre":         "can_view_ctrl_dre",
+        "fluxo_caixa": "can_view_ctrl_fluxo_caixa",
+        "balanco":     "can_view_ctrl_balanco",
+        "indicadores": "can_view_ctrl_indicadores",
+    }
+    allowed_tabs = [tab for tab, perm in tab_map.items() if get_permission(current_user, perm, db)]
+
+    url = f"https://dashboard.gestorasmart.com.br/sso?key={sso_key}"
+    if allowed_tabs:
+        url += f"&tabs={','.join(allowed_tabs)}"
+    return {"url": url}

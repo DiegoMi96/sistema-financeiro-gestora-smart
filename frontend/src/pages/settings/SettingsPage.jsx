@@ -918,6 +918,12 @@ const PERM_SECTIONS = [
     ['can_export_excel','Exportar Excel'],
     ['can_export_pdf',  'Exportar PDF'],
   ]},
+  { key: 'CONTROLADORIA (abas do dashboard externo)', perms: [
+    ['can_view_ctrl_dre',         'Aba: DRE'],
+    ['can_view_ctrl_fluxo_caixa', 'Aba: Fluxo de Caixa'],
+    ['can_view_ctrl_balanco',     'Aba: Balanço Patrimonial'],
+    ['can_view_ctrl_indicadores', 'Aba: Indicadores'],
+  ]},
 ]
 
 function PerfisTab() {
