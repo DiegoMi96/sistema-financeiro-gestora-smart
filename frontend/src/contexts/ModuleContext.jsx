@@ -47,19 +47,7 @@ export const MODULES = [
       { to: '/configuracoes', label: 'Configurações', permission: 'can_manage_users' },
     ],
   },
-  {
-    id:          'logistica',
-    label:       'Logística',
-    description: 'Gestão de fretes, envios e pedidos de chips',
-    icon:        'Truck',
-    color:       'indigo',
-    status:      'coming',
-    permission:  'can_view_logistica',
-    nav: [
-      { to: '/logistica',     label: 'Logística' },
-      { to: '/configuracoes', label: 'Configurações', permission: 'can_manage_users' },
-    ],
-  },
+
   {
     id:          'controladoria',
     label:       'Controladoria',
