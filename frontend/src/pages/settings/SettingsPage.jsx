@@ -30,7 +30,7 @@ export default function SettingsPage() {
 
   const save = useMutation({
     mutationFn: (body) => api.put('/settings', body),
-    onSuccess: () => { toast.success('Configurações salvas!'); qc.invalidateQueries(['settings']) },
+    onSuccess: () => { toast.success('Configurações salvas!'); qc.invalidateQueries({ queryKey: ['settings'] }) },
     onError: (e) => toast.error(e?.response?.data?.detail || 'Erro ao salvar'),
   })
 
@@ -659,7 +659,7 @@ function Acesso() {
 
   const deactivate = useMutation({
     mutationFn: (id) => authApi.deleteUser(id),
-    onSuccess: () => { toast.success('Usuário desativado'); qc.invalidateQueries(['users']) },
+    onSuccess: () => { toast.success('Usuário desativado'); qc.invalidateQueries({ queryKey: ['users'] }) },
   })
 
   return (
@@ -765,7 +765,7 @@ function Acesso() {
         <UserFormModal
           user={editing}
           onClose={() => setShowForm(false)}
-          onSuccess={() => { setShowForm(false); qc.invalidateQueries(['users']) }}
+          onSuccess={() => { setShowForm(false); qc.invalidateQueries({ queryKey: ['users'] }) }}
         />
       )}
     </div>
@@ -932,7 +932,7 @@ function PerfisTab() {
 
   const deleteMutation = useMutation({
     mutationFn: (slug) => api.delete(`/settings/roles/custom/${slug}`),
-    onSuccess: () => { toast.success('Perfil removido'); qc.invalidateQueries(['roles']) },
+    onSuccess: () => { toast.success('Perfil removido'); qc.invalidateQueries({ queryKey: ['roles'] }) },
     onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao remover'),
   })
 
@@ -990,7 +990,7 @@ function PerfisTab() {
       {showNewRole && (
         <NewRoleModal
           onClose={() => setShowNewRole(false)}
-          onSuccess={() => { setShowNewRole(false); qc.invalidateQueries(['roles']) }}
+          onSuccess={() => { setShowNewRole(false); qc.invalidateQueries({ queryKey: ['roles'] }) }}
         />
       )}
 
@@ -998,7 +998,7 @@ function PerfisTab() {
         <EditRoleModal
           role={editingRole}
           onClose={() => setEditingRole(null)}
-          onSuccess={() => { setEditingRole(null); qc.invalidateQueries(['roles']) }}
+          onSuccess={() => { setEditingRole(null); qc.invalidateQueries({ queryKey: ['roles'] }) }}
         />
       )}
     </div>
