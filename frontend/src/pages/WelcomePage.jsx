@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../contexts/AuthContext'
 import { useModule, MODULES } from '../contexts/ModuleContext'
-import { FileText, AlertCircle, TrendingUp, Truck, BarChart2, ChevronRight, Building2, Globe2 } from 'lucide-react'
+import { FileText, AlertCircle, TrendingUp, Truck, BarChart2, ChevronRight, Building2, Globe2, Shield } from 'lucide-react'
 import api from '../services/api'
 
-const ICONS = { FileText, AlertCircle, TrendingUp, Truck, BarChart2, Globe2 }
+const ICONS = { FileText, AlertCircle, TrendingUp, Truck, BarChart2, Globe2, Shield }
 
 const MODULE_HOME = {
   faturamento:     '/dashboard',
@@ -15,6 +15,7 @@ const MODULE_HOME = {
   logistica:       '/logistica',
   controladoria:   '/dashboard',
   organograma:     '/organograma',
+  acessos:         '/acessos',
   smt:             null,
 }
 
@@ -55,6 +56,12 @@ const COLOR_MAP = {
     dot:  'bg-violet-500',
     cta:  'text-violet-500 group-hover:text-violet-700',
   },
+  slate: {
+    card: 'border-slate-200 hover:border-slate-400 hover:shadow-slate-100/60',
+    icon: 'bg-slate-100 text-slate-600',
+    dot:  'bg-slate-500',
+    cta:  'text-slate-500 group-hover:text-slate-700',
+  },
 }
 
 export default function WelcomePage() {
@@ -94,6 +101,10 @@ export default function WelcomePage() {
   const handleSelect = (module) => {
     if (module.id === 'controladoria') {
       navigate('/controladoria/dash')
+      return
+    }
+    if (module.id === 'acessos') {
+      navigate('/acessos')
       return
     }
     if (module.id === 'smt') {

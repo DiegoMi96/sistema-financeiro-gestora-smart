@@ -49,6 +49,29 @@ export const MODULES = [
   },
 
   {
+    id:          'logistica',
+    label:       'Logística',
+    description: 'Gestão de fretes, envios e pedidos de chips por operadora',
+    icon:        'Truck',
+    color:       'indigo',
+    status:      'active',
+    permission:  'can_view_logistica',
+    nav: [
+      { to: '/logistica', label: 'Logística' },
+      { to: '/configuracoes', label: 'Configurações', permission: 'can_manage_users' },
+    ],
+  },
+  {
+    id:          'acessos',
+    label:       'Gestão de Acessos',
+    description: 'Criação de usuários, perfis e permissões de todos os cards e abas do sistema',
+    icon:        'Shield',
+    color:       'slate',
+    status:      'active',
+    permission:  'can_manage_users',
+    nav: [],
+  },
+  {
     id:          'controladoria',
     label:       'Controladoria',
     description: 'DRE, fluxo de caixa, conciliação e relatórios gerenciais',

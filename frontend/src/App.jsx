@@ -24,6 +24,7 @@ import ClientsPage from './pages/clients/ClientsPage'
 import OrganoPage from './pages/organograma/OrganoPage'
 import IndicadoresPage from './pages/controladoria/IndicadoresPage'
 import ControladoriaDashboard from './pages/controladoria/ControladoriaDashboard'
+import AcessosPage from './pages/acessos/AcessosPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } }
@@ -82,6 +83,9 @@ function AppRoutes() {
 
       {/* Controladoria — dashboard externo em iframe, sem sidebar */}
       <Route path="/controladoria/dash" element={<PrivateRoute permission="can_view_controladoria"><ControladoriaDashboard /></PrivateRoute>} />
+
+      {/* Gestão de Acessos — página standalone, sem sidebar */}
+      <Route path="/acessos" element={<PrivateRoute permission="can_manage_users"><AcessosPage /></PrivateRoute>} />
 
       {/* Área interna (com sidebar) */}
       <Route
