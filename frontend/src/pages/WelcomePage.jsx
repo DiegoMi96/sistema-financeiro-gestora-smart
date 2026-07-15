@@ -107,7 +107,7 @@ export default function WelcomePage() {
       return
     }
     if (module.id === 'smt') {
-      const url = smtData?.url || 'http://localhost:3000'
+      const url = smtData?.url || 'https://smt.gestorasmart.com.br'
       window.open(url, '_blank', 'noopener,noreferrer')
       return
     }
