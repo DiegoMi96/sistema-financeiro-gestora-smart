@@ -10,6 +10,11 @@
     border: 1px solid #E8EAED;
     border-radius: 16px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .gs-card:hover {
+    border-color: #A7DFB0;
+    box-shadow: 0 6px 20px rgba(60,181,74,0.12), 0 1px 4px rgba(0,0,0,0.06);
   }
 
   /* ── Tipografia ────────────────────────────────────────── */
