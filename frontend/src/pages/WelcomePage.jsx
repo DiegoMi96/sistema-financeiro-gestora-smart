@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../contexts/AuthContext'
 import { useModule, MODULES } from '../contexts/ModuleContext'
-import { FileText, AlertCircle, TrendingUp, Truck, BarChart2, ChevronRight, Building2 } from 'lucide-react'
+import { FileText, AlertCircle, TrendingUp, Truck, BarChart2, ChevronRight, Building2, Globe2 } from 'lucide-react'
 import api from '../services/api'
 
-const ICONS = { FileText, AlertCircle, TrendingUp, Truck, BarChart2 }
+const ICONS = { FileText, AlertCircle, TrendingUp, Truck, BarChart2, Globe2 }
 
 const MODULE_HOME = {
   faturamento:     '/dashboard',
@@ -15,6 +15,7 @@ const MODULE_HOME = {
   logistica:       '/logistica',
   controladoria:   '/dashboard',
   organograma:     '/organograma',
+  smt:             null,
 }
 
 const COLOR_MAP = {
@@ -48,6 +49,12 @@ const COLOR_MAP = {
     dot:  'bg-teal-500',
     cta:  'text-teal-500 group-hover:text-teal-700',
   },
+  violet: {
+    card: 'border-violet-200 hover:border-violet-400 hover:shadow-violet-100/60',
+    icon: 'bg-violet-50 text-violet-600',
+    dot:  'bg-violet-500',
+    cta:  'text-violet-500 group-hover:text-violet-700',
+  },
 }
 
 export default function WelcomePage() {
@@ -60,6 +67,15 @@ export default function WelcomePage() {
     queryKey: ['controladoria-url'],
     queryFn: () => api.get('/auth/controladoria-url').then(r => r.data),
     enabled: availableModules.some(m => m.id === 'controladoria'),
+    staleTime: 1000 * 60 * 5,
+    retry: false,
+  })
+
+  // Pré-busca URL do dashboard SMT externo
+  const { data: smtData } = useQuery({
+    queryKey: ['smt-url'],
+    queryFn: () => api.get('/auth/smt-url').then(r => r.data),
+    enabled: availableModules.some(m => m.id === 'smt'),
     staleTime: 1000 * 60 * 5,
     retry: false,
   })
@@ -87,6 +103,11 @@ export default function WelcomePage() {
   const handleSelect = (module) => {
     if (module.id === 'controladoria') {
       const url = ctrlData?.url || 'https://dashboard.gestorasmart.com.br'
+      window.open(url, '_blank', 'noopener,noreferrer')
+      return
+    }
+    if (module.id === 'smt') {
+      const url = smtData?.url || 'http://localhost:3000'
       window.open(url, '_blank', 'noopener,noreferrer')
       return
     }

@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     ASAAS_API_KEY: str = ""
     ASAAS_BASE_URL: str = "https://api.asaas.com/v3"
 
+    # SMT Dashboard externo
+    SMT_URL: str = "http://localhost:3000"
+
     # CORS
     FRONTEND_URL: str = "http://localhost:3000"
 

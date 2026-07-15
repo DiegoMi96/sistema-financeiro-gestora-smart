@@ -38,6 +38,8 @@ ALL_PERMISSIONS = [
     "can_view_ctrl_fluxo_caixa",
     "can_view_ctrl_balanco",
     "can_view_ctrl_indicadores",
+    # SMT Dashboard externo
+    "can_view_smt",
 ]
 
 # ─────────────────────────────────────────────
@@ -66,6 +68,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_ctrl_fluxo_caixa":True,
         "can_view_ctrl_balanco":    True,
         "can_view_ctrl_indicadores":True,
+        "can_view_smt":             True,
     },
     UserRole.GESTOR: {
         "can_view_dashboard":       True,
@@ -89,6 +92,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_ctrl_fluxo_caixa":True,
         "can_view_ctrl_balanco":    True,
         "can_view_ctrl_indicadores":True,
+        "can_view_smt":             True,
     },
     UserRole.CONTAS_RECEBER: {
         "can_view_dashboard":       True,
@@ -112,6 +116,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_ctrl_fluxo_caixa":False,
         "can_view_ctrl_balanco":    False,
         "can_view_ctrl_indicadores":False,
+        "can_view_smt":             False,
     },
     UserRole.SUPORTE_TECNICO: {
         "can_view_dashboard":       False,
@@ -135,6 +140,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_ctrl_fluxo_caixa":False,
         "can_view_ctrl_balanco":    False,
         "can_view_ctrl_indicadores":False,
+        "can_view_smt":             False,
     },
     UserRole.LOGISTICA: {
         "can_view_dashboard":       False,
@@ -158,6 +164,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_ctrl_fluxo_caixa":False,
         "can_view_ctrl_balanco":    False,
         "can_view_ctrl_indicadores":False,
+        "can_view_smt":             False,
     },
     UserRole.BACKOFFICE: {
         "can_view_dashboard":       True,
@@ -181,6 +188,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_ctrl_fluxo_caixa":False,
         "can_view_ctrl_balanco":    False,
         "can_view_ctrl_indicadores":False,
+        "can_view_smt":             False,
     },
     UserRole.COMERCIAL: {
         "can_view_dashboard":       True,
@@ -204,6 +212,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_ctrl_fluxo_caixa":False,
         "can_view_ctrl_balanco":    False,
         "can_view_ctrl_indicadores":False,
+        "can_view_smt":             False,
     },
 }
 

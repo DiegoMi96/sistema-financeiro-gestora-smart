@@ -258,6 +258,15 @@ def deactivate_user(
     return {"message": "Usuário desativado"}
 
 
+@router.get("/smt-url")
+def smt_url(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Retorna a URL do dashboard SMT externo."""
+    if not get_permission(current_user, "can_view_smt", db):
+        raise HTTPException(status_code=403, detail="Sem permissão para SMT")
+    from app.config import settings
+    return {"url": settings.SMT_URL}
+
+
 @router.get("/controladoria-url")
 def controladoria_sso_url(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Gera URL SSO para o dashboard externo incluindo quais abas o usuário pode ver."""

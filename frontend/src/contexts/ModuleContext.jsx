@@ -91,6 +91,16 @@ export const MODULES = [
       { to: '/configuracoes',         label: 'Configurações',  permission: 'can_manage_users' },
     ],
   },
+  {
+    id:          'smt',
+    label:       'SMT',
+    description: 'Dashboard financeiro SMT — cotações, resultados e operações Brasil e Portugal',
+    icon:        'Globe2',
+    color:       'violet',
+    status:      'active',
+    permission:  'can_view_smt',
+    nav: [],
+  },
 ]
 
 export function ModuleProvider({ children }) {
