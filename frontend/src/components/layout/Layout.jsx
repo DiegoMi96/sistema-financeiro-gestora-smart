@@ -173,11 +173,13 @@ export default function Layout() {
 
               {items.map(({ to, label }) => {
                 const Icon = NAV_ICONS[to] || FileText
+                // end=true quando esta rota é prefixo de outra na mesma nav (ex: /organograma vs /organograma/gerenciar)
+                const isParent = navItems.some(item => item.to !== to && item.to.startsWith(to + '/'))
                 return (
                   <NavLink
                     key={to}
                     to={to}
-                    end={to === '/dashboard'}
+                    end={isParent}
                     onClick={() => setMobileOpen(false)}
                     className="relative flex items-center group"
                     style={({ isActive }) => ({

@@ -76,7 +76,8 @@ function OrgCanvas({ members, onEdit, canEdit, view, onFullscreen }) {
   const [pan,  setPan]  = useState({ x: 0, y: 60 })
   const [zoom, setZoom] = useState(0.4)
   const [isDragging, setIsDragging] = useState(false)
-  const [guides, setGuides] = useState([])
+  const [guides,    setGuides]    = useState([])
+  const [hoveredId, setHoveredId] = useState(null)
 
   // refs para evitar stale closures nos handlers
   const s = useRef({
@@ -173,7 +174,7 @@ function OrgCanvas({ members, onEdit, canEdit, view, onFullscreen }) {
       const id = parseInt(el.dataset.node)
       const p  = s.current.positions[id] || { x: 0, y: 0 }
       s.current.dragNode = { id, smx: e.clientX, smy: e.clientY, sx: p.x, sy: p.y }
-      setIsDragging(true); e.preventDefault(); return
+      setHoveredId(null); setIsDragging(true); e.preventDefault(); return
     }
     // Fundo → pan
     s.current.dragPan = { smx: e.clientX, smy: e.clientY, spx: s.current.pan.x, spy: s.current.pan.y }
@@ -359,19 +360,27 @@ function OrgCanvas({ members, onEdit, canEdit, view, onFullscreen }) {
           const isVac    = m.is_vacancy || m.member_type === 'Vaga'
           const initials = (m.name || '').split(' ').filter(Boolean).map(w => w[0]).join('').substring(0, 2).toUpperCase()
 
+          const isHovered = hoveredId === m.id && !isDragging
           return (
             <div
               key={m.id}
               data-node={m.id}
               className="group"
+              onMouseEnter={() => !isDragging && setHoveredId(m.id)}
+              onMouseLeave={() => setHoveredId(null)}
               style={{
                 position: 'absolute', left: pos.x, top: pos.y, width: NODE_W, minHeight: 116,
                 background: '#fff', borderRadius: 12,
-                border: `1.5px solid ${isVac ? '#e5e7eb' : '#d1fae5'}`,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.07), 0 0 0 0.5px rgba(0,0,0,0.03)',
+                border: isHovered
+                  ? `1.5px solid ${isVac ? '#9ca3af' : '#3CB54A'}`
+                  : `1.5px solid ${isVac ? '#e5e7eb' : '#d1fae5'}`,
+                boxShadow: isHovered
+                  ? '0 6px 20px rgba(60,181,74,0.18), 0 0 0 3px rgba(60,181,74,0.08)'
+                  : '0 2px 8px rgba(0,0,0,0.07), 0 0 0 0.5px rgba(0,0,0,0.03)',
                 padding: `${CIRC_TOP}px 10px 12px`,
                 display: 'flex', flexDirection: 'column', alignItems: 'center',
                 cursor: 'grab', overflow: 'hidden',
+                transition: 'border-color 0.15s, box-shadow 0.15s',
               }}
             >
               {/* Círculo de foto */}
