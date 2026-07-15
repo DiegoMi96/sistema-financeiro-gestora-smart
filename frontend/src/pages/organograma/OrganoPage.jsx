@@ -798,6 +798,7 @@ export default function OrganoPage() {
     queryKey: ['org', 'tree', 'comercial'],
     queryFn:  () => orgApi.tree('comercial').then(r => r.data),
     staleTime: 60000,
+    enabled: view === 'comercial',
   })
   const { data: allMembers = [] } = useQuery({
     queryKey: ['org', 'members'],

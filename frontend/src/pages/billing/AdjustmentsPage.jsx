@@ -65,6 +65,7 @@ export default function AdjustmentsPage() {
       year:    year    || undefined,
       ofensor: ofensor || undefined,
     }).then(r => r.data),
+    staleTime: 2 * 60 * 1000,
   })
 
   const totalDiff     = adjustments.reduce((s, a) => s + (a.valor_diferenca || 0), 0)
@@ -326,6 +327,7 @@ function AdjustmentModal({ onClose, onSuccess, defaultCycleId, defaultIdSmart, d
   const { data: cycles = [] } = useQuery({
     queryKey: ['billing-cycles'],
     queryFn: () => billingApi.cycles().then(r => r.data),
+    staleTime: 2 * 60 * 1000,
   })
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }))

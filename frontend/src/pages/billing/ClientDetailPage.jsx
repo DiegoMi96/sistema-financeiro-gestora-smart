@@ -31,12 +31,14 @@ export default function ClientDetailPage() {
     queryKey: ['client-lines', cycleId, id, linePage],
     queryFn: () => billingApi.clientLines(+cycleId, id, { page: linePage, per_page: LINES_PER_PAGE }).then(r => r.data),
     placeholderData: (previousData) => previousData,
+    staleTime: 5 * 60 * 1000,
   })
 
   // Busca o summary do cliente (totais financeiros — vem rápido, não espera linhas)
   const { data: summaryData } = useQuery({
     queryKey: ['client-summary', cycleId, id],
     queryFn: () => billingApi.clientSummary(+cycleId, id).then(r => r.data),
+    staleTime: 5 * 60 * 1000,
   })
 
   const lines       = linesData?.items ?? linesData ?? []
@@ -52,6 +54,7 @@ export default function ClientDetailPage() {
 const { data: adjustments = [] } = useQuery({
     queryKey: ['cycle-adjustments', cycleId],
     queryFn: () => billingApi.adjustments(+cycleId).then(r => r.data),
+    staleTime: 5 * 60 * 1000,
   })
 
   const clientAdjs = adjustments.filter(a => a.id_smart === id)

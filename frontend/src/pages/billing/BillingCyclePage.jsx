@@ -53,7 +53,7 @@ export default function BillingCyclePage() {
   const { data: adjustments } = useQuery({
     queryKey: ['cycle-adjustments', cycleId],
     queryFn: () => billingApi.adjustments(+cycleId).then(r => r.data),
-    staleTime: 30 * 1000,
+    staleTime: 2 * 60 * 1000,
     enabled: tab === 'adjustments',
   })
 
