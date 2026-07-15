@@ -174,66 +174,47 @@ class BillingEngineService:
 
     def _load_base(self, source) -> pd.DataFrame:
         """source: bytes (preferencial, sem I/O) ou str (caminho em disco).
-        Usa openpyxl read_only (streaming) — não carrega a planilha inteira em memória.
+        Usa python-calamine (Rust) — 10-50x mais rápido que openpyxl para 700k linhas.
         """
-        from openpyxl import load_workbook
-
         _cols = [
-            # Identificação principal
             "Nome do cliente", "CPF/CNPJ", "MSISDN", "ICCID", "Status",
-            # Pedido e contrato
             "Nome do pedido", "ID do pedido",
             "Nome do contrato", "ID do contrato",
-            # Datas
             "Data de ativação",
             "Data de início do bloqueio de rede",
             "Data de cancelamento",
             "Data de início da suspensão",
             "Data de término da suspensão",
             "Data fim da pré-ativação",
-            # Preços e consumo (necessários para cálculo)
             "Mensalidade", "Preço de ativação",
             "Preço do MB Excedente", "Crédito adicionado no Simcard",
-            # Reajuste por SIM (col X na planilha base)
             "Reajuste",
-            # Conectividade
             "Franquia (MB)", "Operadora", "Operadora específica",
             "Consumo total (KB)",
         ]
 
         file_input = io.BytesIO(source) if isinstance(source, (bytes, bytearray)) else source
 
-        print("📂 Abrindo workbook (openpyxl streaming)...", flush=True)
-        wb = load_workbook(file_input, read_only=True, data_only=True)
-
+        print("📂 Carregando base com calamine...", flush=True)
         try:
-            ws = wb["Inventário"]
-        except KeyError:
-            ws = wb[wb.sheetnames[0]]
-            print(f"⚠️ Aba 'Inventário' não encontrada, usando: {ws.title}", flush=True)
+            df = pd.read_excel(file_input, sheet_name="Inventário", engine="calamine")
+        except Exception:
+            if hasattr(file_input, "seek"):
+                file_input.seek(0)
+            df = pd.read_excel(file_input, sheet_name=0, engine="calamine")
+            print(f"⚠️ Aba 'Inventário' não encontrada, usando primeira aba", flush=True)
 
-        rows_iter = ws.iter_rows(values_only=True)
-        header    = next(rows_iter)
-        col_idx   = {name: i for i, name in enumerate(header) if name in _cols}
-        print(f"📂 {len(col_idx)} colunas mapeadas, iniciando leitura...", flush=True)
+        print(f"📂 {len(df):,} linhas carregadas", flush=True)
 
-        data = {col: [] for col in _cols}
-        n = 0
-        for row in rows_iter:
-            for col in _cols:
-                idx = col_idx.get(col)
-                val = row[idx] if idx is not None and idx < len(row) else None
-                data[col].append(val)
-            n += 1
-            if n % 100_000 == 0:
-                print(f"📂 ... {n:,} linhas lidas", flush=True)
+        # Garante que todas as colunas esperadas existam
+        for c in _cols:
+            if c not in df.columns:
+                df[c] = None
 
-        wb.close()
-        print(f"📂 Leitura concluída: {n:,} linhas totais", flush=True)
+        df = df[_cols].copy()
 
-        df = pd.DataFrame(data)
-
-        for c in ["Data de ativação", "Data de início do bloqueio de rede", "Data de cancelamento"]:
+        for c in ["Data de ativação", "Data de início do bloqueio de rede", "Data de cancelamento",
+                  "Data de início da suspensão", "Data de término da suspensão", "Data fim da pré-ativação"]:
             if c in df.columns:
                 df[c] = pd.to_datetime(df[c], errors="coerce", dayfirst=True)
         for c in ["Mensalidade", "Preço de ativação", "Preço do MB Excedente", "Crédito adicionado no Simcard"]:
