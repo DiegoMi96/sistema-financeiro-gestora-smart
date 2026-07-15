@@ -73,7 +73,7 @@ export function WeeklyProgress({ weekData }) {
             tickFormatter={v => `R$${(v / 1000).toFixed(0)}K`} width={44} />
           <Tooltip formatter={v => [fmt(v)]} contentStyle={{ fontSize: 12, borderRadius: 10, border: '1px solid #EBEBEB' }} />
           <Legend wrapperStyle={{ fontSize: 10 }} />
-          <Bar dataKey="Planejado" fill="#94D4A0" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="Planejado" fill="#CBD5E1" radius={[3, 3, 0, 0]} />
           <Bar dataKey="Realizado" fill="#3CB54A" radius={[3, 3, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
@@ -165,8 +165,8 @@ export function DailyAccumulated({ data, month, year }) {
           <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="gradPlan" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="#94D4A0" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#94D4A0" stopOpacity={0} />
+                <stop offset="5%"  stopColor="#94a3b8" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#94a3b8" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="gradReal" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%"  stopColor="#3CB54A" stopOpacity={0.2} />
@@ -179,7 +179,7 @@ export function DailyAccumulated({ data, month, year }) {
               tickFormatter={v => `R$${(v / 1000).toFixed(0)}K`} />
             <Tooltip formatter={v => [fmt(v)]} contentStyle={{ fontSize: 12, borderRadius: 10, border: '1px solid #E8EAED' }} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Area type="monotone" dataKey="Planejado" stroke="#94D4A0" strokeWidth={1.5} strokeDasharray="5 3" fill="url(#gradPlan)" dot={false} />
+            <Area type="monotone" dataKey="Planejado" stroke="#94a3b8" strokeWidth={1.5} strokeDasharray="5 3" fill="url(#gradPlan)" dot={false} />
             <Area type="monotone" dataKey="Realizado" stroke="#3CB54A" strokeWidth={2.5} fill="url(#gradReal)" dot={false} activeDot={{ r: 4, fill: '#3CB54A' }} />
           </AreaChart>
         </ResponsiveContainer>
@@ -255,7 +255,7 @@ export function DailyReceived({ data }) {
               contentStyle={{ fontSize: 12, borderRadius: 10, border: '1px solid #E8EAED' }}
             />
             <Legend wrapperStyle={{ fontSize: 10 }} />
-            <Bar dataKey="Planejado" fill="#94D4A0" radius={[3, 3, 0, 0]} />
+            <Bar dataKey="Planejado" fill="#CBD5E1" radius={[3, 3, 0, 0]} />
             <Bar dataKey="Recebido"  fill="#3CB54A" radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
@@ -334,7 +334,7 @@ export function WeeklyProgressAdmin({ weekData }) {
             tickFormatter={v => `R$${(v / 1000).toFixed(0)}K`} />
           <Tooltip formatter={v => [fmt(v)]} contentStyle={{ fontSize: 12, borderRadius: 10, border: '1px solid #EBEBEB' }} />
           <Legend wrapperStyle={{ fontSize: 11 }} />
-          <Bar dataKey="Planejado" fill="#94D4A0" radius={[4, 4, 0, 0]}>
+          <Bar dataKey="Planejado" fill="#CBD5E1" radius={[4, 4, 0, 0]}>
             <LabelList dataKey="Planejado" position="top" formatter={v => v > 0 ? fmtK(v) : ''} style={{ fontSize: 9, fill: '#94a3b8' }} />
           </Bar>
           <Bar dataKey="Realizado" fill="#3CB54A" radius={[4, 4, 0, 0]}>
