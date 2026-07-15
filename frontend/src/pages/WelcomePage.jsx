@@ -62,15 +62,6 @@ export default function WelcomePage() {
   const { availableModules, selectModule } = useModule()
   const navigate                           = useNavigate()
 
-  // Pré-busca URL SSO da Controladoria para evitar bloqueio de popup
-  const { data: ctrlData } = useQuery({
-    queryKey: ['controladoria-url'],
-    queryFn: () => api.get('/auth/controladoria-url').then(r => r.data),
-    enabled: availableModules.some(m => m.id === 'controladoria'),
-    staleTime: 1000 * 60 * 5,
-    retry: false,
-  })
-
   // Pré-busca URL do dashboard SMT externo
   const { data: smtData } = useQuery({
     queryKey: ['smt-url'],
@@ -102,8 +93,7 @@ export default function WelcomePage() {
 
   const handleSelect = (module) => {
     if (module.id === 'controladoria') {
-      const url = ctrlData?.url || 'https://dashboard.gestorasmart.com.br'
-      window.open(url, '_blank', 'noopener,noreferrer')
+      window.open('/controladoria/', '_blank', 'noopener,noreferrer')
       return
     }
     if (module.id === 'smt') {
