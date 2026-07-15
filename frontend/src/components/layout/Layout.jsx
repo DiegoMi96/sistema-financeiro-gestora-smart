@@ -22,8 +22,9 @@ const NAV_ICONS = {
   '/dashboard':       LayoutDashboard,
   '/usuarios':        Users,
   '/configuracoes':   Settings,
-  '/organograma':              Users,
-  '/organograma/gerenciar':    Settings,
+  '/organograma':                Users,
+  '/organograma/gerenciar':      Settings,
+  '/controladoria/indicadores':  LineChart,
 }
 
 const NAV_SECTIONS = {

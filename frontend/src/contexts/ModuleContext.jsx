@@ -69,11 +69,12 @@ export const MODULES = [
     status:      'active',
     permission:  'can_view_controladoria',
     nav: [
-      { to: '/dashboard',     label: 'Painel',         permission: 'can_view_dashboard' },
-      { to: '/faturamento',   label: 'Faturamento'                                      },
-      { to: '/clientes',      label: 'Clientes'                                         },
-      { to: '/ajustes',       label: 'Ajustes',        permission: 'can_edit_billing'   },
-      { to: '/configuracoes', label: 'Configurações',  permission: 'can_manage_users'   },
+      { to: '/dashboard',               label: 'Painel',        permission: 'can_view_dashboard' },
+      { to: '/controladoria/indicadores',label: 'Indicadores'                                    },
+      { to: '/faturamento',             label: 'Faturamento'                                     },
+      { to: '/clientes',                label: 'Clientes'                                        },
+      { to: '/ajustes',                 label: 'Ajustes',       permission: 'can_edit_billing'   },
+      { to: '/configuracoes',           label: 'Configurações', permission: 'can_manage_users'   },
     ],
   },
   {

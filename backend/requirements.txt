@@ -17,5 +17,7 @@ numpy==1.26.4
 reportlab==4.1.0
 weasyprint>=62.0
 python-dateutil==2.9.0
+gspread==6.1.2
+google-auth==2.30.0
 celery==5.4.0
 redis==5.0.4

@@ -10,6 +10,7 @@ const ALL_TABS = [
   { id: 'empresa',     label: 'Empresa',             faturamentoOnly: true },
   { id: 'acesso',      label: 'Acesso' },
   { id: 'perfis',      label: 'Perfis & Permissões' },
+  { id: 'planilha',    label: 'Planilha Google' },
   { id: 'integracoes', label: 'Integrações',        faturamentoOnly: true },
 ]
 
@@ -71,6 +72,7 @@ export default function SettingsPage() {
           {tab === 'empresa'     && <Empresa cfg={cfg} save={save} />}
           {tab === 'acesso'      && <Acesso />}
           {tab === 'perfis'      && <PerfisTab />}
+          {tab === 'planilha'    && <PlanilhaTab />}
         </div>
       </div>
     </div>
@@ -1299,5 +1301,124 @@ function StatusBadge({ ok }) {
     <span className="flex items-center gap-1 text-xs font-medium text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">
       <XCircle size={11} /> Não configurado
     </span>
+  )
+}
+
+
+// ── Planilha Google ───────────────────────────────────────────
+function PlanilhaTab() {
+  const qc = useQueryClient()
+  const { data: cfg, isLoading } = useQuery({
+    queryKey: ['sheets-config'],
+    queryFn: () => api.get('/sheets/config').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const [spreadsheetId, setSpreadsheetId] = useState('')
+  const [serviceJson, setServiceJson] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [testing, setTesting] = useState(false)
+  const [testResult, setTestResult] = useState(null)
+
+  useEffect(() => {
+    if (cfg) setSpreadsheetId(cfg.spreadsheet_id || '')
+  }, [cfg])
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await api.put('/sheets/config', {
+        spreadsheet_id: spreadsheetId,
+        service_account_json: serviceJson.trim() || null,
+      })
+      toast.success('Configurações salvas!')
+      setServiceJson('')
+      qc.invalidateQueries({ queryKey: ['sheets-config'] })
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Erro ao salvar')
+    } finally { setSaving(false) }
+  }
+
+  const handleTest = async () => {
+    setTesting(true)
+    setTestResult(null)
+    try {
+      const r = await api.post('/sheets/test-connection')
+      setTestResult({ ok: true, msg: `Conectado: "${r.data.title}" — ${r.data.sheets.length} abas` })
+    } catch (e) {
+      setTestResult({ ok: false, msg: e.response?.data?.detail || 'Falha na conexão' })
+    } finally { setTesting(false) }
+  }
+
+  if (isLoading) return <div className="flex justify-center py-8"><Loader size={16} className="animate-spin text-gray-400" /></div>
+
+  return (
+    <div className="space-y-6 max-w-2xl">
+      <div>
+        <h3 className="gs-section-title mb-1">Google Sheets — Indicadores Mensais</h3>
+        <p className="text-xs text-gray-400">Configure a planilha para sincronização bidirecional com a tela de Indicadores.</p>
+      </div>
+
+      {/* Spreadsheet ID */}
+      <div>
+        <label className="gs-label">ID da Planilha</label>
+        <input
+          value={spreadsheetId}
+          onChange={e => setSpreadsheetId(e.target.value)}
+          placeholder="Ex: 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms"
+          className="gs-input w-full"
+        />
+        <p className="text-xs text-gray-400 mt-1">
+          O ID fica na URL da planilha: docs.google.com/spreadsheets/d/<strong>[ID]</strong>/edit
+        </p>
+      </div>
+
+      {/* Service Account JSON */}
+      <div>
+        <div className="flex items-center gap-3 mb-1">
+          <label className="gs-label mb-0">Service Account (JSON)</label>
+          {cfg?.has_service_account && (
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">Configurada</span>
+          )}
+        </div>
+        <textarea
+          value={serviceJson}
+          onChange={e => setServiceJson(e.target.value)}
+          rows={8}
+          placeholder={cfg?.has_service_account
+            ? 'Deixe em branco para manter a service account atual. Cole o JSON novo para substituir.'
+            : 'Cole aqui o conteúdo do arquivo JSON da service account do Google Cloud...'}
+          className="gs-input w-full font-mono text-xs resize-none"
+          style={{ borderRadius: 8 }}
+        />
+        <p className="text-xs text-gray-400 mt-1">
+          Crie a service account em <strong>console.cloud.google.com</strong> → IAM → Service Accounts, gere uma chave JSON e cole aqui.
+          Depois compartilhe a planilha com o e-mail da service account com permissão de Editor.
+        </p>
+      </div>
+
+      {/* Resultado do teste */}
+      {testResult && (
+        <div style={{
+          padding: '10px 14px', borderRadius: 8, fontSize: 13,
+          background: testResult.ok ? '#f0fdf4' : '#fef2f2',
+          color: testResult.ok ? '#15803d' : '#dc2626',
+          border: `1px solid ${testResult.ok ? '#bbf7d0' : '#fecaca'}`,
+        }}>
+          {testResult.ok ? '✓' : '✗'} {testResult.msg}
+        </div>
+      )}
+
+      <div className="flex gap-3">
+        <button onClick={handleTest} disabled={testing || !spreadsheetId} className="gs-btn gs-btn-outline gs-btn-sm">
+          {testing ? <Loader size={12} className="animate-spin" /> : <Zap size={12} />}
+          Testar conexão
+        </button>
+        <button onClick={handleSave} disabled={saving} className="gs-btn gs-btn-primary gs-btn-sm">
+          <Key size={12} />
+          {saving ? 'Salvando…' : 'Salvar configuração'}
+        </button>
+      </div>
+    </div>
   )
 }

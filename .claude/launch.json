@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "gestora-docker",
+      "runtimeExecutable": "docker",
+      "runtimeArgs": ["compose", "up", "frontend"],
+      "port": 3000,
+      "autoPort": false
+    },
+    {
+      "name": "gestora-dev",
+      "cwd": "/Users/diegomiranda/projetos/gestora-smart/frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--port", "5173"],
+      "port": 5173
+    }
+  ]
+}

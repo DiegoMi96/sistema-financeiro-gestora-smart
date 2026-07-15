@@ -462,3 +462,22 @@ class OrgMember(Base):
         foreign_keys="[OrgMember.parent_id]",
         remote_side="[OrgMember.id]",
     )
+
+
+# ══════════════════════════════════════════════════════════════
+# INDICADORES — sync com Google Sheets
+# ══════════════════════════════════════════════════════════════
+
+class SheetIndicator(Base):
+    __tablename__ = "sheet_indicators"
+    id         = Column(Integer, primary_key=True, index=True)
+    chave      = Column(String(100), nullable=False)
+    year       = Column(Integer, nullable=False)
+    month      = Column(Integer, nullable=False)   # 1=Jan … 12=Dez
+    value      = Column(Float, nullable=True)
+    source     = Column(String(20), default="system")  # "system" | "sheet"
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("chave", "year", "month", name="uq_indicator"),
+    )

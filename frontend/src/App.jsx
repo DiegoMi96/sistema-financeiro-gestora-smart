@@ -22,6 +22,7 @@ import ParceirosRegionaisPage from './pages/comissionamento/ParceirosRegionaisPa
 import ComissionamentoInternoPage from './pages/comissionamento/ComissionamentoInternoPage'
 import ClientsPage from './pages/clients/ClientsPage'
 import OrganoPage from './pages/organograma/OrganoPage'
+import IndicadoresPage from './pages/controladoria/IndicadoresPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } }
@@ -110,7 +111,8 @@ function AppRoutes() {
         <Route path="/contestacao/allcom"      element={<PrivateRoute permission="can_view_contestacao"><AllcomPage /></PrivateRoute>} />
         <Route path="/contestacao/:cycleId"    element={<PrivateRoute permission="can_view_contestacao"><ContestationCyclePage /></PrivateRoute>} />
         <Route path="/logistica"     element={<PrivateRoute permission="can_view_logistica"><ComingSoon module="Logística" desc="Gestão de fretes, envios e pedidos de chips." /></PrivateRoute>} />
-        <Route path="/controladoria" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/controladoria" element={<Navigate to="/controladoria/indicadores" replace />} />
+        <Route path="/controladoria/indicadores" element={<PrivateRoute permission="can_view_controladoria"><IndicadoresPage /></PrivateRoute>} />
         <Route path="/organograma"          element={<PrivateRoute permission="can_manage_users"><OrganoPage /></PrivateRoute>} />
         <Route path="/organograma/gerenciar" element={<PrivateRoute permission="can_manage_users"><OrganoPage /></PrivateRoute>} />
 
