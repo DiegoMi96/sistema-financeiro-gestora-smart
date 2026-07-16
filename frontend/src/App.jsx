@@ -1,6 +1,7 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
+import { ShieldOff } from 'lucide-react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ModuleProvider, useModule } from './contexts/ModuleContext'
 import { ThemeProvider } from './contexts/ThemeContext'
@@ -30,6 +31,29 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } }
 })
 
+function AccessDenied() {
+  const navigate = useNavigate()
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+      <div className="text-center max-w-sm px-6">
+        <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <ShieldOff size={28} className="text-red-500" />
+        </div>
+        <h2 className="text-xl font-bold text-gray-800 mb-2">Acesso não permitido</h2>
+        <p className="text-gray-500 text-sm mb-6 leading-relaxed">
+          Você não tem permissão para acessar esta área. Entre em contato com o administrador do sistema.
+        </p>
+        <button
+          onClick={() => navigate('/')}
+          className="px-5 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition-colors"
+        >
+          Voltar ao início
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // Rota privada: verifica login + permissão opcional
 function PrivateRoute({ children, permission }) {
   const { user, can, loading } = useAuth()
@@ -39,7 +63,7 @@ function PrivateRoute({ children, permission }) {
     </div>
   )
   if (!user) return <Navigate to="/login" replace />
-  if (permission && !can(permission)) return <Navigate to="/" replace />
+  if (permission && !can(permission)) return <AccessDenied />
   return children
 }
 

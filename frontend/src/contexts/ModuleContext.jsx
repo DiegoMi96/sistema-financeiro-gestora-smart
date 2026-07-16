@@ -72,7 +72,7 @@ export const MODULES = [
     description: 'Gestão de fretes, envios e pedidos de chips por operadora',
     icon:        'Truck',
     color:       'indigo',
-    status:      'active',
+    status:      'coming',
     permission:  'can_view_logistica',
     nav: [
       { to: '/logistica', label: 'Logística' },
