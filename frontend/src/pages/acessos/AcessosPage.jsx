@@ -274,6 +274,13 @@ function UsuariosTab() {
 
 function UserFormModal({ user, onClose, onSuccess }) {
   const isEdit = !!user
+
+  const { data: apiRoles = [] } = useQuery({
+    queryKey: ['roles'],
+    queryFn: () => api.get('/settings/roles').then(r => r.data),
+    staleTime: 60 * 1000,
+  })
+
   const [form, setForm] = useState(user ? {
     name: user.name,
     role: user.role,
@@ -344,7 +351,7 @@ function UserFormModal({ user, onClose, onSuccess }) {
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Perfil base</label>
                 <select value={form.role} onChange={e => set('role', e.target.value)} className={INPUT}>
-                  {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                  {apiRoles.map(r => <option key={r.role} value={r.role}>{r.label}</option>)}
                 </select>
                 <p className="text-[11px] text-gray-400 mt-1">As permissões individuais abaixo sobrescrevem o perfil base.</p>
               </div>
