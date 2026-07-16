@@ -28,6 +28,7 @@ const PERM_SECTIONS = [
     ['can_view_contestacao',   'Contestação'],
     ['can_view_comissao',      'Comissionamento'],
     ['can_view_logistica',     'Logística'],
+    ['can_view_organograma',   'Organograma'],
     ['can_view_controladoria', 'Controladoria'],
     ['can_manage_users',       'Gestão de Acessos'],
     ['can_view_configuracoes', 'Configurações'],

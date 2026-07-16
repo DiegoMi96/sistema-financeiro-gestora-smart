@@ -96,7 +96,7 @@ export const MODULES = [
     icon:        'Users',
     color:       'green',
     status:      'active',
-    permission:  null,
+    permission:  'can_view_organograma',
     nav: [
       { to: '/organograma',           label: 'Organograma' },
       { to: '/organograma/gerenciar', label: 'Gerenciar',      permission: 'can_manage_users' },
