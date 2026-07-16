@@ -284,10 +284,12 @@ function UserFormModal({ user, onClose, onSuccess }) {
   const [form, setForm] = useState(user ? {
     name: user.name,
     role: user.role,
+    custom_role_key: user.custom_role_key || null,
     is_active: user.is_active,
     ...Object.fromEntries(ALL_PERMS.map(([k]) => [k, user.permissions?.[k] ?? null])),
   } : {
     name: '', email: '', password: '', role: 'contas_receber',
+    custom_role_key: null,
     ...Object.fromEntries(ALL_PERMS.map(([k]) => [k, null])),
   })
   const [loading, setLoading] = useState(false)
@@ -307,7 +309,8 @@ function UserFormModal({ user, onClose, onSuccess }) {
       else        { await authApi.createUser(form);          toast.success('Usuário criado!') }
       onSuccess()
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erro ao salvar usuário')
+      const detail = err.response?.data?.detail
+      toast.error(typeof detail === 'string' ? detail : 'Erro ao salvar usuário')
     } finally { setLoading(false) }
   }
 
@@ -350,8 +353,30 @@ function UserFormModal({ user, onClose, onSuccess }) {
               )}
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Perfil base</label>
-                <select value={form.role} onChange={e => set('role', e.target.value)} className={INPUT}>
-                  {apiRoles.map(r => <option key={r.role} value={r.role}>{r.label}</option>)}
+                <select
+                  value={form.custom_role_key ? `cus:${form.custom_role_key}` : `sys:${form.role}`}
+                  onChange={e => {
+                    const val = e.target.value
+                    if (val.startsWith('cus:')) {
+                      setForm(f => ({ ...f, custom_role_key: val.slice(4) }))
+                    } else {
+                      setForm(f => ({ ...f, role: val.slice(4), custom_role_key: null }))
+                    }
+                  }}
+                  className={INPUT}
+                >
+                  <optgroup label="Perfis do sistema">
+                    {apiRoles.filter(r => !r.is_custom).map(r => (
+                      <option key={`sys:${r.role}`} value={`sys:${r.role}`}>{r.label}</option>
+                    ))}
+                  </optgroup>
+                  {apiRoles.some(r => r.is_custom) && (
+                    <optgroup label="Perfis personalizados">
+                      {apiRoles.filter(r => r.is_custom).map(r => (
+                        <option key={`cus:${r.role}`} value={`cus:${r.role}`}>{r.label}</option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
                 <p className="text-[11px] text-gray-400 mt-1">As permissões individuais abaixo sobrescrevem o perfil base.</p>
               </div>
