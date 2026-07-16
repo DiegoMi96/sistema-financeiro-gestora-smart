@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../contexts/AuthContext'
 import { useModule, MODULES } from '../contexts/ModuleContext'
-import { FileText, AlertCircle, TrendingUp, Truck, BarChart2, ChevronRight, Building2, Globe2, Shield } from 'lucide-react'
+import { FileText, AlertCircle, TrendingUp, Truck, BarChart2, ChevronRight, Building2, Globe2, Shield, Lock } from 'lucide-react'
 import api from '../services/api'
 
 const ICONS = { FileText, AlertCircle, TrendingUp, Truck, BarChart2, Globe2, Shield }
@@ -65,7 +65,7 @@ const COLOR_MAP = {
 }
 
 export default function WelcomePage() {
-  const { user }                           = useAuth()
+  const { user, can }                      = useAuth()
   const { availableModules, selectModule } = useModule()
   const navigate                           = useNavigate()
 
@@ -119,13 +119,8 @@ export default function WelcomePage() {
   }
 
   const firstName = user?.name?.split(' ')[0] || 'usuário'
-  const count     = availableModules.length
-
-  const gridClass = count <= 3
-    ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 max-w-3xl'
-    : count === 4
-    ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 max-w-5xl'
-    : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 max-w-6xl'
+  const allModules = MODULES
+  const gridClass  = 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 max-w-6xl'
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-start pt-6 p-4"
@@ -156,49 +151,47 @@ export default function WelcomePage() {
 
       {/* Cards */}
       <div className={`grid gap-3 w-full ${gridClass}`}>
-        {availableModules.map((module, idx) => {
+        {allModules.map((module) => {
           const Icon   = ICONS[module.icon] || FileText
           const colors = COLOR_MAP[module.color] || COLOR_MAP.blue
           const coming = module.status === 'coming'
+          const locked = !coming && !!module.permission && !can(module.permission)
+          const disabled = coming || locked
 
           return (
-            <Fragment key={module.id}>
-              {count % 4 !== 0 && idx === count - (count % 4) && (
-                <div className="hidden lg:block" />
-              )}
-              <button
-                onClick={() => !coming && handleSelect(module)}
-                disabled={coming}
-                className={`
-                  group bg-white rounded-xl border-2 p-4 text-left flex flex-col justify-between
-                  transition-all duration-200
-                  ${coming ? 'opacity-60 cursor-not-allowed' : 'hover:shadow-xl hover:-translate-y-0.5'}
-                  ${colors.card}
-                `}
-                style={{ minHeight: 195, pointerEvents: coming ? 'none' : undefined }}
-              >
-                {/* Ícone */}
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${colors.icon}`}>
-                  <Icon size={18} />
-                </div>
+            <button
+              key={module.id}
+              onClick={() => !disabled && handleSelect(module)}
+              disabled={disabled}
+              className={`
+                group bg-white rounded-xl border-2 p-4 text-left flex flex-col justify-between
+                transition-all duration-200
+                ${disabled ? 'opacity-60 cursor-not-allowed' : 'hover:shadow-xl hover:-translate-y-0.5'}
+                ${colors.card}
+              `}
+              style={{ minHeight: 195, pointerEvents: disabled ? 'none' : undefined }}
+            >
+              {/* Ícone */}
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${locked ? 'bg-gray-100 text-gray-400' : colors.icon}`}>
+                {locked ? <Lock size={18} /> : <Icon size={18} />}
+              </div>
 
-                {/* Conteúdo */}
-                <div className="flex-1">
-                  <h2 className="text-sm font-bold text-gray-900 mb-1">
-                    {module.label}
-                  </h2>
-                  <p className="text-xs text-gray-500 leading-relaxed">
-                    {module.description}
-                  </p>
-                </div>
+              {/* Conteúdo */}
+              <div className="flex-1">
+                <h2 className="text-sm font-bold text-gray-900 mb-1">
+                  {module.label}
+                </h2>
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  {module.description}
+                </p>
+              </div>
 
-                {/* CTA */}
-                <div className={`flex items-center gap-1 text-xs font-semibold transition-colors mt-3 ${colors.cta}`}>
-                  {coming ? 'Em breve' : 'Acessar'}
-                  {!coming && <ChevronRight size={13} className="group-hover:translate-x-0.5 transition-transform" />}
-                </div>
-              </button>
-            </Fragment>
+              {/* CTA */}
+              <div className={`flex items-center gap-1 text-xs font-semibold transition-colors mt-3 ${locked ? 'text-gray-400' : colors.cta}`}>
+                {coming ? 'Em breve' : locked ? 'Sem acesso' : 'Acessar'}
+                {!disabled && <ChevronRight size={13} className="group-hover:translate-x-0.5 transition-transform" />}
+              </div>
+            </button>
           )
         })}
       </div>

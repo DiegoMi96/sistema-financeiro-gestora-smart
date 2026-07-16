@@ -99,7 +99,7 @@ export const MODULES = [
     permission:  'can_view_organograma',
     nav: [
       { to: '/organograma',           label: 'Organograma' },
-      { to: '/organograma/gerenciar', label: 'Gerenciar',      permission: 'can_manage_users' },
+      { to: '/organograma/gerenciar', label: 'Gerenciar',      permission: 'can_edit_organograma' },
       { to: '/configuracoes',         label: 'Configurações',  permission: 'can_manage_users' },
     ],
   },

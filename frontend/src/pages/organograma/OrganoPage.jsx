@@ -780,7 +780,7 @@ export default function OrganoPage() {
   const [view,         setView]         = useState('institucional')
   const [editing,      setEditing]      = useState(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const canEdit = can('can_manage_users')
+  const canEdit = can('can_edit_organograma')
 
   useEffect(() => {
     if (!isFullscreen) return

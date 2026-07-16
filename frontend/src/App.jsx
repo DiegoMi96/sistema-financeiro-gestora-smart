@@ -146,7 +146,7 @@ function AppRoutes() {
         <Route path="/controladoria" element={<Navigate to="/controladoria/indicadores" replace />} />
         <Route path="/controladoria/indicadores" element={<PrivateRoute permission="can_view_controladoria"><IndicadoresPage /></PrivateRoute>} />
         <Route path="/organograma"          element={<PrivateRoute><OrganoPage /></PrivateRoute>} />
-        <Route path="/organograma/gerenciar" element={<PrivateRoute permission="can_manage_users"><OrganoPage /></PrivateRoute>} />
+        <Route path="/organograma/gerenciar" element={<PrivateRoute permission="can_edit_organograma"><OrganoPage /></PrivateRoute>} />
 
         {/* Usuários */}
         <Route
