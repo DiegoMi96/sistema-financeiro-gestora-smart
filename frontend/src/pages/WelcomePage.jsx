@@ -124,8 +124,8 @@ export default function WelcomePage() {
   const gridClass = count <= 3
     ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 max-w-3xl'
     : count === 4
-    ? 'grid-cols-1 sm:grid-cols-2 max-w-3xl'
-    : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 max-w-4xl'
+    ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 max-w-5xl'
+    : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 max-w-6xl'
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-start pt-6 p-4"
@@ -163,7 +163,7 @@ export default function WelcomePage() {
 
           return (
             <Fragment key={module.id}>
-              {count % 3 === 2 && idx === count - 2 && (
+              {count % 4 !== 0 && idx === count - (count % 4) && (
                 <div className="hidden lg:block" />
               )}
               <button

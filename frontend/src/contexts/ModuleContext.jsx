@@ -4,30 +4,9 @@ import { useAuth } from './AuthContext'
 const ModuleContext = createContext(null)
 
 // Definição dos módulos — nomes e permissões necessárias
+// Linha 1: Faturamento · Contestação · Comissionamento · Controladoria
+// Linha 2: Logística · SMT · Organograma · Gestão de Acessos
 export const MODULES = [
-  {
-    id:          'logistica',
-    label:       'Logística',
-    description: 'Gestão de fretes, envios e pedidos de chips por operadora',
-    icon:        'Truck',
-    color:       'indigo',
-    status:      'active',
-    permission:  'can_view_logistica',
-    nav: [
-      { to: '/logistica', label: 'Logística' },
-      { to: '/configuracoes', label: 'Configurações', permission: 'can_manage_users' },
-    ],
-  },
-  {
-    id:          'acessos',
-    label:       'Gestão de Acessos',
-    description: 'Criação de usuários, perfis e permissões de todos os cards e abas do sistema',
-    icon:        'Shield',
-    color:       'slate',
-    status:      'active',
-    permission:  'can_manage_users',
-    nav: [],
-  },
   {
     id:          'faturamento',
     label:       'Faturamento',
@@ -43,47 +22,6 @@ export const MODULES = [
       { to: '/ajustes',            label: 'Ajustes',          permission: 'can_edit_billing' },
       { to: '/configuracoes',      label: 'Configurações',    permission: 'can_manage_users' },
     ],
-  },
-  {
-    id:          'controladoria',
-    label:       'Controladoria',
-    description: 'DRE, fluxo de caixa, conciliação e relatórios gerenciais',
-    icon:        'BarChart2',
-    color:       'teal',
-    status:      'active',
-    permission:  'can_view_controladoria',
-    nav: [
-      { to: '/dashboard',               label: 'Painel',        permission: 'can_view_dashboard' },
-      { to: '/controladoria/indicadores',label: 'Indicadores'                                    },
-      { to: '/faturamento',             label: 'Faturamento'                                     },
-      { to: '/clientes',                label: 'Clientes'                                        },
-      { to: '/ajustes',                 label: 'Ajustes',       permission: 'can_edit_billing'   },
-      { to: '/configuracoes',           label: 'Configurações', permission: 'can_manage_users'   },
-    ],
-  },
-  {
-    id:          'organograma',
-    label:       'Organograma',
-    description: 'Estrutura organizacional e equipe comercial da empresa',
-    icon:        'Users',
-    color:       'green',
-    status:      'active',
-    permission:  null,
-    nav: [
-      { to: '/organograma',           label: 'Organograma' },
-      { to: '/organograma/gerenciar', label: 'Gerenciar',      permission: 'can_manage_users' },
-      { to: '/configuracoes',         label: 'Configurações',  permission: 'can_manage_users' },
-    ],
-  },
-  {
-    id:          'smt',
-    label:       'SMT',
-    description: 'Dashboard financeiro SMT — cotações, resultados e operações Brasil e Portugal',
-    icon:        'Globe2',
-    color:       'violet',
-    status:      'active',
-    permission:  'can_view_smt',
-    nav: [],
   },
   {
     id:          'contestacao',
@@ -110,6 +48,70 @@ export const MODULES = [
     nav: [
       { to: '/configuracoes', label: 'Configurações', permission: 'can_manage_users' },
     ],
+  },
+  {
+    id:          'controladoria',
+    label:       'Controladoria',
+    description: 'DRE, fluxo de caixa, conciliação e relatórios gerenciais',
+    icon:        'BarChart2',
+    color:       'teal',
+    status:      'active',
+    permission:  'can_view_controladoria',
+    nav: [
+      { to: '/dashboard',               label: 'Painel',        permission: 'can_view_dashboard' },
+      { to: '/controladoria/indicadores',label: 'Indicadores'                                    },
+      { to: '/faturamento',             label: 'Faturamento'                                     },
+      { to: '/clientes',                label: 'Clientes'                                        },
+      { to: '/ajustes',                 label: 'Ajustes',       permission: 'can_edit_billing'   },
+      { to: '/configuracoes',           label: 'Configurações', permission: 'can_manage_users'   },
+    ],
+  },
+  {
+    id:          'logistica',
+    label:       'Logística',
+    description: 'Gestão de fretes, envios e pedidos de chips por operadora',
+    icon:        'Truck',
+    color:       'indigo',
+    status:      'active',
+    permission:  'can_view_logistica',
+    nav: [
+      { to: '/logistica', label: 'Logística' },
+      { to: '/configuracoes', label: 'Configurações', permission: 'can_manage_users' },
+    ],
+  },
+  {
+    id:          'smt',
+    label:       'SMT',
+    description: 'Dashboard financeiro SMT — cotações, resultados e operações Brasil e Portugal',
+    icon:        'Globe2',
+    color:       'violet',
+    status:      'active',
+    permission:  'can_view_smt',
+    nav: [],
+  },
+  {
+    id:          'organograma',
+    label:       'Organograma',
+    description: 'Estrutura organizacional e equipe comercial da empresa',
+    icon:        'Users',
+    color:       'green',
+    status:      'active',
+    permission:  null,
+    nav: [
+      { to: '/organograma',           label: 'Organograma' },
+      { to: '/organograma/gerenciar', label: 'Gerenciar',      permission: 'can_manage_users' },
+      { to: '/configuracoes',         label: 'Configurações',  permission: 'can_manage_users' },
+    ],
+  },
+  {
+    id:          'acessos',
+    label:       'Gestão de Acessos',
+    description: 'Criação de usuários, perfis e permissões de todos os cards e abas do sistema',
+    icon:        'Shield',
+    color:       'slate',
+    status:      'active',
+    permission:  'can_manage_users',
+    nav: [],
   },
 ]
 
