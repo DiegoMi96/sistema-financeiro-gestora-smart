@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, Fragment } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../contexts/AuthContext'
@@ -156,50 +156,51 @@ export default function WelcomePage() {
 
       {/* Cards */}
       <div className={`grid gap-3 w-full ${gridClass}`}>
-        {availableModules.map(module => {
+        {availableModules.map((module, idx) => {
           const Icon   = ICONS[module.icon] || FileText
           const colors = COLOR_MAP[module.color] || COLOR_MAP.blue
           const coming = module.status === 'coming'
 
           return (
-            <button
-              key={module.id}
-              onClick={() => !coming && handleSelect(module)}
-              disabled={coming}
-              className={`
-                group bg-white rounded-xl border-2 p-4 text-left flex flex-col justify-between
-                transition-all duration-200
-                ${coming ? 'opacity-60 cursor-not-allowed' : 'hover:shadow-xl hover:-translate-y-0.5'}
-                ${colors.card}
-              `}
-              style={{ minHeight: 195, pointerEvents: coming ? 'none' : undefined }}
-            >
-              {/* Ícone */}
-              <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${colors.icon}`}>
-                <Icon size={18} />
-              </div>
+            <Fragment key={module.id}>
+              {count % 3 === 2 && idx === count - 2 && (
+                <div className="hidden lg:block" />
+              )}
+              <button
+                onClick={() => !coming && handleSelect(module)}
+                disabled={coming}
+                className={`
+                  group bg-white rounded-xl border-2 p-4 text-left flex flex-col justify-between
+                  transition-all duration-200
+                  ${coming ? 'opacity-60 cursor-not-allowed' : 'hover:shadow-xl hover:-translate-y-0.5'}
+                  ${colors.card}
+                `}
+                style={{ minHeight: 195, pointerEvents: coming ? 'none' : undefined }}
+              >
+                {/* Ícone */}
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${colors.icon}`}>
+                  <Icon size={18} />
+                </div>
 
-              {/* Conteúdo */}
-              <div className="flex-1">
-                <h2 className="text-sm font-bold text-gray-900 mb-1">
-                  {module.label}
-                </h2>
-                <p className="text-xs text-gray-500 leading-relaxed">
-                  {module.description}
-                </p>
-              </div>
+                {/* Conteúdo */}
+                <div className="flex-1">
+                  <h2 className="text-sm font-bold text-gray-900 mb-1">
+                    {module.label}
+                  </h2>
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    {module.description}
+                  </p>
+                </div>
 
-              {/* CTA */}
-              <div className={`flex items-center gap-1 text-xs font-semibold transition-colors mt-3 ${colors.cta}`}>
-                {coming ? 'Em breve' : 'Acessar'}
-                {!coming && <ChevronRight size={13} className="group-hover:translate-x-0.5 transition-transform" />}
-              </div>
-            </button>
+                {/* CTA */}
+                <div className={`flex items-center gap-1 text-xs font-semibold transition-colors mt-3 ${colors.cta}`}>
+                  {coming ? 'Em breve' : 'Acessar'}
+                  {!coming && <ChevronRight size={13} className="group-hover:translate-x-0.5 transition-transform" />}
+                </div>
+              </button>
+            </Fragment>
           )
         })}
-
-        {/* Espaçador para 5 módulos centralizar o último card em desktop */}
-        {count === 5 && <div className="hidden lg:block" />}
       </div>
 
     </div>
