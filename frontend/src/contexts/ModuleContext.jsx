@@ -6,49 +6,6 @@ const ModuleContext = createContext(null)
 // Definição dos módulos — nomes e permissões necessárias
 export const MODULES = [
   {
-    id:          'faturamento',
-    label:       'Faturamento',
-    description: 'Ciclos mensais, ajustes e controle de recebimentos',
-    icon:        'FileText',
-    color:       'blue',
-    status:      'active',
-    permission:  null,
-    nav: [
-      { to: '/dashboard', label: 'Painel', permission: 'can_view_dashboard' },
-      { to: '/faturamento',        label: 'Faturamento'       },
-      { to: '/clientes',           label: 'Clientes'          },
-      { to: '/ajustes',            label: 'Ajustes',          permission: 'can_edit_billing' },
-      { to: '/configuracoes',             label: 'Configurações',    permission: 'can_manage_users' },
-    ],
-  },
-  {
-    id:          'contestacao',
-    label:       'Contestação',
-    description: 'Comparação e contestação de cobranças das operadoras',
-    icon:        'AlertCircle',
-    color:       'orange',
-    status:      'coming',
-    permission:  'can_view_contestacao',
-    nav: [
-      { to: '/contestacao',        label: 'Contestações' },
-      { to: '/contestacao/allcom', label: 'Pedidos Allcom' },
-      { to: '/configuracoes', label: 'Configurações', permission: 'can_manage_users' },
-    ],
-  },
-  {
-    id:          'comissionamento',
-    label:       'Comissionamento',
-    description: 'Comissões de vendas e metas por vendedor',
-    icon:        'TrendingUp',
-    color:       'green',
-    status:      'coming',
-    permission:  'can_view_comissao',
-    nav: [
-      { to: '/configuracoes', label: 'Configurações', permission: 'can_manage_users' },
-    ],
-  },
-
-  {
     id:          'logistica',
     label:       'Logística',
     description: 'Gestão de fretes, envios e pedidos de chips por operadora',
@@ -70,6 +27,22 @@ export const MODULES = [
     status:      'active',
     permission:  'can_manage_users',
     nav: [],
+  },
+  {
+    id:          'faturamento',
+    label:       'Faturamento',
+    description: 'Ciclos mensais, ajustes e controle de recebimentos',
+    icon:        'FileText',
+    color:       'blue',
+    status:      'active',
+    permission:  null,
+    nav: [
+      { to: '/dashboard', label: 'Painel', permission: 'can_view_dashboard' },
+      { to: '/faturamento',        label: 'Faturamento'       },
+      { to: '/clientes',           label: 'Clientes'          },
+      { to: '/ajustes',            label: 'Ajustes',          permission: 'can_edit_billing' },
+      { to: '/configuracoes',      label: 'Configurações',    permission: 'can_manage_users' },
+    ],
   },
   {
     id:          'controladoria',
@@ -111,6 +84,32 @@ export const MODULES = [
     status:      'active',
     permission:  'can_view_smt',
     nav: [],
+  },
+  {
+    id:          'contestacao',
+    label:       'Contestação',
+    description: 'Comparação e contestação de cobranças das operadoras',
+    icon:        'AlertCircle',
+    color:       'orange',
+    status:      'coming',
+    permission:  'can_view_contestacao',
+    nav: [
+      { to: '/contestacao',        label: 'Contestações' },
+      { to: '/contestacao/allcom', label: 'Pedidos Allcom' },
+      { to: '/configuracoes', label: 'Configurações', permission: 'can_manage_users' },
+    ],
+  },
+  {
+    id:          'comissionamento',
+    label:       'Comissionamento',
+    description: 'Comissões de vendas e metas por vendedor',
+    icon:        'TrendingUp',
+    color:       'green',
+    status:      'coming',
+    permission:  'can_view_comissao',
+    nav: [
+      { to: '/configuracoes', label: 'Configurações', permission: 'can_manage_users' },
+    ],
   },
 ]
 
