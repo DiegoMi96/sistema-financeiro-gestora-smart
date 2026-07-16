@@ -121,7 +121,7 @@ function AppRoutes() {
         <Route path="/logistica"     element={<PrivateRoute permission="can_view_logistica"><ComingSoon module="Logística" desc="Gestão de fretes, envios e pedidos de chips." /></PrivateRoute>} />
         <Route path="/controladoria" element={<Navigate to="/controladoria/indicadores" replace />} />
         <Route path="/controladoria/indicadores" element={<PrivateRoute permission="can_view_controladoria"><IndicadoresPage /></PrivateRoute>} />
-        <Route path="/organograma"          element={<PrivateRoute permission="can_manage_users"><OrganoPage /></PrivateRoute>} />
+        <Route path="/organograma"          element={<PrivateRoute><OrganoPage /></PrivateRoute>} />
         <Route path="/organograma/gerenciar" element={<PrivateRoute permission="can_manage_users"><OrganoPage /></PrivateRoute>} />
 
         {/* Usuários */}
