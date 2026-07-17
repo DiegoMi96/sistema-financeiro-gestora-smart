@@ -337,21 +337,18 @@ async def process_billing(
 
     tmp_dir = tempfile.mkdtemp(prefix=f"billing_{cycle.id}_")
 
-    # Lê base ANTES de salvar — bytes já estão na memória do processo HTTP
-    # (evita re-leitura lenta do disco da VM Docker; calamine processa BytesIO em RAM)
-    base_bytes = await base_file.read()
-
-    async def _save(upload: UploadFile | None, key: str, data: bytes | None = None) -> str | None:
-        if not upload and data is None:
+    async def _save(upload: UploadFile | None, key: str) -> str | None:
+        if not upload:
             return None
         path = os.path.join(tmp_dir, f"{key}.xlsx")
-        content = data if data is not None else await upload.read()
+        content = await upload.read()
         with open(path, "wb") as f:
             f.write(content)
         return path
 
+    # Salva todos os arquivos em disco — base é salva diretamente (sem manter bytes na RAM)
     file_paths = {
-        "base":          await _save(None,               "base",          base_bytes),
+        "base":          await _save(base_file,          "base"),
         "cancelamentos": await _save(cancelamentos_file, "cancelamentos"),
         "fretes":        await _save(fretes_file,        "fretes"),
         "vencimentos":   await _save(vencimentos_file,   "vencimentos"),
@@ -368,7 +365,6 @@ async def process_billing(
         month=month,
         file_paths=file_paths,
         tmp_dir=tmp_dir,
-        base_bytes=base_bytes,
     )
 
     return {
@@ -392,23 +388,29 @@ def _safe_date(val):
 
 
 def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, tmp_dir: str, base_bytes: bytes | None = None):
-    """Executa o motor de faturamento em background e persiste no banco."""
+    """
+    Executa o motor de faturamento em background com processamento em chunks.
+    Pico de RAM: ~830 MB por ~45 s durante leitura da base; depois ~60 MB/chunk.
+    """
     import gc as _gc
+    import os as _os
+    import pandas as pd
+    from collections import defaultdict
     from app.services.billing_engine import BillingEngineService
     from app.database import SessionLocal
-    from datetime import datetime
     from sqlalchemy import text as _text
-    import shutil, traceback
+    import shutil, re as _re
 
-    BATCH_SIZE = 5000  # insere em lotes para não travar o banco
+    BATCH_SIZE  = 5_000
+    CHUNK_SIZE  = 50_000
 
     db = SessionLocal()
+    csv_path = None
     try:
-        # ── Ler configurações do banco ────────────────────────────
-        import re as _re
+        # ── Ler configurações do banco ────────────────────────────────────────
         try:
-            _cnpj_raw  = db.execute(_text("SELECT value FROM system_settings WHERE key='cnpj_excluidos'")).scalar()
-            _mens_raw  = db.execute(_text("SELECT value FROM system_settings WHERE key='mensageria_valor'")).scalar()
+            _cnpj_raw = db.execute(_text("SELECT value FROM system_settings WHERE key='cnpj_excluidos'")).scalar()
+            _mens_raw = db.execute(_text("SELECT value FROM system_settings WHERE key='mensageria_valor'")).scalar()
         except Exception:
             _cnpj_raw = _mens_raw = None
 
@@ -417,7 +419,6 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
             for line in (_cnpj_raw or "").splitlines()
             if _re.sub(r"\D", "", line.strip())
         } or None
-
         try:
             _mensageria_valor = float((_mens_raw or "").replace(",", ".")) if _mens_raw else None
         except (ValueError, TypeError):
@@ -427,63 +428,64 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
         engine = BillingEngineService(year=year, month=month,
                                       cnpj_excluidos=_cnpj_excluidos,
                                       mensageria_valor=_mensageria_valor)
-        print(f"🔄 Carregando arquivos...", flush=True)
-        result = engine.run(file_paths, base_bytes=base_bytes)
-        del base_bytes, engine  # libera bytes + engine imediatamente após o motor terminar
+
+        # ── Setup: carrega refs + converte base Excel → CSV (pico 830 MB, depois 0) ──
+        ref = engine.setup(file_paths, base_bytes=base_bytes)
+        del base_bytes
         _gc.collect()
-        print(f"🔄 Arquivos carregados, salvando no banco...", flush=True)
-        print(f"✅ Motor concluído — {len(result['df_inventario'])} linhas, {len(result['boletos'])} boletos")
+        csv_path = ref["csv_path"]
 
         cycle = db.query(BillingCycle).filter(BillingCycle.id == cycle_id).first()
         if not cycle:
             return
 
-        # ── Monta todas as linhas a salvar ────────────────────────────────────────
-        # Inventário (linhas do SIM card — a maioria)
-        def _inv_line(row):
-            def _s(col):
-                v = row.get(col)
-                return str(v).strip() if v is not None and str(v).strip() not in ("", "nan", "None") else None
-            def _f(col):
-                try: return float(row.get(col) or 0)
-                except: return 0.0
-            def _i(col):
-                try: return int(row.get(col) or 0)
-                except: return 0
-            def _fpct(col):
-                v = row.get(col)
-                if v is None: return None
-                try: return float(str(v).strip().rstrip('%').replace(',', '.'))
-                except: return None
+        # ── Helpers de conversão de linha para ORM ──────────────────────────
 
+        def _s(row, col):
+            v = row.get(col)
+            return str(v).strip() if v is not None and str(v).strip() not in ("", "nan", "None") else None
+
+        def _f(row, col):
+            try: return float(row.get(col) or 0)
+            except: return 0.0
+
+        def _i(row, col):
+            try: return int(row.get(col) or 0)
+            except: return 0
+
+        def _fpct(row, col):
+            v = row.get(col)
+            if v is None: return None
+            try: return float(str(v).strip().rstrip('%').replace(',', '.'))
+            except: return None
+
+        def _inv_line(row):
             return BillingLine(
                 cycle_id=cycle_id,
                 id_smart=row.get("ID_CPF/CNPJ"),
                 iccid=str(row.get("ICCID", "") or ""),
                 msisdn=str(row.get("MSISDN", "") or ""),
-                operadora=_s("Operadora"),
+                operadora=_s(row, "Operadora"),
                 status=row.get("Status"),
-                # Campos extras da base crua
-                nome_pedido=_s("Nome do pedido"),
-                id_pedido=_s("ID do pedido"),
-                nome_contrato=_s("Nome do contrato"),
-                id_contrato=_s("ID do contrato"),
-                bloqueio_automatico=_s("Bloqueio automático"),
-                fornecedor=_s("Fornecedor"),
-                bloqueio_imei=_s("Bloqueio de IMEI"),
-                imsi=_s("IMSI"),
-                status_bloqueio_rede=_s("Status do bloqueio de rede"),
-                apelido=_s("Apelido") or _s("Nome do cliente"),
-                observacao=_s("Observação"),
-                tipo_compartilhamento=_s("Tipo de compartilhamento"),
-                operadora_especifica=_s("Operadora específica"),
-                elegivel_suspensao=_s("Elegível à suspensão"),
-                ultima_apn=_s("Última APN Conectada"),
-                imei=_s("IMEI"),
-                ultima_conexao=_s("Última conexão"),
-                status_rede=_s("Status de rede"),
-                operadora_conectada=_s("Operadora conectada"),
-                # Datas
+                nome_pedido=_s(row, "Nome do pedido"),
+                id_pedido=_s(row, "ID do pedido"),
+                nome_contrato=_s(row, "Nome do contrato"),
+                id_contrato=_s(row, "ID do contrato"),
+                bloqueio_automatico=_s(row, "Bloqueio automático"),
+                fornecedor=_s(row, "Fornecedor"),
+                bloqueio_imei=_s(row, "Bloqueio de IMEI"),
+                imsi=_s(row, "IMSI"),
+                status_bloqueio_rede=_s(row, "Status do bloqueio de rede"),
+                apelido=_s(row, "Apelido") or _s(row, "Nome do cliente"),
+                observacao=_s(row, "Observação"),
+                tipo_compartilhamento=_s(row, "Tipo de compartilhamento"),
+                operadora_especifica=_s(row, "Operadora específica"),
+                elegivel_suspensao=_s(row, "Elegível à suspensão"),
+                ultima_apn=_s(row, "Última APN Conectada"),
+                imei=_s(row, "IMEI"),
+                ultima_conexao=_s(row, "Última conexão"),
+                status_rede=_s(row, "Status de rede"),
+                operadora_conectada=_s(row, "Operadora conectada"),
                 data_ativacao=_safe_date(row.get("Data de ativação")),
                 data_cancelamento=_safe_date(row.get("Data de cancelamento")),
                 data_inicio_bloqueio=_safe_date(row.get("Data de início do bloqueio de rede")),
@@ -491,32 +493,29 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
                 data_inicio_suspensao=_safe_date(row.get("Data de início da suspensão")),
                 data_fim_suspensao=_safe_date(row.get("Data de término da suspensão")),
                 data_fim_pre_ativacao=_safe_date(row.get("Data fim da pré-ativação")),
-                # Valores base
-                mensalidade_base=_f("Mensalidade"),
-                preco_ativacao=_f("Preço de ativação"),
-                preco_mb_excedente=_f("Preço do MB Excedente"),
-                credito_simcard_kb=_f("Crédito adicionado no Simcard"),
-                franquia_mb=_f("Franquia (MB)"),
-                credito_contrato=_f("Crédito adicionado no contrato"),
-                tipo_fidelidade=_s("Tipo de fidelidade"),
-                multa_contrato=_f("Multa"),
-                dias_pre_ativacao=_i("Dias de pré-ativação"),
-                porcentagem_consumo=_fpct("Porcentagem de consumo"),
-                consumo_total_kb=_f("Consumo total (KB)"),
-                # Cálculos
-                reajuste_pct=_f("_reajuste_pct"),
-                mensalidade_reaj=_f("_mensalidade_reaj"),
-                dias=_i("_dias"),
-                mensalidade_cobrada=_f("_mensalidade_cobr"),
-                ativacao_cobrada=_f("_ativacao"),
-                excedente_cobrado=_f("_excedente"),
-                multa_cobrada=_f("_multa"),
-                sms_cobrado=_f("_sms"),
-                total_linha=_f("_total"),
+                mensalidade_base=_f(row, "Mensalidade"),
+                preco_ativacao=_f(row, "Preço de ativação"),
+                preco_mb_excedente=_f(row, "Preço do MB Excedente"),
+                credito_simcard_kb=_f(row, "Crédito adicionado no Simcard"),
+                franquia_mb=_f(row, "Franquia (MB)"),
+                credito_contrato=_f(row, "Crédito adicionado no contrato"),
+                tipo_fidelidade=_s(row, "Tipo de fidelidade"),
+                multa_contrato=_f(row, "Multa"),
+                dias_pre_ativacao=_i(row, "Dias de pré-ativação"),
+                porcentagem_consumo=_fpct(row, "Porcentagem de consumo"),
+                consumo_total_kb=_f(row, "Consumo total (KB)"),
+                reajuste_pct=_f(row, "_reajuste_pct"),
+                mensalidade_reaj=_f(row, "_mensalidade_reaj"),
+                dias=_i(row, "_dias"),
+                mensalidade_cobrada=_f(row, "_mensalidade_cobr"),
+                ativacao_cobrada=_f(row, "_ativacao"),
+                excedente_cobrado=_f(row, "_excedente"),
+                multa_cobrada=_f(row, "_multa"),
+                sms_cobrado=_f(row, "_sms"),
+                total_linha=_f(row, "_total"),
             )
 
         def _extra_line(row):
-            """Cancelamentos, Fretes, Mensageria — campos mínimos."""
             return BillingLine(
                 cycle_id=cycle_id,
                 id_smart=row.get("ID_CPF/CNPJ"),
@@ -535,107 +534,125 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
                 total_linha=float(row.get("_total", 0) or 0),
             )
 
-        # Inserção em lotes — nunca acumula tudo na memória de uma vez
-        df_inv = result["df_inventario"]
-        inv_count = len(df_inv)
-        df_men_out = result.get("df_mensageria")
-        total_lines = inv_count + len(result["df_fretes"]) + (len(df_men_out) if df_men_out is not None else 0)
-        print(f"  📊 Total de linhas a inserir: {total_lines} "
-              f"(inventário={inv_count}, "
-              f"fretes={len(result['df_fretes'])}, "
-              f"mensageria={len(df_men_out) if df_men_out is not None else 0})", flush=True)
+        # ── Loop em chunks — insere no banco e acumula agregações ──────────────
+        # Acumuladores (apenas totais por cliente — minúsculos vs 830 MB do df)
+        acc_mens   = defaultdict(float)   # mensalidade (Ativo+Suspenso+Pré-ativo)
+        acc_ativ   = defaultdict(float)   # ativação
+        acc_exc    = defaultdict(float)   # excedente
+        acc_sms    = defaultdict(float)   # SMS
+        acc_total  = defaultdict(float)   # total linha (para boletos)
+        acc_qtd_at = defaultdict(int)     # qtd Ativo
+        acc_qtd_av = defaultdict(int)     # qtd com ativação
+        acc_qtd_su = defaultdict(int)     # qtd Suspenso
+        nome_map: dict = {}               # id_smart → nome cliente
+        da_map:   dict = {}               # ICCID → data ativação (para cancelamentos)
 
-        total_inserted = 0
+        inv_count     = 0
+        chunk_num     = 0
 
-        # Inventário em lotes usando to_dict('records') — muito mais rápido que iterrows
-        for i in range(0, inv_count, BATCH_SIZE):
-            chunk = df_inv.iloc[i:i + BATCH_SIZE].to_dict("records")
-            batch = [_inv_line(row) for row in chunk]
-            db.bulk_save_objects(batch)
-            db.flush()
-            total_inserted += len(batch)
-            print(f"  📦 inventário {total_inserted}/{inv_count}...", flush=True)
+        print(f"🔄 Processando CSV em chunks de {CHUNK_SIZE} linhas...", flush=True)
+        for raw_chunk in pd.read_csv(csv_path, chunksize=CHUNK_SIZE, dtype=str, low_memory=False):
+            chunk_num += 1
 
-        # Fretes
-        if not result["df_fretes"].empty:
-            for i in range(0, len(result["df_fretes"]), BATCH_SIZE):
-                chunk = result["df_fretes"].iloc[i:i + BATCH_SIZE].to_dict("records")
-                db.bulk_save_objects([_extra_line(r) for r in chunk])
+            # Extrai da_map ANTES de process_chunk (precisa de colunas ainda strings)
+            if "ICCID" in raw_chunk.columns and "Data de ativação" in raw_chunk.columns:
+                _icc = raw_chunk["ICCID"].astype(str).str.strip()
+                _da  = pd.to_datetime(raw_chunk["Data de ativação"], errors="coerce", dayfirst=True)
+                for icc, da in zip(_icc, _da):
+                    if icc and icc not in ("", "nan") and pd.notna(da):
+                        da_map[icc] = da
+
+            processed = engine.process_chunk(raw_chunk, ref)
+            del raw_chunk
+            _gc.collect()
+
+            if processed.empty:
+                continue
+
+            chunk_size_actual = len(processed)
+            inv_count += chunk_size_actual
+
+            # Insere chunk no banco em lotes
+            for i in range(0, chunk_size_actual, BATCH_SIZE):
+                batch_recs = processed.iloc[i:i + BATCH_SIZE].to_dict("records")
+                db.bulk_save_objects([_inv_line(r) for r in batch_recs])
                 db.flush()
-        del result["df_fretes"]
-        _gc.collect()
 
-        # Mensageria
-        if df_men_out is not None and not df_men_out.empty:
-            for i in range(0, len(df_men_out), BATCH_SIZE):
-                chunk = df_men_out.iloc[i:i + BATCH_SIZE].to_dict("records")
-                db.bulk_save_objects([_extra_line(r) for r in chunk])
+            print(f"  📦 chunk {chunk_num}: {chunk_size_actual} linhas — total={inv_count}", flush=True)
+
+            # Atualiza acumuladores
+            for id_smart, grp in processed.groupby("ID_CPF/CNPJ"):
+                if id_smart is None:
+                    continue
+                status_grp = grp["Status"]
+                acc_mens[id_smart]   += float(grp.loc[status_grp.isin(["Ativo","Suspenso","Pré-ativo"]), "_mensalidade_cobr"].sum())
+                acc_ativ[id_smart]   += float(grp["_ativacao"].sum())
+                acc_exc[id_smart]    += float(grp["_excedente"].sum())
+                acc_sms[id_smart]    += float(grp["_sms"].sum())
+                acc_total[id_smart]  += float(grp["_total"].sum())
+                acc_qtd_at[id_smart] += int((status_grp == "Ativo").sum())
+                acc_qtd_av[id_smart] += int((grp["_ativacao"] > 0).sum())
+                acc_qtd_su[id_smart] += int((status_grp == "Suspenso").sum())
+
+            # Mapa de nomes (primeiro valor não-nulo por cliente)
+            for col in ["Nome do cliente", "Apelido"]:
+                if col in processed.columns:
+                    sub = processed[processed[col].notna() & (processed[col].astype(str).str.strip() != "")]
+                    for cli_id, val in sub.groupby("ID_CPF/CNPJ")[col].first().items():
+                        if cli_id not in nome_map:
+                            nome_map[cli_id] = str(val)
+
+            del processed
+            _gc.collect()
+
+        print(f"✅ Loop concluído — {inv_count} linhas de inventário gravadas", flush=True)
+
+        # ── Fretes ───────────────────────────────────────────────────────────
+        df_fretes = ref["df_fretes"]
+        frete_map: dict = {}
+        if not df_fretes.empty:
+            for i in range(0, len(df_fretes), BATCH_SIZE):
+                chunk_recs = df_fretes.iloc[i:i + BATCH_SIZE].to_dict("records")
+                db.bulk_save_objects([_extra_line(r) for r in chunk_recs])
                 db.flush()
-        del df_men_out
-        _gc.collect()
+            frete_map = df_fretes.groupby("ID_CPF/CNPJ")["_total"].sum().to_dict()
+            print(f"  ✅ {len(df_fretes)} linhas de fretes gravadas", flush=True)
 
-        # Cancelamentos — df_cancel_rows é a fonte (base não contém Cancelamento)
-        # Não entra em all_rows/boletos (evita duplicidade de valor), mas entra em billing_lines
-        df_cr_out = result.get("df_cancel_rows")
-        if df_cr_out is not None and not df_cr_out.empty:
-            for i in range(0, len(df_cr_out), BATCH_SIZE):
-                chunk = df_cr_out.iloc[i:i + BATCH_SIZE].to_dict("records")
-                db.bulk_save_objects([_extra_line(r) for r in chunk])
+        # ── Mensageria ────────────────────────────────────────────────────────
+        df_men = ref["df_mensageria"]
+        men_map: dict = {}
+        if not df_men.empty:
+            for i in range(0, len(df_men), BATCH_SIZE):
+                chunk_recs = df_men.iloc[i:i + BATCH_SIZE].to_dict("records")
+                db.bulk_save_objects([_extra_line(r) for r in chunk_recs])
                 db.flush()
-            print(f"  ✅ {len(df_cr_out)} linhas de cancelamento gravadas", flush=True)
+            men_map = df_men.groupby("ID_CPF/CNPJ")["_total"].sum().to_dict()
+            print(f"  ✅ {len(df_men)} linhas de mensageria gravadas", flush=True)
 
-        print(f"  ✅ {total_inserted} linhas de inventário gravadas", flush=True)
+        # ── Cancelamentos do arquivo de cancelamentos (df_cancel_rows) ────────
+        # Agora que da_map está completo, monta as linhas de cancelamento com fallback correto
+        df_cr = engine._montar_cancelamentos(
+            ref["df_cancel"], ref["reajuste_map"], ref["cancel_prop"],
+            ref["sms_map"], da_map
+        )
+        cancel_mens_map:  dict = {}
+        cancel_multa_map: dict = {}
+        sms_cr:           dict = {}
+        qtd_cancel:       dict = {}
+        if not df_cr.empty:
+            for i in range(0, len(df_cr), BATCH_SIZE):
+                chunk_recs = df_cr.iloc[i:i + BATCH_SIZE].to_dict("records")
+                db.bulk_save_objects([_extra_line(r) for r in chunk_recs])
+                db.flush()
+            cancel_mens_map  = df_cr.groupby("ID_CPF/CNPJ")["_mensalidade_cobr"].sum().to_dict()
+            cancel_multa_map = df_cr.groupby("ID_CPF/CNPJ")["_multa"].sum().to_dict()
+            sms_cr           = df_cr.groupby("ID_CPF/CNPJ")["_sms"].sum().to_dict()
+            qtd_cancel       = df_cr.groupby("ID_CPF/CNPJ").size().to_dict()
+            print(f"  ✅ {len(df_cr)} linhas de cancelamento gravadas", flush=True)
 
-        # ── Agrega por cliente para preencher os breakdown dos summaries ────────
-        import pandas as pd
-        def _agg(df, col, statuses=None):
-            if df.empty: return {}
-            if statuses:
-                df = df[df["Status"].isin(statuses)]
-            return df.groupby("ID_CPF/CNPJ")[col].sum().to_dict()
-
-        mens_map   = _agg(result["df_inventario"], "_mensalidade_cobr", ["Ativo","Suspenso","Pré-ativo"])
-        ativ_map   = _agg(result["df_inventario"], "_ativacao")
-        exc_map    = _agg(result["df_inventario"], "_excedente")
-
-        # Cancelamentos: mensalidade e multa separados — fonte é df_cancel_rows
-        df_cr_agg = result.get("df_cancel_rows", pd.DataFrame())
-        cancel_mens_map  = _agg(df_cr_agg, "_mensalidade_cobr") if not df_cr_agg.empty else {}
-        cancel_multa_map = _agg(df_cr_agg, "_multa")            if not df_cr_agg.empty else {}
-        # total_multa = multa dos cancelamentos/desistências (não do inventário)
-        multa_map  = cancel_multa_map
-        # total_cancelamento = apenas mensalidade proporcional do cancelamento
-        cancel_map = {cli: round(float(v), 2) for cli, v in cancel_mens_map.items()}
-        # SMS: soma inventário + cancelamentos (cancelamentos podem ter SMS cobrado)
-        sms_inv    = _agg(result["df_inventario"], "_sms")
-        sms_cr     = _agg(df_cr_agg, "_sms") if not df_cr_agg.empty else {}
-        sms_map_s  = {cli: sms_inv.get(cli, 0) + sms_cr.get(cli, 0)
-                      for cli in set(list(sms_inv.keys()) + list(sms_cr.keys()))}
-        frete_map  = _agg(result["df_fretes"],     "_total") if not result["df_fretes"].empty else {}
-        men_map    = _agg(result.get("df_mensageria", pd.DataFrame()), "_total")
-
-        inv_df = result["df_inventario"]
-        qtd_ativas  = inv_df[inv_df["Status"]=="Ativo"].groupby("ID_CPF/CNPJ").size().to_dict()
-        qtd_ativ    = inv_df[inv_df["_ativacao"]>0].groupby("ID_CPF/CNPJ").size().to_dict()
-        # Cancelamentos contados de df_cancel_rows (fonte dos Cancelamentos)
-        qtd_cancel  = df_cr_agg.groupby("ID_CPF/CNPJ").size().to_dict() if not df_cr_agg.empty else {}
-        qtd_susp    = inv_df[inv_df["Status"]=="Suspenso"].groupby("ID_CPF/CNPJ").size().to_dict()
-
-        # Mapa de nomes: arquivo como base (prioridade "Nome do cliente" > "Apelido")
-        nome_map: dict = {}
-        for col in ["Nome do cliente", "Apelido"]:
-            if col in inv_df.columns:
-                grp = inv_df[inv_df[col].notna() & (inv_df[col] != "")].groupby("ID_CPF/CNPJ")[col].first()
-                for cli_id, val in grp.items():
-                    if cli_id not in nome_map:
-                        nome_map[cli_id] = str(val)
-
-        # Sobrescreve com nome oficial do Asaas — prioridade: external_reference > cpf_cnpj
+        # ── Agrega nomes via Asaas ────────────────────────────────────────────
         if nome_map:
             id_smart_list = list(nome_map.keys())
-            cpf_list = [c.replace("ss_", "").replace("SS_", "") for c in id_smart_list]
-
-            # 1) Por external_reference (correspondência exata id_smart ↔ Asaas)
             ext_rows = db.execute(
                 _text("""
                     SELECT DISTINCT ON (external_reference) external_reference, name
@@ -647,7 +664,6 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
             ).fetchall()
             ext_to_name = {r.external_reference: r.name for r in ext_rows}
 
-            # 2) Por cpf_cnpj — somente para os que não achamos pelo external_reference
             missing = [c for c in nome_map if c not in ext_to_name]
             cpf_to_name: dict = {}
             if missing:
@@ -671,91 +687,99 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
                     if cpf in cpf_to_name:
                         nome_map[cli_id] = cpf_to_name[cpf]
 
-        # Persiste resumos por cliente
+        # ── Mapas finais de summary ───────────────────────────────────────────
+        cancel_map = {cli: round(float(v), 2) for cli, v in cancel_mens_map.items()}
+        multa_map  = cancel_multa_map
+        sms_map_s  = {cli: acc_sms.get(cli, 0) + sms_cr.get(cli, 0)
+                      for cli in set(list(acc_sms.keys()) + list(sms_cr.keys()))}
+        venc_map   = ref["venc_map"]
+
+        # ── Boletos: todos os clientes com total > 0 ──────────────────────────
+        # total por cliente = inventário + fretes + mensageria
+        all_clients = set(acc_total.keys()) | set(frete_map.keys()) | set(men_map.keys())
+        boleto_rows = []
+        for cli in all_clients:
+            tot = (acc_total.get(cli, 0) + frete_map.get(cli, 0) + men_map.get(cli, 0))
+            if round(tot, 2) <= 0:
+                continue
+            boleto_rows.append({
+                "Cliente":    cli,
+                "valor":      round(tot, 2),
+                "vencimento": venc_map.get(cli),
+            })
+        boleto_rows.sort(key=lambda r: r["valor"], reverse=True)
+
+        # ── Summaries principais ──────────────────────────────────────────────
         summaries = []
-        for _, row in result["boletos"].iterrows():
+        boleto_clients = set()
+        for row in boleto_rows:
             cli = row["Cliente"]
+            boleto_clients.add(cli)
             summaries.append(BillingClientSummary(
                 cycle_id=cycle_id,
                 id_smart=cli,
                 nome_cliente=nome_map.get(cli),
-                total_mensalidade=round(float(mens_map.get(cli, 0)), 2),
-                total_ativacao=round(float(ativ_map.get(cli, 0)), 2),
-                total_excedente=round(float(exc_map.get(cli, 0)), 2),
+                total_mensalidade=round(float(acc_mens.get(cli, 0)), 2),
+                total_ativacao=round(float(acc_ativ.get(cli, 0)), 2),
+                total_excedente=round(float(acc_exc.get(cli, 0)), 2),
                 total_multa=round(float(multa_map.get(cli, 0)), 2),
                 total_sms=round(float(sms_map_s.get(cli, 0)), 2),
                 total_frete=round(float(frete_map.get(cli, 0)), 6),
                 total_mensageria=round(float(men_map.get(cli, 0)), 2),
                 total_cancelamento=round(float(cancel_map.get(cli, 0)), 2),
                 total_final=round(
-                    float(mens_map.get(cli, 0)) +
-                    float(ativ_map.get(cli, 0)) +
-                    float(exc_map.get(cli, 0)) +
-                    float(multa_map.get(cli, 0)) +
-                    float(sms_map_s.get(cli, 0)) +
-                    float(frete_map.get(cli, 0)) +
-                    float(men_map.get(cli, 0)) +
-                    float(cancel_map.get(cli, 0)),
+                    float(acc_mens.get(cli, 0)) + float(acc_ativ.get(cli, 0)) +
+                    float(acc_exc.get(cli, 0))  + float(multa_map.get(cli, 0)) +
+                    float(sms_map_s.get(cli, 0)) + float(frete_map.get(cli, 0)) +
+                    float(men_map.get(cli, 0))  + float(cancel_map.get(cli, 0)),
                     2
                 ),
                 due_date=_safe_date(row.get("vencimento")),
-                qtd_linhas_ativas=int(qtd_ativas.get(cli, 0)),
-                qtd_ativacoes=int(qtd_ativ.get(cli, 0)),
+                qtd_linhas_ativas=int(acc_qtd_at.get(cli, 0)),
+                qtd_ativacoes=int(acc_qtd_av.get(cli, 0)),
                 qtd_cancelamentos=int(qtd_cancel.get(cli, 0)),
-                qtd_suspensoes=int(qtd_susp.get(cli, 0)),
+                qtd_suspensoes=int(acc_qtd_su.get(cli, 0)),
             ))
         db.bulk_save_objects(summaries)
-        del result["df_inventario"], inv_df  # libera 700MB — summaries mantido para total_value
-        _gc.collect()
 
-        # Summaries para clientes com APENAS cancelamentos (sem linhas Ativo no inventário)
-        boleto_clients = set(result["boletos"]["Cliente"])
-        all_cancel_clients = (
-            set(cancel_map.keys()) | set(multa_map.keys()) | set(sms_cr.keys())
-        )
+        # ── Summaries cancel-only (sem linhas Ativo no inventário) ────────────
+        all_cancel_clients = set(cancel_map.keys()) | set(multa_map.keys()) | set(sms_cr.keys())
         cancel_only_clients = all_cancel_clients - boleto_clients
-        if cancel_only_clients:
-            co_summaries = []
-            for cli in cancel_only_clients:
-                total_cancel_co  = round(float(cancel_map.get(cli, 0)), 2)
-                total_multa_co   = round(float(multa_map.get(cli, 0)), 2)
-                total_sms_co     = round(float(sms_map_s.get(cli, 0)), 2)
-                total_final_co   = round(total_cancel_co + total_multa_co + total_sms_co, 2)
-                co_summaries.append(BillingClientSummary(
-                    cycle_id=cycle_id,
-                    id_smart=cli,
-                    nome_cliente=nome_map.get(cli),
-                    total_mensalidade=0,
-                    total_ativacao=0,
-                    total_excedente=0,
-                    total_multa=total_multa_co,
-                    total_sms=total_sms_co,
-                    total_frete=0,
-                    total_mensageria=0,
-                    total_cancelamento=total_cancel_co,
-                    total_final=total_final_co,
-                    due_date=None,
-                    qtd_linhas_ativas=0,
-                    qtd_ativacoes=0,
-                    qtd_cancelamentos=int(qtd_cancel.get(cli, 0)),
-                    qtd_suspensoes=0,
-                ))
+        co_summaries = []
+        for cli in cancel_only_clients:
+            total_cancel_co = round(float(cancel_map.get(cli, 0)), 2)
+            total_multa_co  = round(float(multa_map.get(cli, 0)), 2)
+            total_sms_co    = round(float(sms_map_s.get(cli, 0)), 2)
+            total_final_co  = round(total_cancel_co + total_multa_co + total_sms_co, 2)
+            co_summaries.append(BillingClientSummary(
+                cycle_id=cycle_id,
+                id_smart=cli,
+                nome_cliente=nome_map.get(cli),
+                total_mensalidade=0, total_ativacao=0, total_excedente=0,
+                total_multa=total_multa_co, total_sms=total_sms_co,
+                total_frete=0, total_mensageria=0,
+                total_cancelamento=total_cancel_co,
+                total_final=total_final_co,
+                due_date=None, qtd_linhas_ativas=0, qtd_ativacoes=0,
+                qtd_cancelamentos=int(qtd_cancel.get(cli, 0)), qtd_suspensoes=0,
+            ))
+        if co_summaries:
             db.bulk_save_objects(co_summaries)
-            print(f"  ✅ {len(co_summaries)} summaries de clientes cancel-only gravados", flush=True)
+            print(f"  ✅ {len(co_summaries)} summaries cancel-only gravados", flush=True)
 
-        # Atualiza ciclo — total_lines = apenas inventário (SIM cards)
-        cycle.status        = BillingStatus.REVISAO
-        cycle.total_lines   = inv_count
-        # total_value = soma de todos os total_final dos summaries (inclui cancelamento, frete, mensageria)
-        cycle.total_value   = round(
+        # ── Fecha ciclo ───────────────────────────────────────────────────────
+        total_value = round(
             sum(s.total_final for s in summaries) +
-            sum(s.total_final for s in (co_summaries if cancel_only_clients else [])),
+            sum(s.total_final for s in co_summaries),
             2
         )
-        cycle.total_boletos = len(result["boletos"])
+        cycle.status        = BillingStatus.REVISAO
+        cycle.total_lines   = inv_count
+        cycle.total_value   = total_value
+        cycle.total_boletos = len(boleto_rows)
 
         db.commit()
-        print(f"🎉 Ciclo {cycle_id} finalizado — status: REVISÃO")
+        print(f"🎉 Ciclo {cycle_id} finalizado — {inv_count} linhas, {len(boleto_rows)} boletos, R$ {total_value:,.2f}", flush=True)
 
     except BaseException as e:
         import traceback, sys
@@ -764,13 +788,20 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
         sys.stdout.flush()
         sys.stderr.flush()
         db.rollback()
-        cycle = db.query(BillingCycle).filter(BillingCycle.id == cycle_id).first()
-        if cycle:
-            cycle.status = BillingStatus.RASCUNHO
-            db.commit()
+        try:
+            cycle = db.query(BillingCycle).filter(BillingCycle.id == cycle_id).first()
+            if cycle:
+                cycle.status = BillingStatus.RASCUNHO
+                db.commit()
+        except Exception:
+            pass
     finally:
         db.close()
-        # Remove arquivos temporários independente de sucesso ou erro
+        if csv_path and _os.path.exists(csv_path):
+            try:
+                _os.unlink(csv_path)
+            except Exception:
+                pass
         try:
             shutil.rmtree(tmp_dir, ignore_errors=True)
         except Exception:

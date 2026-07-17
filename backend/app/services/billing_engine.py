@@ -69,6 +69,156 @@ class BillingEngineService:
         digits = re.sub(r"\D", "", str(cnpj_str))
         return digits in self.cnpj_excluidos
 
+    # ── API de processamento em streaming (baixa RAM) ─────────────────────────
+
+    def _excel_to_csv(self, source, csv_path: str) -> None:
+        """
+        Lê o Excel base com calamine (rápido) e grava como CSV no disco,
+        liberando o DataFrame logo em seguida.
+        Pico de RAM: ~830 MB por ~45 s; depois cai para 0.
+        """
+        file_input = io.BytesIO(source) if isinstance(source, (bytes, bytearray)) else source
+        print("📂 Lendo base com calamine...", flush=True)
+        try:
+            df = pd.read_excel(file_input, sheet_name="Inventário", engine="calamine")
+        except Exception:
+            if hasattr(file_input, "seek"):
+                file_input.seek(0)
+            df = pd.read_excel(file_input, sheet_name=0, engine="calamine")
+            print("⚠️ Aba 'Inventário' não encontrada, usando primeira aba", flush=True)
+        print(f"📂 {len(df):,} linhas lidas — gravando CSV em disco...", flush=True)
+        df.to_csv(csv_path, index=False)
+        del df
+        gc.collect()
+        print("📂 Base liberada da memória — processamento em chunks a seguir", flush=True)
+
+    def _prepare_base_chunk(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Aplica conversões de tipo a um chunk raw lido do CSV (substitui _load_base para streaming)."""
+        _date_cols = [
+            "Data de ativação", "Data de início do bloqueio de rede", "Data de cancelamento",
+            "Data de início da suspensão", "Data de término da suspensão", "Data fim da pré-ativação",
+        ]
+        _num_cols = ["Mensalidade", "Preço de ativação", "Preço do MB Excedente", "Crédito adicionado no Simcard"]
+        _all_cols = [
+            "Nome do cliente", "CPF/CNPJ", "MSISDN", "ICCID", "Status",
+            "Nome do pedido", "ID do pedido", "Nome do contrato", "ID do contrato",
+            "Reajuste", "Franquia (MB)", "Operadora", "Operadora específica", "Consumo total (KB)",
+        ] + _date_cols + _num_cols
+
+        for c in _all_cols:
+            if c not in df.columns:
+                df[c] = None
+        for c in _date_cols:
+            df[c] = pd.to_datetime(df[c], errors="coerce", dayfirst=True)
+        for c in _num_cols:
+            df[c] = pd.to_numeric(df[c], errors="coerce").fillna(0)
+
+        df["ID_CPF/CNPJ"] = df["CPF/CNPJ"].apply(_sanitize_id)
+        df["Status"]      = df["Status"].apply(_normalizar_status)
+        return df
+
+    def setup(self, file_paths: dict, base_bytes: bytes | None = None) -> dict:
+        """
+        Carrega todos os arquivos de referência (pequenos) e converte a base Excel → CSV em disco.
+        Pico de RAM: ~830 MB durante a leitura da base; cai para ~0 após gravar o CSV.
+        Retorna ref_data com csv_path e todos os mapas de referência.
+        """
+        def _read(key) -> bytes | None:
+            path = file_paths.get(key)
+            if not path:
+                return None
+            with open(path, "rb") as fh:
+                return fh.read()
+
+        print("📂 Carregando arquivos de referência...", flush=True)
+        reajuste_map        = self._load_reajuste(_read("reajuste"))   if file_paths.get("reajuste")   else {}
+        cancel_prop, ativ_prop = self._load_atencao(_read("atencao")) if file_paths.get("atencao")    else (set(), set())
+        df_cancel           = self._load_cancelamentos(_read("cancelamentos"))
+        df_fretes_raw       = self._load_fretes(_read("fretes"))       if file_paths.get("fretes")     else pd.DataFrame()
+        venc_map            = self._load_vencimentos(_read("vencimentos"))
+        sms_map             = self._load_sms(_read("sms"))             if file_paths.get("sms")        else {}
+        df_men_raw          = self._load_mensageria(_read("mensageria")) if file_paths.get("mensageria") else pd.DataFrame()
+
+        df_fretes_fmt = self._montar_fretes(df_fretes_raw)
+        df_men_fmt    = self._montar_mensageria(df_men_raw) if not df_men_raw.empty else pd.DataFrame()
+
+        multa_map = (
+            df_cancel[["ICCID", "VALOR DA MULTA"]]
+            .dropna(subset=["ICCID"])
+            .assign(ICCID=lambda x: x["ICCID"].astype(str).str.strip())
+            .set_index("ICCID")["VALOR DA MULTA"].to_dict()
+        ) if not df_cancel.empty else {}
+
+        # Converte base Excel → CSV em disco (pico 830 MB, depois liberado)
+        base_path = file_paths.get("base")
+        csv_path  = base_path + "_stream.csv"
+        source    = base_bytes if base_bytes is not None else base_path
+        self._excel_to_csv(source, csv_path)
+
+        # Scan rápido para ICCIDs de Cancelamento (deduplicação entre chunks)
+        cancel_iccids_base: set = set()
+        try:
+            for sc in pd.read_csv(csv_path, usecols=["ICCID", "Status"],
+                                  chunksize=50_000, dtype=str, low_memory=False):
+                sc["Status"] = sc["Status"].fillna("").apply(_normalizar_status)
+                icc = sc.loc[sc["Status"] == "Cancelamento", "ICCID"].astype(str).str.strip()
+                cancel_iccids_base.update(v for v in icc if v and v not in ("", "nan"))
+        except Exception as exc:
+            print(f"⚠️ Scan dedup falhou (ignorado): {exc}", flush=True)
+        print(f"📂 ICCIDs Cancelamento para dedup: {len(cancel_iccids_base)}", flush=True)
+
+        return {
+            "csv_path":           csv_path,
+            "reajuste_map":       reajuste_map,
+            "cancel_prop":        cancel_prop,
+            "ativ_prop":          ativ_prop,
+            "df_cancel":          df_cancel,
+            "df_fretes":          df_fretes_fmt,
+            "df_mensageria":      df_men_fmt,
+            "venc_map":           venc_map,
+            "sms_map":            sms_map,
+            "multa_map":          multa_map,
+            "cancel_iccids_base": cancel_iccids_base,
+        }
+
+    def process_chunk(self, df_raw: pd.DataFrame, ref: dict) -> pd.DataFrame:
+        """
+        Aplica conversões de tipo, dedup e cálculos de faturamento a um chunk CSV.
+        Retorna apenas linhas principais (não anuidade).
+        """
+        df = self._prepare_base_chunk(df_raw)
+
+        # Dedup: remove Ativo se o mesmo ICCID aparece como Cancelamento em qualquer chunk
+        cancel_iccids_base = ref.get("cancel_iccids_base", set())
+        if cancel_iccids_base and "ICCID" in df.columns:
+            icc_str  = df["ICCID"].astype(str).str.strip()
+            mask_dup = (df["Status"] == "Ativo") & icc_str.isin(cancel_iccids_base)
+            n_dup    = int(mask_dup.sum())
+            if n_dup:
+                print(f"⚠️ {n_dup} linha(s) Ativo duplicada(s) — removidas", flush=True)
+                df = df[~mask_dup].copy()
+
+        mask_excluido = df["CPF/CNPJ"].astype(str).str.strip().apply(self._is_excluido)
+        def _starts_anuidade(s): return str(s).upper().startswith("ANUIDADE")
+        mask_anuidade = (
+            df["Nome do cliente"].astype(str).apply(_starts_anuidade)
+            | df.get("Nome do pedido",  pd.Series("", index=df.index)).astype(str).apply(_starts_anuidade)
+            | df.get("Nome do contrato", pd.Series("", index=df.index)).astype(str).apply(_starts_anuidade)
+        )
+
+        df_principal = df[~mask_excluido & ~mask_anuidade].copy()
+        del df
+
+        df_p = self._calcular(
+            df_principal,
+            ref["reajuste_map"], ref["cancel_prop"], ref["ativ_prop"],
+            ref["df_cancel"],    ref["sms_map"],
+        )
+        del df_principal
+        return df_p
+
+    # ── API legada (mantida para compatibilidade / uso local) ──────────────────
+
     def run(self, file_paths: dict, base_bytes: bytes | None = None) -> dict:
         """
         file_paths: caminhos em disco para cada arquivo.
