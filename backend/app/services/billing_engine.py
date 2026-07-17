@@ -2,6 +2,7 @@
 BillingEngineService — motor de faturamento.
 Recebe caminhos de arquivo em disco e retorna DataFrames.
 """
+import gc
 import os
 import pandas as pd
 import numpy as np
@@ -123,17 +124,24 @@ class BillingEngineService:
         )
         df_principal  = df_base[~mask_excluido & ~mask_anuidade].copy()
         df_anuidade   = df_base[mask_anuidade & ~mask_excluido].copy()
-        df_suporte    = df_base[mask_excluido].copy()   # preserva para auditoria interna
 
-        # ── Calcular ───────────────────────────────────────────
-        df_p = self._calcular(df_principal, reajuste_map, cancel_prop, ativ_prop, df_cancel, sms_map)
-        df_a = self._calcular(df_anuidade,  reajuste_map, cancel_prop, ativ_prop, df_cancel, sms_map)
-
-        # ── Linhas adicionais ───────────────────────────────────
-        # da_map: ICCID → Timestamp (do inventário principal) para aplicar reajuste correto nos cancel
+        # da_map extraído ANTES de liberar df_base
         _iccids = df_base.get("ICCID", pd.Series(dtype=str)).astype(str).str.strip()
         _das    = pd.to_datetime(df_base.get("Data de ativação", pd.Series(dtype=str)), errors="coerce")
         da_map  = {icc: da for icc, da in zip(_iccids, _das) if icc and icc != "nan"}
+        del df_base, _iccids, _das
+        gc.collect()
+
+        # ── Calcular — libera cada fonte logo após calcular ─────
+        df_p = self._calcular(df_principal, reajuste_map, cancel_prop, ativ_prop, df_cancel, sms_map)
+        del df_principal
+        gc.collect()
+
+        df_a = self._calcular(df_anuidade,  reajuste_map, cancel_prop, ativ_prop, df_cancel, sms_map)
+        del df_anuidade
+        gc.collect()
+
+        # ── Linhas adicionais ───────────────────────────────────
         df_cr = self._montar_cancelamentos(df_cancel, reajuste_map, cancel_prop, sms_map, da_map)
         df_fr = self._montar_fretes(df_fretes)
 
@@ -345,7 +353,7 @@ class BillingEngineService:
     def _calcular(self, df, reajuste_map, cancel_prop, ativ_prop, df_cancel, sms_map):
         if df.empty: return df
 
-        df = df.copy()
+        # Sem .copy() — o chamador já passou uma cópia; modifica in-place para economizar RAM
 
         # Pré-ativo → promover para Ativo se tiver consumo real, data_ativacao ou SMS
         _mask_pre = df["Status"] == "Pré-ativo"

@@ -393,6 +393,7 @@ def _safe_date(val):
 
 def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, tmp_dir: str, base_bytes: bytes | None = None):
     """Executa o motor de faturamento em background e persiste no banco."""
+    import gc as _gc
     from app.services.billing_engine import BillingEngineService
     from app.database import SessionLocal
     from datetime import datetime
@@ -428,7 +429,8 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
                                       mensageria_valor=_mensageria_valor)
         print(f"🔄 Carregando arquivos...", flush=True)
         result = engine.run(file_paths, base_bytes=base_bytes)
-        del base_bytes  # libera 233MB imediatamente após o motor carregar a base
+        del base_bytes, engine  # libera bytes + engine imediatamente após o motor terminar
+        _gc.collect()
         print(f"🔄 Arquivos carregados, salvando no banco...", flush=True)
         print(f"✅ Motor concluído — {len(result['df_inventario'])} linhas, {len(result['boletos'])} boletos")
 
@@ -560,6 +562,8 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
                 chunk = result["df_fretes"].iloc[i:i + BATCH_SIZE].to_dict("records")
                 db.bulk_save_objects([_extra_line(r) for r in chunk])
                 db.flush()
+        del result["df_fretes"]
+        _gc.collect()
 
         # Mensageria
         if df_men_out is not None and not df_men_out.empty:
@@ -567,6 +571,8 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
                 chunk = df_men_out.iloc[i:i + BATCH_SIZE].to_dict("records")
                 db.bulk_save_objects([_extra_line(r) for r in chunk])
                 db.flush()
+        del df_men_out
+        _gc.collect()
 
         # Cancelamentos — df_cancel_rows é a fonte (base não contém Cancelamento)
         # Não entra em all_rows/boletos (evita duplicidade de valor), mas entra em billing_lines
@@ -699,6 +705,8 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
                 qtd_suspensoes=int(qtd_susp.get(cli, 0)),
             ))
         db.bulk_save_objects(summaries)
+        del result["df_inventario"], inv_df  # libera 700MB — summaries mantido para total_value
+        _gc.collect()
 
         # Summaries para clientes com APENAS cancelamentos (sem linhas Ativo no inventário)
         boleto_clients = set(result["boletos"]["Cliente"])
