@@ -55,6 +55,7 @@ body { display: flex; min-height: 100vh; }
 .sidebar {
   width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border);
   display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh;
+  overflow: hidden;
 }
 .brand { padding: 22px 22px 18px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); }
 .brand-logo {
@@ -389,12 +390,14 @@ body { display: flex; min-height: 100vh; }
 .slider-value { font-family: 'Manrope'; font-weight: 700; text-align: right; font-size: 14px; }
 
 /* Pre-active list */
-.activation-list { display: flex; flex-direction: column; gap: 10px; }
-.activation-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--surface-2); border-radius: 10px; border: 1px solid var(--border); overflow: hidden; }
-.activation-item.compact { gap: 5px; padding: 6px 7px; }
-.activation-item.compact .month-pill { min-width: 34px; padding: 3px 5px; font-size: 10.5px; letter-spacing: 0; }
-.activation-item.compact .qty { font-size: 11.5px; }
-.activation-item.compact .delta-chip { font-size: 10px; padding: 2px 5px; }
+.activation-list { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+.activation-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--surface-2); border-radius: 10px; border: 1px solid var(--border); overflow: hidden; width: 100%; box-sizing: border-box; }
+/* Compact: grid de 3 colunas fixas — garante alinhamento perfeito em coluna */
+.activation-item.compact { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 0 8px; padding: 7px 9px; }
+.activation-item.compact .month-pill { width: 34px; min-width: unset; padding: 3px 0; font-size: 10.5px; letter-spacing: 0; box-sizing: border-box; }
+.activation-item.compact .qty { font-size: 12px; font-family: 'Manrope'; font-weight: 700; white-space: nowrap; text-align: center; min-width: 0; }
+.activation-item.compact .desc { font-size: 11px; color: var(--muted); white-space: nowrap; text-align: right; }
+.activation-item.compact .delta-chip { font-size: 10.5px; padding: 2px 6px; white-space: nowrap; }
 .month-pill { background: var(--primary-light); color: var(--primary-dark); padding: 5px 10px; border-radius: 6px; font-weight: 700; font-size: 12px; min-width: 44px; text-align: center; flex-shrink: 0; }
 [data-theme="dark"] .month-pill { color: #6FD8A4; }
 .activation-item .qty { font-family: 'Manrope'; font-weight: 700; font-size: 14px; white-space: nowrap; flex-shrink: 1; min-width: 0; }
@@ -488,7 +491,7 @@ footer.last-update { padding: 18px 28px; text-align: center; color: var(--muted)
 /* Linhas de total (TOTAL ENTRADAS, TOTAL SAÍDAS, etc.) */
 .dfc-tbl tr.dfc-total td { background: #EDF6F0; font-weight: 800; border-top: 2px solid #A9D4B7; border-bottom: 1px solid #A9D4B7; }
 .dfc-tbl tr.dfc-total td.cat { background: #EDF6F0 !important; }
-.dfc-tbl tr.dfc-total td.num { color: var(--text); }
+.dfc-tbl tr.dfc-total td.num.neg { color: #C8523B !important; }
 [data-theme="dark"] .dfc-tbl tr.dfc-total td { background: rgba(29,158,94,.12); border-color: rgba(29,158,94,.28); }
 [data-theme="dark"] .dfc-tbl tr.dfc-total td.cat { background: rgba(29,158,94,.12) !important; }
 /* Indicadores FCO / FCF */
@@ -496,6 +499,56 @@ footer.last-update { padding: 18px 28px; text-align: center; color: var(--muted)
 .dfc-tbl tr.dfc-indicator td.cat { background: #EAF5FB !important; color: #1583B3 !important; }
 [data-theme="dark"] .dfc-tbl tr.dfc-indicator td { background: #0D2A36; }
 [data-theme="dark"] .dfc-tbl tr.dfc-indicator td.cat { background: #0D2A36 !important; color: #5BC0EB !important; }
+
+/* ══ DFC redesign — linhas FCO / FCF / Margem Bruta ════════════════════════ */
+.dfc-tbl tr.dfc-fco td { background:#D5F0E3;font-weight:800;font-size:13px;letter-spacing:.2px;padding:11px 14px;border-top:2px solid #82C9A0;border-bottom:1px solid #82C9A0; }
+.dfc-tbl tr.dfc-fco td.cat { background:#D5F0E3!important;color:#145E30;box-shadow:none!important; }
+.dfc-tbl tr.dfc-fco td.num { color:#1E8449; }
+.dfc-tbl tr.dfc-fco td.num.neg { color:#C8523B; }
+.dfc-tbl tr.dfc-fco td.pct { background:rgba(30,132,73,.08)!important;color:#1E8449; }
+.dfc-tbl tr.dfc-fcf td { background:#D5F0E3;font-weight:800;font-size:13px;letter-spacing:.2px;padding:11px 14px;border-top:2px solid #82C9A0;border-bottom:1px solid #82C9A0; }
+.dfc-tbl tr.dfc-fcf td.cat { background:#D5F0E3!important;color:#145E30;box-shadow:none!important; }
+.dfc-tbl tr.dfc-fcf td.num { color:#1E8449; }
+.dfc-tbl tr.dfc-fcf td.num.neg { color:#C8523B; }
+.dfc-tbl tr.dfc-fcf td.pct { background:rgba(30,132,73,.08)!important;color:#1E8449; }
+.dfc-tbl tr.dfc-margem td { background:#D5F0E3;font-weight:800;border-top:2px solid #82C9A0;border-bottom:1px solid #82C9A0; }
+.dfc-tbl tr.dfc-margem td.cat { background:#D5F0E3!important;color:#145E30; }
+.dfc-tbl tr.dfc-margem td.num { color:#1E8449; }
+.dfc-tbl tr.dfc-margem td.num.neg { color:#C8523B; }
+[data-theme="dark"] .dfc-tbl tr.dfc-fco td { background:rgba(29,158,94,.18); }
+[data-theme="dark"] .dfc-tbl tr.dfc-fco td.cat { background:rgba(29,158,94,.18)!important;color:#A8E6C0; }
+[data-theme="dark"] .dfc-tbl tr.dfc-fcf td { background:rgba(29,158,94,.18); }
+[data-theme="dark"] .dfc-tbl tr.dfc-fcf td.cat { background:rgba(29,158,94,.18)!important;color:#A8E6C0; }
+[data-theme="dark"] .dfc-tbl tr.dfc-margem td { background:rgba(29,158,94,.15); }
+[data-theme="dark"] .dfc-tbl tr.dfc-margem td.cat { background:rgba(29,158,94,.15)!important; }
+
+/* ══ DFC — colunas TOTAL e MÉDIA ══════════════════════════════════════════ */
+.dfc-tbl th.total-col  { background:#145E30!important; border-left:3px solid #0D4A24; letter-spacing:.3px; }
+.dfc-tbl th.media-col  { background:#1E7A46!important; letter-spacing:.3px; }
+.dfc-tbl td.total-col  { background:#E8F6EE!important; border-left:3px solid #A9D4B7; font-weight:800; color:var(--primary-dark); }
+.dfc-tbl td.media-col  { background:#F2FAF5!important; font-weight:700; color:#2D6A4F; }
+.dfc-tbl td.total-col.neg { color:#C8523B!important; }
+.dfc-tbl td.media-col.neg { color:#C8523B!important; }
+.dfc-tbl tr.dfc-fco   td.total-col,
+.dfc-tbl tr.dfc-fco   td.media-col  { background:#C5E8D4!important; }
+.dfc-tbl tr.dfc-fcf   td.total-col,
+.dfc-tbl tr.dfc-fcf   td.media-col  { background:#C5E8D4!important; }
+.dfc-tbl tr.dfc-margem td.total-col,
+.dfc-tbl tr.dfc-margem td.media-col { background:#C5E8D4!important; }
+.dfc-tbl tr.dfc-total td.total-col,
+.dfc-tbl tr.dfc-total td.media-col  { background:#DCF0E5!important; }
+.dfc-tbl tr.resultado td.total-col,
+.dfc-tbl tr.resultado td.media-col  { background:#D5EDE0!important; }
+.dfc-tbl tr.saldo td.total-col,
+.dfc-tbl tr.saldo td.media-col      { background:#145E30!important; color:#fff!important; }
+.dfc-tbl tr.saldo td.total-col.neg,
+.dfc-tbl tr.saldo td.media-col.neg  { background:#7B1A12!important; color:#fff!important; }
+.dfc-tbl tr.dfc-sub td.total-col,
+.dfc-tbl tr.dfc-sub td.media-col    { background:#F8FCFA!important; font-weight:600; color:var(--text-2); border-left:3px solid #D0E8D8; }
+.dfc-tbl tr.dfc-section td.total-col,
+.dfc-tbl tr.dfc-section td.media-col { background:#1E8449!important; }
+[data-theme="dark"] .dfc-tbl td.total-col { background:rgba(29,158,94,.18)!important; }
+[data-theme="dark"] .dfc-tbl td.media-col { background:rgba(29,158,94,.10)!important; }
 
 /* ══ KPI DFC ANALÍTICO ══════════════════════════════════════════════════════ */
 .kpi-dfc-tbl { width:100%; border-collapse:collapse; font-size:12.5px; min-width:1100px; }
@@ -515,6 +568,17 @@ footer.last-update { padding: 18px 28px; text-align: center; color: var(--muted)
 .kpi-dfc-tbl td.kpi-avg.kpi-warn { background:#7A5000; }
 .kpi-dfc-tbl td.kpi-avg.kpi-bad  { background:#7A1A0A; }
 [data-theme="dark"] .kpi-dfc-tbl td:nth-child(2) { color:#5BC0EB; }
+
+/* DFC Help modal — filtro de mês */
+.dfc-help-mon {
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--text-2);
+  border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 11.5px;
+  font-family: inherit; font-weight: 600; transition: all .15s; white-space: nowrap;
+}
+.dfc-help-mon:hover:not(.active):not(:disabled) { border-color: var(--primary); color: var(--primary-dark); }
+.dfc-help-mon.active { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 700; }
+.dfc-help-mon.fc-mon { opacity: .65; font-style: italic; }
+.dfc-help-mon:disabled { opacity: .3; cursor: default; }
 
 /* Metas editable */
 .metas-tbl td[data-meta] { cursor: pointer; transition: background .15s; }
@@ -672,13 +736,21 @@ html.gsm-has-session body.logged-out > .main { display: unset; }
 body.logged-out > .sidebar, body.logged-out > .main { display: none; }
 
 /* Logout area */
-.logout-wrap { padding: 10px 16px 14px; border-top: 1px solid var(--border); display:flex; align-items:center; gap:10px; }
+.logout-wrap { padding: 10px 16px 14px; border-top: 1px solid var(--border); display:flex; align-items:center; position:relative; }
 .logout-wrap .user-avatar { width:30px; height:30px; border-radius:50%; background:var(--primary); color:#fff; display:grid; place-items:center; font-family:'Manrope'; font-weight:700; font-size:12px; flex-shrink:0; }
 .logout-wrap .user-info { flex:1; min-width:0; }
 .logout-wrap .user-info .nm { font-size:12.5px; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .logout-wrap .user-info .em { font-size:11px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .logout-wrap button { background:transparent; border:0; color:var(--muted); cursor:pointer; padding:6px; border-radius:7px; display:grid; place-items:center; }
 .logout-wrap button:hover { background:var(--bg); color:#C8523B; }
+#profileTrigger { display:flex; align-items:center; gap:10px; flex:1; cursor:pointer; border-radius:8px; padding:5px 6px; transition:background .15s; }
+#profileTrigger:hover { background:var(--bg); }
+#profileMenu { display:none; position:fixed; background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:0 -10px 32px rgba(0,0,0,.12), 0 -2px 8px rgba(0,0,0,.06); z-index:300; overflow:hidden; animation:profileMenuIn .15s ease; }
+@keyframes profileMenuIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+#profileMenu .pm-action { display:flex; align-items:center; gap:10px; width:100%; background:transparent; border:0; padding:9px 12px; border-radius:8px; cursor:pointer; font-family:inherit; font-size:13px; color:var(--text); text-align:left; transition:background .12s; }
+#profileMenu .pm-action:hover { background:var(--bg); }
+#profileMenu .pm-action.danger { color:#C8523B; }
+#profileMenu .pm-action.danger:hover { background:rgba(200,82,59,.07); }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
@@ -688,25 +760,11 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
 </head>
 <body class="logged-out">
 <div id="sidebarOverlay" onclick="closeMobileSidebar()"></div>
-<!-- Inline: detecta sessão no localStorage ANTES de renderizar o DOM.
-     Adiciona gsm-has-session ao <html> → CSS esconde o loginScreen instantaneamente.
-     Se o JS principal falhar, o fallback de 4s remove a classe e mostra o login. -->
+<!-- Auth gerenciada pelo sistema principal — login único via sistema.gestorasmart.com.br -->
 <script>
 (function(){
-  try {
-    var raw = localStorage.getItem('gsm_session') || sessionStorage.getItem('gsm_session');
-    if (!raw) return;
-    var sess = JSON.parse(raw);
-    if (!sess || !sess.email) return;
-    // Sessão parece válida — esconde o loginScreen via CSS imediatamente
-    document.documentElement.classList.add('gsm-has-session');
-    // Fallback: se o JS principal não confirmar em 8s, mostra o login
-    window._gsmLoginFallback = setTimeout(function() {
-      document.documentElement.classList.remove('gsm-has-session');
-      var ls = document.getElementById('loginScreen');
-      if (ls) ls.style.display = 'flex';
-    }, 8000);
-  } catch(e) {}
+  // Esconde o loginScreen imediatamente — sem auth própria neste dashboard
+  document.documentElement.classList.add('gsm-has-session');
 })();
 </script>
 
@@ -786,12 +844,14 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg>
       DFC Gerencial
     </div>
-    <div class="nav-section">Sistema</div>
-    <div class="nav-item" data-page="settings">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6"/></svg>
-      Configurações
-    </div>
   </nav>
+  <div id="btnTrocarModulo" style="padding:6px 12px 2px;display:none">
+    <button onclick="trocarModulo()" style="width:100%;display:flex;align-items:center;gap:9px;padding:8px 12px;border-radius:10px;font-size:12.5px;font-weight:500;color:var(--muted);border:1px dashed var(--border);background:transparent;cursor:pointer;transition:background .15s,color .15s;font-family:inherit" onmouseover="this.style.background='var(--bg)';this.style.color='var(--text-2)'" onmouseout="this.style.background='transparent';this.style.color='var(--muted)'">
+      <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Trocar módulo
+    </button>
+  </div>
+  <script>if (window !== window.parent) { document.getElementById('btnTrocarModulo').style.display = 'block'; }</script>
   <div class="sidebar-foot" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
     <div>
       Última atualização<br><strong id="sidebarLastSync" style="color:var(--text)">—</strong>
@@ -801,14 +861,48 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
     </button>
   </div>
   <div class="logout-wrap">
-    <div class="user-avatar" id="userAvatar">DM</div>
-    <div class="user-info">
-      <div class="nm" id="userName">Diego Miranda</div>
-      <div class="em" id="userEmail">diretoria@gestorasmart.com.br</div>
+    <!-- Profile dropdown -->
+    <div id="profileMenu">
+      <!-- Profile header -->
+      <div style="padding:16px 14px;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px">
+        <div id="profileMenuAvatar" style="width:46px;height:46px;border-radius:50%;background:var(--primary);color:#fff;display:grid;place-items:center;font-family:'Manrope';font-weight:800;font-size:17px;flex-shrink:0">DM</div>
+        <div style="min-width:0;flex:1">
+          <div style="font-weight:700;font-size:13.5px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="profileMenuName">Diego Miranda</div>
+          <div style="font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px" id="profileMenuEmail">diretoria@gestorasmart.com.br</div>
+          <span id="profileMenuBadge" style="display:inline-block;margin-top:5px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;background:var(--primary-light);color:var(--primary-dark)">Admin</span>
+        </div>
+      </div>
+      <!-- Actions -->
+      <div style="padding:6px">
+        <button class="pm-action" onclick="openAlterarSenha();toggleProfileMenu()">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path stroke-linecap="round" stroke-linejoin="round" d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          Alterar Senha
+        </button>
+      </div>
+      <div style="padding:4px 6px 2px">
+        <button class="pm-action" onclick="toggleProfileMenu();try{window.top.location.href='/settings/users'}catch(e){window.open('/settings/users','_top')}" style="opacity:.55;font-size:11.5px">
+          <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="8" r="4"/><path stroke-linecap="round" d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          Gerenciar Acessos
+        </button>
+      </div>
+      <div style="border-top:1px solid var(--border);padding:6px">
+        <button class="pm-action danger" onclick="toggleProfileMenu();if(confirm('Deseja sair do sistema?'))doLogout()">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+          Sair da conta
+        </button>
+      </div>
     </div>
-    <button id="btnLogout" title="Sair">
-      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-    </button>
+    <!-- Trigger (clickable row) -->
+    <div id="profileTrigger" onclick="toggleProfileMenu(event)">
+      <div class="user-avatar" id="userAvatar">DM</div>
+      <div class="user-info">
+        <div class="nm" id="userName">Diego Miranda</div>
+        <div class="em" id="userEmail">diretoria@gestorasmart.com.br</div>
+      </div>
+      <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" style="color:var(--muted);flex-shrink:0;margin-left:auto"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l4-4 4 4M8 15l4 4 4-4"/></svg>
+    </div>
+    <!-- Hidden logout button — preserva listener existente -->
+    <button id="btnLogout" style="display:none" title="Sair"></button>
   </div>
 </aside>
 
@@ -1622,7 +1716,24 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
 
       <div class="chart-card" style="margin-bottom:14px">
         <div class="chart-head">
-          <div><div class="chart-title">Fluxo de Caixa Mensal · por Categoria</div></div>
+          <div>
+            <div class="chart-title">DFC GERENCIAL — FLUXO DE CAIXA</div>
+            <div style="font-size:11.5px;color:var(--text-2);margin-top:4px;line-height:1.6">
+              <span style="color:var(--primary-dark,#145E30);font-weight:700">[ENTRADAS]</span>
+              <span style="margin:0 4px;opacity:.5">→</span>
+              <span style="color:#B7410E;font-weight:700">[CUSTO DO SERVIÇO]</span>
+              <span style="margin:0 4px;opacity:.5">→</span>
+              <span style="color:#1583B3;font-weight:700">[DESPESAS OPERACIONAIS]</span>
+              <span style="margin:0 4px;opacity:.5">→</span>
+              <span style="background:var(--primary,#1E8449);color:#fff;border-radius:4px;padding:1px 7px;font-weight:800;font-size:11px;letter-spacing:.3px">FCO</span>
+              <span style="margin:0 4px;opacity:.5">→</span>
+              <span style="color:#7D3C98;font-weight:700">[RETIRADAS + AT. FINANCEIRAS]</span>
+              <span style="margin:0 4px;opacity:.5">→</span>
+              <span style="background:#1B4F72;color:#fff;border-radius:4px;padding:1px 7px;font-weight:800;font-size:11px;letter-spacing:.3px">FCF</span>
+              <span style="margin:0 4px;opacity:.5">→</span>
+              <span style="color:var(--primary-dark,#145E30);font-weight:700">RESULTADO & SALDO</span>
+            </div>
+          </div>
         </div>
         <div style="overflow-x:auto">
         <table class="dfc-tbl" id="dfcTbl">
@@ -1644,8 +1755,8 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
             <div class="chart-sub">Calculado automaticamente a partir de 'DFC Gerencial' · <span style="color:#1583B3;font-weight:600">Azul = benchmark</span> · <span style="color:var(--positive,#1DAE5E);font-weight:600">Verde = OK</span> · <span style="color:#E59400;font-weight:600">Laranja = atenção</span> · <span style="color:var(--negative,#C8523B);font-weight:600">Vermelho = crítico</span></div>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
-            <button onclick="showBenchmarkEditor()" title="Editar benchmarks" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text-2);border-radius:8px;padding:7px 14px;cursor:pointer;font-size:12.5px;font-family:inherit;font-weight:600">Benchmarks ⚙</button>
-            <button onclick="showDFCHelp()" title="Memória de cálculo" style="background:var(--primary);border:none;color:#fff;border-radius:8px;padding:7px 14px;cursor:pointer;font-size:12.5px;font-family:inherit;font-weight:700">Memória ?</button>
+            <button onclick="showBenchmarkEditor()" title="Editar benchmarks" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text-2);border-radius:8px;padding:7px 14px;cursor:pointer;font-size:12.5px;font-family:inherit;font-weight:600">Benchmarks</button>
+            <button onclick="showDFCHelp()" title="Memória de cálculo" style="background:var(--primary);border:none;color:#fff;border-radius:8px;padding:7px 14px;cursor:pointer;font-size:12.5px;font-family:inherit;font-weight:700">Memória</button>
           </div>
         </div>
         <div style="overflow-x:auto;margin-top:4px">
@@ -1659,22 +1770,25 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
     </section>
 
     <!-- Modal: Memória de Cálculo DFC -->
-    <div id="dfcHelpModal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.45);backdrop-filter:blur(3px);overflow-y:auto">
-      <div style="background:var(--surface);border-radius:14px;max-width:800px;width:calc(100% - 32px);margin:40px auto;padding:0 0 24px;box-shadow:var(--shadow-lg)">
-        <div style="background:var(--primary-dark,#145E30);color:#fff;padding:18px 24px;border-radius:14px 14px 0 0;display:flex;align-items:center;justify-content:space-between">
+    <div id="dfcHelpModal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);overflow-y:auto">
+      <div style="background:var(--surface);border-radius:14px;max-width:1300px;width:calc(100% - 32px);margin:32px auto;padding:0 0 28px;box-shadow:var(--shadow-lg);overflow:hidden">
+        <div style="background:var(--primary-dark,#145E30);color:#fff;padding:18px 24px;border-radius:14px 14px 0 0;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:2">
           <div>
-            <div style="font-weight:800;font-size:15px;letter-spacing:.3px">MEMÓRIA DE CÁLCULO — DEFINIÇÃO DOS INDICADORES</div>
-            <div style="font-size:12px;opacity:.8;margin-top:2px">GESTORA SMART · DFC ANALÍTICO</div>
+            <div style="font-weight:800;font-size:15px;letter-spacing:.3px">MEMÓRIA DE CÁLCULO — DIAGNÓSTICO DOS INDICADORES</div>
           </div>
-          <button onclick="document.getElementById('dfcHelpModal').style.display='none'" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:14px;font-weight:700">✕</button>
+          <button onclick="document.getElementById('dfcHelpModal').style.display='none'" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:15px;font-weight:700">✕</button>
         </div>
-        <div style="padding:0 24px;overflow-x:auto">
-          <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:16px">
+        <!-- Filtro de período -->
+        <div id="dfcHelpFilter" style="padding:10px 20px;border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:center;flex-wrap:wrap;background:var(--surface-2)"></div>
+        <div style="padding:0 20px;overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:12.5px;margin-top:12px;min-width:1100px">
             <thead>
               <tr style="background:var(--primary);color:#fff">
-                <th style="text-align:left;padding:10px 14px;font-size:11px;letter-spacing:.5px;text-transform:uppercase;min-width:160px">Indicador</th>
-                <th style="text-align:left;padding:10px 14px;font-size:11px;letter-spacing:.5px;text-transform:uppercase">Fórmula / Definição</th>
-                <th style="text-align:left;padding:10px 14px;font-size:11px;letter-spacing:.5px;text-transform:uppercase;min-width:150px;color:#A8E6C0">Benchmark</th>
+                <th style="text-align:center;padding:10px 14px;font-size:11px;letter-spacing:.5px;text-transform:uppercase;min-width:170px;border-radius:6px 0 0 0">Indicador</th>
+                <th id="dfcHelpDiagHeader" style="text-align:center;padding:10px 14px;font-size:11px;letter-spacing:.5px;text-transform:uppercase;min-width:200px;color:#A8F0C8">Diagnóstico YTD</th>
+                <th style="text-align:center;padding:10px 14px;font-size:11px;letter-spacing:.5px;text-transform:uppercase;min-width:200px">Fórmula de Cálculo</th>
+                <th style="text-align:center;padding:10px 14px;font-size:11px;letter-spacing:.5px;text-transform:uppercase;min-width:120px;color:#A8E6C0">Benchmark</th>
+                <th style="text-align:center;padding:10px 14px;font-size:11px;letter-spacing:.5px;text-transform:uppercase;border-radius:0 6px 0 0">Por que olhar este indicador</th>
               </tr>
             </thead>
             <tbody id="dfcHelpTbody"></tbody>
@@ -1707,8 +1821,8 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <span id="toastSyncMsg">Dados sincronizados com sucesso</span>
     </div>
 
-    <!-- =============== CONFIGURAÇÕES =============== -->
-    <section class="page" data-page="settings">
+    <!-- =============== CONFIGURAÇÕES (removida — acesso via sistema principal) =============== -->
+    <section class="page" data-page="settings" style="display:none!important">
       <div class="page-head">
         <div>
           <h2 class="page-title">Configurações</h2>
@@ -2042,28 +2156,87 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
     </div>
   </div>
 
-  <!-- Modal Link de Acesso — gerado após criar novo usuário -->
-  <div id="modalSetupLink" style="display:none;position:fixed;inset:0;background:rgba(15,27,45,.55);z-index:1001;align-items:center;justify-content:center;padding:20px">
-    <div style="background:var(--surface);border-radius:14px;padding:24px;max-width:520px;width:100%;box-shadow:0 30px 60px rgba(0,0,0,.30);border:1px solid var(--border)">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
-        <div style="width:42px;height:42px;border-radius:50%;background:var(--primary-light);display:grid;place-items:center;flex-shrink:0;color:var(--primary-dark)">
-          <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  <!-- Modal Credenciais — exibido após criar novo usuário -->
+  <div id="modalCredenciais" style="display:none;position:fixed;inset:0;background:rgba(15,27,45,.55);z-index:1001;align-items:center;justify-content:center;padding:20px">
+    <div style="background:var(--surface);border-radius:16px;padding:0;max-width:480px;width:100%;box-shadow:0 30px 60px rgba(0,0,0,.30);border:1px solid var(--border);overflow:hidden">
+      <div style="background:var(--primary-dark,#145E30);color:#fff;padding:20px 24px;display:flex;align-items:center;gap:14px">
+        <div style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.18);display:grid;place-items:center;flex-shrink:0">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         </div>
         <div>
-          <h3 style="margin:0 0 2px;font-family:'Manrope';font-weight:700;font-size:17px;color:var(--text)">Usuário criado com sucesso!</h3>
-          <p style="margin:0;color:var(--text-2);font-size:13px">Compartilhe o link abaixo com o colaborador</p>
+          <div style="font-weight:700;font-size:15px">Usuário criado com sucesso!</div>
+          <div style="font-size:12px;opacity:.8;margin-top:2px">Compartilhe as credenciais abaixo com segurança</div>
         </div>
       </div>
-      <p style="font-size:13px;color:var(--text-2);line-height:1.55;margin:0 0 14px;padding:10px 12px;background:var(--bg);border-radius:8px;border-left:3px solid var(--primary)">
-        Ao abrir o link pelo celular ou computador, a conta é criada automaticamente. Depois basta fazer login normalmente com o e-mail e senha definidos.
-      </p>
-      <div style="display:flex;gap:8px;align-items:center">
-        <input id="setupLinkInput" readonly style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:9px;font-size:12px;font-family:inherit;outline:none;min-width:0">
-        <button id="btnCopySetupLink" style="background:var(--primary);color:white;border:0;padding:10px 16px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px;white-space:nowrap;flex-shrink:0">Copiar link</button>
+      <div style="padding:20px 24px;display:flex;flex-direction:column;gap:14px">
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">URL do sistema</label>
+          <div style="display:flex;gap:8px">
+            <input id="credSiteUrl" readonly style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:8px;font-size:12.5px;font-family:inherit;outline:none;min-width:0">
+            <button onclick="_copyCredField('credSiteUrl',this)" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text-2);padding:9px 13px;border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600;white-space:nowrap;transition:all .15s">Copiar</button>
+          </div>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">E-mail de acesso</label>
+          <div style="display:flex;gap:8px">
+            <input id="credEmail" readonly style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:8px;font-size:12.5px;font-family:inherit;outline:none;min-width:0">
+            <button onclick="_copyCredField('credEmail',this)" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text-2);padding:9px 13px;border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600;white-space:nowrap;transition:all .15s">Copiar</button>
+          </div>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Senha</label>
+          <div style="display:flex;gap:8px">
+            <input id="credSenha" readonly type="password" style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:8px;font-size:12.5px;font-family:inherit;outline:none;min-width:0">
+            <button id="credToggleBtn" onclick="_toggleCredPass()" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text-2);padding:9px 13px;border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600;white-space:nowrap;transition:all .15s">Mostrar</button>
+            <button onclick="_copyCredField('credSenha',this)" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text-2);padding:9px 13px;border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600;white-space:nowrap;transition:all .15s">Copiar</button>
+          </div>
+        </div>
+        <div style="background:#FFFBEB;border-radius:8px;padding:10px 12px;border-left:3px solid #F59E0B;font-size:12px;color:#78350F;line-height:1.5">
+          <strong>Atenção:</strong> a senha não poderá ser visualizada novamente após fechar esta janela.
+        </div>
       </div>
-      <p id="setupLinkCopied" style="display:none;margin:8px 0 0;font-size:12px;color:var(--primary-dark);font-weight:600">✓ Link copiado para a área de transferência!</p>
-      <div style="display:flex;justify-content:flex-end;margin-top:18px">
-        <button id="closeSetupLink" style="background:transparent;color:var(--text);border:1px solid var(--border);padding:9px 18px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit">Fechar</button>
+      <div style="padding:14px 24px 20px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border)">
+        <button onclick="_copyAllCreds()" id="credCopyAll" style="background:var(--primary);color:white;border:0;padding:9px 18px;border-radius:8px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px">Copiar tudo</button>
+        <button id="closeModalCredenciais" style="background:transparent;color:var(--text);border:1px solid var(--border);padding:9px 18px;border-radius:8px;font-weight:600;cursor:pointer;font-family:inherit">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Alterar Senha -->
+  <div id="modalAlterarSenha" style="display:none;position:fixed;inset:0;background:rgba(15,27,45,.55);z-index:1001;align-items:center;justify-content:center;padding:20px">
+    <div style="background:var(--surface);border-radius:16px;padding:0;max-width:420px;width:100%;box-shadow:0 30px 60px rgba(0,0,0,.30);border:1px solid var(--border);overflow:hidden">
+      <div style="background:var(--primary-dark,#145E30);color:#fff;padding:18px 22px;display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.18);display:grid;place-items:center;flex-shrink:0">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2"/><path stroke-linecap="round" stroke-linejoin="round" d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          </div>
+          <div>
+            <div style="font-weight:700;font-size:14.5px">Alterar Senha</div>
+            <div style="font-size:11.5px;opacity:.8;margin-top:1px" id="alterarSenhaSubtitle">Minha conta</div>
+          </div>
+        </div>
+        <button onclick="document.getElementById('modalAlterarSenha').style.display='none'" style="background:rgba(255,255,255,.15);border:0;color:#fff;width:30px;height:30px;border-radius:8px;cursor:pointer;display:grid;place-items:center;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.25)'" onmouseout="this.style.background='rgba(255,255,255,.15)'">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div style="padding:20px 22px;display:flex;flex-direction:column;gap:14px">
+        <div id="alterarSenhaSenhaAtualWrap">
+          <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Senha atual</label>
+          <input id="alterarSenhaAtual" type="password" placeholder="••••••••" style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Nova senha</label>
+          <input id="alterarSenhaNova" type="password" placeholder="Mínimo 8 caracteres" style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Confirmar nova senha</label>
+          <input id="alterarSenhaConfirm" type="password" placeholder="Repita a nova senha" style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
+        </div>
+        <p id="alterarSenhaError" style="display:none;margin:0;font-size:12.5px;color:#C8523B;padding:8px 12px;background:rgba(200,82,59,.07);border-radius:7px;border-left:3px solid #C8523B"></p>
+      </div>
+      <div style="padding:12px 22px 20px;display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--border)">
+        <button onclick="document.getElementById('modalAlterarSenha').style.display='none'" style="background:transparent;color:var(--text);border:1px solid var(--border);padding:9px 18px;border-radius:8px;font-weight:600;cursor:pointer;font-family:inherit">Cancelar</button>
+        <button id="btnConfirmarAlterarSenha" onclick="confirmarAlterarSenha()" style="background:var(--primary);color:white;border:0;padding:9px 20px;border-radius:8px;font-weight:600;cursor:pointer;font-family:inherit">Salvar senha</button>
       </div>
     </div>
   </div>
@@ -2156,6 +2329,12 @@ function loadUsers() {
 }
 function saveUsers(users) {
   try { localStorage.setItem(USERS_KEY, JSON.stringify(users)); } catch(e) {}
+  // Sincroniza com servidor (fire-and-forget)
+  fetch('/api/auth/users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': GSM_API_KEY },
+    body: JSON.stringify(users)
+  }).catch(() => {});
 }
 
 // ── Auto-import via URL ?setup=<base64token> ─────────────────────────────
@@ -2186,11 +2365,24 @@ function saveUsers(users) {
   } catch(e) {}
 })();
 
-/** Retorna usuários do localStorage. Se vazio, aciona wizard de primeira execução. */
+/** Retorna usuários do localStorage. Se vazio, verifica servidor antes de acionar wizard. */
 function ensureAdminUser() {
   const users = loadUsers();
   if (!users || users.length === 0) {
-    setTimeout(_showFirstRunSetup, 80); // DOM já está pronto
+    // Verifica servidor antes de mostrar wizard (dispositivo novo pode ter usuários no servidor)
+    fetch('/api/auth/users', { headers: { 'x-api-key': GSM_API_KEY } })
+      .then(r => r.ok ? r.json() : [])
+      .then(srvUsers => {
+        if (Array.isArray(srvUsers) && srvUsers.length > 0) {
+          // Servidor tem usuários — sync local, não mostrar wizard
+          try { localStorage.setItem(USERS_KEY, JSON.stringify(srvUsers)); } catch(e) {}
+          gsmUsers = srvUsers;
+        } else {
+          // Servidor também vazio — first-run legítimo
+          setTimeout(_showFirstRunSetup, 80);
+        }
+      })
+      .catch(() => setTimeout(_showFirstRunSetup, 80));
     return [];
   }
   return users;
@@ -2226,19 +2418,52 @@ async function doLogin() {
     return;
   }
 
+  // ── Verificação no servidor (funciona em qualquer dispositivo) ─────────
+  try {
+    const resp = await fetch('/api/auth/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': GSM_API_KEY },
+      body: JSON.stringify({ email, pass })
+    });
+
+    if (resp.ok) {
+      const srv = await resp.json();
+      _clearBF(email);
+      // Sincroniza usuário localmente (sem hash — apenas perfil)
+      let users = loadUsers() || [];
+      let user  = users.find(u => u.email === email);
+      if (!user) {
+        user = { nome: srv.nome, email: srv.email, perfil: srv.perfil, pages: srv.pages || [], ultimo: srv.ultimo || '—' };
+        users.push(user);
+      } else {
+        user.nome = srv.nome; user.perfil = srv.perfil; user.pages = srv.pages || []; user.ultimo = srv.ultimo || user.ultimo;
+      }
+      try { localStorage.setItem(USERS_KEY, JSON.stringify(users)); } catch(e) {}
+      gsmUsers = users;
+      if (srv.needsSetup) { _showSetPasswordModal(user, users); return; }
+      _completeLogin(user, users);
+      return;
+    }
+
+    if (resp.status === 401) {
+      // Credenciais inválidas confirmadas pelo servidor
+      const attempts = (bf.a || 0) + 1;
+      const locked   = attempts >= BF_MAX;
+      _setBF(email, { a: attempts, u: locked ? Date.now() + BF_LOCK_MS : (bf.u || 0) });
+      loginError.style.display = 'block';
+      loginError.textContent = locked
+        ? `Conta bloqueada por ${BF_LOCK_MS / 60000} minutos após ${BF_MAX} tentativas inválidas.`
+        : `E-mail ou senha inválidos. ${BF_MAX - attempts} tentativa${BF_MAX - attempts !== 1 ? 's' : ''} restante${BF_MAX - attempts !== 1 ? 's' : ''}.`;
+      return;
+    }
+    // status 404 = servidor sem usuários → fallback local (bootstrap)
+  } catch(networkErr) { /* servidor offline → fallback local */ }
+
+  // ── Fallback local (bootstrap / servidor offline) ──────────────────────
   const users = ensureAdminUser();
   const user  = users.find(u => u.email === email);
-
-  // ── Primeiro acesso via convite: redireciona para definir senha ─────────
-  // Deve vir ANTES da verificação de senha — conta convite não tem hash ainda
-  if (user?.needsSetup) {
-    gsmUsers = users;
-    _showSetPasswordModal(user, users);
-    return;
-  }
-
+  if (user?.needsSetup) { gsmUsers = users; _showSetPasswordModal(user, users); return; }
   const valid = user ? await verifyPass(pass, user.hash, user.salt) : false;
-
   if (!valid) {
     const attempts = (bf.a || 0) + 1;
     const locked   = attempts >= BF_MAX;
@@ -2249,18 +2474,12 @@ async function doLogin() {
       : `E-mail ou senha inválidos. ${BF_MAX - attempts} tentativa${BF_MAX - attempts !== 1 ? 's' : ''} restante${BF_MAX - attempts !== 1 ? 's' : ''}.`;
     return;
   }
-
-  // ── Login válido — limpa contador brute-force ───────────────────────────
   _clearBF(email);
-
-  // ── Migração silenciosa: SHA-256 legado → PBKDF2 + salt ────────────────
   if (!user.salt) {
     const upgraded = await hashPassNew(pass);
-    user.hash = upgraded.hash;
-    user.salt = upgraded.salt;
-    saveUsers(users);
+    user.hash = upgraded.hash; user.salt = upgraded.salt;
   }
-
+  saveUsers(users); // salva no servidor também (migração bootstrap)
   _completeLogin(user, users);
 }
 
@@ -2341,6 +2560,7 @@ const CACHE_KEY      = 'gsm_data_cache';
 const CACHE_VERSION  = 5;                        // incrementar ao mudar estrutura do saidasData/pool
 const PAGE_KEY       = 'gsm_last_page';
 const CACHE_STALE_MS = 4 * 60 * 60 * 1000;      // 4 horas
+const GSM_API_KEY    = 'GestoraSmart2026';       // chave da API (sync + auth)
 
 // ── Auto-login ao carregar / F5 ───────────────────────────────────────────────
 const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -2548,6 +2768,8 @@ function navigateToPage(key) {
   if (key === 'ops') resetPoolToCurrentMonth();
   // Detalhamento por Operadora: sempre mostra o mês atual ao abrir Vendas
   if (key === 'sales') resetOpTableToCurrentMonth();
+  // Configurações: admin vê último acesso atualizado do servidor
+  if (key === 'settings' && isCurrentUserAdm()) _refreshUsersFromServer();
 }
 
 /** Restaura a última aba visitada (salva no localStorage). */
@@ -2566,19 +2788,10 @@ function getCacheAge() {
   } catch(e) { return null; }
 }
 
-/** Dispara sync automático se cache ausente ou de um dia diferente do atual. */
+/** Sempre sincroniza ao carregar — garante dados frescos mesmo sem fechar a aba. */
 function autoSyncIfStale() {
-  try {
-    const c = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
-    if (!c.ts) { setTimeout(() => syncFromSheets(), 1500); return; }
-    const cacheDate = new Date(c.ts).toLocaleDateString('pt-BR');
-    const today     = new Date().toLocaleDateString('pt-BR');
-    if (cacheDate !== today) {
-      setTimeout(() => syncFromSheets(), 1500); // dia diferente — sincroniza automaticamente
-    }
-  } catch(e) {
-    setTimeout(() => syncFromSheets(), 1500);
-  }
+  // Exibe cache imediatamente (se existir) e sempre busca dados novos em background
+  setTimeout(() => syncFromSheets(), 1500);
 }
 // ────────────────────────────────────────────────────────────────────────────
 // pageNames e ALL_PAGES foram movidos para ANTES da IIFE tryAutoLogin (C-01 TDZ)
@@ -3100,30 +3313,48 @@ function buildEbitda() {
   });
 }
 
-// ── Helper: extrai valores M2M de 12 meses (mesma fonte da Curva de Eficiência) ──────────
+// ── Subcategorias da Receita SS que compõem a Curva de Eficiência ────────────
+const SS_EFIC_SUBS = [
+  'Ativo','Ativação','Cancelado','Suspenso','Excedente',
+  'SMS','Multa','Frete','PCT Mensageria'
+];
+
+// ── Subcategorias do CMV/CPS que compõem o custo da Curva de Eficiência ──────
+const CMV_EFIC_SUBS = [
+  'Ativo','Ativação','Cancelado','Suspenso','Excedente',
+  'SMS','Multa','Frete','CS'
+];
+
+// ── Helper: soma subcategorias de um grupo para um mês ───────────────────────
+function _getSubsTotal(src, catPattern, subsArr, i) {
+  const grp = src.find(g => catPattern.test(g.cat));
+  if (!grp) return 0;
+  return subsArr.reduce((s, name) => {
+    const sub = grp.subs.find(sb => sb[0] === name);
+    return s + (sub ? (sub[i + 1] || 0) : 0);
+  }, 0);
+}
+
+// ── Helper: soma das subcategorias SS_EFIC_SUBS para um mês em uma fonte ──
+function _getSSTotalEfic(src, i) {
+  return _getSubsTotal(src, /receita.*ss|total.*receita.*ss/i, SS_EFIC_SUBS, i);
+}
+
+// ── Helper: soma das subcategorias CMV_EFIC_SUBS para um mês em uma fonte ──
+function _getCMVTotalEfic(src, i) {
+  return _getSubsTotal(src, /^CMV\s*\/\s*CPS$/i, CMV_EFIC_SUBS, i);
+}
+
+// ── Helper: extrai valores de 12 meses (fonte da Curva de Eficiência) ────────
 function getM2MArrays() {
-  const _sub = (src, groupName, subName) => {
-    const g = src.find(g => g.cat === groupName)
-           || src.find(g => g.cat.toLowerCase() === groupName.toLowerCase());
-    return g ? (g.subs.find(s => s[0] === subName)
-             || g.subs.find(s => s[0].toLowerCase() === subName.toLowerCase())) : null;
-  };
-  const _findSS = (src) => {
-    const names = ['Receita SS','Total de RECEITA - SS','RECEITA - SS','RECEITA SS'];
-    for (const n of names) { const r = _sub(src, n, 'Conectividade M2M'); if (r) return r; }
-    const g = src.find(g => /receita.*ss/i.test(g.cat));
-    return g ? g.subs.find(s => /conectividade\s*m2m/i.test(s[0])) : null;
-  };
   return Array.from({length:12}, (_, i) => {
-    const src     = isReal[i] ? saidasData : previsaoData;
-    const subSS   = _findSS(src);
-    const subCMV  = _sub(src, 'CMV / CPS', 'Conectividade M2M')
-                 || src.find(g => /cmv/i.test(g.cat))?.subs.find(s => /conectividade\s*m2m/i.test(s[0]))
-                 || null;
-    const smart   = subSS  ? (subSS [i+1] ?? 0) : 0;
-    const allcom  = subCMV ? (subCMV[i+1] ?? 0) : 0;
-    const margem  = (smart > 0 || allcom > 0) ? smart - allcom : null;
-    const pct     = smart > 0 ? (smart - allcom) / smart * 100 : null;
+    const src    = isReal[i] ? saidasData : previsaoData;
+    // Receita SS: soma das subcategorias desmembradas (SS_EFIC_SUBS)
+    const smart  = _getSSTotalEfic(src, i);
+    // CMV / CPS: soma das subcategorias desmembradas (CMV_EFIC_SUBS)
+    const allcom = _getCMVTotalEfic(src, i);
+    const margem = (smart > 0 || allcom > 0) ? smart - allcom : null;
+    const pct    = smart > 0 ? (smart - allcom) / smart * 100 : null;
     return { smart: smart||null, allcom: allcom||null, margem, pct };
   });
 }
@@ -3159,10 +3390,10 @@ function buildInsightPanels() {
     if (lst) lst.innerHTML = slice.map(d => {
       if (d.pct == null) return '';
       if (d.real) {
-        return `<div class="activation-item compact" style="font-size:12px"><div class="month-pill">${d.mes}</div><div class="qty">${d.pct.toFixed(1).replace('.',',')}%</div><div class="desc">${fmtAutoK(d.val)}</div></div>`;
+        return `<div class="activation-item compact"><div class="month-pill">${d.mes}</div><div class="qty">${d.pct.toFixed(1).replace('.',',')}%</div><div class="desc">${fmtAutoK(d.val)}</div></div>`;
       }
       // Previsão — cor muted
-      return `<div class="activation-item compact" style="font-size:12px;opacity:.7"><div class="month-pill" style="background:#7D8AA0">${d.mes}</div><div class="qty" style="color:var(--muted)">${d.pct.toFixed(1).replace('.',',')}%</div><div class="desc" style="color:var(--muted)">${fmtAutoK(d.val)}</div></div>`;
+      return `<div class="activation-item compact" style="opacity:.7"><div class="month-pill" style="background:#7D8AA0">${d.mes}</div><div class="qty" style="color:var(--muted)">${d.pct.toFixed(1).replace('.',',')}%</div><div class="desc" style="color:var(--muted)">${fmtAutoK(d.val)}</div></div>`;
     }).join('');
   });
 
@@ -3190,8 +3421,8 @@ function buildInsightPanels() {
       if (d.v == null || d.v === 0) return '';
       const diff = d.v - simMeta;
       const chip = `<span class="delta-chip ${diff>=0?'up':'down'}">${diff>=0?'+':'−'}${fmtNum(Math.abs(diff))}</span>`;
-      if (d.real) return `<div class="activation-item compact" style="font-size:12px"><div class="month-pill">${d.mes}</div><div class="qty">${fmtNum(d.v)}</div>${chip}</div>`;
-      return `<div class="activation-item compact" style="font-size:12px;opacity:.7"><div class="month-pill" style="background:#7D8AA0">${d.mes}</div><div class="qty" style="color:var(--muted)">${fmtNum(d.v)}</div>${chip}</div>`;
+      if (d.real) return `<div class="activation-item compact"><div class="month-pill">${d.mes}</div><div class="qty">${fmtNum(d.v)}</div>${chip}</div>`;
+      return `<div class="activation-item compact" style="opacity:.7"><div class="month-pill" style="background:#7D8AA0">${d.mes}</div><div class="qty" style="color:var(--muted)">${fmtNum(d.v)}</div>${chip}</div>`;
     }).join('');
   });
 
@@ -3219,8 +3450,8 @@ function buildInsightPanels() {
       if (d.v == null || d.v === 0) return '';
       const diff = d.v - equipMeta;
       const chip = `<span class="delta-chip ${diff>=0?'up':'down'}">${diff>=0?'+':'−'}${fmtNum(Math.abs(diff))}</span>`;
-      if (d.real) return `<div class="activation-item compact" style="font-size:12px"><div class="month-pill">${d.mes}</div><div class="qty">${fmtNum(d.v)}</div>${chip}</div>`;
-      return `<div class="activation-item compact" style="font-size:12px;opacity:.7"><div class="month-pill" style="background:#7D8AA0">${d.mes}</div><div class="qty" style="color:var(--muted)">${fmtNum(d.v)}</div>${chip}</div>`;
+      if (d.real) return `<div class="activation-item compact"><div class="month-pill">${d.mes}</div><div class="qty">${fmtNum(d.v)}</div>${chip}</div>`;
+      return `<div class="activation-item compact" style="opacity:.7"><div class="month-pill" style="background:#7D8AA0">${d.mes}</div><div class="qty" style="color:var(--muted)">${fmtNum(d.v)}</div>${chip}</div>`;
     }).join('');
   });
 }
@@ -3436,22 +3667,16 @@ function buildConect() {
   const ctx = document.getElementById('chartConect'); if (!ctx) return;
   destroyChart('conect');
 
-  // Dados de Conectividade M2M da Saidas_2026
-  // 'Receita SS' = nome pós-sync; 'Total de RECEITA - SS' = template estático pré-sync
-  const grpSS  = saidasData.find(g => g.cat === 'Receita SS' || g.cat === 'Total de RECEITA - SS');
-  const grpCMV = saidasData.find(g => g.cat === 'CMV / CPS');
-  const subSS  = grpSS  ? grpSS.subs.find(s  => s[0] === 'Conectividade M2M') : null;
-  const subCMV = grpCMV ? grpCMV.subs.find(s => s[0] === 'Conectividade M2M') : null;
-
-  // Monta arrays de 12 meses — apenas meses realizados com valor > 0
+  // Receita SS: soma SS_EFIC_SUBS | CMV/CPS: soma CMV_EFIC_SUBS
+  // Apenas meses realizados com valor > 0
   const smartM2M  = Array.from({length:12}, (_, i) => {
     if (!isReal[i]) return null;
-    const v = subSS ? (subSS[i+1] ?? 0) : 0;
+    const v = _getSSTotalEfic(saidasData, i);
     return v > 0 ? v : null;
   });
   const allcomM2M = Array.from({length:12}, (_, i) => {
     if (!isReal[i]) return null;
-    const v = subCMV ? (subCMV[i+1] ?? 0) : 0;
+    const v = _getCMVTotalEfic(saidasData, i);
     return v > 0 ? v : null;
   });
   // Margem = Smart M2M − Allcom M2M
@@ -3830,6 +4055,7 @@ function buildDFCTable() {
     const lbl = `${mesLabels[m]}/${year.slice(2)}${fc?' <span class="prev-badge">PREV</span>':''}`;
     thHtml += `<th class="num${fc?' forecast-hdr':''}">${lbl}</th>`;
   }
+  thHtml += '<th class="num total-col">TOTAL</th><th class="num media-col">MÉDIA</th>';
   thHtml += '</tr>';
   if (thead) thead.innerHTML = thHtml;
 
@@ -3890,98 +4116,142 @@ function buildDFCTable() {
     return trySource(previsaoData);
   };
 
-  // RECEITA SS/SMT: lê o total do cabeçalho (_headerVals) da Saidas_2026.
-  // Fallback: se não encontrar na Saidas_2026, joga total (receitaMes) em SS.
-  const _recSS  = m => {
-    const ss = catHdr('Receita SS', m);
-    if (ss != null) return ss;
+  // Possíveis nomes do grupo Receita SS na planilha (depende do que está na Col A da Saidas_2026)
+  const _ssGrpNames = ['Total de RECEITA - SS','Receita SS','RECEITA - SS','RECEITA SS'];
+  // RECEITA SS: lê diretamente o cabeçalho da planilha, sem ajustes
+  const _recSS = m => {
+    const ss = _ssGrpNames.reduce((found, k) => found ?? catHdr(k, m), null);
+    if (ss != null) return ss || null;
     if (isReal[m] && catHdr('Receita SMT', m) == null) return receitaMes[m];
     return null;
   };
   const _recSMT = m => catHdr('Receita SMT', m);
 
   // ── Funções auxiliares de cálculo ───────────────────────────────────────────
-  // Resultado do Mês = FCO + FCF  (FCF já é negativo pois representa saídas)
-  // Fallback para lucroLiquido[] se não houver dados suficientes em Saidas_2026.
   const _sv = (grp, sub, m) => subCatSum(grp, sub, m) ?? 0;
+
+  // Resultado do Mês: lê a linha "Resultado do mês" diretamente da aba Saidas_YYYY
+  // (populada em _headerVals pelo sync). Fallback: lucroLiquido (P&L principal) → FCO+FCF.
   const _calcResultado = m => {
+    const fromSheet = catHdr('Resultado do Mês', m) ?? catHdr('Resultado do mês', m);
+    if (fromSheet != null) return fromSheet;
+    if (lucroLiquido[m] != null) return lucroLiquido[m];
     const fco = _fco(m) ?? 0;
     const fcf = _fcf(m) ?? 0;
-    if (fco || fcf) return fco + fcf;
-    return lucroLiquido[m] ?? null;
+    return (fco || fcf) ? fco + fcf : null;
   };
 
-  // Despesas com Pessoal operacional (exclui Retirada dos Sócios / Diretoria)
-  const _dpOpSubs = ['Folha de pagamento','Beneficios','Impostos folha de pagamento','Pró-labore','Comissão','Rescisão'];
+  // Despesas com Pessoal operacional: lê total da planilha e exclui Retiradas/Diretoria
   const _despPessoalOp = m => {
-    const v = _dpOpSubs.reduce((s, n) => s + _sv('Despesas com pessoal', n, m), 0);
-    return v || null;
+    const total = catSum('Despesas com pessoal', m) ?? 0;
+    const ret = _sv('Despesas com pessoal','Retirada dos Sócios',m);
+    const dir = _sv('Despesas com pessoal','Diretoria',m);
+    return (total - ret - dir) || null;
   };
 
   // Totalizadores de seção
   const _totEntradas  = m => { const v = (_recSS(m)??0) + (_recSMT(m)??0); return v || null; };
-  const _totSaidasOp  = m => {
-    const cats = ['CMV / CPS','Despesas Administrativa','Despesa Tributaria','Despesa Comercial','RH','Custo SMT'];
+  // Total somente das despesas operacionais (SEM CMV — CMV está na seção Custo do Serviço)
+  const _totDespOpOnly = m => {
+    const cats = ['Despesas Administrativa','Despesa Tributaria','Despesa Comercial','RH','Custo SMT'];
     const v = cats.reduce((s,c) => s + (catSum(c,m)??0), 0) + (_despPessoalOp(m)??0);
+    return v || null;
+  };
+  // Total saídas operacionais completo (CMV + despesas) — usado no cálculo do FCO
+  const _totSaidasOp  = m => {
+    const v = (catSum('CMV / CPS',m)??0) + (_totDespOpOnly(m)??0);
     return v || null;
   };
   const _totRetiradas = m => {
     const v = _sv('Despesas com pessoal','Retirada dos Sócios',m) + _sv('Despesas com pessoal','Diretoria',m);
     return v || null;
   };
-  // Atividades Financeiras: o grupo pode chamar 'Atividades Financeiras' (pós-sync) ou 'D - Atividades Financeiras' (template)
+  // Atividades Financeiras: lê cada sub-item individualmente da planilha
   const _atFinGrps = ['Atividades Financeiras', 'D - Atividades Financeiras'];
   const _catSumFlex  = (groups, m) => groups.reduce((found, g) => found ?? catSum(g, m), null);
   const _svFlex = (groups, sub, m) => groups.reduce((found, g) => found ?? subCatSum(g, sub, m), null);
-  const _dAtivFin = m => _catSumFlex(_atFinGrps, m);
+  const _dAtivFin = m => {
+    // Saídas (outflows)
+    const saidas =
+      (_svFlex(_atFinGrps,'Empréstimos PGTO',m)||0) +
+      (_svFlex(_atFinGrps,'Investimento Externo',m)||0) +
+      (_svFlex(_atFinGrps,'Tarifa Bancaria',m)||0) +
+      (_svFlex(_atFinGrps,'Investimentos',m)||0) +
+      (_svFlex(_atFinGrps,'Estorno',m)||0) +
+      (_svFlex(_atFinGrps,'Emprestimo entre contas',m)||0);
+    // Entradas (inflows — reduzem o total de saídas)
+    const entradas =
+      (_svFlex([..._atFinGrps,'R - Atividades Financeiras'],'Rendimento (CDI)',m)||0) +
+      (_svFlex(_atFinGrps,'Empréstimos',m)||0);
+    const net = saidas - entradas;
+    return net || null;
+  };
   // FCO = Entradas − Saídas Operacionais
   const _fco = m => { const e=_totEntradas(m)??0, s=_totSaidasOp(m)??0; return (e||s) ? e-s : null; };
   // FCF = −(Ativ. Financeiras + Retiradas)  → valor negativo (saídas financeiras)
   const _fcf = m => { const r=_totRetiradas(m)??0, af=_dAtivFin(m)??0; return (r||af) ? -(r+af) : null; };
+  // Margem Bruta = Entradas − CMV/CPS
+  const _margemBruta    = m => { const e=_totEntradas(m)??0, c=catSum('CMV / CPS',m)??0; return (e||c) ? e-c : null; };
+  const _margemBrutaPct = m => { const mb=_margemBruta(m), e=_totEntradas(m); return (e&&mb!=null) ? mb/e*100 : null; };
+  const _margemFcoPct   = m => { const f=_fco(m), e=_totEntradas(m); return (e&&f!=null) ? f/e*100 : null; };
 
   // ── rowDefs ─────────────────────────────────────────────────────────────────
-  // Formato: [label, cls, isExp, fn, lookupKey, rowType?, subsFilter?, excludeSubs?]
-  // rowType 'hdr'   → cabeçalho de seção (sem dados numéricos)
-  // rowType 'total' → linha de totalizador
-  // rowType 'ind'   → indicador FCO/FCF (estilo itálico)
+  // Formato: [label, cls, isExp, fn, lookupKey, rowType?, subsFilter?, excludeSubs?, fmtType?]
+  // rowType 'hdr'    → cabeçalho de seção (sem dados numéricos)
+  // rowType 'total'  → linha de totalizador
+  // rowType 'fco'    → FCO destacado (fundo verde escuro, valores visíveis)
+  // rowType 'fcf'    → FCF destacado (fundo azul escuro)
+  // rowType 'margem' → Margem Bruta de Caixa (resultado intermediário)
+  // rowType 'pct'    → linha de indicador percentual (fmtType='pct')
   const rowDefs = [
     // ── ENTRADAS DE CAIXA ─────────────────────────────────────────────────────
-    ['— ENTRADAS DE CAIXA',    '',          false, null,                      null,  'hdr'],
-    ['Receita SS',             'receita',   false, m=>_recSS(m),  ['Receita SS','Total de RECEITA - SS','RECEITA - SS','RECEITA SS']],
-    ['Receita SMT',            'receita',   false, m=>_recSMT(m), ['Receita SMT','Total de RECEITA - SMT','RECEITA - SMT','RECEITA SMT']],
-    ['Outras Entradas',        '',          false, m=>null],
-    ['TOTAL ENTRADAS',         'dfc-total', false, m=>_totEntradas(m),        null,  'total'],
-    // ── SAÍDAS OPERACIONAIS ───────────────────────────────────────────────────
-    ['— SAÍDAS OPERACIONAIS',  '',          false, null,                      null,  'hdr'],
-    ['CMV / CPS',              '',          true,  m=>catSum('CMV / CPS',m),  'CMV / CPS'],
-    ['Despesas Administrativas','',         true,  m=>catSum('Despesas Administrativa',m), 'Despesas Administrativa'],
-    ['Despesas com Pessoal',   '',          true,  m=>_despPessoalOp(m),      'Despesas com pessoal', undefined, _dpOpSubs],
-    ['Despesa Tributária',     '',          true,  m=>catSum('Despesa Tributaria',m), 'Despesa Tributaria'],
-    ['Despesa Comercial',      '',          true,  m=>catSum('Despesa Comercial',m)],
-    ['RH',                     '',          true,  m=>catSum('RH',m),         'RH',        undefined, undefined, ['RH']],
-    ['Custo SMT',              '',          true,  m=>catSum('Custo SMT',m)],
-    ['TOTAL SAÍDAS OPERACIONAIS','dfc-total',false, m=>_totSaidasOp(m),       null,  'total'],
+    ['— ENTRADAS DE CAIXA',    '',           false, null,                     null,  'hdr'],
+    ['Receita SS',             'receita',    false, m=>_recSS(m),  ['Receita SS','Total de RECEITA - SS','RECEITA - SS','RECEITA SS']],
+    ['Receita SMT',            'receita',    false, m=>_recSMT(m), ['Receita SMT','Total de RECEITA - SMT','RECEITA - SMT','RECEITA SMT']],
+    ['Outras Entradas',        '',           false, m=>null],
+    ['TOTAL ENTRADAS',         'dfc-total',  false, m=>_totEntradas(m),       null,  'total'],
+    // ── CUSTO DO SERVIÇO ──────────────────────────────────────────────────────
+    ['— CUSTO DO SERVIÇO',     '',           false, null,                     null,  'hdr'],
+    ['CMV / CPS',              '',           true,  m=>catSum('CMV / CPS',m), 'CMV / CPS'],
+    ['TOTAL CUSTO DO SERVIÇO', 'dfc-total',  true,  m=>catSum('CMV / CPS',m), null,  'total'],
+    ['MARGEM BRUTA DE CAIXA',  'dfc-margem', false, m=>_margemBruta(m),       null,  'margem'],
+    ['Margem Bruta (%)',       'dfc-indicator',false,m=>_margemBrutaPct(m),   null,  'pct'],
+    // ── DESPESAS OPERACIONAIS ─────────────────────────────────────────────────
+    ['— DESPESAS OPERACIONAIS','',           false, null,                     null,  'hdr'],
+    ['Despesas Administrativas','',          true,  m=>catSum('Despesas Administrativa',m), 'Despesas Administrativa'],
+    ['Despesas com Pessoal',   '',           true,  m=>_despPessoalOp(m),     'Despesas com pessoal', undefined, undefined, ['Retirada dos Sócios','Diretoria']],
+    ['Despesa Tributária',     '',           true,  m=>catSum('Despesa Tributaria',m), 'Despesa Tributaria'],
+    ['Despesa Comercial',      '',           true,  m=>catSum('Despesa Comercial',m)],
+    ['RH',                     '',           true,  m=>catSum('RH',m),        'RH',  undefined, undefined, ['RH']],
+    ['Custo SMT',              '',           true,  m=>catSum('Custo SMT',m)],
+    ['TOTAL DESPESAS OPERACIONAIS','dfc-total',true, m=>_totDespOpOnly(m),    null,  'total'],
+    // ── FCO ───────────────────────────────────────────────────────────────────
+    ['FCO — FLUXO DE CAIXA OPERACIONAL','dfc-fco',false,m=>_fco(m),           null,  'fco'],
+    ['Margem FCO (%)',         'dfc-indicator',false,m=>_margemFcoPct(m),     null,  'pct'],
     // ── RETIRADAS DE SÓCIOS ───────────────────────────────────────────────────
-    ['— RETIRADAS DE SÓCIOS',  '',          false, null,                      null,  'hdr'],
-    ['Retirada dos Sócios',    '',          true,  m=>_sv('Despesas com pessoal','Retirada dos Sócios',m)||null],
-    ['Diretoria',              '',          true,  m=>_sv('Despesas com pessoal','Diretoria',m)||null],
-    ['TOTAL RETIRADAS',        'dfc-total', false, m=>_totRetiradas(m),       null,  'total'],
+    ['— RETIRADAS DE SÓCIOS',  '',           false, null,                     null,  'hdr'],
+    ['Retirada dos Sócios',    '',           true,  m=>_sv('Despesas com pessoal','Retirada dos Sócios',m)||null],
+    ['Diretoria',              '',           true,  m=>_sv('Despesas com pessoal','Diretoria',m)||null],
+    ['TOTAL RETIRADAS',        'dfc-total',  true,  m=>_totRetiradas(m),      null,  'total'],
     // ── ATIVIDADES FINANCEIRAS ────────────────────────────────────────────────
-    ['— ATIVIDADES FINANCEIRAS','',         false, null,                                                          null,  'hdr'],
-    ['Empréstimos PGTO',       '',          true,  m=>_svFlex(_atFinGrps,'Empréstimos PGTO',m)||null],
-    ['Empréstimos',            '',          true,  m=>_svFlex(_atFinGrps,'Empréstimos',m)||null],
-    ['Tarifa Bancária',        '',          true,  m=>_svFlex(_atFinGrps,'Tarifa Bancaria',m)||null],
-    ['Investimentos',          '',          true,  m=>_svFlex(_atFinGrps,'Investimentos',m)||null],
-    ['Investimento Externo',   '',          true,  m=>_svFlex(_atFinGrps,'Investimento Externo',m)||null],
-    ['Estorno',                '',          true,  m=>_svFlex(_atFinGrps,'Estorno',m)||null],
-    ['TOTAL ATIV. FINANCEIRAS','dfc-total', false, m=>_dAtivFin(m),                                               null,  'total'],
-    // ── INDICADORES DE CAIXA ─────────────────────────────────────────────────
-    ['— INDICADORES DE CAIXA', '',          false, null,                      null,  'hdr'],
-    ['FCO — Fluxo de Caixa Operacional','dfc-indicator',false,m=>_fco(m),     null,  'ind'],
-    ['FCF — Fluxo de Caixa Financeiro', 'dfc-indicator',false,m=>_fcf(m),     null,  'ind'],
-    ['Resultado do Mês',       'resultado', false, m=>_calcResultado(m)],
-    ['Dividendos',             '',          true,  m=>catSum('Dividendos',m)],
-    ['Saldo Acumulado',        'saldo',     false, m=>catHdr('Saldo Acumulado',m)],
+    ['— ATIVIDADES FINANCEIRAS','',          false, null,                     null,  'hdr'],
+    ['Rendimento (CDI)',        '',           false, m=>_svFlex([..._atFinGrps,'R - Atividades Financeiras'],'Rendimento (CDI)',m)||null],
+    ['Empréstimos',            '',           false, m=>_svFlex(_atFinGrps,'Empréstimos',m)||null],
+    ['Empréstimos PGTO',       '',           true,  m=>_svFlex(_atFinGrps,'Empréstimos PGTO',m)||null],
+    ['Investimento Externo',   '',           true,  m=>_svFlex(_atFinGrps,'Investimento Externo',m)||null],
+    ['Tarifa Bancária',        '',           true,  m=>_svFlex(_atFinGrps,'Tarifa Bancaria',m)||null],
+    ['Investimentos',          '',           true,  m=>_svFlex(_atFinGrps,'Investimentos',m)||null],
+    ['Estorno',                '',           true,  m=>_svFlex(_atFinGrps,'Estorno',m)||null],
+    ['Empréstimo entre contas','',           true,  m=>_svFlex(_atFinGrps,'Emprestimo entre contas',m)||null],
+    // Exibição negada: _dAtivFin = saídas−captação (positivo=saída líquida).
+    // Para o usuário: positivo = entrada líquida (captação > saídas), negativo = saída líquida.
+    ['TOTAL ATIV. FINANCEIRAS','dfc-total',  false, m=>{ const v=_dAtivFin(m); return v!=null?-v:null; }, null, 'total'],
+    // ── FCF ───────────────────────────────────────────────────────────────────
+    ['FCF — FLUXO DE CAIXA FINANCEIRO','dfc-fcf',false,m=>_fcf(m),            null,  'fcf'],
+    // ── RESULTADO ─────────────────────────────────────────────────────────────
+    ['Resultado do Mês',       'resultado',  false, m=>_calcResultado(m)],
+    ['Dividendos',             '',           true,  m=>catSum('Dividendos',m)],
+    ['SALDO ACUMULADO',        'saldo',      false, m=>catHdr('Saldo Acumulado',m)],
   ];
 
   // Todos os valores vêm diretamente das funções definidas em rowDefs
@@ -3989,7 +4259,7 @@ function buildDFCTable() {
     Array.from({length: 12}, (_, m) => fn ? fn(m) : null)
   );
   const resIdx  = rowDefs.findIndex(r => r[0] === 'Resultado do Mês');
-  const saldoIdx = rowDefs.findIndex(r => r[0] === 'Saldo Acumulado');
+  const saldoIdx = rowDefs.findIndex(r => r[0] === 'SALDO ACUMULADO');
   const divIdx   = rowDefs.findIndex(r => r[0] === 'Dividendos');
 
   const fmtN = v => new Intl.NumberFormat('pt-BR').format(Math.round(Math.abs(v)));
@@ -4059,25 +4329,80 @@ function buildDFCTable() {
       : `<td class="num${fcCls}">${fmtN(v)}</td>`;
   };
 
+  // Formatador para linhas de indicador percentual (rowType === 'pct')
+  const pctIndicatorHtml = (v, fc) => {
+    const fcCls = fc ? ' forecast' : '';
+    if (v == null) return `<td class="pct${fcCls}">—</td>`;
+    const cls = v >= 0 ? 'pos' : 'neg';
+    return `<td class="pct ${cls}${fcCls}">${v.toFixed(1)}%</td>`;
+  };
+
+  // Helpers para colunas TOTAL e MÉDIA (sem flag de forecast)
+  const cellHtmlExt = (v, isExp, extraCls) => {
+    if (v == null) return `<td class="num ${extraCls}">—</td>`;
+    const formatted = fmtN(v);
+    const isNeg = isExp ? (v !== 0) : v < 0;
+    return isNeg
+      ? `<td class="num neg ${extraCls}"><span class="sign">−</span>${formatted}</td>`
+      : `<td class="num ${extraCls}">${formatted}</td>`;
+  };
+  const pctIndExt = (v, extraCls) => {
+    if (v == null) return `<td class="pct ${extraCls}">—</td>`;
+    const cls = v >= 0 ? 'pos' : 'neg';
+    return `<td class="pct ${cls} ${extraCls}">${v.toFixed(1)}%</td>`;
+  };
+
   let html = '';
   rowDefs.forEach(([label, cls, isExp,, lookupKey, rowType, subsFilter, excludeSubs], ri) => {
     // ── Cabeçalho de seção (sem dados numéricos) ──────────────────────────────
     if (rowType === 'hdr') {
-      html += `<tr class="dfc-section"><td class="cat">${label}</td><td colspan="12"></td></tr>`;
+      html += `<tr class="dfc-section"><td class="cat">${label}</td><td colspan="12"></td><td class="total-col"></td><td class="media-col"></td></tr>`;
       return;
     }
 
     const isTotal = rowType === 'total';
     const isInd   = rowType === 'ind';
-    const noSubs  = isTotal || isInd || cls === 'resultado' || cls === 'saldo';
+    const isFco   = rowType === 'fco';
+    const isFcf   = rowType === 'fcf';
+    const isMarg  = rowType === 'margem';
+    const isPct   = rowType === 'pct';
+    const noSubs  = isTotal || isInd || isFco || isFcf || isMarg || isPct
+                    || cls === 'resultado' || cls === 'saldo';
     const subs = noSubs ? null : getGroupSubsResolved(label, lookupKey, subsFilter, excludeSubs);
     const expandBtn = subs
       ? `<button class="dfc-expand-btn" onclick="toggleDFCGroup(this,'dfc-grp-${ri}')" title="Expandir subcategorias">▶</button>`
       : '';
 
+    const useFmt = isPct
+      ? (v, _isExp, fc) => pctIndicatorHtml(v, fc)
+      : cellHtml;
+
     html += `<tr class="${cls}"><td class="cat">${expandBtn}${label}</td>`;
     for (let m = 0; m < 12; m++) {
-      html += cellHtml(vals[ri][m], isExp, !isReal[m]);
+      html += useFmt(vals[ri][m], isExp, !isReal[m]);
+    }
+    // ── Colunas TOTAL e MÉDIA ──────────────────────────────────────────────
+    {
+      const rv = vals[ri];
+      if (isPct) {
+        const nn = rv.filter(v => v != null);
+        const avg = nn.length > 0 ? nn.reduce((s,v)=>s+v,0)/nn.length : null;
+        html += `<td class="pct total-col">—</td>`;
+        html += pctIndExt(avg, 'media-col');
+      } else if (cls === 'saldo') {
+        const lastIdx = rv.reduce((last, v, i) => v != null ? i : last, -1);
+        const last = lastIdx >= 0 ? rv[lastIdx] : null;
+        const nn = rv.filter(v => v != null);
+        const avg = nn.length > 0 ? nn.reduce((s,v)=>s+v,0)/nn.length : null;
+        html += cellHtmlExt(last, false, 'total-col');
+        html += cellHtmlExt(avg,  false, 'media-col');
+      } else {
+        const nn = rv.filter(v => v != null);
+        const total = nn.length > 0 ? nn.reduce((s,v)=>s+v,0) : null;
+        const avg   = total != null ? total / nn.length : null;
+        html += cellHtmlExt(total, isExp, 'total-col');
+        html += cellHtmlExt(avg,   isExp, 'media-col');
+      }
     }
     html += '</tr>';
 
@@ -4090,6 +4415,12 @@ function buildDFCTable() {
         for (let m = 0; m < 12; m++) {
           html += subCellHtml(subVals[m], isExp, !isReal[m]);
         }
+        // TOTAL e MÉDIA para sub-linhas
+        const nnS = subVals.filter(v => v != null && v !== 0);
+        const totS = nnS.length > 0 ? nnS.reduce((s,v)=>s+v,0) : null;
+        const avgS = totS != null ? totS / nnS.length : null;
+        html += cellHtmlExt(totS, isExp, 'total-col');
+        html += cellHtmlExt(avgS, isExp, 'media-col');
         html += '</tr>';
       });
     }
@@ -4109,7 +4440,7 @@ function buildDFCTable() {
     ? saldoAcum.reduce((acc, v) => acc + (v ?? 0), 0)
     : null;
   const resultadoAnual = vals[resIdx].some(v => v != null)
-    ? vals[resIdx].reduce((acc, v) => acc + (v ?? 0), 0)
+    ? vals[resIdx].reduce((acc, v) => acc + Math.max(v ?? 0, 0), 0)
     : null;
   const mesesReais = vals[resIdx].filter((v, i) => v != null && saldoIsReal[i]).length;
   const mesesPrev  = vals[resIdx].filter((v, i) => v != null && !saldoIsReal[i]).length;
@@ -4134,8 +4465,8 @@ function buildDFCTable() {
     ? `${mesesReais} meses reais + ${mesesPrev} previstos`
     : 'Preencha a Previsao_2026';
 
-  // Card 3 — Resultado Líquido Anual: soma Jan até o mês selecionado
-  const resAcum = vals[resIdx].slice(0, selIdx + 1).reduce((s, v) => s + (v ?? 0), 0);
+  // Card 3 — Resultado Líquido Acumulado: soma Jan até o mês selecionado (ignora meses negativos)
+  const resAcum = vals[resIdx].slice(0, selIdx + 1).reduce((s, v) => s + Math.max(v ?? 0, 0), 0);
   const resAcumHasData = vals[resIdx].slice(0, selIdx + 1).some(v => v != null);
   if (kR)  kR.textContent  = resAcumHasData ? fmtBRL(resAcum) : '—';
   if (kRF) kRF.textContent = '';
@@ -4203,6 +4534,7 @@ function buildDFCTable() {
     atFin:      Array.from({length:12}, (_,m) => _dAtivFin(m)),
     cmv:        Array.from({length:12}, (_,m) => catSum('CMV / CPS', m)),
     recSS:      Array.from({length:12}, (_,m) => _recSS(m)),
+    margBruta:  Array.from({length:12}, (_,m) => _margemBruta(m)),
     despPes:    Array.from({length:12}, (_,m) => _despPessoalOp(m)),
     despAdm:    Array.from({length:12}, (_,m) => catSum('Despesas Administrativa', m)),
     div:        Array.from({length:12}, (_,m) => catSum('Dividendos', m)),
@@ -4217,9 +4549,10 @@ function buildDFCTable() {
 
 const DFC_BENCH_KEY = 'gsm_kpi_bench_v1';
 const DFC_BENCH_DEF = {
+  margBruta: 52,    // Margem Bruta de Caixa ≥ X%
   cmvRec:    48,    // CMV/Receita SS ≤ X%
   margemFco: 15,    // Margem FCO ≥ X%
-  custoPes:  15,    // Custo Pessoal/Receita ≤ X%
+  custoPes:  19,    // Custo Pessoal/Receita ≤ X%
   atFinOp:   8,     // Ativ.Fin/Saídas Op ≤ X%
   cobFixas:  1.3,   // Cobertura Desp.Fixas ≥ Xx
   retiradas: 10,    // Retiradas/Receita ≤ X%
@@ -4270,6 +4603,7 @@ function buildKpiDFCTable() {
       case 'pos':     return v >  0 ? 'kpi-ok' : 'kpi-bad';
       case 'pos-w':   return v >  0 ? 'kpi-ok' : (v > -B.margemFco*0.5 ? 'kpi-warn' : 'kpi-bad');
       case 'grow':    return v >= B.crescRec ? 'kpi-ok' : 'kpi-bad';
+      case 'mbr':     return v >= B.margBruta ? 'kpi-ok' : v >= B.margBruta*0.75 ? 'kpi-warn' : 'kpi-bad';
       case 'cmv':     return v <= B.cmvRec*0.85 ? 'kpi-ok' : v <= B.cmvRec ? 'kpi-warn' : 'kpi-bad';
       case 'mfco':    return v >= B.margemFco ? 'kpi-ok' : v >= B.margemFco*0.6 ? 'kpi-warn' : 'kpi-bad';
       case 'cpes':    return v <= B.custoPes*0.85 ? 'kpi-ok' : v <= B.custoPes ? 'kpi-warn' : 'kpi-bad';
@@ -4301,15 +4635,17 @@ function buildKpiDFCTable() {
   };
 
   // Montar dados por mês
-  const fco12    = V.fco;
-  const fcf12    = V.fcf;
-  const res12    = V.resultado;
-  const saldo12  = V.saldo;
-  const cmvRec12 = Array.from({length:12}, (_,m) => pct(V.cmv[m], V.recSS[m]));
-  const mfco12   = Array.from({length:12}, (_,m) => pct(V.fco[m], V.totEnt[m]));
-  const cpes12   = Array.from({length:12}, (_,m) => pct(V.despPes[m], V.totEnt[m]));
-  const afop12   = Array.from({length:12}, (_,m) => pct(V.atFin[m], V.totSaOp[m]));
-  const cob12    = Array.from({length:12}, (_,m) => {
+  const fco12       = V.fco;
+  const fcf12       = V.fcf;
+  const res12       = V.resultado;
+  const saldo12     = V.saldo;
+  const margBruta12 = V.margBruta;
+  const margBrutaPct12 = Array.from({length:12}, (_,m) => pct(V.margBruta[m], V.totEnt[m]));
+  const cmvRec12    = Array.from({length:12}, (_,m) => pct(V.cmv[m], V.recSS[m]));
+  const mfco12      = Array.from({length:12}, (_,m) => pct(V.fco[m], V.totEnt[m]));
+  const cpes12      = Array.from({length:12}, (_,m) => pct(V.despPes[m], V.totEnt[m]));
+  const afop12      = Array.from({length:12}, (_,m) => pct(V.atFin[m], V.totSaOp[m]));
+  const cob12       = Array.from({length:12}, (_,m) => {
     const den = (V.despAdm[m]??0) + (V.despPes[m]??0);
     return (V.fco[m] != null && den > 0) ? V.fco[m] / den : null;
   });
@@ -4320,66 +4656,274 @@ function buildKpiDFCTable() {
 
   let html = '';
   html += secRow('— QUALIDADE DO CAIXA');
-  html += row('FCO — Fluxo de Caixa Operacional (R$)',    'Positivo todo mês',          fco12,    fmtR, 'pos');
-  html += row('FCF — Fluxo de Caixa Financeiro (R$)',     'Controlado, &lt; FCO',       fcf12,    fmtR, 'pos-w');
-  html += row('Resultado do Mês (R$)',                    'Positivo',                   res12,    fmtR, 'pos');
-  html += row('Saldo Acumulado (R$)',                     'Crescente',                  saldo12,  fmtR, 'saldo');
+  html += row('Margem Bruta de Caixa (R$)',               'Crescente',                  margBruta12,    fmtR, 'pos');
+  html += row('Margem Bruta de Caixa (%)',                `≥ ${B.margBruta}%`,          margBrutaPct12, fmtP, 'mbr');
+  html += row('FCO — Fluxo de Caixa Operacional (R$)',    'Positivo todo mês',          fco12,          fmtR, 'pos');
+  html += row('FCF — Fluxo de Caixa Financeiro (R$)',     'Controlado',                 fcf12,          fmtR, 'pos-w');
+  html += row('Resultado do Mês (R$)',                    'Positivo',                   res12,          fmtR, 'pos');
+  html += row('Saldo Acumulado (R$)',                     'Crescente',                  saldo12,        fmtR, 'saldo');
   html += secRow('— EFICIÊNCIA OPERACIONAL');
-  html += row('CMV / Receita SS (%)',                     `≤ ${B.cmvRec}%`,             cmvRec12, fmtP, 'cmv');
-  html += row('Margem FCO (%)',                           `≥ ${B.margemFco}%`,          mfco12,   fmtP, 'mfco');
-  html += row('Custo Pessoal / Receita Total (%)',        `≤ ${B.custoPes}%`,           cpes12,   fmtP, 'cpes');
-  html += row('Ativ. Financeiras / Saídas Op. (%)',       `≤ ${B.atFinOp}%`,            afop12,   fmtP, 'afop');
+  html += row('CMV / Receita SS (%)',                     `≤ ${B.cmvRec}%`,             cmvRec12,  fmtP, 'cmv');
+  html += row('Margem FCO (%)',                           `≥ ${B.margemFco}%`,          mfco12,    fmtP, 'mfco');
+  html += row('Custo Pessoal / Receita Total (%)',        `≤ ${B.custoPes}%`,           cpes12,    fmtP, 'cpes');
+  html += row('Ativ. Financeiras / Saídas Op. (%)',       `≤ ${B.atFinOp}%`,            afop12,    fmtP, 'afop');
   html += secRow('— ESTRUTURA E SUSTENTABILIDADE');
-  html += row('Cobertura Desp. Fixas (x)',                `≥ ${B.cobFixas}x`,           cob12,    fmtX, 'cob');
-  html += row('Retiradas de Sócios / Receita (%)',        `≤ ${B.retiradas}%`,          ret12,    fmtP, 'ret');
-  html += row('Dividendos / Resultado do Mês (%)',        `≤ ${B.dividendos}%`,         divRes12, fmtP, 'div');
+  html += row('Cobertura Desp. Fixas (x)',                `≥ ${B.cobFixas}x`,           cob12,     fmtX, 'cob');
+  html += row('Retiradas de Sócios / Receita (%)',        `≤ ${B.retiradas}%`,          ret12,     fmtP, 'ret');
+  html += row('Dividendos / Resultado do Mês (%)',        `≤ ${B.dividendos}%`,         divRes12,  fmtP, 'div');
   html += secRow('— CRESCIMENTO');
-  html += row('Crescimento Receita SS MoM (%)',           'Positivo',                   crescRec, fmtP, 'grow');
-  html += row('Crescimento CMV MoM (%)',                  '≤ Receita MoM',              crescCmv, fmtP, 'grow');
+  html += row('Crescimento Receita SS MoM (%)',           'Positivo',                   crescRec,  fmtP, 'grow');
+  html += row('Crescimento CMV MoM (%)',                  '≤ Receita MoM',              crescCmv,  fmtP, 'grow');
 
   tbody.innerHTML = html;
 }
 
 // Modal: Memória de Cálculo
 function showDFCHelp() {
-  // type: 'normal' | 'alert' | 'monitor'
-  const HELP_ROWS = [
-    ['normal',  'FCO',                        'Total Entradas − Total Saídas Operacionais. Mede se a operação gera caixa por si só, sem depender de capital externo ou financiamento.',                                                                                                  'Positivo todo mês'],
-    ['normal',  'FCF',                        'Total Atividades Financeiras + Total Retiradas de Sócios. Impacto das decisões de financiamento e distribuição no caixa.',                                                                                                                'Controlado, &lt; FCO'],
-    ['normal',  'Resultado do Mês',           'FCO + FCF. Variação líquida de caixa no período, antes de dividendos.',                                                                                                                                                                   'Positivo'],
-    ['normal',  'CMV / Receita SS',           'CMV ÷ Receita SS. Mede quanto da receita principal é consumida pelo custo direto de conectividade M2M.',                                                                                                                                  '≤ 48%'],
-    ['normal',  'Margem FCO',                 'FCO ÷ Total Entradas. Percentual da receita que efetivamente vira caixa operacional.',                                                                                                                                                    '≥ 15%'],
-    ['normal',  'Custo Pessoal / Receita',    'Despesas com Pessoal ÷ Total Entradas. Eficiência da estrutura de RH sobre a receita gerada.',                                                                                                                                           '≤ 15%'],
-    ['normal',  'Ativ. Financeiras / Saídas Op.', 'Total Ativ. Financeiras ÷ Total Saídas Operacionais. Peso do custo financeiro na estrutura de custos. Acima de 8% indica alavancagem excessiva.',                                                                                    '≤ 8%'],
-    ['normal',  'Cobertura Desp. Fixas',      'FCO ÷ (Desp. Administrativas + Desp. Pessoal). Quantas vezes o caixa operacional cobre as despesas fixas.',                                                                                                                              '≥ 1,3x'],
-    ['normal',  'Retiradas / Receita',        '(Retirada Sócios + Diretoria) ÷ Total Entradas. Peso das retiradas de sócios sobre a receita total gerada.',                                                                                                                             '≤ 10%'],
-    ['normal',  'Dividendos / Resultado',     'Dividendos ÷ Resultado do Mês. Percentual do resultado líquido distribuído. Acima de 30% pode comprometer a reserva de caixa.',                                                                                                          '≤ 30%'],
-    ['alert',   '⚠ Investimento Externo',    'R$ 783K lançado em Mar/26 como saída operacional. Verificar: se for aporte patrimonial ou mútuo, deve ser reclassificado no FCI. Impacto: distorce EBITDA, FCO e Resultado do Mês de março.',                                             'Reclassificar urgente'],
-    ['monitor', 'ICMS — Comportamento',       'Zero em Jan e Fev/26, R$ 8,2K em Mar e R$ 15K em Abr. Investigar se há competência acumulada, mudança de enquadramento M2M ou risco de autuação pela Reforma Tributária.',                                                               'Monitorar'],
-  ];
-  const tbody = document.getElementById('dfcHelpTbody');
-  if (!tbody) return;
-  tbody.innerHTML = HELP_ROWS.map(([type, ind, def, bench]) => {
-    const isAlert   = type === 'alert';
-    const isMonitor = type === 'monitor';
-    const bg        = isAlert ? 'rgba(229,148,0,.08)' : isMonitor ? 'var(--surface-2)' : 'var(--bg)';
-    const indStyle  = isAlert ? 'color:#E59400;font-weight:800' : 'color:var(--text);font-weight:700';
-    const bStyle    = isAlert ? 'color:#C8523B;font-weight:800' : 'color:#1583B3;font-weight:700';
-    return `
-    <tr style="background:${bg}">
-      <td style="padding:10px 14px;${indStyle};border-bottom:1px solid var(--border);white-space:nowrap">${ind}</td>
-      <td style="padding:10px 14px;color:var(--text-2);border-bottom:1px solid var(--border);line-height:1.5">${def}</td>
-      <td style="padding:10px 14px;${bStyle};border-bottom:1px solid var(--border);white-space:nowrap">${bench}</td>
-    </tr>`;
-  }).join('');
+  const V = window._dfcVals || {};
+  const shortMB = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const filterEl = document.getElementById('dfcHelpFilter');
+  if (filterEl) {
+    let hasFc = false;
+    let btns = `<span style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.4px;margin-right:4px">Período:</span>`;
+    btns += `<button class="dfc-help-mon active" data-m="-1" onclick="refreshDFCHelp(-1,this)">Média YTD</button>`;
+    shortMB.forEach((m, i) => {
+      const hasData = (V.fco||[])[i] != null || (V.recSS||[])[i] != null;
+      const isFc = hasData && !(V.isReal||[])[i];
+      if (isFc) hasFc = true;
+      btns += `<button class="dfc-help-mon${isFc?' fc-mon':''}" data-m="${i}" onclick="refreshDFCHelp(${i},this)"${!hasData?' disabled':''}>${m}</button>`;
+    });
+    if (hasFc) btns += `<span style="font-size:11px;color:var(--text-2);margin-left:6px;opacity:.7">itálico = previsão</span>`;
+    filterEl.innerHTML = btns;
+  }
   document.getElementById('dfcHelpModal').style.display = 'flex';
   document.getElementById('dfcHelpModal').style.alignItems = 'flex-start';
+  refreshDFCHelp(-1, filterEl?.querySelector('[data-m="-1"]'));
+}
+
+function refreshDFCHelp(mIdx, btnEl) {
+  document.querySelectorAll('.dfc-help-mon').forEach(b => b.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+
+  const V = window._dfcVals || {};
+  const B = getDFCBench();
+  const isYTD = mIdx < 0;
+  const shortM = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const realIdxs = (V.isReal || []).map((v,i) => v ? i : -1).filter(i => i >= 0);
+  const n = realIdxs.length || 1;
+
+  const diagHdr = document.getElementById('dfcHelpDiagHeader');
+  if (diagHdr) {
+    const isFc = !isYTD && !(V.isReal||[])[mIdx];
+    diagHdr.textContent = isYTD ? 'Diagnóstico YTD' : `Diagnóstico — ${shortM[mIdx]}${isFc?' (prev)':''}`;
+  }
+
+  // helpers numéricos
+  const pct1  = v => v != null ? v.toFixed(1) + '%' : '—';
+  const curK  = v => v != null ? 'R$' + Math.round(Math.abs(v) / 1000) + 'K' : '—';
+  const pct_c = (a,b) => (a==null||b==null||b===0)?null:a/b*100;
+  const _avg  = (arr, idxs) => { const vv = idxs.map(i=>arr[i]).filter(v=>v!=null&&isFinite(v)); return vv.length ? vv.reduce((s,v)=>s+v,0)/vv.length : null; };
+  const _pos  = (arr, idxs) => idxs.filter(i=>arr[i]!=null&&arr[i]>0).length;
+  const _last = (arr, idxs) => { for(let j=idxs.length-1;j>=0;j--) if(arr[idxs[j]]!=null) return arr[idxs[j]]; return null; };
+  const _pAvg = (num,den,idxs) => { const pp=idxs.map(i=>pct_c(num[i],den[i])).filter(v=>v!=null); return pp.length?pp.reduce((s,v)=>s+v,0)/pp.length:null; };
+  const val   = arr => isYTD ? _avg(arr, realIdxs) : (arr||[])[mIdx];
+
+  // chip + nota
+  const chip = (label, ok) => {
+    const bg  = ok===2 ? '#E8F5E9' : ok===1 ? '#FFF8E1' : '#FFEBEE';
+    const clr = ok===2 ? '#1B5E20' : ok===1 ? '#B45309' : '#C62828';
+    return `<span style="display:inline-block;background:${bg};color:${clr};border-radius:5px;padding:3px 9px;font-weight:800;font-size:12px;margin-bottom:4px">${label}</span>`;
+  };
+  const note = txt => `<div style="font-size:11.5px;color:var(--text-2);line-height:1.45">${txt}</div>`;
+  const mk   = (lbl, ok, nYTD, nMon) => chip(lbl, ok) + note(isYTD ? nYTD : nMon);
+
+  // fórmula visual: linhas com operador + pill colorida
+  const fR = (op, lbl, pos) =>
+    `<div style="display:flex;align-items:center;gap:6px;padding:2px 0">`
+    + `<span style="font-weight:800;font-size:11px;color:var(--text-2);min-width:14px;text-align:center">${op}</span>`
+    + `<span style="${pos?'background:#E8F5E9;color:#1B5E20':'background:#FFF3E0;color:#E65100'};border-radius:4px;padding:2px 8px;font-weight:700;font-size:11px">${lbl}</span>`
+    + `</div>`;
+  const fDiv = () => `<div style="border-top:1px dashed var(--border);margin:3px 2px 3px 20px"></div>`;
+  const fEq  = lbl =>
+    `<div style="display:flex;align-items:center;gap:6px;padding:2px 0">`
+    + `<span style="font-weight:800;font-size:11px;color:var(--primary-dark);min-width:14px;text-align:center">=</span>`
+    + `<span style="background:#E8F5E9;color:#145E30;border-radius:4px;padding:2px 8px;font-weight:800;font-size:11px;border:1px solid #B2DFCA">${lbl}</span>`
+    + `</div>`;
+
+  // ── arrays de dados ───────────────────────────────────────────────────────
+  const fcoA=V.fco||[], fcfA=V.fcf||[], resA=V.resultado||[], saldoA=V.saldo||[];
+  const mbA=V.margBruta||[], teA=V.totEnt||[], cmvA=V.cmv||[], ssA=V.recSS||[];
+  const dpA=V.despPes||[], afA=V.atFin||[], soA=V.totSaOp||[], daA=V.despAdm||[];
+  const retA=V.totRet||[], divA=V.div||[];
+
+  // ── FCO ──────────────────────────────────────────────────────────────────
+  const fcoV=val(fcoA), fcoPos=_pos(fcoA,realIdxs);
+  const fcoOk=isYTD?(fcoPos===n?2:fcoPos>=Math.ceil(n/2)?1:0):(fcoV==null?1:fcoV>0?2:0);
+  const diagFCO=mk(curK(fcoV)+(isYTD?' / mês':''), fcoOk,
+    fcoOk===2?`Positivo nos ${n} meses · Operação autossustentável`:fcoOk===1?`${fcoPos}/${n} meses positivos · Investigar negativos`:`Negativo em ${n-fcoPos}/${n} meses · Operação consumindo caixa`,
+    fcoV==null?'Sem dado':fcoV>0?'Positivo · Gerou caixa operacional':'Negativo · Consumiu caixa este mês');
+
+  // ── FCF ──────────────────────────────────────────────────────────────────
+  const fcfV=val(fcfA), fcoRef=val(fcoA);
+  const fcfPct=(fcoRef!=null&&fcoRef>0&&fcfV!=null)?Math.abs(fcfV)/fcoRef*100:null;
+  const fcfOk=fcfPct==null?1:fcfPct<=50?2:fcfPct<=80?1:0;
+  const diagFCF=mk(fcfPct!=null?fcfPct.toFixed(0)+'% do FCO':'—', fcfOk,
+    fcfOk===2?'Consome ≤50% do FCO · Estrutura equilibrada':fcfOk===1?'Comprimindo o FCO · Monitorar tendência':'>80% do FCO comprometido · Revisão urgente',
+    fcfPct!=null?(fcfPct<=50?'Dentro do limite · FCO preservado':fcfPct<=80?'Atenção · FCO comprimido neste mês':'>80% do FCO — crítico'):'Sem comparação');
+
+  // ── Resultado ────────────────────────────────────────────────────────────
+  const resV=val(resA), resPos=_pos(resA,realIdxs);
+  const resOk=isYTD?(resPos===n?2:resPos>=Math.ceil(n/2)?1:0):(resV==null?1:resV>0?2:0);
+  const diagRes=mk(curK(resV)+(isYTD?' / mês':''), resOk,
+    resOk===2?`Positivo nos ${n} meses · Caixa crescendo`:resOk===1?`${resPos}/${n} meses positivos · Verificar quedas`:`Negativo em ${n-resPos}/${n} meses · Caixa em queda`,
+    resV==null?'Sem dado':resV>0?`Positivo em ${shortM[mIdx]}`:`Negativo em ${shortM[mIdx]} · Caixa encolheu`);
+
+  // ── Saldo ────────────────────────────────────────────────────────────────
+  const saldoLast=_last(saldoA,realIdxs), saldoFirst=saldoA[realIdxs[0]]||null;
+  const growing=saldoLast!=null&&saldoFirst!=null?saldoLast>saldoFirst:null;
+  const saldoV=isYTD?saldoLast:saldoA[mIdx];
+  const saldoOk=saldoV==null?1:isYTD?(saldoLast>0&&growing?2:saldoLast>0?1:0):(saldoV>0?2:0);
+  const diagSaldo=mk(curK(saldoV)+(isYTD?' (último)':''), saldoOk,
+    saldoOk===2?'Positivo e crescente ao longo do período':saldoOk===1?'Positivo mas estagnado ou em queda':'Saldo negativo · Reserva exaurida',
+    saldoV==null?'Sem dado':saldoV>0?`Saldo positivo ao final de ${shortM[mIdx]}`:`Saldo negativo ao final de ${shortM[mIdx]}`);
+
+  // ── Margem Bruta % ───────────────────────────────────────────────────────
+  const mbV=isYTD?_pAvg(mbA,teA,realIdxs):pct_c(mbA[mIdx],teA[mIdx]);
+  const mbOk=mbV==null?1:mbV>=B.margBruta?2:mbV>=B.margBruta*0.9?1:0;
+  const diagMB=mk(pct1(mbV)+(isYTD?' média':''), mbOk,
+    mbOk===2?`Acima de ${B.margBruta}% · Margem saudável`:`${mbV!=null?(mbV-B.margBruta).toFixed(1)+'pp':'—'} vs benchmark (${B.margBruta}%)`,
+    mbOk===2?`Acima de ${B.margBruta}% em ${shortM[mIdx]}`:`${mbV!=null?(mbV-B.margBruta).toFixed(1)+'pp':'—'} vs benchmark em ${shortM[mIdx]}`);
+
+  // ── CMV / Receita SS % ───────────────────────────────────────────────────
+  const cmvV=isYTD?_pAvg(cmvA,ssA,realIdxs):pct_c(cmvA[mIdx],ssA[mIdx]);
+  const cmvOk=cmvV==null?1:cmvV<=B.cmvRec?2:cmvV<=B.cmvRec*1.1?1:0;
+  const diagCMV=mk(pct1(cmvV)+(isYTD?' média':''), cmvOk,
+    cmvOk===2?`Dentro de ${B.cmvRec}% · Conectividade controlada`:cmvOk===1?`+${cmvV!=null?(cmvV-B.cmvRec).toFixed(1):'—'}pp acima do benchmark · Negociar`:`+${cmvV!=null?(cmvV-B.cmvRec).toFixed(1):'—'}pp · Renegociação urgente`,
+    cmvOk===2?`Dentro de ${B.cmvRec}% em ${shortM[mIdx]}`:`+${cmvV!=null?(cmvV-B.cmvRec).toFixed(1):'—'}pp vs limite em ${shortM[mIdx]}`);
+
+  // ── Margem FCO % ─────────────────────────────────────────────────────────
+  const mfV=isYTD?_pAvg(fcoA,teA,realIdxs):pct_c(fcoA[mIdx],teA[mIdx]);
+  const mfOk=mfV==null?1:mfV>=B.margemFco?2:mfV>=0?1:0;
+  const diagMF=mk(pct1(mfV)+(isYTD?' média':''), mfOk,
+    mfOk===2?`Acima de ${B.margemFco}% · Eficiente`:`${mfV!=null?(mfV-B.margemFco).toFixed(1):'—'}pp vs benchmark (${B.margemFco}%)`,
+    mfOk===2?`Acima de ${B.margemFco}% em ${shortM[mIdx]}`:mfV!=null&&mfV<0?'Negativo · Operação destruiu caixa':`${mfV!=null?(mfV-B.margemFco).toFixed(1):'—'}pp vs benchmark em ${shortM[mIdx]}`);
+
+  // ── Custo Pessoal % ──────────────────────────────────────────────────────
+  const cpV=isYTD?_pAvg(dpA,teA,realIdxs):pct_c(dpA[mIdx],teA[mIdx]);
+  const cpOk=cpV==null?1:cpV<=B.custoPes?2:cpV<=B.custoPes*1.1?1:0;
+  const diagCP=mk(pct1(cpV)+(isYTD?' média':''), cpOk,
+    cpOk===2?`Dentro de ${B.custoPes}% · RH alavancando receita`:`+${cpV!=null?(cpV-B.custoPes).toFixed(1):'—'}pp acima do benchmark (${B.custoPes}%)`,
+    cpOk===2?`Dentro de ${B.custoPes}% em ${shortM[mIdx]}`:`+${cpV!=null?(cpV-B.custoPes).toFixed(1):'—'}pp acima do limite em ${shortM[mIdx]}`);
+
+  // ── Ativ. Financeiras / Saídas Op % ──────────────────────────────────────
+  const _afPct=i=>pct_c(Math.abs(afA[i]||0),soA[i]);
+  const afV=isYTD?(() => { const pp=realIdxs.map(i=>_afPct(i)).filter(v=>v!=null); return pp.length?pp.reduce((s,v)=>s+v,0)/pp.length:null; })():_afPct(mIdx);
+  const afOk=afV==null?1:afV<=B.atFinOp?2:afV<=15?1:0;
+  const diagAF=mk(pct1(afV)+(isYTD?' média':''), afOk,
+    afOk===2?`Dentro de ${B.atFinOp}% · Baixo peso financeiro`:`${afV!=null?(afV-B.atFinOp).toFixed(1):'—'}pp acima do benchmark (${B.atFinOp}%)`,
+    afOk===2?`Dentro de ${B.atFinOp}% em ${shortM[mIdx]}`:`${afV!=null?(afV-B.atFinOp).toFixed(1):'—'}pp acima do limite em ${shortM[mIdx]}`);
+
+  // ── Cobertura Despesas Fixas ──────────────────────────────────────────────
+  const _cfCov=i=>{ const den=(daA[i]||0)+(dpA[i]||0); return (fcoA[i]!=null&&den>0)?fcoA[i]/den:null; };
+  const cfV=isYTD?(() => { const pp=realIdxs.map(i=>_cfCov(i)).filter(v=>v!=null); return pp.length?pp.reduce((s,v)=>s+v,0)/pp.length:null; })():_cfCov(mIdx);
+  const cfOk=cfV==null?1:cfV>=B.cobFixas?2:cfV>=1?1:0;
+  const diagCF=mk(cfV!=null?cfV.toFixed(2)+'x'+(isYTD?' média':''):'—', cfOk,
+    cfOk===2?`Acima de ${B.cobFixas}x · Despesas fixas cobertas com folga`:cfOk===1?`Entre 1x e ${B.cobFixas}x · Buffer mínimo`:'Abaixo de 1x · FCO não cobre despesas fixas',
+    cfOk===2?`Acima de ${B.cobFixas}x em ${shortM[mIdx]} · Folga operacional`:cfOk===1?`Entre 1x e ${B.cobFixas}x em ${shortM[mIdx]}`:`Abaixo de 1x em ${shortM[mIdx]} · Risco crítico`);
+
+  // ── Retiradas / Receita % ─────────────────────────────────────────────────
+  const retV=isYTD?_pAvg(retA,teA,realIdxs):pct_c(retA[mIdx],teA[mIdx]);
+  const retOk=retV==null?1:retV<=B.retiradas?2:retV<=B.retiradas*1.2?1:0;
+  const diagRet=mk(pct1(retV)+(isYTD?' média':''), retOk,
+    retOk===2?`Dentro de ${B.retiradas}% · Distribuição disciplinada`:`+${retV!=null?(retV-B.retiradas).toFixed(1):'—'}pp acima do benchmark (${B.retiradas}%)`,
+    retOk===2?`Dentro de ${B.retiradas}% em ${shortM[mIdx]}`:`+${retV!=null?(retV-B.retiradas).toFixed(1):'—'}pp acima do limite em ${shortM[mIdx]}`);
+
+  // ── Dividendos / Resultado % ─────────────────────────────────────────────
+  const divV=isYTD?(() => { const pp=realIdxs.map(i=>resA[i]>0?pct_c(divA[i],resA[i]):null).filter(v=>v!=null); return pp.length?pp.reduce((s,v)=>s+v,0)/pp.length:null; })():pct_c(divA[mIdx],resA[mIdx]);
+  const divOk=divV==null?2:divV<=B.dividendos?2:divV<=B.dividendos*1.3?1:0;
+  const diagDiv=mk(divV!=null?pct1(divV)+(isYTD?' média':''):'Sem dividendos', divOk,
+    divV==null?'Nenhum dividendo no período':divOk===2?`Dentro de ${B.dividendos}% · Distribuição equilibrada`:`+${(divV-B.dividendos).toFixed(1)}pp acima do benchmark`,
+    divV==null?`Sem dividendos em ${shortM[mIdx]}`:divOk===2?`Dentro de ${B.dividendos}% em ${shortM[mIdx]}`:`+${(divV-B.dividendos).toFixed(1)}pp acima do limite`);
+
+  // ── Crescimento MoM % ────────────────────────────────────────────────────
+  const _mom=i=>(i>0&&ssA[i]!=null&&ssA[i-1]!=null&&ssA[i-1]>0)?(ssA[i]-ssA[i-1])/ssA[i-1]*100:null;
+  const momV=isYTD?(() => { const pp=realIdxs.slice(1).map(i=>_mom(i)).filter(v=>v!=null); return pp.length?pp.reduce((s,v)=>s+v,0)/pp.length:null; })():_mom(mIdx);
+  const momOk=momV==null?1:momV>0?2:momV>-2?1:0;
+  const diagMoM=mk(momV!=null?(momV>=0?'+':'')+momV.toFixed(1)+'% MoM':'—', momOk,
+    momOk===2?'Receita SS crescendo · Base em expansão':momOk===1?'Crescimento próximo de zero · Base estagnada':'Receita SS caindo · Base em contração',
+    mIdx===0?'Sem mês anterior':momV==null?'Sem dado':momOk===2?`Crescimento em ${shortM[mIdx]}`:momOk===1?`Próximo de zero em ${shortM[mIdx]}`:`Queda em ${shortM[mIdx]}`);
+
+  // ── Alertas manuais ──────────────────────────────────────────────────────
+  const invSelV  = isYTD ? _avg(afA, realIdxs) : afA[mIdx];
+  const invSelLbl = isYTD ? 'YTD' : shortM[mIdx];
+  const diagInv = chip(invSelV != null ? invSelLbl+': '+curK(invSelV) : invSelLbl+': —', 0)
+    + note('Lançado em Ativ. Financeiras · Natureza não confirmada · Provável reclassificação para FCI');
+  const diagICMS = chip('Apuração irregular', 1)
+    + note(isYTD
+        ? 'Padrão de apuração atípico no acumulado · Investigar competência acumulada ou mudança de enquadramento tributário'
+        : `Padrão atípico em ${shortM[mIdx]} · Investigar competência acumulada ou mudança de enquadramento tributário`);
+
+  // ── Fórmulas visuais ─────────────────────────────────────────────────────
+  const F = {
+    fco:   fR('','Total Entradas',true)+fDiv()+fR('−','Total Custo do Serviço',false)+fR('−','Total Desp. Operacionais',false)+fDiv()+fEq('FCO'),
+    fcf:   fR('','Ativ. Financeiras',true)+fR('+','Retiradas de Sócios',true)+fDiv()+fEq('FCF'),
+    res:   fR('','FCO',true)+fR('+','FCF',true)+fDiv()+fEq('Resultado do Mês'),
+    saldo: fR('','Saldo Mês Anterior',true)+fR('+','Resultado do Mês',true)+fR('−','Dividendos',false)+fDiv()+fEq('Saldo Acumulado'),
+    mb:    fR('','Margem Bruta (R$)',true)+fR('÷','Total Entradas',true)+fDiv()+fEq('× 100 = %'),
+    cmv:   fR('','CMV / CPS',false)+fR('÷','Receita SS',true)+fDiv()+fEq('× 100 = %'),
+    mf:    fR('','FCO',true)+fR('÷','Total Entradas',true)+fDiv()+fEq('× 100 = %'),
+    cp:    fR('','Desp. Pessoal',false)+fR('÷','Total Entradas',true)+fDiv()+fEq('× 100 = %'),
+    af:    fR('','Total Ativ. Financeiras',false)+fR('÷','Total Saídas Op.',true)+fDiv()+fEq('× 100 = %'),
+    cob:   fR('','FCO',true)+fR('÷','Desp. Adm. + Pessoal',false)+fDiv()+fEq('= Cobertura (x)'),
+    ret:   fR('','Retiradas + Diretoria',false)+fR('÷','Total Entradas',true)+fDiv()+fEq('× 100 = %'),
+    div:   fR('','Dividendos',false)+fR('÷','Resultado do Mês',true)+fDiv()+fEq('× 100 = %'),
+    mom:   fR('','RecSS atual − anterior',true)+fR('÷','RecSS mês anterior',true)+fDiv()+fEq('× 100 = %'),
+  };
+
+  const HELP_ROWS = [
+    ['normal','FCO<br><span style="font-size:11px;font-weight:400;color:var(--text-2)">Fluxo de Caixa Operacional</span>',diagFCO,F.fco,'Positivo todo mês','É o indicador mais honesto da saúde financeira. Um resultado contábil positivo pode coexistir com FCO negativo — significa que a empresa lucra no papel mas não gera caixa real. FCO negativo recorrente indica que a base ativa não sustenta os custos operacionais, exigindo financiamento externo.'],
+    ['normal','FCF<br><span style="font-size:11px;font-weight:400;color:var(--text-2)">Fluxo de Caixa Financeiro</span>',diagFCF,F.fcf,'Controlado e &lt; FCO','Quando o FCF consome mais de 50% do FCO, a empresa está usando caixa operacional para pagar dívida ou sócios — comprimindo o espaço para investimento e crescimento.'],
+    ['normal','Resultado do Mês',diagRes,F.res,'Positivo','Diferente do resultado contábil (regime de competência), o resultado do mês em regime de caixa não reconhece receita não recebida. É o número que o banco vê — e que determina a capacidade de honrar compromissos no curto prazo.'],
+    ['normal','Saldo Acumulado',diagSaldo,F.saldo,'Crescente','Mostra a trajetória da reserva de caixa ao longo do ano. A regra prática: o saldo acumulado deveria cobrir pelo menos 2 meses de despesas fixas. Abaixo disso, qualquer evento de inadimplência ou saída inesperada pode virar crise de liquidez.'],
+    ['normal','Margem Bruta de Caixa (%)',diagMB,F.mb,`≥ ${B.margBruta}%`,'Primeira linha de diagnóstico de rentabilidade. Em M2M, o custo de conectividade é estrutural e difícil de reduzir no curto prazo. Margem bruta caindo mês a mês — mesmo que a receita cresça — indica que o crescimento está sendo financiado a custo crescente.'],
+    ['normal','CMV / Receita SS (%)',diagCMV,F.cmv,`≤ ${B.cmvRec}%`,'Principal termômetro de margem bruta em M2M/IoT. Cada ponto percentual acima de 48% representa R$ 100K+ de margem perdida por ano sobre a base atual de receita. Indicador-gatilho para renegociação de contrato com operadora de conectividade.'],
+    ['normal','Margem FCO (%)',diagMF,F.mf,`≥ ${B.margemFco}%`,'Mede a eficiência real da operação: de cada R$ 1,00 que entra, quanto sobra em caixa. Margem FCO abaixo de 10% indica estrutura de custo pesada demais. Abaixo de 0%, a operação destrói caixa mesmo crescendo.'],
+    ['normal','Custo Pessoal / Receita (%)',diagCP,F.cp,`≤ ${B.custoPes}%`,'Em negócios de tecnologia e conectividade, custo de pessoal deve crescer mais devagar que a receita — esse é o sinal de alavancagem operacional. Se o índice sobe enquanto a receita cresce, a empresa está adicionando custo fixo na mesma proporção que adiciona receita, sem ganhar escala.'],
+    ['normal','Ativ. Financeiras / Saídas Op. (%)',diagAF,F.af,`≤ ${B.atFinOp}%`,'Quando o custo financeiro supera o custo de pessoal é sinal de alavancagem excessiva ou de despesa financeira mal classificada. Acima de 8% merece revisão de estrutura de capital. Acima de 15%, é alerta crítico que exige plano de desalavancagem.'],
+    ['normal','Cobertura Desp. Fixas (x)',diagCF,F.cob,`≥ ${B.cobFixas}x`,'Cobertura de 1,0x significa que qualquer queda de receita ou aumento de custo coloca a empresa no negativo. O buffer de 1,3x significa que a empresa absorve uma queda de 23% na geração de caixa antes de não conseguir pagar as fixas. Abaixo de 1,0x, a operação depende de entradas financeiras ou de sócios para sobreviver mensalmente.'],
+    ['normal','Retiradas de Sócios / Receita (%)',diagRet,F.ret,`≤ ${B.retiradas}%`,'Retiradas irregulares são uma das principais causas de distorção em DFC de empresas fechadas. Sem política fixa, o indicador oscila — dificultando comparativos e mascarando o EBITDA real. Para governança e relatório executivo, esse número precisa de critério e previsibilidade.'],
+    ['normal','Dividendos / Resultado (%)',diagDiv,F.div,`≤ ${B.dividendos}%`,'Em Lucro Real, dividendos distribuídos acima do lucro fiscal apurado geram passivo tributário. Além do risco fiscal, distribuição acima de 30% do resultado mensal compromete a formação de reserva de caixa.'],
+    ['normal','Crescimento Receita SS MoM (%)',diagMoM,F.mom,'Positivo e &gt; CMV MoM','Receita SS é o motor do negócio. O ponto crítico é comparar com o crescimento do CMV MoM: se o custo cresce mais rápido que a receita, a margem bruta está sendo corroída silenciosamente. Se a receita não superar o ritmo do CMV, a margem encolhe todo mês.'],
+    ['alert','⚠ Investimento Externo',diagInv,`<span style="font-size:11.5px"><b>Classificação atual:</b><br>Atividades Financeiras<br><br><b>Provável correta:</b><br>FCI — Fluxo de Investimentos</span>`,'Reclassificar urgente','Este item sozinho explica o pico de 919% em Atividades Financeiras em março. Se for aporte a coligada, mútuo ou investimento patrimonial, deve ir para FCI — não para o FCF ou saídas operacionais. Enquanto não for reclassificado, FCO de março está artificialmente reduzido e qualquer análise comparativa do Q1 perde confiabilidade.'],
+    ['monitor','⚠ ICMS — Comportamento Atípico',diagICMS,`<span style="font-size:11.5px"><b>Atual:</b> lançamento irregular<br><br><b>Esperado:</b> apuração mensal constante</span>`,'Investigar + Monitorar','Três hipóteses: (1) competência acumulada lançada de uma vez — problema de processo contábil; (2) mudança de enquadramento tributário com a Reforma Tributária; (3) regularização de passivo ou auto de infração. Cada hipótese tem resposta diferente e todas têm impacto na margem e no planejamento tributário para 2027.'],
+  ];
+
+  const tbody = document.getElementById('dfcHelpTbody');
+  if (!tbody) return;
+  tbody.innerHTML = HELP_ROWS.map(([type, ind, diag, formula, bench, porque]) => {
+    const isAlert   = type === 'alert';
+    const isMonitor = type === 'monitor';
+    const bg        = isAlert ? 'rgba(229,148,0,.06)' : isMonitor ? 'rgba(21,131,179,.04)' : 'var(--bg)';
+    const indColor  = isAlert ? '#C8521A' : isMonitor ? '#1583B3' : 'var(--text)';
+    const bColor    = isAlert ? '#C8523B' : isMonitor ? '#1583B3' : '#1E8449';
+    const bBg       = isAlert ? 'rgba(200,82,58,.1)' : isMonitor ? 'rgba(21,131,179,.1)' : 'rgba(30,132,73,.1)';
+    const border    = `1px solid var(--border)`;
+    const td        = `padding:11px 13px;border-bottom:${border};vertical-align:top;line-height:1.55;font-size:12.5px`;
+    return `<tr style="background:${bg}">
+      <td style="${td};font-weight:700;color:${indColor};min-width:150px">${ind}</td>
+      <td style="${td};min-width:190px">${diag}</td>
+      <td style="${td};min-width:200px">${formula}</td>
+      <td style="${td};min-width:110px;text-align:center;font-weight:800;color:${bColor};background:${bBg}">${bench}</td>
+      <td style="${td};color:var(--text-2);min-width:260px">${porque}</td>
+    </tr>`;
+  }).join('');
 }
 
 // Modal: Editor de Benchmarks
 function showBenchmarkEditor() {
   const B = getDFCBench();
   const FIELDS = [
+    { key:'margBruta', label:'Margem Bruta de Caixa (%)',      dir:'≥', unit:'%' },
     { key:'cmvRec',    label:'CMV / Receita SS (%)',           dir:'≤', unit:'%' },
     { key:'margemFco', label:'Margem FCO (%)',                 dir:'≥', unit:'%' },
     { key:'custoPes',  label:'Custo Pessoal / Receita (%)',    dir:'≤', unit:'%' },
@@ -4404,7 +4948,7 @@ function showBenchmarkEditor() {
 }
 
 function saveBenchmarks() {
-  const KEYS = ['cmvRec','margemFco','custoPes','atFinOp','cobFixas','retiradas','dividendos','crescRec'];
+  const KEYS = ['margBruta','cmvRec','margemFco','custoPes','atFinOp','cobFixas','retiradas','dividendos','crescRec'];
   const obj = {};
   KEYS.forEach(k => {
     const el = document.getElementById('bench_'+k);
@@ -4609,6 +5153,7 @@ const saidasData = [
     _sub12('Outros impostos')
   ]},
   { cat: 'R - Atividades Financeiras', subs: [
+    _sub12('Rendimento (CDI)'),
     _sub12('Rendimento de Investimentos'),
     _sub12('Juros Recebidos'),
     _sub12('Estorno Recebido'),
@@ -5272,6 +5817,57 @@ function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// Formata "último acesso" com label relativo + tooltip de data completa
+function _fmtUltimo(raw) {
+  if (!raw || raw === '—') return '<span style="color:var(--muted)">Nunca acessou</span>';
+  // raw formato: "05/06 14:32" (dia/mês hora:min)
+  try {
+    const year = new Date().getFullYear();
+    const [datePart, timePart] = raw.split(' ');
+    const [day, mon] = datePart.split('/');
+    const [hh, mm] = timePart.split(':');
+    const d = new Date(year, parseInt(mon)-1, parseInt(day), parseInt(hh), parseInt(mm));
+    const now = new Date();
+    const diffMs = now - d;
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffH   = Math.floor(diffMs / 3600000);
+    const diffD   = Math.floor(diffMs / 86400000);
+    let label, color;
+    if (diffMin < 2)       { label = 'Agora mesmo';  color = 'var(--primary-dark)'; }
+    else if (diffMin < 60) { label = `Há ${diffMin}min`;   color = 'var(--primary-dark)'; }
+    else if (diffH < 24)   { label = `Há ${diffH}h`;       color = 'var(--text-2)'; }
+    else if (diffD === 1)  { label = 'Ontem';               color = 'var(--muted)'; }
+    else if (diffD < 7)    { label = `Há ${diffD} dias`;    color = 'var(--muted)'; }
+    else                   { label = raw;                   color = 'var(--muted)'; }
+    return `<span style="color:${color}" title="${escHtml(raw)}">${label}</span>`;
+  } catch(e) {
+    return `<span style="color:var(--muted)">${escHtml(raw)}</span>`;
+  }
+}
+
+// Busca dados frescos de usuários do servidor — mantém último acesso atualizado para o admin
+async function _refreshUsersFromServer() {
+  try {
+    const r = await fetch('/api/auth/users', { headers: { 'x-api-key': GSM_API_KEY } });
+    if (!r.ok) return;
+    const srv = await r.json();
+    if (!Array.isArray(srv) || srv.length === 0) return;
+    // Atualiza apenas os campos que mudam no servidor (ultimo, etc.) sem sobrescrever senha/salt local
+    let changed = false;
+    srv.forEach(su => {
+      const local = gsmUsers.find(u => u.email === su.email);
+      if (local && su.ultimo && su.ultimo !== local.ultimo) {
+        local.ultimo = su.ultimo;
+        changed = true;
+      }
+    });
+    if (changed) {
+      try { localStorage.setItem(USERS_KEY, JSON.stringify(gsmUsers)); } catch(e) {}
+      renderAcessos();
+    }
+  } catch(e) {}
+}
+
 function renderAcessos() {
   const tbody = document.querySelector('#acessosTbl tbody');
   if (!tbody) return;
@@ -5301,7 +5897,7 @@ function renderAcessos() {
         </select>
       </td>
       <td style="max-width:240px;line-height:1.8">${pagesHtml}</td>
-      <td style="color:var(--muted);font-size:12.5px">${escHtml(u.ultimo || '—')}</td>
+      <td style="font-size:12.5px">${_fmtUltimo(u.ultimo)}</td>
       <td class="num">
         <div class="row-actions">
           <button title="Editar usuário" data-act="edit" data-email="${escHtml(u.email)}">
@@ -5461,30 +6057,185 @@ if (_confirmEditUser) _confirmEditUser.addEventListener('click', async () => {
   }
 });
 
-// ── Setup URL — gera link para o colaborador ──────────────────────────────
-function generateSetupUrl(u) {
-  // Hash NÃO incluído — colaborador define a própria senha no primeiro login
-  const payload = { nome: u.nome, email: u.email, perfil: u.perfil, pages: u.pages || [],
-                    exp: Date.now() + INVITE_TTL_MS };
-  const token = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
-  return window.location.origin + window.location.pathname + '?setup=' + encodeURIComponent(token);
+// ── Modal de Credenciais — exibido após criar novo usuário ────────────────
+function showCredenciais(email, pass) {
+  const modal = document.getElementById('modalCredenciais');
+  if (!modal) return;
+  const siteUrl = window.location.origin + window.location.pathname;
+  const fEmail  = document.getElementById('credEmail');
+  const fSenha  = document.getElementById('credSenha');
+  const fSite   = document.getElementById('credSiteUrl');
+  const tBtn    = document.getElementById('credToggleBtn');
+  if (fSite)  fSite.value  = siteUrl;
+  if (fEmail) fEmail.value = email;
+  if (fSenha) { fSenha.value = pass; fSenha.type = 'password'; }
+  if (tBtn)   tBtn.textContent = 'Mostrar';
+  modal.style.display = 'flex';
 }
-
-const modalSetupLink   = document.getElementById('modalSetupLink');
-const setupLinkInput   = document.getElementById('setupLinkInput');
-const btnCopySetupLink = document.getElementById('btnCopySetupLink');
-const closeSetupLink   = document.getElementById('closeSetupLink');
-
-if (closeSetupLink) closeSetupLink.addEventListener('click', () => { modalSetupLink.style.display = 'none'; });
-if (btnCopySetupLink) btnCopySetupLink.addEventListener('click', () => {
-  if (!setupLinkInput) return;
-  setupLinkInput.select();
-  navigator.clipboard?.writeText(setupLinkInput.value).catch(() => {
+function _copyCredField(id, btn) {
+  const inp = document.getElementById(id);
+  if (!inp) return;
+  const val = inp.value;
+  navigator.clipboard?.writeText(val).catch(() => {
+    try { inp.select(); document.execCommand('copy'); } catch(e) {}
+  });
+  const orig = btn.textContent;
+  btn.textContent = '✓ Copiado';
+  btn.style.background = 'var(--primary)';
+  btn.style.color = '#fff';
+  btn.style.borderColor = 'var(--primary)';
+  setTimeout(() => {
+    btn.textContent = orig;
+    btn.style.background = '';
+    btn.style.color = '';
+    btn.style.borderColor = '';
+  }, 1800);
+}
+function _toggleCredPass() {
+  const inp = document.getElementById('credSenha');
+  const btn = document.getElementById('credToggleBtn');
+  if (!inp || !btn) return;
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    btn.textContent = 'Ocultar';
+  } else {
+    inp.type = 'password';
+    btn.textContent = 'Mostrar';
+  }
+}
+function _copyAllCreds() {
+  const url  = document.getElementById('credSiteUrl')?.value  || '';
+  const mail = document.getElementById('credEmail')?.value    || '';
+  const pass = document.getElementById('credSenha')?.value    || '';
+  const text = `Sistema: ${url}\nE-mail: ${mail}\nSenha: ${pass}`;
+  navigator.clipboard?.writeText(text).catch(() => {
     try { document.execCommand('copy'); } catch(e) {}
   });
-  const el = document.getElementById('setupLinkCopied');
-  if (el) { el.style.display = 'block'; setTimeout(() => { el.style.display = 'none'; }, 3000); }
+  const btn = document.getElementById('credCopyAll');
+  if (btn) {
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copiado!';
+    setTimeout(() => { btn.textContent = orig; }, 1800);
+  }
+}
+const _credModal = document.getElementById('modalCredenciais');
+const _closeCredModal = document.getElementById('closeModalCredenciais');
+if (_closeCredModal) _closeCredModal.addEventListener('click', () => { if (_credModal) _credModal.style.display = 'none'; });
+if (_credModal) _credModal.addEventListener('click', e => { if (e.target === _credModal) _credModal.style.display = 'none'; });
+
+// ── Profile dropdown ──────────────────────────────────────────────────────
+let _profileMenuOpen = false;
+function toggleProfileMenu(e) {
+  if (e) e.stopPropagation();
+  const menu    = document.getElementById('profileMenu');
+  const trigger = document.getElementById('profileTrigger');
+  if (!menu) return;
+  _profileMenuOpen = !_profileMenuOpen;
+  if (_profileMenuOpen) {
+    // Sincroniza dados com a sessão atual
+    const sidebarAvatar = document.getElementById('userAvatar');
+    const sidebarName   = document.getElementById('userName');
+    const sidebarEmail  = document.getElementById('userEmail');
+    const pmAvatar      = document.getElementById('profileMenuAvatar');
+    const pmName        = document.getElementById('profileMenuName');
+    const pmEmail       = document.getElementById('profileMenuEmail');
+    const pmBadge       = document.getElementById('profileMenuBadge');
+    if (pmAvatar && sidebarAvatar) pmAvatar.textContent = sidebarAvatar.textContent;
+    if (pmName   && sidebarName)   pmName.textContent   = sidebarName.textContent;
+    if (pmEmail  && sidebarEmail)  pmEmail.textContent  = sidebarEmail.textContent;
+    if (pmBadge) {
+      const u = gsmUsers?.find(u => u.email === currentUserEmail);
+      const perfil = u?.perfil || 'Leitura';
+      pmBadge.textContent = perfil === 'Adm' ? 'Administrador' : perfil;
+      pmBadge.style.background = perfil === 'Adm' ? 'var(--primary-light)' : 'rgba(100,116,139,.12)';
+      pmBadge.style.color = perfil === 'Adm' ? 'var(--primary-dark)' : 'var(--text-2)';
+    }
+    // Posiciona o menu acima do trigger usando coordenadas do viewport (fixed)
+    if (trigger) {
+      const rect = trigger.getBoundingClientRect();
+      menu.style.display = 'block';
+      const menuH = menu.offsetHeight;
+      menu.style.left  = rect.left + 'px';
+      menu.style.width = rect.width + 'px';
+      menu.style.top   = (rect.top - menuH - 6) + 'px';
+    }
+  } else {
+    menu.style.display = 'none';
+  }
+}
+document.addEventListener('click', e => {
+  if (!_profileMenuOpen) return;
+  const trigger = document.getElementById('profileTrigger');
+  const menu    = document.getElementById('profileMenu');
+  if (menu && !menu.contains(e.target) && trigger && !trigger.contains(e.target)) {
+    _profileMenuOpen = false;
+    menu.style.display = 'none';
+  }
 });
+
+// ── Alterar Senha ─────────────────────────────────────────────────────────
+// _alterarSenhaTargetEmail: null = própria conta, string = email de outro usuário (admin)
+let _alterarSenhaTargetEmail = null;
+
+function openAlterarSenha(targetEmail) {
+  _alterarSenhaTargetEmail = targetEmail || null;
+  const modal    = document.getElementById('modalAlterarSenha');
+  const subtitle = document.getElementById('alterarSenhaSubtitle');
+  const wrapAtual = document.getElementById('alterarSenhaSenhaAtualWrap');
+  const errEl    = document.getElementById('alterarSenhaError');
+  const inp1     = document.getElementById('alterarSenhaAtual');
+  const inp2     = document.getElementById('alterarSenhaNova');
+  const inp3     = document.getElementById('alterarSenhaConfirm');
+  if (!modal) return;
+  // Admin trocando a senha de outro usuário não precisa confirmar a atual
+  const isOther = targetEmail && targetEmail !== currentUserEmail;
+  if (wrapAtual) wrapAtual.style.display = isOther ? 'none' : 'block';
+  if (subtitle) subtitle.textContent = isOther ? targetEmail : 'Minha conta';
+  if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+  if (inp1) inp1.value = '';
+  if (inp2) inp2.value = '';
+  if (inp3) inp3.value = '';
+  modal.style.display = 'flex';
+  setTimeout(() => { (isOther ? inp2 : inp1)?.focus(); }, 60);
+}
+
+async function confirmarAlterarSenha() {
+  const errEl  = document.getElementById('alterarSenhaError');
+  const inp1   = document.getElementById('alterarSenhaAtual');
+  const inp2   = document.getElementById('alterarSenhaNova');
+  const inp3   = document.getElementById('alterarSenhaConfirm');
+  const btn    = document.getElementById('btnConfirmarAlterarSenha');
+  const showErr = msg => {
+    if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+    else showToast(msg);
+  };
+  const nova    = inp2?.value || '';
+  const confirm = inp3?.value || '';
+  if (!nova || nova.length < 8) { showErr('A nova senha deve ter ao menos 8 caracteres.'); inp2?.focus(); return; }
+  if (nova !== confirm) { showErr('As senhas não coincidem.'); inp3?.focus(); return; }
+
+  const isOther = _alterarSenhaTargetEmail && _alterarSenhaTargetEmail !== currentUserEmail;
+  const targetEmail = _alterarSenhaTargetEmail || currentUserEmail;
+  const user = gsmUsers.find(u => u.email === targetEmail);
+  if (!user) { showErr('Usuário não encontrado.'); return; }
+
+  if (!isOther) {
+    // Verifica senha atual
+    const senhaAtual = inp1?.value || '';
+    if (!senhaAtual) { showErr('Informe sua senha atual.'); inp1?.focus(); return; }
+    const ok = await verifyPass(senhaAtual, user.hash, user.salt);
+    if (!ok) { showErr('Senha atual incorreta.'); inp1?.focus(); return; }
+  }
+
+  if (btn) btn.disabled = true;
+  const { hash: hx, salt: sx } = await hashPassNew(nova);
+  if (btn) btn.disabled = false;
+  user.hash = hx;
+  user.salt = sx;
+  saveUsers(gsmUsers);
+  document.getElementById('modalAlterarSenha').style.display = 'none';
+  showToast('Senha alterada com sucesso!');
+}
 
 // Modal de novo usuário
 const modalNovoUser  = document.getElementById('modalNovoUser');
@@ -5552,11 +6303,8 @@ if (confirmNovoUser) confirmNovoUser.addEventListener('click', async () => {
   saveUsers(gsmUsers);
   renderAcessos();
   closeNovoUser();
-  // Abre modal com link de acesso para o colaborador
-  if (setupLinkInput) setupLinkInput.value = generateSetupUrl(newUser);
-  const copiedEl = document.getElementById('setupLinkCopied');
-  if (copiedEl) copiedEl.style.display = 'none';
-  if (modalSetupLink) modalSetupLink.style.display = 'flex';
+  // Abre modal com credenciais para compartilhar com o colaborador
+  showCredenciais(email, pass);
 });
 
 // ── Modais injetados: First-Run Setup & Set Password ─────────────────────
@@ -5641,7 +6389,44 @@ if (confirmNovoUser) confirmNovoUser.addEventListener('click', async () => {
   });
 })();
 
-gsmUsers = ensureAdminUser();
+// Auto-login via JWT do sistema principal — permissões por aba via API
+(async function initUsers() {
+  const PERM_TO_TAB = {
+    can_view_ctrl_indicadores: 'dashboard',
+    can_view_ctrl_dre:         'pl',
+    can_view_ctrl_sales:       'sales',
+    can_view_ctrl_ops:         'ops',
+    can_view_ctrl_logistics:   'logistics',
+    can_view_ctrl_rh:          'rh',
+    can_view_ctrl_fluxo_caixa: 'dfc',
+  };
+  try {
+    const jwt = localStorage.getItem('token');
+    if (jwt) {
+      const r = await fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + jwt } });
+      if (r.ok) {
+        const me = await r.json();
+        const perms = me.permissions || {};
+        const allowedTabs = Object.entries(PERM_TO_TAB)
+          .filter(([perm]) => perms[perm] !== false)
+          .map(([, tab]) => tab);
+        const hasAllTabs = allowedTabs.length === Object.keys(PERM_TO_TAB).length;
+        const perfil = hasAllTabs ? 'Adm' : 'Leitura';
+        const pages  = hasAllTabs ? [] : allowedTabs;
+        const autoUser = { nome: me.name, email: me.email, hash: '', salt: '', perfil, pages, ultimo: '—' };
+        saveUsers([autoUser]);
+        gsmUsers = [autoUser];
+        _completeLogin(autoUser, [autoUser]);
+        return;
+      }
+    }
+  } catch(e) {}
+  // Fallback: acesso completo se JWT indisponível
+  const fallback = { nome: 'Gestora Smart', email: 'admin@gestorasmart.com.br', hash: '', salt: '', perfil: 'Adm', pages: [], ultimo: '—' };
+  saveUsers([fallback]);
+  gsmUsers = [fallback];
+  _completeLogin(fallback, [fallback]);
+})();
 renderAcessos();
 
 // Dual period filter — year + month/period
@@ -5886,8 +6671,8 @@ function computePeriodData(dm) {
     isRealTickets[i] = isReal[i];
     isRealRH[i]      = isReal[i];
   });
-  ebitda.forEach((v,i) => { if (v!=null && v!==0) ebitdaIsReal[i] = true; });
-  lucroLiquido.forEach((v,i) => { if (v!=null && v!==0) ebitdaIsReal[i] = true; });
+  // ebitdaIsReal: alinhado com isReal (meses com Receita > 0 na planilha)
+  for (let i = 0; i < 12; i++) { ebitdaIsReal[i] = isReal[i]; }
   saldoAcum.forEach((v,i) => { if (v!=null && v!==0) saldoIsReal[i] = true; });
 
   // Guarda snapshot dos valores Saldo_Acum diretos da aba 2026 (inclui meses futuros preenchidos)
@@ -6115,6 +6900,12 @@ function computePeriodData(dm) {
   buildDFCTable();
 }
 
+function trocarModulo() {
+  if (window !== window.parent) {
+    window.parent.postMessage({ type: 'TROCAR_MODULO' }, '*');
+  }
+}
+
 let _syncInProgress = false;
 async function syncFromSheets() {
   if (_syncInProgress) return;
@@ -6128,6 +6919,9 @@ async function syncFromSheets() {
   if (statusEl) { statusEl.style.display='block'; statusEl.style.background='var(--primary-light)'; statusEl.style.color='var(--primary-dark)'; statusEl.textContent=`🔄 Conectando ao Google Sheets — aba "${year}"…`; }
 
   try {
+    // Limpa o cache do servidor antes de buscar — garante dados frescos da planilha
+    await fetch('/api/cache/clear', { method: 'POST', headers: API_HEADERS }).catch(() => {});
+
     // Fetch tab named after the year ("2026", "2025", ...)
     const resp = await fetch(SHEET_CSV(year), { cache: 'no-store', headers: API_HEADERS });
     if (!resp.ok) throw new Error(`HTTP ${resp.status} — verifique se a planilha está pública e se a aba "${year}" existe`);
@@ -6173,6 +6967,19 @@ async function syncFromSheets() {
         });
         if (newSaidas.length > 0) {
           saidasData.splice(0, saidasData.length, ...newSaidas);
+          // Sobrescreve lucroLiquido com a linha "Resultado do mês" da aba Saidas
+          // (somente meses reais — não sobrescreve previsão)
+          const resGrp = newSaidas.find(g =>
+            g.cat === 'Resultado do Mês' || g.cat === 'Resultado do mês' ||
+            g.cat.toLowerCase().startsWith('resultado do m')
+          );
+          if (resGrp?._headerVals) {
+            for (let m = 0; m < 12; m++) {
+              if (isReal[m] && resGrp._headerVals[m] != null) {
+                lucroLiquido[m] = resGrp._headerVals[m];
+              }
+            }
+          }
         }
       }
     } catch(e) { console.warn('[Sync] Aba Saidas:', e.message); }
