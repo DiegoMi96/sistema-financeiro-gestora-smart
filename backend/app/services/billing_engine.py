@@ -87,6 +87,8 @@ class BillingEngineService:
         base_size = os.path.getsize(base_path) / 1024 / 1024 if base_path else 0
         print(f"📂 Carregando base ({base_size:.1f} MB)...", flush=True)
         df_base       = self._load_base(base_bytes if base_bytes is not None else base_path)
+        base_bytes    = None  # libera bytes crus imediatamente após carregar em DataFrame
+        gc.collect()
         print(f"📂 Base: {len(df_base)} linhas", flush=True)
 
         # Deduplicar: ICCID que aparece como Ativo e Cancelamento → manter só Cancelamento
