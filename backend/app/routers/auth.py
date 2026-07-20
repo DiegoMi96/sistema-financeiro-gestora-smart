@@ -36,6 +36,7 @@ class UserCreate(BaseModel):
     can_manage_users: Optional[bool]      = None
     can_view_contestacao: Optional[bool]  = None
     can_view_comissao: Optional[bool]     = None
+    can_view_smt: Optional[bool]          = None
 
 
 class UserUpdate(BaseModel):
@@ -49,6 +50,7 @@ class UserUpdate(BaseModel):
     can_manage_users: Optional[bool]      = None
     can_view_contestacao: Optional[bool]  = None
     can_view_comissao: Optional[bool]     = None
+    can_view_smt: Optional[bool]          = None
 
 
 class PasswordChange(BaseModel):

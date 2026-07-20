@@ -74,6 +74,7 @@ class User(Base):
     can_manage_users      = Column(Boolean, default=None)
     can_view_contestacao  = Column(Boolean, default=None)
     can_view_comissao     = Column(Boolean, default=None)
+    can_view_smt          = Column(Boolean, default=None)
 
     # Relacionamentos
     adjustments = relationship("BillingAdjustment", foreign_keys="BillingAdjustment.created_by_id", back_populates="created_by_user")
