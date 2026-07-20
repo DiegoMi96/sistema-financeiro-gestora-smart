@@ -92,6 +92,7 @@ def _run_migrations():
     ]
     try:
         cols.append(("users", "custom_role_key", "VARCHAR(100)"))
+        cols.append(("users", "can_view_smt",    "BOOLEAN"))
         for table, col, typ in cols:
             db.execute(text(f"""
                 DO $$ BEGIN
