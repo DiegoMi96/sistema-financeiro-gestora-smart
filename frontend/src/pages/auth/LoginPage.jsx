@@ -10,14 +10,18 @@ export default function LoginPage() {
   const [showPass, setShowPass]   = useState(false)
   const [loading, setLoading]     = useState(false)
   const [logo, setLogo]           = useState(null)
+  const [logoLoaded, setLogoLoaded] = useState(false)
   const { login } = useAuth()
   const navigate  = useNavigate()
 
   useEffect(() => {
     fetch('/api/settings/public')
       .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d?.empresa_logo) setLogo(d.empresa_logo) })
-      .catch(() => {})
+      .then(d => {
+        if (d?.empresa_logo) setLogo(d.empresa_logo)
+        setLogoLoaded(true)
+      })
+      .catch(() => setLogoLoaded(true))
   }, [])
 
   const handleSubmit = async (e) => {
@@ -38,11 +42,11 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col items-center justify-center p-4"
       style={{ background: 'linear-gradient(135deg, #060E07 0%, #0D1F10 100%)' }}>
 
-      {/* Logo — marginBottom negativo compensa o espaço transparente da imagem */}
-      <div className="text-center" style={{ marginBottom: logo ? -30 : 16 }}>
+      {/* Logo */}
+      <div className="text-center" style={{ marginBottom: logo ? -30 : 16, minHeight: 80 }}>
         {logo ? (
           <img src={logo} alt="Logo" style={{ height: 260, maxWidth: 480, objectFit: 'contain', objectPosition: 'center top' }} />
-        ) : (
+        ) : logoLoaded ? (
           <div>
             <p style={{ color: '#9CA3AF', fontSize: '10px', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase' }}>GESTORA</p>
             <p style={{ color: '#FFFFFF', fontSize: '36px', fontWeight: 900, letterSpacing: '-1px', lineHeight: 1 }}>SMART</p>
@@ -50,7 +54,7 @@ export default function LoginPage() {
               <p style={{ color: '#FFFFFF', fontSize: '8px', fontWeight: 700, letterSpacing: '0.1em' }}>SIMCARD | HARDWARE | SOFTWARE</p>
             </div>
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Card */}
