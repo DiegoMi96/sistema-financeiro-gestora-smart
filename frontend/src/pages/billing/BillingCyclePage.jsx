@@ -370,12 +370,10 @@ export default function BillingCyclePage() {
             <div className="flex border-b border-gray-100 min-w-[1100px]" style={{background:'#F9FAFB'}}>
               {COLS.map(({ key, label, fixed }) => (
                 <div key={key}
-                  className={`${fixed ? 'w-56 shrink-0' : 'flex-1'} gs-th cursor-pointer select-none hover:text-gray-600`}
+                  className={`${fixed ? 'w-56 shrink-0' : 'flex-1'} gs-th cursor-pointer select-none hover:text-gray-600 relative`}
                   onClick={() => handleSort(key)}>
-                  <span className="inline-flex items-center justify-center gap-1">
-                    {label}
-                    <span className="text-gray-400">{sortCol === key ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
-                  </span>
+                  <span>{label}</span>
+                  <span className="absolute right-1 text-gray-400 text-xs">{sortCol === key ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
                 </div>
               ))}
               <div className="w-8 shrink-0 gs-th" />
