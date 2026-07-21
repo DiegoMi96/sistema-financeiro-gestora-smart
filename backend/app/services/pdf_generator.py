@@ -192,7 +192,7 @@ def _num(v) -> str:
 
 
 def generate_client_invoice_pdf(
-    cycle, lines, summary, adjustments,
+    cycle, agg_rows, summary, adjustments,
     client=None, asaas_cust=None, nome_override=None, cpf_cnpj_override=None,
 ) -> io.BytesIO:
 
@@ -258,7 +258,8 @@ def generate_client_invoice_pdf(
         due_date = datetime.date(venc_y, venc_m, dia)
     vencimento = due_date.strftime("%d/%m/%Y") if hasattr(due_date, "strftime") else str(due_date)
 
-    # ── Agregações por linha ─────────────────────────────────
+    # ── Agrega linhas pré-computadas pelo SQL GROUP BY ───────────
+    # agg_rows: (grupo, operadora, qtd, mens, atv, mb_exc, qtd_sms)
     by_op = defaultdict(lambda: {"qtd": 0, "mens": 0.0, "atv": 0.0})
     by_st = defaultdict(lambda: {"qtd": 0, "valor": 0.0})
     qtd_mb = 0.0
@@ -266,28 +267,40 @@ def generate_client_invoice_pdf(
     qtd_frete = 0
     qtd_msg = 0
 
-    for ln in lines:
-        st = (ln.status or "").strip()
-        # Suspenso é exibido como Ativo no PDF (mantém cobrança)
-        is_ativo = st in ("Ativo", "Suspenso") or st.startswith("Aguardando")
-        if is_ativo:
-            op = (ln.operadora or "OUTROS").upper().strip()
-            key = next((o for o in OPERADORAS if op.startswith(o)), "OUTROS")
-            by_op[key]["qtd"]  += 1
-            by_op[key]["mens"] += ln.mensalidade_cobrada or 0
-            by_op[key]["atv"]  += ln.ativacao_cobrada    or 0
-            if (ln.excedente_cobrado or 0) > 0:
-                qtd_mb += (ln.credito_simcard_kb or 0) / 1024
-        elif st == "Cancelamento":
-            by_st["Cancelamento"]["qtd"] += 1
-        elif st == "Pré-ativo":
-            by_st["Pré-ativo"]["qtd"] += 1
-        elif st.lower() == "frete":
-            qtd_frete += 1
-        elif st.lower() == "pacote mensageria":
-            qtd_msg += 1
-        if (ln.total_sms or 0) > 0 if hasattr(ln, "total_sms") else False:
-            qtd_sms += 1
+    def _attr(row, name, idx):
+        v = getattr(row, name, None)
+        if v is None:
+            try:
+                v = row[idx]
+            except Exception:
+                v = None
+        return v
+
+    for row in agg_rows:
+        grupo    = str(_attr(row, "grupo",    0) or "").strip()
+        operadora = str(_attr(row, "operadora", 1) or "OUTROS").upper().strip()
+        qtd      = int(_attr(row, "qtd",    2) or 0)
+        mens     = float(_attr(row, "mens",  3) or 0)
+        atv      = float(_attr(row, "atv",   4) or 0)
+        mb_exc   = float(_attr(row, "mb_exc", 5) or 0)
+        sms_qtd  = int(_attr(row, "qtd_sms", 6) or 0)
+
+        key = next((o for o in OPERADORAS if operadora.startswith(o)), "OUTROS")
+
+        if grupo == "ativo":
+            by_op[key]["qtd"]  += qtd
+            by_op[key]["mens"] += mens
+            by_op[key]["atv"]  += atv
+            qtd_mb  += mb_exc
+            qtd_sms += sms_qtd
+        elif grupo == "cancelamento":
+            by_st["Cancelamento"]["qtd"] += qtd
+        elif grupo == "pre_ativo":
+            by_st["Pré-ativo"]["qtd"] += qtd
+        elif grupo == "frete":
+            qtd_frete += qtd
+        elif grupo == "mensageria":
+            qtd_msg += qtd
 
     val_exc    = (summary.total_excedente    or 0) if summary else 0
     val_sms    = (summary.total_sms          or 0) if summary else 0

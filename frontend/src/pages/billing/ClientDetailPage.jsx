@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { billingApi } from '../../services/api'
 import { useAuth } from '../../contexts/AuthContext'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Download, Plus, ChevronLeft, ChevronRight, DollarSign, Zap, TrendingUp, AlertCircle, MessageSquare, Truck, Bell, Wallet, Lock, X } from 'lucide-react'
+import { ArrowLeft, Download, Plus, ChevronLeft, ChevronRight, DollarSign, Zap, TrendingUp, AlertCircle, MessageSquare, Truck, Bell, Wallet, Lock, X, Loader2 } from 'lucide-react'
 
 const OFENSORES = [
   'Sistema','Proporcional','Financeiro','Logística','Comercial','Pacote','Transferência','Anuidade','Payments'
@@ -24,6 +24,8 @@ export default function ClientDetailPage() {
   const [linePage, setLinePage] = useState(1)
   const [sortCol, setSortCol] = useState(null)
   const [sortDir, setSortDir] = useState('asc')
+  const [pdfLoading, setPdfLoading] = useState(false)
+  const [excelLoading, setExcelLoading] = useState(false)
 
   const id = decodeURIComponent(idSmart)
 
@@ -76,6 +78,8 @@ const { data: adjustments = [] } = useQuery({
   const totalFinal   = totals.total + totalAjustes
 
   const handleExportPdf = async () => {
+    if (pdfLoading) return
+    setPdfLoading(true)
     try {
       const r = await billingApi.exportPdf(+cycleId, id)
       const url = URL.createObjectURL(new Blob([r.data], { type: 'application/pdf' }))
@@ -85,9 +89,12 @@ const { data: adjustments = [] } = useQuery({
       a.click()
       URL.revokeObjectURL(url)
     } catch { toast.error('Erro ao gerar PDF') }
+    finally { setPdfLoading(false) }
   }
 
   const handleExportExcel = async () => {
+    if (excelLoading) return
+    setExcelLoading(true)
     try {
       const r = await billingApi.exportClientExcel(+cycleId, id)
       const url = URL.createObjectURL(new Blob([r.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }))
@@ -97,6 +104,7 @@ const { data: adjustments = [] } = useQuery({
       a.click()
       URL.revokeObjectURL(url)
     } catch { toast.error('Erro ao gerar Excel') }
+    finally { setExcelLoading(false) }
   }
 
   return (
@@ -117,13 +125,11 @@ const { data: adjustments = [] } = useQuery({
               Ajuste
             </button>
           )}
-          <button onClick={handleExportExcel} className="gs-btn gs-btn-outline gs-btn-sm">
-            <Download size={14} />
-            Faturamento Cliente
+          <button onClick={handleExportExcel} disabled={excelLoading} className="gs-btn gs-btn-outline gs-btn-sm">
+            {excelLoading ? <><Loader2 size={14} className="animate-spin" /> Gerando...</> : <><Download size={14} /> Faturamento Cliente</>}
           </button>
-          <button onClick={handleExportPdf} className="gs-btn gs-btn-outline gs-btn-sm">
-            <Download size={14} />
-            PDF
+          <button onClick={handleExportPdf} disabled={pdfLoading} className="gs-btn gs-btn-outline gs-btn-sm">
+            {pdfLoading ? <><Loader2 size={14} className="animate-spin" /> Gerando PDF...</> : <><Download size={14} /> PDF</>}
           </button>
         </div>
       </div>

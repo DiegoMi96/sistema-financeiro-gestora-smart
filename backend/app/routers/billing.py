@@ -1448,9 +1448,14 @@ def export_client_pdf(
     from app.models import Client
 
     cycle   = db.query(BillingCycle).filter(BillingCycle.id == cycle_id).first()
-    lines   = db.query(BillingLine).filter(BillingLine.cycle_id == cycle_id, BillingLine.id_smart == id_smart).all()
-    summary = db.query(BillingClientSummary).filter(BillingClientSummary.cycle_id == cycle_id, BillingClientSummary.id_smart == id_smart).first()
-    adjs    = db.query(BillingAdjustment).filter(BillingAdjustment.cycle_id == cycle_id, BillingAdjustment.id_smart == id_smart).all()
+    summary = db.query(BillingClientSummary).filter(
+        BillingClientSummary.cycle_id == cycle_id,
+        BillingClientSummary.id_smart == id_smart
+    ).first()
+    adjs    = db.query(BillingAdjustment).filter(
+        BillingAdjustment.cycle_id == cycle_id,
+        BillingAdjustment.id_smart == id_smart
+    ).all()
     client  = db.query(Client).filter(Client.id_smart == id_smart).first()
 
     if not summary:
@@ -1458,8 +1463,35 @@ def export_client_pdf(
 
     cpf_cnpj_raw = id_smart.replace("ss_", "").replace("SS_", "")
 
-    # Busca dados completos do cliente no Asaas sync
-    # Prioridade: external_reference (id_smart exato) > cpf_cnpj (fallback)
+    # SQL GROUP BY — substitui ORM + iteração Python sobre potencialmente milhares de linhas.
+    # Retorna ~10 linhas (uma por grupo×operadora) em vez de N linhas individuais.
+    agg_rows = db.execute(
+        text("""
+            SELECT
+                CASE
+                    WHEN status IN ('Ativo', 'Suspenso') OR status LIKE 'Aguardando%%' THEN 'ativo'
+                    WHEN status = 'Cancelamento'  THEN 'cancelamento'
+                    WHEN status = 'Pré-ativo'     THEN 'pre_ativo'
+                    WHEN lower(status) = 'frete'  THEN 'frete'
+                    WHEN lower(status) = 'pacote mensageria' THEN 'mensageria'
+                    ELSE 'outros'
+                END AS grupo,
+                upper(operadora) AS operadora,
+                COUNT(*)                                                             AS qtd,
+                COALESCE(SUM(mensalidade_cobrada), 0)                               AS mens,
+                COALESCE(SUM(ativacao_cobrada), 0)                                  AS atv,
+                COALESCE(SUM(CASE WHEN COALESCE(excedente_cobrado,0) > 0
+                                  THEN COALESCE(credito_simcard_kb, 0)
+                                  ELSE 0 END), 0) / 1024.0                          AS mb_exc,
+                COUNT(*) FILTER (WHERE COALESCE(sms_cobrado, 0) > 0)                AS qtd_sms
+            FROM billing_lines
+            WHERE cycle_id = :cid AND id_smart = :smart
+            GROUP BY 1, 2
+        """),
+        {"cid": cycle_id, "smart": id_smart}
+    ).fetchall()
+
+    # Dados do Asaas: external_reference (id_smart exato) > cpf_cnpj (fallback)
     asaas_cust = None
     try:
         asaas_cust = db.execute(
@@ -1486,11 +1518,10 @@ def export_client_pdf(
     except Exception:
         pass
 
-    # nome_override: usa nome do summary como fallback quando Asaas não tem dados
     nome_fallback = getattr(summary, "nome_cliente", None) or None
 
     output = generate_client_invoice_pdf(
-        cycle, lines, summary, adjs,
+        cycle, agg_rows, summary, adjs,
         client=client,
         asaas_cust=asaas_cust,
         nome_override=nome_fallback,
