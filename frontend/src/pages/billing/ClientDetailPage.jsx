@@ -331,11 +331,25 @@ function AdjustmentModal({ cycleId, idSmart, totals, onClose, onSuccess }) {
   const INPUT = "w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:outline-none"
   const LOCKED = `${INPUT} bg-gray-50 text-gray-500 cursor-not-allowed`
 
+  const parseBRL = (str) => {
+    if (!str && str !== 0) return 0
+    const s = str.toString().replace(/\./g, '').replace(',', '.')
+    return parseFloat(s) || 0
+  }
+  const fmtBRL = (num) => {
+    const n = typeof num === 'string' ? parseBRL(num) : (num || 0)
+    return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)
+  }
+  const handleBRLBlur = (key, val) => {
+    const n = parseBRL(val)
+    if (!isNaN(n)) set(key, fmtBRL(n))
+  }
+
   const [form, setForm] = useState({
     type: 'desconto',
     component: 'total',
     ofensor: '',
-    valor_original: totals?.total?.toFixed(2) ?? '',
+    valor_original: totals?.total ? fmtBRL(totals.total) : '',
     valor_ajustado: '',
     analista: user?.name || '',
     consultor: '',
@@ -346,7 +360,7 @@ function AdjustmentModal({ cycleId, idSmart, totals, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false)
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
 
-  const diff = parseFloat(form.valor_ajustado || 0) - parseFloat(form.valor_original || 0)
+  const diff = parseBRL(form.valor_ajustado) - parseBRL(form.valor_original)
   const needsApproval = Math.abs(diff) > 3000
 
   const handleSubmit = async (e) => {
@@ -358,8 +372,8 @@ function AdjustmentModal({ cycleId, idSmart, totals, onClose, onSuccess }) {
       await billingApi.createAdjustment(+cycleId, {
         ...form,
         id_smart: idSmart,
-        valor_original: parseFloat(form.valor_original),
-        valor_ajustado: parseFloat(form.valor_ajustado),
+        valor_original: parseBRL(form.valor_original),
+        valor_ajustado: parseBRL(form.valor_ajustado),
       })
       toast.success('Ajuste criado!')
       onSuccess()
@@ -444,13 +458,17 @@ function AdjustmentModal({ cycleId, idSmart, totals, onClose, onSuccess }) {
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="gs-label mb-1 flex items-center gap-0.5 whitespace-nowrap">Valor Fatura (R$) <span className="text-red-500">*</span></label>
-              <input type="number" step="0.01" value={form.valor_original}
-                onChange={e => set('valor_original', e.target.value)} required placeholder="0,00" className={INPUT} />
+              <input type="text" inputMode="decimal" value={form.valor_original}
+                onChange={e => set('valor_original', e.target.value)}
+                onBlur={e => handleBRLBlur('valor_original', e.target.value)}
+                required placeholder="0,00" className={INPUT} />
             </div>
             <div>
               <label className="gs-label mb-1 flex items-center gap-0.5 whitespace-nowrap">Valor Ajustado (R$) <span className="text-red-500">*</span></label>
-              <input type="number" step="0.01" value={form.valor_ajustado}
-                onChange={e => set('valor_ajustado', e.target.value)} required placeholder="0,00" className={INPUT} />
+              <input type="text" inputMode="decimal" value={form.valor_ajustado}
+                onChange={e => set('valor_ajustado', e.target.value)}
+                onBlur={e => handleBRLBlur('valor_ajustado', e.target.value)}
+                required placeholder="0,00" className={INPUT} />
             </div>
             <div>
               <label className="gs-label block mb-1">Diferença</label>
