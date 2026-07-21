@@ -78,6 +78,26 @@ function ListaVencidos({ rows }) {
   const thSort = (key, align = 'text-left') =>
     `${align} py-2 px-4 cursor-pointer select-none hover:text-gray-600`
 
+  function downloadCsvVencidos() {
+    const bom    = '﻿'
+    const header = 'Cliente;CNPJ;Banco;1º Vencimento;Valor Vencido (R$);Dias;Histórico\n'
+    const body   = filtered.map(r => {
+      const venc = r.vencimento_orig
+        ? r.vencimento_orig.slice(8,10) + '/' + r.vencimento_orig.slice(5,7) + '/' + r.vencimento_orig.slice(0,4)
+        : ''
+      const val  = Number(r.valor || 0).toFixed(2).replace('.', ',')
+      const hist = r.historico_tot > 0 ? `${r.historico_rec}/${r.historico_tot}` : ''
+      return `"${r.nome || ''}";"${r.cnpj || ''}";"${r.banco || ''}";"${venc}";"${val}";"${r.dias ?? ''}";"${hist}"`
+    }).join('\n')
+    const blob = new Blob([bom + header + body], { type: 'text/csv;charset=utf-8' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href     = url
+    a.download = `vencidos_${new Date().toISOString().slice(0,10)}.csv`
+    document.body.appendChild(a); a.click()
+    document.body.removeChild(a); URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="gs-card overflow-hidden">
       <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-4">
@@ -90,6 +110,14 @@ function ListaVencidos({ rows }) {
           className="gs-input text-sm w-48"
         />
         <span className="text-xs text-gray-400 whitespace-nowrap">{filtered.length} clientes</span>
+        <button
+          onClick={downloadCsvVencidos}
+          title="Baixar lista em CSV"
+          className="gs-btn gs-btn-outline gs-btn-sm flex items-center gap-1.5"
+        >
+          <Download size={14} />
+          <span className="hidden sm:inline">Exportar</span>
+        </button>
       </div>
 
       <div className="overflow-x-auto">

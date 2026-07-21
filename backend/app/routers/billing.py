@@ -1542,9 +1542,8 @@ def export_client_excel(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Excel linha a linha do cliente — formato 52 colunas idêntico ao Faturamento.xlsx."""
+    """Excel linha a linha do cliente — formato 32 colunas, geração rápida."""
     from fastapi.responses import StreamingResponse
-    from app.services.excel_generator import generate_faturamento_excel
     from sqlalchemy import text
 
     cycle = db.query(BillingCycle).filter(BillingCycle.id == cycle_id).first()
@@ -1563,7 +1562,8 @@ def export_client_excel(
         text("""
             SELECT
                 bl.id_smart, bl.iccid, bl.msisdn, bl.operadora, bl.status,
-                bl.nome_pedido, bl.bloqueio_automatico, bl.nome_contrato, bl.fornecedor,
+                bl.nome_pedido, bl.id_pedido, bl.nome_contrato, bl.id_contrato,
+                bl.bloqueio_automatico, bl.fornecedor,
                 bl.bloqueio_imei, bl.imsi, bl.status_bloqueio_rede,
                 bl.apelido, bl.observacao, bl.tipo_compartilhamento,
                 bl.operadora_especifica, bl.elegivel_suspensao,
@@ -1573,7 +1573,7 @@ def export_client_excel(
                 bl.data_inicio_bloqueio, bl.data_fim_bloqueio_rede,
                 bl.data_inicio_suspensao, bl.data_fim_suspensao, bl.data_fim_pre_ativacao,
                 bl.mensalidade_base, bl.preco_ativacao, bl.preco_mb_excedente,
-                bl.credito_simcard_kb, bl.credito_contrato,
+                bl.credito_simcard_kb, bl.franquia_mb, bl.credito_contrato,
                 bl.tipo_fidelidade, bl.multa_contrato,
                 bl.dias_pre_ativacao, bl.porcentagem_consumo, bl.consumo_total_kb,
                 bl.reajuste_pct, bl.mensalidade_reaj, bl.dias,
@@ -1588,7 +1588,8 @@ def export_client_excel(
         {"cid": cycle_id, "smart": id_smart}
     ).fetchall()
 
-    output   = generate_faturamento_excel(cycle, rows)
+    from app.services.excel_generator import generate_client_excel_fast
+    output   = generate_client_excel_fast(cycle, rows)
     filename = f"Detalhamento_{id_smart}_{cycle.month:02d}{cycle.year}.xlsx"
     return StreamingResponse(
         output,

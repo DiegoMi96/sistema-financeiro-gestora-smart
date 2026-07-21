@@ -254,6 +254,58 @@ def generate_client_lines_excel(cycle, lines, summary, client_name: str = "") ->
     return generate_faturamento_excel(cycle, [_Wrapped(ln) for ln in lines])
 
 
+def generate_client_excel_fast(cycle, lines) -> io.BytesIO:
+    """
+    Versão otimizada para clientes com muitas linhas.
+    Escreve linhas de dados como valores Python simples (sem WriteOnlyCell por célula),
+    aplicando formatos via column_dimensions. ~10x mais rápido que generate_faturamento_excel.
+    """
+    from openpyxl.styles import NamedStyle
+
+    buf = io.BytesIO()
+    wb  = Workbook(write_only=True)
+
+    # Registrar named styles para usar nas colunas
+    _ns_brl = NamedStyle(name='col_brl')
+    _ns_brl.number_format = BRL
+    _ns_brl.alignment     = Alignment(horizontal='right', vertical='center')
+    _ns_pct = NamedStyle(name='col_pct')
+    _ns_pct.number_format = PCT
+    _ns_pct.alignment     = Alignment(horizontal='right', vertical='center')
+    wb.add_named_style(_ns_brl)
+    wb.add_named_style(_ns_pct)
+
+    ws = wb.create_sheet(f"{MESES[cycle.month]} {cycle.year}")
+
+    # Larguras e formatos de coluna (aplicados a células sem estilo explícito)
+    _WIDTHS = [22,18,14,14,22,18,14,22,18,30,12,24,18,18,16,18,14,14,20,20,22,22,16,10,14,12,16,10,8,14,12,14]
+    for i, w in enumerate(_WIDTHS, 1):
+        letter = get_column_letter(i)
+        ws.column_dimensions[letter].width = w
+        if i in _MONEY_COLS:
+            ws.column_dimensions[letter].style = 'col_brl'
+        elif i in _PCT_COLS:
+            ws.column_dimensions[letter].style = 'col_pct'
+
+    # Cabeçalho formatado
+    hdr_cells = []
+    for col_idx, h in enumerate(HEADERS_32, 1):
+        c = WriteOnlyCell(ws, value=h)
+        c.fill      = CALC_FILL if col_idx in _CALC_COLS else HDR_FILL
+        c.font      = HDR_FONT
+        c.alignment = HDR_ALIGN
+        hdr_cells.append(c)
+    ws.append(hdr_cells)
+
+    # Dados — valores Python simples, sem WriteOnlyCell (colunas herdam formato do column_dimension)
+    for line in lines:
+        ws.append(_row_from_line(line))
+
+    wb.save(buf)
+    buf.seek(0)
+    return buf
+
+
 # ════════════════════════════════════════════════════════════════
 #  Resumo por cliente (uma linha por cliente)
 # ════════════════════════════════════════════════════════════════
