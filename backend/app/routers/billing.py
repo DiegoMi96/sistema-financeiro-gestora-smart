@@ -1007,8 +1007,8 @@ def create_adjustment(
     cycle = db.query(BillingCycle).filter(BillingCycle.id == cycle_id).first()
     if not cycle:
         raise HTTPException(status_code=404, detail="Ciclo não encontrado")
-    if cycle.status in (BillingStatus.FECHADO, BillingStatus.APROVADO):
-        raise HTTPException(status_code=400, detail="Ciclo já fechado ou aprovado — ajustes não permitidos")
+    if cycle.status == BillingStatus.FECHADO:
+        raise HTTPException(status_code=400, detail="Ciclo fechado — ajustes não permitidos")
 
     # Ajuste acima de R$3.000 requer aprovação do gestor/admin
     diferenca = abs(data.valor_ajustado - data.valor_original)
