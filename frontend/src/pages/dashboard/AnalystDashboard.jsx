@@ -102,14 +102,6 @@ function ListaVencidos({ rows }) {
     <div className="gs-card overflow-hidden">
       <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-4">
         <h2 className="gs-section-title whitespace-nowrap flex-1">Lista de vencidos do mês</h2>
-        <input
-          type="text"
-          placeholder="Buscar cliente..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="gs-input text-sm w-48"
-        />
-        <span className="text-xs text-gray-400 whitespace-nowrap">{filtered.length} clientes</span>
         <button
           onClick={downloadCsvVencidos}
           title="Baixar lista em CSV"
@@ -118,6 +110,14 @@ function ListaVencidos({ rows }) {
           <Download size={14} />
           <span className="hidden sm:inline">Exportar</span>
         </button>
+        <input
+          type="text"
+          placeholder="Buscar cliente..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="gs-input text-sm w-48"
+        />
+        <span className="text-xs text-gray-400 whitespace-nowrap">{filtered.length} clientes</span>
       </div>
 
       <div className="overflow-x-auto">
