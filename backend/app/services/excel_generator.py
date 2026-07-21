@@ -260,6 +260,7 @@ def generate_client_excel_fast(cycle, lines) -> io.BytesIO:
     Cabeçalho com formatação completa; linhas de dados como valores Python simples
     (sem WriteOnlyCell por célula). ~10x mais rápido que generate_faturamento_excel.
     """
+    from openpyxl.cell import WriteOnlyCell
     buf = io.BytesIO()
     wb  = Workbook(write_only=True)
     ws  = wb.create_sheet(f"{MESES[cycle.month]} {cycle.year}")
