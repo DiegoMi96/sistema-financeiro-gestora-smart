@@ -996,6 +996,17 @@ def list_adjustments(
     return [_adjustment_to_dict(a) for a in adjs]
 
 
+_COMPONENT_FIELD_MAP = {
+    'mensalidade': 'total_mensalidade',
+    'ativacao':    'total_ativacao',
+    'excedente':   'total_excedente',
+    'multa':       'total_multa',
+    'sms':         'total_sms',
+    'frete':       'total_frete',
+    'mensageria':  'total_mensageria',
+}
+
+
 @router.post("/cycles/{cycle_id}/adjustments", status_code=201)
 def create_adjustment(
     cycle_id: int,
@@ -1048,8 +1059,12 @@ def create_adjustment(
         BillingClientSummary.id_smart == data.id_smart,
     ).first()
     if summary:
-        summary.total_ajustes += (data.valor_ajustado - data.valor_original)
-        summary.total_final   += (data.valor_ajustado - data.valor_original)
+        valor_diferenca = data.valor_ajustado - data.valor_original
+        summary.total_ajustes += valor_diferenca
+        summary.total_final   += valor_diferenca
+        if data.component and data.component in _COMPONENT_FIELD_MAP:
+            comp_field = _COMPONENT_FIELD_MAP[data.component]
+            setattr(summary, comp_field, round((getattr(summary, comp_field) or 0) + valor_diferenca, 2))
 
     db.add(AuditLog(
         user_id=current_user.id,
@@ -1097,12 +1112,48 @@ def approve_adjustment(
                 raise HTTPException(status_code=409, detail="Summary do cliente não encontrado — reversão não é possível")
             summary.total_ajustes -= adj.valor_diferenca
             summary.total_final   -= adj.valor_diferenca
+            if adj.component and adj.component in _COMPONENT_FIELD_MAP:
+                comp_field = _COMPONENT_FIELD_MAP[adj.component]
+                setattr(summary, comp_field, round((getattr(summary, comp_field) or 0) - adj.valor_diferenca, 2))
             db.delete(adj)
         db.commit()
     except Exception:
         db.rollback()
         raise HTTPException(status_code=500, detail="Erro ao processar ajuste")
     return {"message": "Aprovado" if data.approved else "Rejeitado"}
+
+
+@router.delete("/cycles/{cycle_id}/adjustments/{adj_id}", status_code=204)
+def delete_adjustment(
+    cycle_id: int,
+    adj_id: int,
+    current_user: User = Depends(require_permission("can_create_adjustment")),
+    db: Session = Depends(get_db),
+):
+    adj = db.query(BillingAdjustment).filter(
+        BillingAdjustment.id == adj_id,
+        BillingAdjustment.cycle_id == cycle_id,
+    ).first()
+    if not adj:
+        raise HTTPException(status_code=404, detail="Ajuste não encontrado")
+
+    cycle = db.query(BillingCycle).filter(BillingCycle.id == cycle_id).first()
+    if cycle and cycle.status == BillingStatus.FECHADO:
+        raise HTTPException(status_code=400, detail="Ciclo fechado — não é possível remover ajuste")
+
+    summary = db.query(BillingClientSummary).filter(
+        BillingClientSummary.cycle_id == cycle_id,
+        BillingClientSummary.id_smart == adj.id_smart,
+    ).first()
+    if summary:
+        summary.total_ajustes -= adj.valor_diferenca
+        summary.total_final   -= adj.valor_diferenca
+        if adj.component and adj.component in _COMPONENT_FIELD_MAP:
+            comp_field = _COMPONENT_FIELD_MAP[adj.component]
+            setattr(summary, comp_field, round((getattr(summary, comp_field) or 0) - adj.valor_diferenca, 2))
+
+    db.delete(adj)
+    db.commit()
 
 
 # ─────────────────────────────────────────────

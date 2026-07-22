@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { billingApi } from '../../services/api'
 import { useAuth } from '../../contexts/AuthContext'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Download, Plus, ChevronLeft, ChevronRight, DollarSign, Zap, TrendingUp, AlertCircle, MessageSquare, Truck, Bell, Wallet, Lock, X, Loader2 } from 'lucide-react'
+import { ArrowLeft, Download, Plus, ChevronLeft, ChevronRight, DollarSign, Zap, TrendingUp, AlertCircle, MessageSquare, Truck, Bell, Wallet, Lock, X, Loader2, Trash2 } from 'lucide-react'
 
 const OFENSORES = [
   'Sistema','Proporcional','Financeiro','Logística','Comercial','Pacote','Transferência','Anuidade','Payments'
@@ -59,6 +59,16 @@ const { data: adjustments = [] } = useQuery({
     staleTime: 5 * 60 * 1000,
   })
 
+  const deleteAdjMutation = useMutation({
+    mutationFn: (adjId) => billingApi.deleteAdjustment(+cycleId, adjId),
+    onSuccess: () => {
+      toast.success('Ajuste removido')
+      qc.invalidateQueries({ queryKey: ['cycle-adjustments', cycleId] })
+      qc.invalidateQueries({ queryKey: ['client-summary', cycleId, id] })
+    },
+    onError: (e) => toast.error(e.response?.data?.detail || 'Erro ao remover ajuste'),
+  })
+
   const clientAdjs = adjustments.filter(a => a.id_smart === id)
 
   // Totais do summary (chegam rápido, sem esperar carregar todas as linhas)
@@ -74,8 +84,7 @@ const { data: adjustments = [] } = useQuery({
     total:        summaryData?.total_final        || 0,
   }
 
-  const totalAjustes = clientAdjs.reduce((s, a) => s + (a.valor_diferenca || 0), 0)
-  const totalFinal   = totals.total + totalAjustes
+  const totalFinal = totals.total
 
   const handleExportPdf = async () => {
     if (pdfLoading) return
@@ -193,14 +202,29 @@ const { data: adjustments = [] } = useQuery({
           <h3 className="text-sm font-semibold text-amber-800 mb-3">Ajustes na fatura ({clientAdjs.length})</h3>
           <div className="space-y-2">
             {clientAdjs.map(a => (
-              <div key={a.id} className="flex items-center justify-between text-sm">
-                <div>
-                  <span className="font-medium text-amber-900">{a.type}</span>
-                  <span className="text-amber-700 ml-2">— {a.justificativa}</span>
+              <div key={a.id} className="flex items-center justify-between text-sm gap-3">
+                <div className="flex-1 min-w-0">
+                  <span className="font-medium text-amber-900 capitalize">{a.type}</span>
+                  {a.component && a.component !== 'total' && (
+                    <span className="ml-1.5 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">{a.component}</span>
+                  )}
+                  {a.ofensor && <span className="ml-1.5 text-xs text-amber-500">[{a.ofensor}]</span>}
+                  <span className="text-amber-700 ml-2 truncate">— {a.justificativa}</span>
                 </div>
-                <span className={`font-semibold ${a.valor_diferenca < 0 ? 'text-green-700' : 'text-red-700'}`}>
-                  {a.valor_diferenca >= 0 ? '+' : ''}{fmt(a.valor_diferenca)}
-                </span>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className={`font-semibold ${a.valor_diferenca < 0 ? 'text-green-700' : 'text-red-700'}`}>
+                    {a.valor_diferenca >= 0 ? '+' : ''}{fmt(a.valor_diferenca)}
+                  </span>
+                  {can('can_create_adjustment') && (
+                    <button
+                      onClick={() => { if (window.confirm('Remover este ajuste?')) deleteAdjMutation.mutate(a.id) }}
+                      disabled={deleteAdjMutation.isPending}
+                      className="text-red-400 hover:text-red-600 disabled:opacity-50"
+                      title="Excluir ajuste">
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -365,7 +389,6 @@ function AdjustmentModal({ cycleId, idSmart, totals, onClose, onSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!form.ofensor) return toast.error('Selecione o ofensor')
     if (!form.justificativa.trim()) return toast.error('Justificativa obrigatória')
     setLoading(true)
     try {
@@ -399,8 +422,8 @@ function AdjustmentModal({ cycleId, idSmart, totals, onClose, onSuccess }) {
           {/* Ofensor + Tipo */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="gs-label mb-1 flex items-center gap-0.5">Ofensor <span className="text-red-500">*</span></label>
-              <select value={form.ofensor} onChange={e => set('ofensor', e.target.value)} required className={INPUT}>
+              <label className="gs-label mb-1 flex items-center gap-0.5">Ofensor</label>
+              <select value={form.ofensor} onChange={e => set('ofensor', e.target.value)} className={INPUT}>
                 <option value="">Selecionar...</option>
                 {OFENSORES.map(o => <option key={o} value={o}>{o}</option>)}
               </select>
@@ -418,9 +441,19 @@ function AdjustmentModal({ cycleId, idSmart, totals, onClose, onSuccess }) {
 
           {/* Componente */}
           <div>
-            <label className="gs-label block mb-1">Componente</label>
-            <select value={form.component} onChange={e => set('component', e.target.value)} className={INPUT}>
-              {['total','mensalidade','ativacao','excedente','multa','sms','frete'].map(c => (
+            <label className="gs-label block mb-1">Componente <span className="text-red-500">*</span></label>
+            <select value={form.component} onChange={e => {
+              const comp = e.target.value
+              const compToTotal = {
+                mensalidade: totals?.mensalidade, ativacao: totals?.ativacao,
+                excedente: totals?.excedente, multa: totals?.multa,
+                sms: totals?.sms, frete: totals?.frete, mensageria: totals?.mensageria,
+                total: totals?.total,
+              }
+              set('component', comp)
+              if (compToTotal[comp] != null) set('valor_original', fmtBRL(compToTotal[comp]))
+            }} required className={INPUT}>
+              {['total','mensalidade','ativacao','excedente','multa','sms','frete','mensageria'].map(c => (
                 <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
               ))}
             </select>

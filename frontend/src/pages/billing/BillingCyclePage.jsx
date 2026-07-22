@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { billingApi } from '../../services/api'
 import { useAuth } from '../../contexts/AuthContext'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Download, CheckCircle, Search, ChevronRight, FileText, FileDown, Table, DollarSign, Hash, Layers, BadgeCheck, Zap, TrendingUp, AlertCircle, MessageSquare, Truck, Bell, Wallet, Loader2 } from 'lucide-react'
+import { ArrowLeft, Download, CheckCircle, Search, ChevronRight, FileText, FileDown, Table, DollarSign, Hash, Layers, BadgeCheck, Zap, TrendingUp, AlertCircle, MessageSquare, Truck, Bell, Wallet, Loader2, Trash2 } from 'lucide-react'
 
 const fmt  = v  => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0)
 const fmtN = v  => new Intl.NumberFormat('pt-BR').format(v || 0)
@@ -613,6 +613,12 @@ function AdjustmentsTab({ adjustments, cycleId, qc, can }) {
     onError: (e) => toast.error(e.response?.data?.detail || 'Erro ao atualizar ajuste'),
   })
 
+  const deleteMutation = useMutation({
+    mutationFn: (adjId) => billingApi.deleteAdjustment(+cycleId, adjId),
+    onSuccess: () => { toast.success('Ajuste removido'); qc.invalidateQueries({ queryKey: ['cycle-adjustments', cycleId] }) },
+    onError: (e) => toast.error(e.response?.data?.detail || 'Erro ao remover ajuste'),
+  })
+
   if (adjustments.length === 0)
     return <div className="p-8 text-center text-gray-400 text-sm">Nenhum ajuste registrado neste ciclo</div>
 
@@ -636,16 +642,27 @@ function AdjustmentsTab({ adjustments, cycleId, qc, can }) {
                 Componente: {a.component} · Original: {fmt(a.valor_original)} → Ajustado: {fmt(a.valor_ajustado)} ({a.valor_diferenca >= 0 ? '+' : ''}{fmt(a.valor_diferenca)})
               </p>
             </div>
-            {can('can_approve_adjustment') && a.requires_approval && !a.approved_at && (
-              <div className="flex gap-2">
-                <button onClick={() => approveMutation.mutate({ adjId: a.id, approved: true })}
-                  disabled={approveMutation.isPending}
-                  className="px-3 py-1.5 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 disabled:opacity-50">Aprovar</button>
-                <button onClick={() => approveMutation.mutate({ adjId: a.id, approved: false })}
-                  disabled={approveMutation.isPending}
-                  className="px-3 py-1.5 border border-red-300 text-red-600 text-xs rounded-lg hover:bg-red-50 disabled:opacity-50">Rejeitar</button>
-              </div>
-            )}
+            <div className="flex gap-2 shrink-0">
+              {can('can_approve_adjustment') && a.requires_approval && !a.approved_at && (
+                <>
+                  <button onClick={() => approveMutation.mutate({ adjId: a.id, approved: true })}
+                    disabled={approveMutation.isPending}
+                    className="px-3 py-1.5 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 disabled:opacity-50">Aprovar</button>
+                  <button onClick={() => approveMutation.mutate({ adjId: a.id, approved: false })}
+                    disabled={approveMutation.isPending}
+                    className="px-3 py-1.5 border border-red-300 text-red-600 text-xs rounded-lg hover:bg-red-50 disabled:opacity-50">Rejeitar</button>
+                </>
+              )}
+              {can('can_create_adjustment') && (
+                <button
+                  onClick={() => { if (window.confirm('Remover este ajuste?')) deleteMutation.mutate(a.id) }}
+                  disabled={deleteMutation.isPending}
+                  className="p-1.5 text-red-400 hover:text-red-600 border border-red-200 hover:border-red-400 rounded-lg disabled:opacity-50"
+                  title="Excluir ajuste">
+                  <Trash2 size={13} />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       ))}

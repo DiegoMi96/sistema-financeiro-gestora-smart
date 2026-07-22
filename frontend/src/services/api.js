@@ -54,6 +54,7 @@ export const billingApi = {
   adjustments:     (cycleId)                 => api.get(`/billing/cycles/${cycleId}/adjustments`),
   createAdjustment:(cycleId, data)           => api.post(`/billing/cycles/${cycleId}/adjustments`, data),
   approveAdjustment:(cycleId, adjId, data)   => api.put(`/billing/cycles/${cycleId}/adjustments/${adjId}/approve`, data),
+  deleteAdjustment: (cycleId, adjId)         => api.delete(`/billing/cycles/${cycleId}/adjustments/${adjId}`),
   deleteCycle:     (cycleId)                 => api.delete(`/billing/cycles/${cycleId}`),
   exportExcel:        (cycleId)              => api.get(`/billing/cycles/${cycleId}/export/excel`, { responseType: 'blob', timeout: 600000 }),
   startExcelExport:   (cycleId)             => api.post(`/billing/cycles/${cycleId}/export/excel/start`),
