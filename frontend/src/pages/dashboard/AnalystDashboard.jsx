@@ -129,7 +129,7 @@ function ListaVencidos({ rows, month, year }) {
   const thSort = (key, align = 'text-left') =>
     `${align} py-2 px-4 cursor-pointer select-none hover:text-gray-600`
 
-  const displayed = search.trim() ? filtered : filtered.slice(0, 10)
+  const displayed = filtered
 
   function downloadCsvVencidos() {
     const bom    = '﻿'
