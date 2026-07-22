@@ -1039,19 +1039,21 @@ async def get_operational_summary(
                 WHERE aps.status = 'OVERDUE' AND aps.due_date >= :inicio AND aps.due_date <= :lim
             ),
             itau_venc AS (
-                SELECT cpf_cnpj AS cnpj, pagador AS nome,
-                       'Itaú' AS banco, valor_titulo AS value, data_vencimento AS due_date,
+                SELECT ib.cpf_cnpj AS cnpj, ib.pagador AS nome,
+                       'Itaú' AS banco, ib.valor_titulo AS value, ib.data_vencimento AS due_date,
                        NULL::text AS description,
-                       NULL::text AS email,
+                       acs.email,
                        CASE
-                           WHEN (CURRENT_DATE - data_vencimento) BETWEEN 1  AND 4  THEN '1–4 dias'
-                           WHEN (CURRENT_DATE - data_vencimento) BETWEEN 5  AND 7  THEN '5–7 dias'
-                           WHEN (CURRENT_DATE - data_vencimento) BETWEEN 8  AND 15 THEN '8–15 dias'
-                           WHEN (CURRENT_DATE - data_vencimento) BETWEEN 16 AND 30 THEN '15–30 dias'
+                           WHEN (CURRENT_DATE - ib.data_vencimento) BETWEEN 1  AND 4  THEN '1–4 dias'
+                           WHEN (CURRENT_DATE - ib.data_vencimento) BETWEEN 5  AND 7  THEN '5–7 dias'
+                           WHEN (CURRENT_DATE - ib.data_vencimento) BETWEEN 8  AND 15 THEN '8–15 dias'
+                           WHEN (CURRENT_DATE - ib.data_vencimento) BETWEEN 16 AND 30 THEN '15–30 dias'
                            ELSE '> 31 dias'
                        END AS bucket
-                FROM itau_boletos
-                WHERE status = 'vencida' AND data_vencimento >= :inicio AND data_vencimento <= :lim
+                FROM itau_boletos ib
+                LEFT JOIN asaas_customers_sync acs
+                    ON acs.cpf_cnpj = REGEXP_REPLACE(ib.cpf_cnpj, '[^0-9]', '', 'g')
+                WHERE ib.status = 'vencida' AND ib.data_vencimento >= :inicio AND ib.data_vencimento <= :lim
             ),
             combined AS (SELECT * FROM asaas_venc UNION ALL SELECT * FROM itau_venc)
             SELECT
