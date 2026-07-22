@@ -2,7 +2,7 @@
 Modelos adicionais — Gestora Smart v1.2
 Adiciona ao models/__init__.py existente
 """
-from sqlalchemy import Column, String, Integer, Float, Boolean, DateTime, Date, Text, ForeignKey, Enum, JSON
+from sqlalchemy import Column, String, Integer, Float, Boolean, DateTime, Date, Text, ForeignKey, Enum, JSON, UniqueConstraint
 from sqlalchemy.sql import func
 from app.database import Base
 import enum
@@ -116,3 +116,18 @@ class AsaasCustomerSync(Base):
     city          = Column(String(100))
     state         = Column(String(2))
     synced_at     = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+
+class VencidoNota(Base):
+    """Notas de acompanhamento de vencidos: vencimento planejado e observação por cliente/mês."""
+    __tablename__ = "vencido_notas"
+    __table_args__ = (UniqueConstraint('cnpj', 'mes', 'ano', name='uq_vencido_nota_cnpj_mes_ano'),)
+
+    id                   = Column(Integer, primary_key=True)
+    cnpj                 = Column(String(20), nullable=False, index=True)
+    mes                  = Column(Integer, nullable=False)
+    ano                  = Column(Integer, nullable=False)
+    vencimento_planejado = Column(Date, nullable=True)
+    observacao           = Column(Text, nullable=True)
+    updated_at           = Column(DateTime(timezone=True), server_default=func.now())

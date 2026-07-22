@@ -3,7 +3,7 @@ Router do Dashboard do Analista — Gestora Smart
 Visão operacional: agenda semanal, alertas, projeção de recebimentos.
 """
 import asyncio
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Body
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, text
 from pydantic import BaseModel
@@ -1532,3 +1532,68 @@ async def trigger_sync(
     from app.services.asaas_sync import run_sync
     result = await run_sync()
     return result
+
+
+# ─────────────────────────────────────────────
+# NOTAS DE VENCIDOS (vencimento planejado + observação)
+# ─────────────────────────────────────────────
+
+class VencidoNotaUpsert(BaseModel):
+    vencimento_planejado: Optional[str] = None  # YYYY-MM-DD
+    observacao: Optional[str] = None
+
+
+@router.get("/vencidos-notas")
+def get_vencidos_notas(
+    mes: int = Query(..., ge=1, le=12),
+    ano: int = Query(..., ge=2020),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.models.extra import VencidoNota
+    notas = db.query(VencidoNota).filter(
+        VencidoNota.mes == mes,
+        VencidoNota.ano == ano,
+    ).all()
+    return {
+        n.cnpj: {
+            "vencimento_planejado": str(n.vencimento_planejado) if n.vencimento_planejado else None,
+            "observacao": n.observacao,
+        }
+        for n in notas
+    }
+
+
+@router.put("/vencidos-notas/{cnpj}")
+def upsert_vencido_nota(
+    cnpj: str,
+    mes: int = Query(..., ge=1, le=12),
+    ano: int = Query(..., ge=2020),
+    data: VencidoNotaUpsert = Body(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.models.extra import VencidoNota
+    from datetime import date as _date
+
+    nota = db.query(VencidoNota).filter(
+        VencidoNota.cnpj == cnpj,
+        VencidoNota.mes == mes,
+        VencidoNota.ano == ano,
+    ).first()
+
+    if not nota:
+        nota = VencidoNota(cnpj=cnpj, mes=mes, ano=ano)
+        db.add(nota)
+
+    if data.vencimento_planejado is not None:
+        try:
+            nota.vencimento_planejado = _date.fromisoformat(data.vencimento_planejado) if data.vencimento_planejado else None
+        except ValueError:
+            nota.vencimento_planejado = None
+    else:
+        nota.vencimento_planejado = None
+
+    nota.observacao = data.observacao
+    db.commit()
+    return {"ok": True}

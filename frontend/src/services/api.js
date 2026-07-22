@@ -77,6 +77,8 @@ export const analystApi = {
   updateDueDate:      (data)     => api.put('/analyst/due-date', data),
   payments:           (cycleId, idSmart) => api.get(`/analyst/payments/${cycleId}/${idSmart}`),
   paymentPlanning:    (month, year)      => api.get(`/analyst/payment-planning?month=${month}&year=${year}`),
+  vencidosNotas:      (month, year)      => api.get(`/analyst/vencidos-notas?mes=${month}&ano=${year}`),
+  upsertVencidoNota:  (cnpj, month, year, data) => api.put(`/analyst/vencidos-notas/${cnpj}?mes=${month}&ano=${year}`, data),
 }
 
 // ── Settings / Roles ──────────────────────────────────────────

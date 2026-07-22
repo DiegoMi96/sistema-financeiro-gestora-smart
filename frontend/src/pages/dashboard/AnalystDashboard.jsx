@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
@@ -38,10 +38,54 @@ const MONTHS_PT = [
   { value: 11, label: 'Novembro'},{ value: 12, label: 'Dezembro' },
 ]
 
-function ListaVencidos({ rows }) {
+function ListaVencidos({ rows, month, year }) {
   const [search,  setSearch]  = useState('')
   const [sortCol, setSortCol] = useState('valor')
   const [sortDir, setSortDir] = useState('desc')
+  const [notes,   setNotes]   = useState({})
+  const [saving,  setSaving]  = useState({})
+
+  useEffect(() => {
+    if (!month || !year) return
+    const token = localStorage.getItem('token')
+    fetch(`/api/analyst/vencidos-notas?mes=${month}&ano=${year}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : {})
+      .then(data => setNotes(data || {}))
+      .catch(() => {})
+  }, [month, year])
+
+  const rawCnpj = cnpj => (cnpj || '').replace(/\D/g, '')
+
+  function getNota(cnpj, field) {
+    return notes[rawCnpj(cnpj)]?.[field] ?? ''
+  }
+
+  function setNota(cnpj, field, value) {
+    const key = rawCnpj(cnpj)
+    setNotes(prev => ({ ...prev, [key]: { ...(prev[key] || {}), [field]: value } }))
+  }
+
+  async function saveNota(cnpj) {
+    const key = rawCnpj(cnpj)
+    if (!key) return
+    setSaving(prev => ({ ...prev, [key]: true }))
+    const token = localStorage.getItem('token')
+    const nota = notes[key] || {}
+    try {
+      await fetch(`/api/analyst/vencidos-notas/${key}?mes=${month}&ano=${year}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          vencimento_planejado: nota.vencimento_planejado || null,
+          observacao: nota.observacao || null,
+        }),
+      })
+    } finally {
+      setSaving(prev => ({ ...prev, [key]: false }))
+    }
+  }
 
   const handleSort = (key) => {
     if (sortCol === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
@@ -65,11 +109,6 @@ function ListaVencidos({ rows }) {
     return sortDir === 'asc' ? Number(av) - Number(bv) : Number(bv) - Number(av)
   })
 
-  const SCORE_BADGE = {
-    risco: 'bg-red-100 text-red-600 border border-red-200',
-    ok:    'bg-green-100 text-green-700 border border-green-200',
-    novo:  'bg-gray-100 text-gray-500 border border-gray-200',
-  }
   const BANCO_BADGE = {
     Asaas: 'bg-green-100 text-green-700',
     Itaú:  'bg-blue-100 text-blue-700',
@@ -80,14 +119,17 @@ function ListaVencidos({ rows }) {
 
   function downloadCsvVencidos() {
     const bom    = '﻿'
-    const header = 'Cliente;CNPJ;Banco;1º Vencimento;Valor Vencido (R$);Dias;Histórico\n'
+    const header = 'Cliente;CNPJ;Banco;1º Vencimento;Valor Vencido (R$);Dias;Venc. Planejado;Observação\n'
     const body   = filtered.map(r => {
       const venc = r.vencimento_orig
         ? r.vencimento_orig.slice(8,10) + '/' + r.vencimento_orig.slice(5,7) + '/' + r.vencimento_orig.slice(0,4)
         : ''
       const val  = Number(r.valor || 0).toFixed(2).replace('.', ',')
-      const hist = r.historico_tot > 0 ? `${r.historico_rec}/${r.historico_tot}` : ''
-      return `"${r.nome || ''}";"${r.cnpj || ''}";"${r.banco || ''}";"${venc}";"${val}";"${r.dias ?? ''}";"${hist}"`
+      const nota = notes[rawCnpj(r.cnpj)] || {}
+      const vencPlan = nota.vencimento_planejado
+        ? nota.vencimento_planejado.slice(8,10) + '/' + nota.vencimento_planejado.slice(5,7) + '/' + nota.vencimento_planejado.slice(0,4)
+        : ''
+      return `"${r.nome || ''}";"${r.cnpj || ''}";"${r.banco || ''}";"${venc}";"${val}";"${r.dias ?? ''}";"${vencPlan}";"${nota.observacao || ''}"`
     }).join('\n')
     const blob = new Blob([bom + header + body], { type: 'text/csv;charset=utf-8' })
     const url  = URL.createObjectURL(blob)
@@ -127,11 +169,11 @@ function ListaVencidos({ rows }) {
               <tr className="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-wide">
                 <th className={thSort('nome')} onClick={() => handleSort('nome')}>Cliente <SortIcon col="nome" /></th>
                 <th className={thSort('valor', 'text-center')} onClick={() => handleSort('valor')}>Valor <SortIcon col="valor" /></th>
-                <th className={thSort('qtd', 'text-center')} onClick={() => handleSort('qtd')}>Qtd <SortIcon col="qtd" /></th>
                 <th className={thSort('vencimento_orig', 'text-center')} onClick={() => handleSort('vencimento_orig')}>1º Venc. <SortIcon col="vencimento_orig" /></th>
                 <th className={thSort('dias', 'text-center')} onClick={() => handleSort('dias')}>Dias <SortIcon col="dias" /></th>
                 <th className={thSort('banco', 'text-center')} onClick={() => handleSort('banco')}>Banco <SortIcon col="banco" /></th>
-                <th className="text-center py-2 px-4 cursor-help" title="Boletos pagos / total emitido no histórico deste cliente">Histórico <span className="text-gray-300 text-[10px]">ⓘ</span></th>
+                <th className="text-center py-2 px-4">Venc. Planejado</th>
+                <th className="text-left py-2 px-4">Observação</th>
               </tr>
             </thead>
             <tbody>
@@ -144,17 +186,14 @@ function ListaVencidos({ rows }) {
                   : (r.dias ?? 0) > 7
                   ? 'text-orange-500 font-semibold'
                   : 'text-gray-600'
-                const historico = r.historico_tot > 0
-                  ? `${r.historico_rec}/${r.historico_tot}`
-                  : '—'
+                const key = rawCnpj(r.cnpj)
                 return (
                   <tr key={i} className="border-t border-gray-50 hover:bg-gray-50 transition-colors">
-                    <td className="py-2.5 px-4 max-w-[280px]">
+                    <td className="py-2.5 px-4 max-w-[220px]">
                       <p className="font-semibold text-gray-800 truncate leading-tight">{r.nome}</p>
                       {r.cnpj && <p className="text-xs text-gray-400 font-mono">{r.cnpj}</p>}
                     </td>
                     <td className="py-2.5 px-4 text-center font-semibold text-red-600">{fmt(r.valor)}</td>
-                    <td className="py-2.5 px-4 text-center text-gray-500">{r.qtd}</td>
                     <td className="py-2.5 px-4 text-center text-gray-600">{vencDate}</td>
                     <td className={`py-2.5 px-4 text-center ${diasColor}`}>{r.dias != null ? `${r.dias}d` : '—'}</td>
                     <td className="py-2.5 px-4 text-center">
@@ -162,7 +201,25 @@ function ListaVencidos({ rows }) {
                         {r.banco}
                       </span>
                     </td>
-                    <td className="py-2.5 px-4 text-center text-gray-500 text-xs">{historico}</td>
+                    <td className="py-2 px-3 text-center">
+                      <input
+                        type="date"
+                        value={getNota(r.cnpj, 'vencimento_planejado')}
+                        onChange={e => setNota(r.cnpj, 'vencimento_planejado', e.target.value)}
+                        onBlur={() => saveNota(r.cnpj)}
+                        className="text-xs border border-gray-200 rounded px-1.5 py-1 w-32 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200"
+                      />
+                    </td>
+                    <td className="py-2 px-3">
+                      <input
+                        type="text"
+                        value={getNota(r.cnpj, 'observacao')}
+                        onChange={e => setNota(r.cnpj, 'observacao', e.target.value)}
+                        onBlur={() => saveNota(r.cnpj)}
+                        placeholder="Observação..."
+                        className="text-xs border border-gray-200 rounded px-2 py-1 w-full min-w-[140px] focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200"
+                      />
+                    </td>
                   </tr>
                 )
               })}
@@ -813,7 +870,7 @@ export default function AnalystDashboard() {
 
       {/* Lista de vencidos ordenada por valor */}
       {(op?.lista_vencidos || []).length > 0 && (
-        <ListaVencidos rows={op.lista_vencidos} />
+        <ListaVencidos rows={op.lista_vencidos} month={selectedMonth} year={selectedYear} />
       )}
 
       {/* Modal — clientes da régua */}
