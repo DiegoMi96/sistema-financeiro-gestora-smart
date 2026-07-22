@@ -1055,7 +1055,11 @@ async def get_operational_summary(
                            ELSE '> 31 dias'
                        END AS bucket
                 FROM asaas_payments_sync aps
-                LEFT JOIN asaas_customers_sync acs ON acs.cpf_cnpj = aps.customer_cpf_cnpj
+                LEFT JOIN (
+                    SELECT DISTINCT ON (cpf_cnpj) cpf_cnpj, email
+                    FROM asaas_customers_sync
+                    ORDER BY cpf_cnpj, id
+                ) acs ON acs.cpf_cnpj = aps.customer_cpf_cnpj
                 WHERE aps.status = 'OVERDUE' AND aps.due_date >= :inicio AND aps.due_date <= :lim
             ),
             itau_venc AS (
@@ -1071,8 +1075,11 @@ async def get_operational_summary(
                            ELSE '> 31 dias'
                        END AS bucket
                 FROM itau_boletos ib
-                LEFT JOIN asaas_customers_sync acs
-                    ON acs.cpf_cnpj = REGEXP_REPLACE(ib.cpf_cnpj, '[^0-9]', '', 'g')
+                LEFT JOIN (
+                    SELECT DISTINCT ON (cpf_cnpj) cpf_cnpj, email
+                    FROM asaas_customers_sync
+                    ORDER BY cpf_cnpj, id
+                ) acs ON acs.cpf_cnpj = REGEXP_REPLACE(ib.cpf_cnpj, '[^0-9]', '', 'g')
                 WHERE ib.status = 'vencida' AND ib.data_vencimento >= :inicio AND ib.data_vencimento <= :lim
             ),
             combined AS (SELECT * FROM asaas_venc UNION ALL SELECT * FROM itau_venc)
