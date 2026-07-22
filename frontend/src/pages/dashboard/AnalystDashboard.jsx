@@ -117,10 +117,12 @@ function ListaVencidos({ rows, month, year }) {
   const thSort = (key, align = 'text-left') =>
     `${align} py-2 px-4 cursor-pointer select-none hover:text-gray-600`
 
+  const displayed = search.trim() ? filtered : filtered.slice(0, 10)
+
   function downloadCsvVencidos() {
     const bom    = '﻿'
-    const header = 'Cliente;CNPJ;Banco;1º Vencimento;Valor Vencido (R$);Dias;Venc. Planejado;Observação\n'
-    const body   = filtered.map(r => {
+    const header = '#;Cliente;CNPJ;Banco;Email;Descrição Boleto;1º Vencimento;Valor Vencido (R$);Dias;Venc. Planejado;Observação\n'
+    const body   = displayed.map((r, i) => {
       const venc = r.vencimento_orig
         ? r.vencimento_orig.slice(8,10) + '/' + r.vencimento_orig.slice(5,7) + '/' + r.vencimento_orig.slice(0,4)
         : ''
@@ -129,7 +131,7 @@ function ListaVencidos({ rows, month, year }) {
       const vencPlan = nota.vencimento_planejado
         ? nota.vencimento_planejado.slice(8,10) + '/' + nota.vencimento_planejado.slice(5,7) + '/' + nota.vencimento_planejado.slice(0,4)
         : ''
-      return `"${r.nome || ''}";"${r.cnpj || ''}";"${r.banco || ''}";"${venc}";"${val}";"${r.dias ?? ''}";"${vencPlan}";"${nota.observacao || ''}"`
+      return `"${i+1}";"${r.nome || ''}";"${r.cnpj || ''}";"${r.banco || ''}";"${r.email || ''}";"${r.description || ''}";"${venc}";"${val}";"${r.dias ?? ''}";"${vencPlan}";"${nota.observacao || ''}"`
     }).join('\n')
     const blob = new Blob([bom + header + body], { type: 'text/csv;charset=utf-8' })
     const url  = URL.createObjectURL(blob)
@@ -159,7 +161,6 @@ function ListaVencidos({ rows, month, year }) {
           onChange={e => setSearch(e.target.value)}
           className="gs-input text-sm w-48"
         />
-        <span className="text-xs text-gray-400 whitespace-nowrap">{filtered.length} clientes</span>
       </div>
 
       <div className="overflow-x-auto">
@@ -167,17 +168,20 @@ function ListaVencidos({ rows, month, year }) {
           <table className="w-full text-sm">
             <thead className="sticky top-0 z-10 bg-white">
               <tr className="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-wide">
+                <th className="text-center py-2 px-2 w-8">#</th>
                 <th className={thSort('nome')} onClick={() => handleSort('nome')}>Cliente <SortIcon col="nome" /></th>
                 <th className={thSort('valor', 'text-center')} onClick={() => handleSort('valor')}>Valor <SortIcon col="valor" /></th>
                 <th className={thSort('vencimento_orig', 'text-center')} onClick={() => handleSort('vencimento_orig')}>1º Venc. <SortIcon col="vencimento_orig" /></th>
                 <th className={thSort('dias', 'text-center')} onClick={() => handleSort('dias')}>Dias <SortIcon col="dias" /></th>
                 <th className={thSort('banco', 'text-center')} onClick={() => handleSort('banco')}>Banco <SortIcon col="banco" /></th>
+                <th className="text-left py-2 px-4">Email</th>
+                <th className="text-left py-2 px-4">Descrição Boleto</th>
                 <th className="text-center py-2 px-4">Venc. Planejado</th>
                 <th className="text-left py-2 px-4">Observação</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((r, i) => {
+              {displayed.map((r, i) => {
                 const vencDate = r.vencimento_orig
                   ? r.vencimento_orig.slice(5, 10).split('-').reverse().join('/')
                   : '—'
@@ -186,10 +190,10 @@ function ListaVencidos({ rows, month, year }) {
                   : (r.dias ?? 0) > 7
                   ? 'text-orange-500 font-semibold'
                   : 'text-gray-600'
-                const key = rawCnpj(r.cnpj)
                 return (
                   <tr key={i} className="border-t border-gray-50 hover:bg-gray-50 transition-colors">
-                    <td className="py-2.5 px-4 max-w-[220px]">
+                    <td className="py-2.5 px-2 text-center text-xs font-bold text-gray-400">{i + 1}</td>
+                    <td className="py-2.5 px-4 max-w-[200px]">
                       <p className="font-semibold text-gray-800 truncate leading-tight">{r.nome}</p>
                       {r.cnpj && <p className="text-xs text-gray-400 font-mono">{r.cnpj}</p>}
                     </td>
@@ -201,6 +205,8 @@ function ListaVencidos({ rows, month, year }) {
                         {r.banco}
                       </span>
                     </td>
+                    <td className="py-2.5 px-4 text-xs text-gray-500 max-w-[180px] truncate">{r.email || '—'}</td>
+                    <td className="py-2.5 px-4 text-xs text-gray-500 max-w-[200px] truncate">{r.description || '—'}</td>
                     <td className="py-2 px-3 text-center">
                       <input
                         type="date"

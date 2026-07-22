@@ -1023,21 +1023,26 @@ async def get_operational_summary(
     try:
         lv_rows = db.execute(text("""
             WITH asaas_venc AS (
-                SELECT customer_cpf_cnpj AS cnpj, customer_name AS nome,
-                       'Asaas' AS banco, value, due_date,
+                SELECT aps.customer_cpf_cnpj AS cnpj, aps.customer_name AS nome,
+                       'Asaas' AS banco, aps.value, aps.due_date,
+                       aps.description,
+                       acs.email,
                        CASE
-                           WHEN (CURRENT_DATE - due_date) BETWEEN 1  AND 4  THEN '1–4 dias'
-                           WHEN (CURRENT_DATE - due_date) BETWEEN 5  AND 7  THEN '5–7 dias'
-                           WHEN (CURRENT_DATE - due_date) BETWEEN 8  AND 15 THEN '8–15 dias'
-                           WHEN (CURRENT_DATE - due_date) BETWEEN 16 AND 30 THEN '15–30 dias'
+                           WHEN (CURRENT_DATE - aps.due_date) BETWEEN 1  AND 4  THEN '1–4 dias'
+                           WHEN (CURRENT_DATE - aps.due_date) BETWEEN 5  AND 7  THEN '5–7 dias'
+                           WHEN (CURRENT_DATE - aps.due_date) BETWEEN 8  AND 15 THEN '8–15 dias'
+                           WHEN (CURRENT_DATE - aps.due_date) BETWEEN 16 AND 30 THEN '15–30 dias'
                            ELSE '> 31 dias'
                        END AS bucket
-                FROM asaas_payments_sync
-                WHERE status = 'OVERDUE' AND due_date >= :inicio AND due_date <= :lim
+                FROM asaas_payments_sync aps
+                LEFT JOIN asaas_customers_sync acs ON acs.cpf_cnpj = aps.customer_cpf_cnpj
+                WHERE aps.status = 'OVERDUE' AND aps.due_date >= :inicio AND aps.due_date <= :lim
             ),
             itau_venc AS (
                 SELECT cpf_cnpj AS cnpj, pagador AS nome,
                        'Itaú' AS banco, valor_titulo AS value, data_vencimento AS due_date,
+                       NULL::text AS description,
+                       NULL::text AS email,
                        CASE
                            WHEN (CURRENT_DATE - data_vencimento) BETWEEN 1  AND 4  THEN '1–4 dias'
                            WHEN (CURRENT_DATE - data_vencimento) BETWEEN 5  AND 7  THEN '5–7 dias'
@@ -1053,7 +1058,9 @@ async def get_operational_summary(
                 cnpj, MAX(nome) AS nome, banco, bucket,
                 SUM(value) AS valor, COUNT(*) AS qtd,
                 MIN(due_date) AS vencimento_orig,
-                (CURRENT_DATE - MIN(due_date))::int AS dias
+                (CURRENT_DATE - MIN(due_date))::int AS dias,
+                MAX(email) AS email,
+                MAX(description) AS description
             FROM combined
             WHERE due_date IS NOT NULL
             GROUP BY cnpj, banco, bucket
@@ -1071,6 +1078,8 @@ async def get_operational_summary(
                 "dias":           int(r.dias or 0),
                 "bucket":         r.bucket,
                 "banco":          r.banco,
+                "email":          r.email,
+                "description":    r.description,
                 "score":          "novo",
                 "historico_rec":  0,
                 "historico_tot":  int(r.qtd),
