@@ -92,6 +92,18 @@ async def upload_itau_boletos(
             except Exception:
                 return None
 
+    # Detecta índice da coluna de descrição pelo cabeçalho (flexível)
+    _DESC_NAMES = {
+        'histórico', 'historico', 'descrição', 'descricao',
+        'mensagem', 'instrução', 'instrucao', 'observação', 'observacao',
+        'referência', 'referencia', 'identificação', 'identificacao',
+    }
+    desc_col_idx = None
+    for col_idx, cell in enumerate(header_row):
+        if cell and str(cell).strip().lower() in _DESC_NAMES:
+            desc_col_idx = col_idx
+            break
+
     upload_ref = f"{year}-{month:02d}"
     inseridos = 0
     atualizados = 0
@@ -133,6 +145,13 @@ async def upload_itau_boletos(
 
         status_raw = str(row[12] or "").strip().lower()
 
+        desc_val = None
+        if desc_col_idx is not None and desc_col_idx < len(row):
+            raw_desc = row[desc_col_idx]
+            desc_val = str(raw_desc).strip() if raw_desc is not None else None
+            if not desc_val:
+                desc_val = None
+
         valores = {
             "carteira":        str(row[0]).strip() if row[0] else None,
             "pagador":         str(row[1]).strip()[:300] if row[1] else None,
@@ -146,6 +165,7 @@ async def upload_itau_boletos(
             "valor_titulo":    float(row[10]) if row[10] is not None else None,
             "valor_pago":      float(row[11]) if row[11] is not None else None,
             "status":          status_raw,
+            "description":     desc_val,
             "upload_ref":      upload_ref,
         }
 
@@ -1041,7 +1061,7 @@ async def get_operational_summary(
             itau_venc AS (
                 SELECT ib.cpf_cnpj AS cnpj, ib.pagador AS nome,
                        'Itaú' AS banco, ib.valor_titulo AS value, ib.data_vencimento AS due_date,
-                       aps2.description,
+                       ib.description,
                        acs.email,
                        CASE
                            WHEN (CURRENT_DATE - ib.data_vencimento) BETWEEN 1  AND 4  THEN '1–4 dias'
@@ -1053,12 +1073,6 @@ async def get_operational_summary(
                 FROM itau_boletos ib
                 LEFT JOIN asaas_customers_sync acs
                     ON acs.cpf_cnpj = REGEXP_REPLACE(ib.cpf_cnpj, '[^0-9]', '', 'g')
-                LEFT JOIN LATERAL (
-                    SELECT description FROM asaas_payments_sync
-                    WHERE customer_cpf_cnpj = REGEXP_REPLACE(ib.cpf_cnpj, '[^0-9]', '', 'g')
-                      AND description IS NOT NULL AND description != ''
-                    ORDER BY due_date DESC LIMIT 1
-                ) aps2 ON true
                 WHERE ib.status = 'vencida' AND ib.data_vencimento >= :inicio AND ib.data_vencimento <= :lim
             ),
             combined AS (SELECT * FROM asaas_venc UNION ALL SELECT * FROM itau_venc)

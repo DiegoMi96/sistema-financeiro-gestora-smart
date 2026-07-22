@@ -89,6 +89,7 @@ def _run_migrations():
         ("billing_lines", "id_pedido",             "VARCHAR(255)"),
         ("billing_lines", "id_contrato",           "VARCHAR(255)"),
         ("billing_lines", "franquia_mb",           "FLOAT"),
+        ("itau_boletos",  "description",            "TEXT"),
     ]
     try:
         cols.append(("users", "custom_role_key", "VARCHAR(100)"))

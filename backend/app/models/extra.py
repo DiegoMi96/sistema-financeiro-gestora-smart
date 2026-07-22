@@ -92,6 +92,7 @@ class ItauBoleto(Base):
     valor_titulo    = Column(Float)
     valor_pago      = Column(Float)
     status          = Column(String(30), index=True)   # paga | a vencer | vencida
+    description     = Column(Text, nullable=True)
     uploaded_at     = Column(DateTime(timezone=True), server_default=func.now())
     upload_ref      = Column(String(7), index=True)    # "2026-06" — mês do upload
 
