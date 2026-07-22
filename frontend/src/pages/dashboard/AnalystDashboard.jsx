@@ -97,14 +97,26 @@ function ListaVencidos({ rows, month, year }) {
     </span>
   )
 
+  const STR_COLS = new Set(['nome', 'banco', 'email', 'description', 'vencimento_planejado', 'observacao'])
+
   const base = search.trim()
     ? rows.filter(r => r.nome.toLowerCase().includes(search.toLowerCase()))
     : rows
 
   const filtered = [...base].sort((a, b) => {
-    const av = a[sortCol] ?? '', bv = b[sortCol] ?? ''
-    if (sortCol === 'nome' || sortCol === 'banco') {
-      return sortDir === 'asc' ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av))
+    let av, bv
+    if (sortCol === 'vencimento_planejado') {
+      av = notes[rawCnpj(a.cnpj)]?.vencimento_planejado ?? ''
+      bv = notes[rawCnpj(b.cnpj)]?.vencimento_planejado ?? ''
+    } else if (sortCol === 'observacao') {
+      av = notes[rawCnpj(a.cnpj)]?.observacao ?? ''
+      bv = notes[rawCnpj(b.cnpj)]?.observacao ?? ''
+    } else {
+      av = a[sortCol] ?? ''
+      bv = b[sortCol] ?? ''
+    }
+    if (STR_COLS.has(sortCol)) {
+      return sortDir === 'asc' ? String(av).localeCompare(String(bv), 'pt-BR') : String(bv).localeCompare(String(av), 'pt-BR')
     }
     return sortDir === 'asc' ? Number(av) - Number(bv) : Number(bv) - Number(av)
   })
@@ -174,10 +186,10 @@ function ListaVencidos({ rows, month, year }) {
                 <th className={thSort('vencimento_orig', 'text-center')} onClick={() => handleSort('vencimento_orig')}>1º Venc. <SortIcon col="vencimento_orig" /></th>
                 <th className={thSort('dias', 'text-center')} onClick={() => handleSort('dias')}>Dias <SortIcon col="dias" /></th>
                 <th className={thSort('banco', 'text-center')} onClick={() => handleSort('banco')}>Banco <SortIcon col="banco" /></th>
-                <th className="text-left py-2 px-4">Email</th>
-                <th className="text-left py-2 px-4">Descrição Boleto</th>
-                <th className="text-center py-2 px-4">Venc. Planejado</th>
-                <th className="text-left py-2 px-4">Observação</th>
+                <th className={thSort('email')} onClick={() => handleSort('email')}>Email <SortIcon col="email" /></th>
+                <th className={thSort('description')} onClick={() => handleSort('description')}>Descrição Boleto <SortIcon col="description" /></th>
+                <th className={thSort('vencimento_planejado', 'text-center')} onClick={() => handleSort('vencimento_planejado')}>Venc. Planejado <SortIcon col="vencimento_planejado" /></th>
+                <th className={thSort('observacao')} onClick={() => handleSort('observacao')}>Observação <SortIcon col="observacao" /></th>
               </tr>
             </thead>
             <tbody>

@@ -1041,7 +1041,7 @@ async def get_operational_summary(
             itau_venc AS (
                 SELECT ib.cpf_cnpj AS cnpj, ib.pagador AS nome,
                        'Itaú' AS banco, ib.valor_titulo AS value, ib.data_vencimento AS due_date,
-                       NULL::text AS description,
+                       aps2.description,
                        acs.email,
                        CASE
                            WHEN (CURRENT_DATE - ib.data_vencimento) BETWEEN 1  AND 4  THEN '1–4 dias'
@@ -1053,6 +1053,12 @@ async def get_operational_summary(
                 FROM itau_boletos ib
                 LEFT JOIN asaas_customers_sync acs
                     ON acs.cpf_cnpj = REGEXP_REPLACE(ib.cpf_cnpj, '[^0-9]', '', 'g')
+                LEFT JOIN LATERAL (
+                    SELECT description FROM asaas_payments_sync
+                    WHERE customer_cpf_cnpj = REGEXP_REPLACE(ib.cpf_cnpj, '[^0-9]', '', 'g')
+                      AND description IS NOT NULL AND description != ''
+                    ORDER BY due_date DESC LIMIT 1
+                ) aps2 ON true
                 WHERE ib.status = 'vencida' AND ib.data_vencimento >= :inicio AND ib.data_vencimento <= :lim
             ),
             combined AS (SELECT * FROM asaas_venc UNION ALL SELECT * FROM itau_venc)
