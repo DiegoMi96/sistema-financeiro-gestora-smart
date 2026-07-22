@@ -97,12 +97,28 @@ async def upload_itau_boletos(
         'histórico', 'historico', 'descrição', 'descricao',
         'mensagem', 'instrução', 'instrucao', 'observação', 'observacao',
         'referência', 'referencia', 'identificação', 'identificacao',
+        'especificação', 'especificacao', 'especificaçao',
+        'instrução 1', 'instrucao 1', 'instrução1', 'instrucao1',
+        'informação', 'informacao', 'informações', 'informacoes',
+        'sacador', 'sacador/avalista', 'avalista',
+        'campo livre', 'campol ivre',
     }
+    _DESC_FRAGMENTS = ('descri', 'instru', 'histor', 'mensa', 'observ', 'ident', 'especif', 'inform')
     desc_col_idx = None
+    header_names_detected = [str(c).strip() if c else '' for c in header_row]
     for col_idx, cell in enumerate(header_row):
-        if cell and str(cell).strip().lower() in _DESC_NAMES:
-            desc_col_idx = col_idx
-            break
+        if not cell:
+            continue
+        normalized = str(cell).strip().lower()
+        if normalized in _DESC_NAMES or any(normalized.startswith(f) for f in _DESC_FRAGMENTS):
+            # ignora colunas fixas conhecidas (0-12)
+            if col_idx > 12:
+                desc_col_idx = col_idx
+                break
+            # aceita se for exatamente um dos nomes conhecidos mesmo em posição fixa
+            if normalized in _DESC_NAMES:
+                desc_col_idx = col_idx
+                break
 
     upload_ref = f"{year}-{month:02d}"
     inseridos = 0
@@ -182,6 +198,8 @@ async def upload_itau_boletos(
     return {
         "ok": True,
         "inseridos": inseridos,
+        "desc_col_detectada": header_names_detected[desc_col_idx] if desc_col_idx is not None else None,
+        "cabecalhos": header_names_detected,
         "atualizados": atualizados,
         "upload_ref": upload_ref,
     }
@@ -1094,7 +1112,7 @@ async def get_operational_summary(
             WHERE due_date IS NOT NULL
             GROUP BY cnpj, banco, bucket
             ORDER BY valor DESC
-        """), {"inicio": date(sel_year, 1, 1), "lim": _aging_limit}).fetchall()
+        """), {"inicio": date(sel_year, sel_month, 1), "lim": _aging_limit}).fetchall()
 
         lista_vencidos = [
             {
