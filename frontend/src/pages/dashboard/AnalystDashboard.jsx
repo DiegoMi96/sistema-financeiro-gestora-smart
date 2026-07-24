@@ -366,7 +366,14 @@ function ResumoBanco({ resumo, insight, month, year }) {
     }
   }
 
-  const temItau = resumo.some(r => r.banco === 'Itaú')
+  const itauEntry = resumo.find(r => r.banco === 'Itaú')
+  const temItau = !!itauEntry
+
+  function fmtImportacao(iso) {
+    if (!iso) return null
+    const d = new Date(iso)
+    return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  }
 
   return (
     <div className="gs-card overflow-hidden">
@@ -374,10 +381,17 @@ function ResumoBanco({ resumo, insight, month, year }) {
         <h2 className="gs-section-title">Resumo por banco</h2>
         <div className="flex items-center gap-2">
           {temItau && (
-            <span className="flex items-center gap-1 text-xs bg-green-100 text-green-700 font-medium px-2.5 py-0.5 rounded-full border border-green-200">
-              <CheckCircle size={10} />
-              Itaú importado
-            </span>
+            <div className="flex flex-col items-end gap-0.5">
+              <span className="flex items-center gap-1 text-xs bg-green-100 text-green-700 font-medium px-2.5 py-0.5 rounded-full border border-green-200">
+                <CheckCircle size={10} />
+                Itaú importado
+              </span>
+              {itauEntry.ultima_importacao && (
+                <span className="text-[10px] text-gray-400">
+                  {fmtImportacao(itauEntry.ultima_importacao)}
+                </span>
+              )}
+            </div>
           )}
           <button
             onClick={() => inputRef.current?.click()}

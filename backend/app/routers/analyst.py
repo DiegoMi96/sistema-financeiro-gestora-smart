@@ -992,7 +992,8 @@ async def get_operational_summary(
                          THEN valor_titulo ELSE 0 END)       AS a_vencer_30d,
                 SUM(CASE WHEN status = 'vencida'
                          THEN valor_titulo ELSE 0 END)       AS vencido_ativo,
-                COUNT(CASE WHEN status = 'vencida' THEN 1 END) AS qtd_vencido
+                COUNT(CASE WHEN status = 'vencida' THEN 1 END) AS qtd_vencido,
+                MAX(uploaded_at)                                             AS ultima_importacao
             FROM itau_boletos
             WHERE upload_ref = :ref
               AND status != 'cancelada'
@@ -1018,6 +1019,7 @@ async def get_operational_summary(
             })
         if itau_av > 0 or itau_vv > 0 or itau_fat > 0:
             itau_tot = itau_av + itau_vv
+            itau_ultima = itau_row.ultima_importacao
             resumo_banco.append({
                 "banco": "Itaú",
                 "faturado": itau_fat,
@@ -1025,6 +1027,7 @@ async def get_operational_summary(
                 "vencido_ativo": itau_vv,
                 "inadimplencia_pct": round(itau_vv / itau_tot * 100, 1) if itau_tot else 0,
                 "qtd_vencido": itau_qt,
+                "ultima_importacao": itau_ultima.isoformat() if itau_ultima else None,
             })
         resumo_banco.sort(key=lambda x: x["banco"])
 
