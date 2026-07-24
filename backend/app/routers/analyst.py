@@ -1731,7 +1731,7 @@ async def download_vencidos_template(
 
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = f"Vencidos {mes:02d}/{ano}"
+    ws.title = f"Vencidos {mes:02d}-{ano}"
 
     header_fill = PatternFill("solid", fgColor="3CB54A")
     header_font = Font(color="FFFFFF", bold=True, size=10)
