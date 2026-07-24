@@ -9,7 +9,7 @@ import {
   ResponsiveContainer, Cell,
 } from 'recharts'
 import { AlertTriangle, Clock, Edit2, DollarSign, FileText, ExternalLink,
-  TrendingUp, CheckCircle, TrendingDown, Percent, Upload, ChevronRight, X, Users, Download } from 'lucide-react'
+  TrendingUp, CheckCircle, TrendingDown, Percent, Upload, ChevronRight, X, Users, Download, ChevronDown } from 'lucide-react'
 import { WeeklyProgress, DailyAccumulated, DailyReceived } from '../../components/dashboard/WeeklyProgressCards'
 
 const fmt   = v => `R$ ${Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -39,11 +39,15 @@ const MONTHS_PT = [
 ]
 
 function ListaVencidos({ rows, month, year }) {
-  const [search,  setSearch]  = useState('')
-  const [sortCol, setSortCol] = useState('valor')
-  const [sortDir, setSortDir] = useState('desc')
-  const [notes,   setNotes]   = useState({})
-  const [saving,  setSaving]  = useState({})
+  const [search,     setSearch]     = useState('')
+  const [sortCol,    setSortCol]    = useState('valor')
+  const [sortDir,    setSortDir]    = useState('desc')
+  const [notes,      setNotes]      = useState({})
+  const [saving,     setSaving]     = useState({})
+  const [exportOpen, setExportOpen] = useState(false)
+  const [uploading,  setUploading]  = useState(false)
+  const exportRef = useRef(null)
+  const uploadRef = useRef(null)
 
   useEffect(() => {
     if (!month || !year) return
@@ -55,6 +59,63 @@ function ListaVencidos({ rows, month, year }) {
       .then(data => setNotes(data || {}))
       .catch(() => {})
   }, [month, year])
+
+  useEffect(() => {
+    const handler = e => { if (!exportRef.current?.contains(e.target)) setExportOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  async function downloadTemplate() {
+    setExportOpen(false)
+    const token = localStorage.getItem('token')
+    try {
+      const resp = await fetch(`/api/analyst/vencidos-template?mes=${month}&ano=${year}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!resp.ok) { toast.error('Erro ao gerar template'); return }
+      const blob = await resp.blob()
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement('a')
+      a.href     = url
+      a.download = `vencidos_${year}_${String(month).padStart(2, '0')}.xlsx`
+      document.body.appendChild(a); a.click()
+      document.body.removeChild(a); URL.revokeObjectURL(url)
+    } catch {
+      toast.error('Erro ao baixar template')
+    }
+  }
+
+  async function handleUpload(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    setUploading(true)
+    const token = localStorage.getItem('token')
+    const fd    = new FormData()
+    fd.append('file', file)
+    try {
+      const resp = await fetch(`/api/analyst/vencidos-upload?mes=${month}&ano=${year}`, {
+        method:  'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body:    fd,
+      })
+      const result = await resp.json()
+      if (resp.ok) {
+        toast.success(`${result.updated} registros atualizados`)
+        const nr = await fetch(`/api/analyst/vencidos-notas?mes=${month}&ano=${year}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (nr.ok) setNotes(await nr.json())
+      } else {
+        toast.error(result.detail || 'Erro no upload')
+      }
+    } catch {
+      toast.error('Erro ao enviar planilha')
+    } finally {
+      setUploading(false)
+      e.target.value = ''
+    }
+  }
 
   const rawCnpj = cnpj => (cnpj || '').replace(/\D/g, '')
 
@@ -127,7 +188,7 @@ function ListaVencidos({ rows, month, year }) {
   }
 
   const thSort = (key, align = 'text-left') =>
-    `${align} py-2 px-4 cursor-pointer select-none hover:text-gray-600`
+    `${align} py-2 px-4 cursor-pointer select-none hover:text-gray-600 whitespace-nowrap`
 
   const displayed = filtered
 
@@ -158,14 +219,37 @@ function ListaVencidos({ rows, month, year }) {
     <div className="gs-card overflow-hidden">
       <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-4">
         <h2 className="gs-section-title whitespace-nowrap flex-1">Lista de vencidos do mês</h2>
-        <button
-          onClick={downloadCsvVencidos}
-          title="Baixar lista em CSV"
-          className="gs-btn gs-btn-outline gs-btn-sm flex items-center gap-1.5"
-        >
-          <Download size={14} />
-          <span className="hidden sm:inline">Exportar</span>
-        </button>
+        <div className="relative" ref={exportRef}>
+          <button
+            onClick={() => setExportOpen(o => !o)}
+            className="gs-btn gs-btn-outline gs-btn-sm flex items-center gap-1.5"
+          >
+            <Download size={14} />
+            <span className="hidden sm:inline">Exportar</span>
+            <ChevronDown size={12} />
+          </button>
+          {exportOpen && (
+            <div className="absolute right-0 top-full mt-1 z-20 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[195px] overflow-hidden">
+              <button
+                onClick={downloadTemplate}
+                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+              >
+                <Download size={13} className="text-green-600" />
+                Baixar planilha modelo
+              </button>
+              <div className="border-t border-gray-100" />
+              <button
+                onClick={() => { setExportOpen(false); uploadRef.current?.click() }}
+                disabled={uploading}
+                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
+              >
+                <Upload size={13} className="text-blue-600" />
+                {uploading ? 'Enviando...' : 'Upload planilha'}
+              </button>
+            </div>
+          )}
+          <input ref={uploadRef} type="file" accept=".xlsx" className="hidden" onChange={handleUpload} />
+        </div>
         <input
           type="text"
           placeholder="Buscar cliente..."
@@ -209,7 +293,7 @@ function ListaVencidos({ rows, month, year }) {
                       <p className="font-semibold text-gray-800 truncate leading-tight">{r.nome}</p>
                       {r.cnpj && <p className="text-xs text-gray-400 font-mono">{r.cnpj}</p>}
                     </td>
-                    <td className="py-2.5 px-4 text-center font-semibold text-red-600">{fmt(r.valor)}</td>
+                    <td className="py-2.5 px-4 text-center font-semibold text-red-600 whitespace-nowrap">{fmt(r.valor)}</td>
                     <td className="py-2.5 px-4 text-center text-gray-600">{vencDate}</td>
                     <td className={`py-2.5 px-4 text-center ${diasColor}`}>{r.dias != null ? `${r.dias}d` : '—'}</td>
                     <td className="py-2.5 px-4 text-center">

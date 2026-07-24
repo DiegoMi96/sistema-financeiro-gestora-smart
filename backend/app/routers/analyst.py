@@ -1653,3 +1653,227 @@ def upsert_vencido_nota(
     nota.observacao = data.observacao
     db.commit()
     return {"ok": True}
+
+
+# ─────────────────────────────────────────────
+# TEMPLATE XLSX + UPLOAD EM LOTE
+# ─────────────────────────────────────────────
+
+@router.get("/vencidos-template")
+async def download_vencidos_template(
+    mes: int = Query(..., ge=1, le=12),
+    ano: int = Query(..., ge=2020),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Gera planilha xlsx com a lista de vencidos do mês + notas existentes."""
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from fastapi.responses import Response as FastResponse
+    from app.models.extra import VencidoNota
+    from datetime import date as _date
+    import calendar as _cal
+
+    _last_day = _cal.monthrange(ano, mes)[1]
+    _inicio   = _date(ano, mes, 1)
+    _lim      = _date(ano, mes, _last_day)
+
+    try:
+        rows = db.execute(text("""
+            WITH asaas_venc AS (
+                SELECT
+                    REGEXP_REPLACE(aps.customer_cpf_cnpj, '[^0-9]', '', 'g') AS cnpj_raw,
+                    aps.customer_name AS nome,
+                    aps.value
+                FROM asaas_payments_sync aps
+                WHERE aps.status = 'OVERDUE'
+                  AND aps.due_date >= :inicio AND aps.due_date <= :lim
+            ),
+            itau_venc AS (
+                SELECT
+                    REGEXP_REPLACE(ib.cpf_cnpj, '[^0-9]', '', 'g') AS cnpj_raw,
+                    ib.pagador AS nome,
+                    ib.valor_titulo AS value
+                FROM itau_boletos ib
+                WHERE ib.status = 'vencida'
+                  AND ib.data_vencimento >= :inicio AND ib.data_vencimento <= :lim
+            ),
+            combined AS (SELECT * FROM asaas_venc UNION ALL SELECT * FROM itau_venc),
+            venc_by_cnpj AS (
+                SELECT
+                    cnpj_raw,
+                    MAX(nome) AS nome,
+                    SUM(value) AS valor
+                FROM combined
+                WHERE cnpj_raw IS NOT NULL AND cnpj_raw <> ''
+                GROUP BY cnpj_raw
+            )
+            SELECT
+                v.cnpj_raw,
+                v.nome,
+                v.valor,
+                COALESCE(c.id_smart, '') AS id_smart
+            FROM venc_by_cnpj v
+            LEFT JOIN clients c ON REGEXP_REPLACE(c.cpf_cnpj, '[^0-9]', '', 'g') = v.cnpj_raw
+            ORDER BY v.valor DESC
+        """), {"inicio": _inicio, "lim": _lim}).fetchall()
+    except Exception as _e:
+        print(f"⚠️  vencidos-template query: {_e}")
+        rows = []
+
+    notas = {
+        n.cnpj: n
+        for n in db.query(VencidoNota).filter(
+            VencidoNota.mes == mes,
+            VencidoNota.ano == ano,
+        ).all()
+    }
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"Vencidos {mes:02d}/{ano}"
+
+    header_fill = PatternFill("solid", fgColor="3CB54A")
+    header_font = Font(color="FFFFFF", bold=True, size=10)
+    lock_fill   = PatternFill("solid", fgColor="F3F4F6")
+    lock_font   = Font(color="9CA3AF", size=9)
+
+    headers = [
+        ("ID_Smart",                     16),
+        ("CNPJ",                         18),
+        ("Nome",                         35),
+        ("Venc. Planejado (AAAA-MM-DD)", 22),
+        ("Observação",                   45),
+    ]
+
+    for col, (h, width) in enumerate(headers, 1):
+        cell           = ws.cell(row=1, column=col, value=h)
+        cell.fill      = header_fill
+        cell.font      = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        ws.column_dimensions[chr(64 + col)].width = width
+
+    ws.row_dimensions[1].height = 22
+
+    def _fmt_cnpj(raw: str) -> str:
+        d = (raw or "").strip()
+        if len(d) == 14:
+            return f"{d[:2]}.{d[2:5]}.{d[5:8]}/{d[8:12]}-{d[12:]}"
+        if len(d) == 11:
+            return f"{d[:3]}.{d[3:6]}.{d[6:9]}-{d[9:]}"
+        return raw or ""
+
+    for i, r in enumerate(rows, 2):
+        cnpj_raw = r.cnpj_raw or ""
+        nota     = notas.get(cnpj_raw)
+        vp_val   = str(nota.vencimento_planejado) if nota and nota.vencimento_planejado else ""
+        obs_val  = nota.observacao if nota and nota.observacao else ""
+
+        c1 = ws.cell(row=i, column=1, value=r.id_smart or "")
+        c1.fill = lock_fill; c1.font = lock_font
+        c1.alignment = Alignment(horizontal="left")
+
+        c2 = ws.cell(row=i, column=2, value=_fmt_cnpj(cnpj_raw))
+        c2.fill = lock_fill; c2.font = lock_font
+        c2.alignment = Alignment(horizontal="left")
+
+        c3 = ws.cell(row=i, column=3, value=r.nome or "")
+        c3.fill = lock_fill; c3.font = lock_font
+        c3.alignment = Alignment(horizontal="left")
+
+        c4 = ws.cell(row=i, column=4, value=vp_val)
+        c4.font = Font(size=9); c4.alignment = Alignment(horizontal="center")
+
+        c5 = ws.cell(row=i, column=5, value=obs_val)
+        c5.font = Font(size=9); c5.alignment = Alignment(horizontal="left")
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    filename = f"vencidos_{ano}_{mes:02d}.xlsx"
+    return FastResponse(
+        content=buf.read(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.post("/vencidos-upload")
+async def upload_vencidos_planilha(
+    mes: int = Query(..., ge=1, le=12),
+    ano: int = Query(..., ge=2020),
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Lê xlsx enviado e faz upsert em lote dos campos Venc. Planejado e Observação."""
+    import openpyxl
+    from app.models.extra import VencidoNota
+    from datetime import date as _date
+
+    content = await file.read()
+    try:
+        wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Arquivo inválido. Envie um .xlsx.")
+
+    ws   = wb.active
+    rows = list(ws.iter_rows(values_only=True))
+
+    if len(rows) < 2:
+        raise HTTPException(status_code=400, detail="Planilha vazia ou sem dados.")
+
+    header   = [str(h or "").strip().lower() for h in rows[0]]
+    cnpj_idx = next((i for i, h in enumerate(header) if "cnpj" in h), None)
+    vp_idx   = next((i for i, h in enumerate(header) if "venc" in h and "plan" in h), None)
+    obs_idx  = next((i for i, h in enumerate(header) if "observ" in h), None)
+
+    if cnpj_idx is None or vp_idx is None or obs_idx is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Colunas obrigatórias não encontradas. Use a planilha modelo com colunas: CNPJ, Venc. Planejado, Observação",
+        )
+
+    updated = 0
+    errors  = []
+
+    for row_num, row in enumerate(rows[1:], 2):
+        if not row or len(row) <= max(cnpj_idx, vp_idx, obs_idx):
+            continue
+
+        raw_cnpj = str(row[cnpj_idx] or "").replace(".", "").replace("/", "").replace("-", "").strip()
+        if not raw_cnpj or raw_cnpj in ("None", "nan"):
+            continue
+
+        vp_raw  = str(row[vp_idx]  or "").strip()
+        obs_raw = str(row[obs_idx] or "").strip()
+
+        vp_date = None
+        if vp_raw and vp_raw not in ("None", "nan"):
+            try:
+                vp_date = _date.fromisoformat(vp_raw[:10])
+            except ValueError:
+                try:
+                    parts   = vp_raw.split("/")
+                    vp_date = _date(int(parts[2]), int(parts[1]), int(parts[0]))
+                except Exception:
+                    errors.append(f"Linha {row_num}: data inválida '{vp_raw}'")
+                    continue
+
+        nota = db.query(VencidoNota).filter(
+            VencidoNota.cnpj == raw_cnpj,
+            VencidoNota.mes  == mes,
+            VencidoNota.ano  == ano,
+        ).first()
+
+        if not nota:
+            nota = VencidoNota(cnpj=raw_cnpj, mes=mes, ano=ano)
+            db.add(nota)
+
+        nota.vencimento_planejado = vp_date
+        nota.observacao           = obs_raw or None
+        updated += 1
+
+    db.commit()
+    return {"updated": updated, "errors": errors}
