@@ -826,7 +826,7 @@ export default function AnalystDashboard() {
       </div>
 
       {/* Recebido diário */}
-      <DailyReceived data={plan?.planejado_por_dia} />
+      <DailyReceived data={plan?.planejado_por_dia} month={selectedMonth} year={selectedYear} />
 
       {/* Distribuição vencimento · Planejamento comportamental */}
       <div id="agenda-section" className="grid grid-cols-1 lg:grid-cols-2 gap-4">

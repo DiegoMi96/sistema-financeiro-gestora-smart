@@ -4,7 +4,6 @@ import {
   Tooltip, ResponsiveContainer, Legend, LabelList, Cell,
 } from 'recharts'
 import { Download } from 'lucide-react'
-import api from '../../services/api'
 
 const fmt  = v => `R$ ${Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 const fmtK = v => { const n = Number(v || 0); return n >= 1000 ? `R$${(n/1000).toFixed(0)}K` : fmt(n) }
@@ -116,48 +115,12 @@ export function WeeklyProgress({ weekData }) {
  *   month, year: para exportação detalhada
  */
 export function DailyAccumulated({ data, month, year }) {
-  const [exporting, setExporting] = useState(false)
   const chartData = data && data.length > 0 ? data : []
-
-  const fmtDate = iso => iso ? iso.slice(8,10) + '/' + iso.slice(5,7) + '/' + iso.slice(0,4) : '—'
-
-  async function handleExport() {
-    setExporting(true)
-    try {
-      const res = await api.get(`/analyst/acumulado-detail?month=${month}&year=${year}`)
-      const rows = res.data?.rows || []
-      const bom = '﻿'
-      const header = 'Cliente;Vencimento;Pagamento;Valor;Banco\n'
-      const lines = rows.map(r => {
-        const val = Number(r.valor || 0).toFixed(2).replace('.', ',')
-        return `"${r.nome}";"${fmtDate(r.vencimento)}";"${fmtDate(r.pagamento)}";"${val}";"${r.banco}"`
-      }).join('\n')
-      const blob = new Blob([bom + header + lines], { type: 'text/csv;charset=utf-8' })
-      const url  = URL.createObjectURL(blob)
-      const a    = document.createElement('a')
-      a.href = url
-      a.download = `acumulado_${String(year)}_${String(month).padStart(2,'0')}.csv`
-      document.body.appendChild(a); a.click()
-      document.body.removeChild(a); URL.revokeObjectURL(url)
-    } catch { /* silent */ } finally {
-      setExporting(false)
-    }
-  }
 
   return (
     <div className="gs-card p-5 flex flex-col">
       <div className="flex items-center justify-between mb-4">
         <h2 className="gs-section-title">Acumulado diário</h2>
-        {chartData.length > 0 && (
-          <button
-            onClick={handleExport}
-            disabled={exporting}
-            className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-[#3CB54A] border border-gray-200 hover:border-[#3CB54A] rounded-lg px-3 py-1.5 transition-colors"
-          >
-            <Download size={13} />
-            {exporting ? 'Exportando...' : 'Exportar'}
-          </button>
-        )}
       </div>
       {chartData.length > 0 ? (
         <div className="flex-1 min-h-[260px]">
@@ -198,7 +161,9 @@ export function DailyAccumulated({ data, month, year }) {
  * Props:
  *   data: [{dia: "01", planejado: X, realizado: Y}, ...]
  */
-export function DailyReceived({ data }) {
+export function DailyReceived({ data, month, year }) {
+  const [exporting, setExporting] = useState(false)
+
   const chartData = (data && data.length > 0 ? data : []).map(d => ({
     dia:       d.dia,
     Planejado: d.planejado || 0,
@@ -209,6 +174,29 @@ export function DailyReceived({ data }) {
   const totalReal = chartData.reduce((s, d) => s + d.Recebido,  0)
   const pct = totalPlan > 0 ? Math.min(100, Math.round((totalReal / totalPlan) * 100)) : 0
 
+  function handleExport() {
+    if (!chartData.length) return
+    setExporting(true)
+    try {
+      const bom = '﻿'
+      const header = 'Dia;Planejado;Recebido\n'
+      const lines = chartData.map(d => {
+        const plan = Number(d.Planejado).toFixed(2).replace('.', ',')
+        const rec  = Number(d.Recebido).toFixed(2).replace('.', ',')
+        return `"${d.dia}";"${plan}";"${rec}"`
+      }).join('\n')
+      const blob = new Blob([bom + header + lines], { type: 'text/csv;charset=utf-8' })
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement('a')
+      a.href = url
+      a.download = `recebimento_diario_${String(year)}_${String(month).padStart(2,'0')}.csv`
+      document.body.appendChild(a); a.click()
+      document.body.removeChild(a); URL.revokeObjectURL(url)
+    } finally {
+      setExporting(false)
+    }
+  }
+
   return (
     <div className="gs-card p-5">
       <div className="flex items-center justify-between mb-4">
@@ -216,6 +204,7 @@ export function DailyReceived({ data }) {
           <h2 className="gs-section-title">Recebimento Diário</h2>
           <p className="text-xs text-gray-400 mt-0.5">Planejado vs recebido por dia (base caixa)</p>
         </div>
+        <div className="flex items-start gap-4">
         <div className="flex gap-6 text-right">
           <div>
             <p className="text-xs text-gray-400">Planejado</p>
@@ -229,6 +218,17 @@ export function DailyReceived({ data }) {
             <p className="text-xs text-gray-400">Realizado</p>
             <p className={`text-sm font-bold ${pct >= 100 ? 'text-emerald-600' : pct > 0 ? 'text-green-600' : 'text-gray-400'}`}>{pct}%</p>
           </div>
+        </div>
+          {chartData.length > 0 && (
+            <button
+              onClick={handleExport}
+              disabled={exporting}
+              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-[#3CB54A] border border-gray-200 hover:border-[#3CB54A] rounded-lg px-3 py-1.5 transition-colors self-start"
+            >
+              <Download size={13} />
+              {exporting ? 'Exportando...' : 'Baixar'}
+            </button>
+          )}
         </div>
       </div>
 
