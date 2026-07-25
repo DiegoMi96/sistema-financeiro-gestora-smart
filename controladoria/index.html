@@ -2674,6 +2674,10 @@ const ebitdaIsReal = new Array(12).fill(false);
   // Exibe tela de login e remove classe CSS de sessão
   function showLogin() {
     try { if (window._gsmLoginFallback) { clearTimeout(window._gsmLoginFallback); window._gsmLoginFallback = null; } } catch(e) {}
+    // Login único: havendo sessão do sistema principal (JWT em localStorage['token']),
+    // o initUsers() assume a autenticação via /api/auth/me — não exibimos o login
+    // próprio deste dashboard (evita o "flash" de login ao entrar pelo sistema).
+    try { if (localStorage.getItem('token')) return; } catch(e) {}
     document.documentElement.classList.remove('gsm-has-session');
     if (loginScreen) loginScreen.style.display = 'flex';
   }
@@ -7078,7 +7082,9 @@ window.addEventListener('pageshow', (e) => {
   } else {
     // Sessão pode ter expirado enquanto a página estava no bfcache — re-avalia
     const raw = (() => { try { return localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY); } catch(e) { return null; } })();
-    if (!raw && loginScreen) loginScreen.style.display = 'flex';
+    // Login único: não exibe o login próprio se há sessão do sistema principal (JWT)
+    let _hasMainToken = false; try { _hasMainToken = !!localStorage.getItem('token'); } catch(e) {}
+    if (!raw && !_hasMainToken && loginScreen) loginScreen.style.display = 'flex';
   }
 });
 function getOpMes(mesIdx) {
