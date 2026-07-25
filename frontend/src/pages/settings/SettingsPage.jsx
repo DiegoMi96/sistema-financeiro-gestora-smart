@@ -8,9 +8,6 @@ import { Zap, Building2, FileText, CheckCircle, XCircle, Loader, Eye, EyeOff, Us
 const ALL_TABS = [
   { id: 'regras',      label: 'Regras de Negócio',  faturamentoOnly: true },
   { id: 'empresa',     label: 'Empresa',             faturamentoOnly: true },
-  { id: 'acesso',      label: 'Acesso' },
-  { id: 'perfis',      label: 'Perfis & Permissões' },
-  { id: 'planilha',    label: 'Planilha Google' },
   { id: 'integracoes', label: 'Integrações',        faturamentoOnly: true },
 ]
 
@@ -20,7 +17,7 @@ export default function SettingsPage() {
 
   const TABS = ALL_TABS.filter(t => !t.faturamentoOnly || isFaturamento)
 
-  const [tab, setTab] = useState(isFaturamento ? 'regras' : 'acesso')
+  const [tab, setTab] = useState('regras')
   const qc = useQueryClient()
 
   const { data: cfg, isLoading } = useQuery({
@@ -70,9 +67,6 @@ export default function SettingsPage() {
           {tab === 'integracoes' && <Integracoes cfg={cfg} save={save} />}
           {tab === 'regras'      && <RegrasNegocio cfg={cfg} save={save} />}
           {tab === 'empresa'     && <Empresa cfg={cfg} save={save} />}
-          {tab === 'acesso'      && <Acesso />}
-          {tab === 'perfis'      && <PerfisTab />}
-          {tab === 'planilha'    && <PlanilhaTab />}
         </div>
       </div>
     </div>
