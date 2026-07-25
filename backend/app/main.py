@@ -135,8 +135,10 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
-    docs_url="/docs",
-    redoc_url="/redoc",
+    # Segurança: docs/openapi só em DEBUG. Em produção não expõe o mapa da API.
+    docs_url="/docs" if settings.DEBUG else None,
+    redoc_url="/redoc" if settings.DEBUG else None,
+    openapi_url="/openapi.json" if settings.DEBUG else None,
     lifespan=lifespan,
 )
 
@@ -256,14 +258,21 @@ def seed_admin():
     db = SessionLocal()
     try:
         if not db.query(User).filter(User.email == "admin@gestorasmart.com.br").first():
+            import os, secrets
+            # Segurança: não usar senha padrão conhecida. Usa GSM_ADMIN_PASSWORD do
+            # ambiente; se ausente, gera uma aleatória forte e a imprime no log uma vez.
+            admin_pwd = os.getenv("GSM_ADMIN_PASSWORD") or secrets.token_urlsafe(18)
             db.add(User(
                 name="Administrador",
                 email="admin@gestorasmart.com.br",
-                hashed_password=hash_password("Gestora@2024"),
+                hashed_password=hash_password(admin_pwd),
                 role=UserRole.ADMIN,
             ))
             db.commit()
-            print("✅ Usuário admin criado: admin@gestorasmart.com.br / Gestora@2024")
+            if os.getenv("GSM_ADMIN_PASSWORD"):
+                print("✅ Usuário admin criado: admin@gestorasmart.com.br (senha via GSM_ADMIN_PASSWORD)")
+            else:
+                print(f"✅ Usuário admin criado: admin@gestorasmart.com.br | SENHA GERADA (troque já): {admin_pwd}")
     finally:
         db.close()
 
