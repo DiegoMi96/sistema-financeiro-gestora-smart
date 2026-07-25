@@ -20,6 +20,7 @@ export const MODULES = [
       { to: '/faturamento',        label: 'Faturamento'       },
       { to: '/clientes',           label: 'Clientes'          },
       { to: '/ajustes',            label: 'Ajustes',          permission: 'can_edit_billing' },
+      { to: '/diagnostico-ia',     label: 'Diagnóstico IA',   permission: 'can_view_dashboard' },
       { to: '/configuracoes',      label: 'Configurações',    permission: 'can_manage_users' },
     ],
   },
