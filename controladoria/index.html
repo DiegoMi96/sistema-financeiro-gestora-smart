@@ -763,7 +763,16 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
 <!-- Auth gerenciada pelo sistema principal — login único via sistema.gestorasmart.com.br -->
 <script>
 (function(){
-  // Esconde o loginScreen imediatamente — sem auth própria neste dashboard
+  // Segurança: o acesso à Controladoria exige sessão do sistema principal.
+  // Sem token no localStorage, redireciona JÁ para o sistema (fecha o acesso
+  // anônimo) — antes de renderizar qualquer conteúdo do dashboard.
+  try {
+    if (!localStorage.getItem('token')) {
+      (window.top || window).location.replace('/');
+      return;
+    }
+  } catch(e) {}
+  // Com token: esconde o loginScreen imediatamente (auth pelo sistema principal).
   document.documentElement.classList.add('gsm-has-session');
 })();
 </script>
@@ -6397,6 +6406,10 @@ if (confirmNovoUser) confirmNovoUser.addEventListener('click', async () => {
     can_view_ctrl_rh:          'rh',
     can_view_ctrl_fluxo_caixa: 'dfc',
   };
+  function _negarAcessoControladoria() {
+    try { (window.top || window).location.replace('/'); }
+    catch(e) { try { window.location.replace('/'); } catch(_) {} }
+  }
   try {
     const jwt = localStorage.getItem('token');
     if (jwt) {
@@ -6404,6 +6417,9 @@ if (confirmNovoUser) confirmNovoUser.addEventListener('click', async () => {
       if (r.ok) {
         const me = await r.json();
         const perms = me.permissions || {};
+        // Segurança: exige a permissão de Controladoria (mesma regra da rota
+        // /controladoria/dash no app principal). Sem ela, nega o acesso.
+        if (!perms.can_view_controladoria) { _negarAcessoControladoria(); return; }
         const allowedTabs = Object.entries(PERM_TO_TAB)
           .filter(([perm]) => perms[perm] !== false)
           .map(([, tab]) => tab);
@@ -6418,11 +6434,9 @@ if (confirmNovoUser) confirmNovoUser.addEventListener('click', async () => {
       }
     }
   } catch(e) {}
-  // Fallback: acesso completo se JWT indisponível
-  const fallback = { nome: 'Gestora Smart', email: 'admin@gestorasmart.com.br', hash: '', salt: '', perfil: 'Adm', pages: [], ultimo: '—' };
-  saveUsers([fallback]);
-  gsmUsers = [fallback];
-  _completeLogin(fallback, [fallback]);
+  // Sem sessão válida do sistema principal → NÃO libera acesso (fecha o furo de
+  // acesso anônimo/total). Redireciona para o sistema, que exige login + permissão.
+  _negarAcessoControladoria();
 })();
 renderAcessos();
 
