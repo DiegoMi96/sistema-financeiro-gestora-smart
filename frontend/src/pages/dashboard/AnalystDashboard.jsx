@@ -380,19 +380,6 @@ function ResumoBanco({ resumo, insight, month, year }) {
       <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
         <h2 className="gs-section-title">Resumo por banco</h2>
         <div className="flex items-center gap-2">
-          {temItau && (
-            <div className="flex flex-col items-end gap-0.5">
-              <span className="flex items-center gap-1 text-xs bg-green-100 text-green-700 font-medium px-2.5 py-0.5 rounded-full border border-green-200">
-                <CheckCircle size={10} />
-                Itaú importado
-              </span>
-              {itauEntry.ultima_importacao && (
-                <span className="text-[10px] text-gray-400">
-                  {fmtImportacao(itauEntry.ultima_importacao)}
-                </span>
-              )}
-            </div>
-          )}
           <button
             onClick={() => inputRef.current?.click()}
             disabled={uploading}
@@ -440,15 +427,17 @@ function ResumoBanco({ resumo, insight, month, year }) {
               ))}
             </tbody>
           </table>
-          {insight && (
-            <div className="mt-4 border-l-4 border-[#3CB54A] pl-4 py-1">
-              <p className="text-xs text-gray-600 leading-relaxed">
-                {insight.split(/(\d+,?\d*% do risco[^.]+)/).map((part, i) =>
-                  /^\d+,?\d*% do risco/.test(part)
-                    ? <strong key={i} className="text-[#3CB54A]">{part}</strong>
-                    : part
-                )}
-              </p>
+          {temItau && (
+            <div className="mt-4 flex items-center gap-2">
+              <span className="flex items-center gap-1 text-xs bg-green-100 text-green-700 font-medium px-2.5 py-1 rounded-full border border-green-200">
+                <CheckCircle size={10} />
+                Itaú importado
+              </span>
+              {itauEntry.ultima_importacao && (
+                <span className="text-xs text-gray-400">
+                  {fmtImportacao(itauEntry.ultima_importacao)}
+                </span>
+              )}
             </div>
           )}
         </div>
