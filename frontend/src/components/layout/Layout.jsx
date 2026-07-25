@@ -7,14 +7,14 @@ import api from '../../services/api'
 import {
   LayoutDashboard, FileText, Users, LogOut,
   LayoutGrid, AlertCircle, TrendingUp,
-  Settings, Menu, ChevronRight, ChevronLeft,
+  Settings, SlidersHorizontal, Menu, ChevronRight, ChevronLeft,
   Truck, BarChart2, LineChart, Contact
 } from 'lucide-react'
 
 const NAV_ICONS = {
   '/faturamento':                 FileText,
   '/clientes':        Contact,
-  '/ajustes':         Settings,
+  '/ajustes':         SlidersHorizontal,
   '/contestacao':     AlertCircle,
   '/comissionamento': TrendingUp,
   '/logistica':       Truck,
