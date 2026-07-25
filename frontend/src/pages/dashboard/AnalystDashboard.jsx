@@ -427,17 +427,10 @@ function ResumoBanco({ resumo, insight, month, year }) {
               ))}
             </tbody>
           </table>
-          {temItau && (
-            <div className="mt-4 flex items-center gap-2">
-              <span className="flex items-center gap-1 text-xs bg-green-100 text-green-700 font-medium px-2.5 py-1 rounded-full border border-green-200">
-                <CheckCircle size={10} />
-                Itaú importado
-              </span>
-              {itauEntry.ultima_importacao && (
-                <span className="text-xs text-gray-400">
-                  {fmtImportacao(itauEntry.ultima_importacao)}
-                </span>
-              )}
+          {temItau && itauEntry.ultima_importacao && (
+            <div className="mt-4 flex items-center gap-1.5 text-xs text-gray-400">
+              <CheckCircle size={11} className="text-green-500" />
+              Itaú importado · {fmtImportacao(itauEntry.ultima_importacao)}
             </div>
           )}
         </div>
