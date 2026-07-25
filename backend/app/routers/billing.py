@@ -1080,6 +1080,73 @@ def create_adjustment(
     return _adjustment_to_dict(adj)
 
 
+@router.put("/cycles/{cycle_id}/adjustments/{adj_id}")
+def update_adjustment(
+    cycle_id: int,
+    adj_id: int,
+    data: AdjustmentCreate,
+    current_user: User = Depends(require_permission("can_create_adjustment")),
+    db: Session = Depends(get_db),
+):
+    """Edita um ajuste existente (somente se não aprovado e ciclo não fechado)."""
+    cycle = db.query(BillingCycle).filter(BillingCycle.id == cycle_id).first()
+    if not cycle:
+        raise HTTPException(status_code=404, detail="Ciclo não encontrado")
+    if cycle.status == BillingStatus.FECHADO:
+        raise HTTPException(status_code=400, detail="Ciclo fechado — edição não permitida")
+
+    adj = db.query(BillingAdjustment).filter(
+        BillingAdjustment.id == adj_id,
+        BillingAdjustment.cycle_id == cycle_id,
+    ).first()
+    if not adj:
+        raise HTTPException(status_code=404, detail="Ajuste não encontrado")
+    if adj.approved_at is not None:
+        raise HTTPException(status_code=409, detail="Ajuste já aprovado — edição não permitida")
+
+    summary = db.query(BillingClientSummary).filter(
+        BillingClientSummary.cycle_id == cycle_id,
+        BillingClientSummary.id_smart == adj.id_smart,
+    ).first()
+
+    # Reverte impacto antigo no summary
+    if summary:
+        summary.total_ajustes -= adj.valor_diferenca
+        summary.total_final   -= adj.valor_diferenca
+        if adj.component and adj.component in _COMPONENT_FIELD_MAP:
+            comp_field = _COMPONENT_FIELD_MAP[adj.component]
+            setattr(summary, comp_field, round((getattr(summary, comp_field) or 0) - adj.valor_diferenca, 2))
+
+    nova_diferenca = data.valor_ajustado - data.valor_original
+    nova_requires_approval = abs(nova_diferenca) > 3000
+
+    from datetime import datetime as _dt
+    adj.type              = data.type
+    adj.component         = data.component
+    adj.valor_original    = data.valor_original
+    adj.valor_ajustado    = data.valor_ajustado
+    adj.valor_diferenca   = nova_diferenca
+    adj.justificativa     = data.justificativa
+    adj.observacao        = data.observacao
+    adj.consultor         = data.consultor
+    adj.num_fatura        = data.num_fatura
+    adj.ofensor           = data.ofensor
+    adj.requires_approval = nova_requires_approval
+    adj.data_vencimento   = _dt.strptime(data.data_vencimento, '%Y-%m-%d').date() if data.data_vencimento else None
+
+    # Aplica novo impacto no summary
+    if summary:
+        summary.total_ajustes += nova_diferenca
+        summary.total_final   += nova_diferenca
+        if data.component and data.component in _COMPONENT_FIELD_MAP:
+            comp_field = _COMPONENT_FIELD_MAP[data.component]
+            setattr(summary, comp_field, round((getattr(summary, comp_field) or 0) + nova_diferenca, 2))
+
+    db.commit()
+    db.refresh(adj)
+    return _adjustment_to_dict(adj)
+
+
 @router.put("/cycles/{cycle_id}/adjustments/{adj_id}/approve")
 def approve_adjustment(
     cycle_id: int,

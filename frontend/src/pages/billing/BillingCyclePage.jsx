@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { billingApi } from '../../services/api'
 import { useAuth } from '../../contexts/AuthContext'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Download, CheckCircle, Search, ChevronRight, FileText, FileDown, Table, DollarSign, Hash, Layers, BadgeCheck, Zap, TrendingUp, AlertCircle, MessageSquare, Truck, Bell, Wallet, Loader2, Trash2 } from 'lucide-react'
+import { ArrowLeft, Download, CheckCircle, Search, ChevronRight, FileText, FileDown, Table, DollarSign, Hash, Layers, BadgeCheck, Zap, TrendingUp, AlertCircle, MessageSquare, Truck, Bell, Wallet, Loader2, Trash2, Pencil, X } from 'lucide-react'
 
 const fmt  = v  => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0)
 const fmtN = v  => new Intl.NumberFormat('pt-BR').format(v || 0)
@@ -607,6 +607,8 @@ function StatusBadge({ status }) {
 }
 
 function AdjustmentsTab({ adjustments, cycleId, qc, can }) {
+  const [editingAdj, setEditingAdj] = useState(null)
+
   const approveMutation = useMutation({
     mutationFn: ({ adjId, approved }) => billingApi.approveAdjustment(+cycleId, adjId, { approved }),
     onSuccess: () => { toast.success('Atualizado!'); qc.invalidateQueries({ queryKey: ['cycle-adjustments', cycleId] }) },
@@ -619,10 +621,20 @@ function AdjustmentsTab({ adjustments, cycleId, qc, can }) {
     onError: (e) => toast.error(e.response?.data?.detail || 'Erro ao remover ajuste'),
   })
 
+  const editMutation = useMutation({
+    mutationFn: ({ adjId, data }) => billingApi.updateAdjustment(+cycleId, adjId, data),
+    onSuccess: () => {
+      toast.success('Ajuste atualizado!')
+      qc.invalidateQueries({ queryKey: ['cycle-adjustments', cycleId] })
+      setEditingAdj(null)
+    },
+    onError: (e) => toast.error(e.response?.data?.detail || 'Erro ao editar ajuste'),
+  })
+
   if (adjustments.length === 0)
     return <div className="p-8 text-center text-gray-400 text-sm">Nenhum ajuste registrado neste ciclo</div>
 
-  const fmt = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0)
+  const fmtV = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0)
 
   return (
     <div>
@@ -636,10 +648,13 @@ function AdjustmentsTab({ adjustments, cycleId, qc, can }) {
                 {a.requires_approval && !a.approved_at && (
                   <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded">Aguarda aprovação</span>
                 )}
+                {a.approved_at && (
+                  <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded">Aprovado</span>
+                )}
               </div>
               <p className="text-sm text-gray-600">{a.justificativa}</p>
               <p className="text-xs text-gray-400 mt-1">
-                Componente: {a.component} · Original: {fmt(a.valor_original)} → Ajustado: {fmt(a.valor_ajustado)} ({a.valor_diferenca >= 0 ? '+' : ''}{fmt(a.valor_diferenca)})
+                Componente: {a.component} · Original: {fmtV(a.valor_original)} → Ajustado: {fmtV(a.valor_ajustado)} ({a.valor_diferenca >= 0 ? '+' : ''}{fmtV(a.valor_diferenca)})
               </p>
             </div>
             <div className="flex gap-2 shrink-0">
@@ -653,19 +668,165 @@ function AdjustmentsTab({ adjustments, cycleId, qc, can }) {
                     className="px-3 py-1.5 border border-red-300 text-red-600 text-xs rounded-lg hover:bg-red-50 disabled:opacity-50">Rejeitar</button>
                 </>
               )}
-              {can('can_create_adjustment') && (
-                <button
-                  onClick={() => { if (window.confirm('Remover este ajuste?')) deleteMutation.mutate(a.id) }}
-                  disabled={deleteMutation.isPending}
-                  className="p-1.5 text-red-400 hover:text-red-600 border border-red-200 hover:border-red-400 rounded-lg disabled:opacity-50"
-                  title="Excluir ajuste">
-                  <Trash2 size={13} />
-                </button>
+              {can('can_create_adjustment') && !a.approved_at && (
+                <>
+                  <button
+                    onClick={() => setEditingAdj(a)}
+                    className="p-1.5 text-blue-400 hover:text-blue-600 border border-blue-200 hover:border-blue-400 rounded-lg"
+                    title="Editar ajuste">
+                    <Pencil size={13} />
+                  </button>
+                  <button
+                    onClick={() => { if (window.confirm('Remover este ajuste?')) deleteMutation.mutate(a.id) }}
+                    disabled={deleteMutation.isPending}
+                    className="p-1.5 text-red-400 hover:text-red-600 border border-red-200 hover:border-red-400 rounded-lg disabled:opacity-50"
+                    title="Excluir ajuste">
+                    <Trash2 size={13} />
+                  </button>
+                </>
               )}
             </div>
           </div>
         </div>
       ))}
+
+      {editingAdj && (
+        <EditAdjustmentModal
+          adj={editingAdj}
+          onClose={() => setEditingAdj(null)}
+          onSave={(data) => editMutation.mutate({ adjId: editingAdj.id, data })}
+          isPending={editMutation.isPending}
+        />
+      )}
+    </div>
+  )
+}
+
+function EditAdjustmentModal({ adj, onClose, onSave, isPending }) {
+  const COMPONENTS = ['mensalidade','ativacao','excedente','multa','sms','frete','mensageria']
+  const TYPES = [
+    { value: 'desconto',  label: 'Desconto' },
+    { value: 'acrescimo', label: 'Acréscimo' },
+    { value: 'isencao',   label: 'Isenção' },
+    { value: 'correcao',  label: 'Correção' },
+  ]
+
+  const [form, setForm] = useState({
+    id_smart:        adj.id_smart,
+    type:            adj.type,
+    component:       adj.component || '',
+    valor_original:  adj.valor_original,
+    valor_ajustado:  adj.valor_ajustado,
+    justificativa:   adj.justificativa || '',
+    observacao:      adj.observacao || '',
+    consultor:       adj.consultor || '',
+    num_fatura:      adj.num_fatura || '',
+    ofensor:         adj.ofensor || '',
+    data_vencimento: adj.data_vencimento || '',
+  })
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  function handleSubmit(e) {
+    e.preventDefault()
+    onSave({
+      ...form,
+      valor_original: parseFloat(form.valor_original),
+      valor_ajustado: parseFloat(form.valor_ajustado),
+      data_vencimento: form.data_vencimento || null,
+    })
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <h3 className="text-sm font-semibold text-gray-800">Editar Ajuste — {adj.id_smart}</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="px-5 py-4 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Tipo</label>
+              <select value={form.type} onChange={e => set('type', e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3CB54A]">
+                {TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Componente</label>
+              <select value={form.component} onChange={e => set('component', e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3CB54A]">
+                <option value="">— nenhum —</option>
+                {COMPONENTS.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Valor Original (R$)</label>
+              <input type="number" step="0.01" value={form.valor_original} onChange={e => set('valor_original', e.target.value)} required
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3CB54A]" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Valor Ajustado (R$)</label>
+              <input type="number" step="0.01" value={form.valor_ajustado} onChange={e => set('valor_ajustado', e.target.value)} required
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3CB54A]" />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Justificativa</label>
+            <textarea value={form.justificativa} onChange={e => set('justificativa', e.target.value)} required rows={2}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3CB54A] resize-none" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Consultor</label>
+              <input type="text" value={form.consultor} onChange={e => set('consultor', e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3CB54A]" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Nº Fatura</label>
+              <input type="text" value={form.num_fatura} onChange={e => set('num_fatura', e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3CB54A]" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Ofensor</label>
+              <input type="text" value={form.ofensor} onChange={e => set('ofensor', e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3CB54A]" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Data Vencimento</label>
+              <input type="date" value={form.data_vencimento} onChange={e => set('data_vencimento', e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3CB54A]" />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Observação</label>
+            <textarea value={form.observacao} onChange={e => set('observacao', e.target.value)} rows={2}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3CB54A] resize-none" />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={onClose}
+              className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">
+              Cancelar
+            </button>
+            <button type="submit" disabled={isPending}
+              className="px-4 py-2 text-sm bg-[#3CB54A] text-white rounded-lg hover:bg-[#2ea33a] disabled:opacity-50 flex items-center gap-2">
+              {isPending && <Loader2 size={13} className="animate-spin" />}
+              Salvar
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }
