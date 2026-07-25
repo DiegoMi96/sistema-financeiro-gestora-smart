@@ -13,8 +13,12 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import OrgMember
+from app.routers.auth import get_current_user
 
-router = APIRouter(prefix="/organograma", tags=["organograma"])
+# Segurança: endpoints do organograma exigem login (o frontend já envia o token).
+router = APIRouter(prefix="/organograma", tags=["organograma"], dependencies=[Depends(get_current_user)])
+# Router público — apenas para servir as fotos (usadas em <img src>, sem header de auth).
+public_router = APIRouter(prefix="/organograma", tags=["organograma"])
 
 PHOTOS_DIR = "/app/uploads/org_photos"
 os.makedirs(PHOTOS_DIR, exist_ok=True)
@@ -169,7 +173,7 @@ def remove_photo(member_id: int, db: Session = Depends(get_db)):
         db.commit()
 
 
-@router.get("/photos/{filename}")
+@public_router.get("/photos/{filename}")
 def get_photo(filename: str):
     path = os.path.join(PHOTOS_DIR, filename)
     if not os.path.exists(path):

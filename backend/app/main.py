@@ -19,7 +19,7 @@ from app.services.asaas_client import router as asaas_router
 from app.routers.previsibilidade import router as previsibilidade_router
 from app.routers.contestation import router as contestation_router
 from app.routers.clients        import router as clients_router
-from app.routers.organograma    import router as organograma_router
+from app.routers.organograma    import router as organograma_router, public_router as organograma_public_router
 from app.routers.sheets         import router as sheets_router
 
 # ── Cria enums de contestação antes do create_all (evita UniqueViolation) ──
@@ -160,6 +160,7 @@ app.include_router(previsibilidade_router)
 app.include_router(contestation_router)
 app.include_router(clients_router)
 app.include_router(organograma_router)
+app.include_router(organograma_public_router)   # fotos do organograma (público — <img src>)
 app.include_router(sheets_router)
 
 

@@ -15,11 +15,14 @@ from sqlalchemy.orm import Session
 
 from app.database import SessionLocal, get_db
 from app.core.permissions import require_permission
+from app.routers.auth import get_current_user
 from app.models import Bank, ClientProfile, BillingLine, BillingCycle
 from app.config import settings
 from app.services.asaas_client import get_asaas_client
 
-router = APIRouter(prefix="/clients", tags=["clients"])
+# Segurança: todos os endpoints de clientes exigem login (o frontend já envia o
+# token via api.js). Fecha o acesso anônimo à base de clientes (dados LGPD).
+router = APIRouter(prefix="/clients", tags=["clients"], dependencies=[Depends(get_current_user)])
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
