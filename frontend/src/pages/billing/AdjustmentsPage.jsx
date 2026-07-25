@@ -383,7 +383,8 @@ function AdjustmentModal({ onClose, onSuccess, defaultCycleId, defaultIdSmart, d
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!form.cycle_id) return toast.error('Selecione o ciclo')
+    if (!form.cycle_id)   return toast.error('Selecione o ciclo')
+    if (!form.num_fatura) return toast.error('Informe o N.° da fatura')
     setLoading(true)
     try {
       const valorEntrada = parseFloat(form.valor_ajustado)
@@ -513,11 +514,12 @@ function AdjustmentModal({ onClose, onSuccess, defaultCycleId, defaultIdSmart, d
 
           {/* N.° Fatura */}
           <div>
-            <label className="gs-label block mb-1">N.° da Fatura</label>
+            <label className="gs-label block mb-1">N.° da Fatura <span className="text-red-500">*</span></label>
             <div className="relative">
               <input value={form.num_fatura}
                 onChange={defaultNumFatura ? undefined : e => set('num_fatura', e.target.value)}
                 readOnly={!!defaultNumFatura}
+                required={!defaultNumFatura}
                 placeholder="825548749"
                 className={defaultNumFatura ? LOCKED_INPUT : INPUT} />
               {defaultNumFatura && <Lock size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />}
