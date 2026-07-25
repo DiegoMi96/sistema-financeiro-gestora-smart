@@ -14,11 +14,16 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import OrgMember
 from app.routers.auth import get_current_user
+from app.core.permissions import require_permission
 
 # Segurança: endpoints do organograma exigem login (o frontend já envia o token).
 router = APIRouter(prefix="/organograma", tags=["organograma"], dependencies=[Depends(get_current_user)])
 # Router público — apenas para servir as fotos (usadas em <img src>, sem header de auth).
 public_router = APIRouter(prefix="/organograma", tags=["organograma"])
+
+# Escrita (criar/editar/excluir membro, fotos) exige can_edit_organograma —
+# espelha o gate do frontend (rota /organograma/gerenciar). Leitura = qualquer logado.
+_require_edit_org = Depends(require_permission("can_edit_organograma"))
 
 PHOTOS_DIR = "/app/uploads/org_photos"
 os.makedirs(PHOTOS_DIR, exist_ok=True)
@@ -96,7 +101,7 @@ def get_tree(view: str = "institucional", db: Session = Depends(get_db)):
     return [_out(m) for m in rows]
 
 
-@router.post("/members", status_code=201)
+@router.post("/members", status_code=201, dependencies=[_require_edit_org])
 def create_member(data: MemberCreate, db: Session = Depends(get_db)):
     m = OrgMember(**data.model_dump())
     db.add(m)
@@ -105,7 +110,7 @@ def create_member(data: MemberCreate, db: Session = Depends(get_db)):
     return _out(m)
 
 
-@router.put("/members/{member_id}")
+@router.put("/members/{member_id}", dependencies=[_require_edit_org])
 def update_member(member_id: int, data: MemberUpdate, db: Session = Depends(get_db)):
     m = db.get(OrgMember, member_id)
     if not m:
@@ -118,7 +123,7 @@ def update_member(member_id: int, data: MemberUpdate, db: Session = Depends(get_
     return _out(m)
 
 
-@router.delete("/members/{member_id}", status_code=204)
+@router.delete("/members/{member_id}", status_code=204, dependencies=[_require_edit_org])
 def delete_member(member_id: int, db: Session = Depends(get_db)):
     m = db.get(OrgMember, member_id)
     if not m:
@@ -128,7 +133,7 @@ def delete_member(member_id: int, db: Session = Depends(get_db)):
     db.commit()
 
 
-@router.post("/members/{member_id}/photo")
+@router.post("/members/{member_id}/photo", dependencies=[_require_edit_org])
 async def upload_photo(
     member_id: int,
     file: UploadFile = File(...),
@@ -159,7 +164,7 @@ async def upload_photo(
     return {"photo_url": f"/api/organograma/photos/{filename}"}
 
 
-@router.delete("/members/{member_id}/photo", status_code=204)
+@router.delete("/members/{member_id}/photo", status_code=204, dependencies=[_require_edit_org])
 def remove_photo(member_id: int, db: Session = Depends(get_db)):
     m = db.get(OrgMember, member_id)
     if not m:

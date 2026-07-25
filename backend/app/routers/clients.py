@@ -24,6 +24,10 @@ from app.services.asaas_client import get_asaas_client
 # token via api.js). Fecha o acesso anônimo à base de clientes (dados LGPD).
 router = APIRouter(prefix="/clients", tags=["clients"], dependencies=[Depends(get_current_user)])
 
+# Escrita (criar/editar/importar/sincronizar) exige can_edit_billing.
+# Leitura = qualquer usuário logado (igual à tela /clientes no app).
+_require_edit_client = Depends(require_permission("can_edit_billing"))
+
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
 
@@ -87,7 +91,7 @@ def list_banks(db: Session = Depends(get_db)):
     return [_bank_out(b) for b in db.query(Bank).order_by(Bank.nome).all()]
 
 
-@router.post("/banks", status_code=201)
+@router.post("/banks", status_code=201, dependencies=[_require_edit_client])
 def create_bank(data: BankCreate, db: Session = Depends(get_db)):
     if db.query(Bank).filter(Bank.nome == data.nome).first():
         raise HTTPException(400, "Já existe um banco com esse nome")
@@ -98,7 +102,7 @@ def create_bank(data: BankCreate, db: Session = Depends(get_db)):
     return _bank_out(b)
 
 
-@router.patch("/banks/{bank_id}")
+@router.patch("/banks/{bank_id}", dependencies=[_require_edit_client])
 def update_bank(bank_id: int, data: BankUpdate, db: Session = Depends(get_db)):
     b = db.get(Bank, bank_id)
     if not b:
@@ -110,7 +114,7 @@ def update_bank(bank_id: int, data: BankUpdate, db: Session = Depends(get_db)):
     return _bank_out(b)
 
 
-@router.delete("/banks/{bank_id}", status_code=204)
+@router.delete("/banks/{bank_id}", status_code=204, dependencies=[_require_edit_client])
 def delete_bank(bank_id: int, db: Session = Depends(get_db)):
     b = db.get(Bank, bank_id)
     if not b:
@@ -207,7 +211,7 @@ def get_profile(id_smart: str, db: Session = Depends(get_db)):
     return _profile_out(p)
 
 
-@router.patch("/{id_smart}")
+@router.patch("/{id_smart}", dependencies=[_require_edit_client])
 def update_profile(id_smart: str, data: ProfileUpdate, db: Session = Depends(get_db)):
     p = db.get(ClientProfile, id_smart)
     if not p:
@@ -290,7 +294,7 @@ async def _run_sync(rows: list):
         db.close()
 
 
-@router.post("/sync-asaas")
+@router.post("/sync-asaas", dependencies=[_require_edit_client])
 async def sync_from_asaas(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
     Inicia sincronização em background: busca CNPJs dos últimos 3 meses no billing,
@@ -355,7 +359,7 @@ _COL_MAP = {
 EDITABLE = {"telefone","email","logradouro","numero","complemento","bairro","cep","cidade","estado"}
 
 
-@router.post("/import")
+@router.post("/import", dependencies=[_require_edit_client])
 async def import_clients(file: UploadFile = File(...), db: Session = Depends(get_db)):
     content = await file.read()
     try:

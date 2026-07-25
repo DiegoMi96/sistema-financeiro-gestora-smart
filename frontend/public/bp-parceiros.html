@@ -3,6 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
+<script>
+(function(){
+  // Segurança: página acessível só com sessão do sistema principal (mesma origem).
+  // Sem token no localStorage, redireciona ao sistema — fecha o acesso anônimo direto.
+  // Embutida via iframe em rota autenticada, o token já existe (não redireciona).
+  try { if (!localStorage.getItem('token')) { (window.top || window).location.replace('/'); } } catch(e) {}
+})();
+</script>
 <title>BP · Gestora Smart</title>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
