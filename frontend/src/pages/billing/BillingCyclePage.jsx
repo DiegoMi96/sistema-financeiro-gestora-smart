@@ -727,12 +727,15 @@ function EditAdjustmentModal({ adj, onClose, onSave, isPending }) {
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
+  const isMensageria = form.component === 'mensageria'
+
   function handleSubmit(e) {
     e.preventDefault()
+    const valorEntrada = parseFloat(form.valor_ajustado)
     onSave({
       ...form,
-      valor_original: parseFloat(form.valor_original),
-      valor_ajustado: parseFloat(form.valor_ajustado),
+      valor_original: isMensageria ? valorEntrada : parseFloat(form.valor_original),
+      valor_ajustado: isMensageria ? 0 : valorEntrada,
       data_vencimento: form.data_vencimento || null,
     })
   }
@@ -770,9 +773,14 @@ function EditAdjustmentModal({ adj, onClose, onSave, isPending }) {
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3CB54A]" />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Valor Ajustado (R$)</label>
+              <label className="block text-xs text-gray-500 mb-1">
+                {isMensageria ? 'Valor a Remover (R$)' : 'Valor Ajustado (R$)'}
+              </label>
               <input type="number" step="0.01" value={form.valor_ajustado} onChange={e => set('valor_ajustado', e.target.value)} required
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3CB54A]" />
+              {isMensageria && form.valor_ajustado && (
+                <p className="text-xs text-blue-600 mt-1">Resultado na fatura: R$&nbsp;0,00</p>
+              )}
             </div>
           </div>
 

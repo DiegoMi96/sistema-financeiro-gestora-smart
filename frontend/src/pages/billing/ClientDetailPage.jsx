@@ -384,7 +384,10 @@ function AdjustmentModal({ cycleId, idSmart, totals, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false)
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
 
-  const diff = parseBRL(form.valor_ajustado) - parseBRL(form.valor_original)
+  const isMensageria = form.component === 'mensageria'
+  const diff = isMensageria
+    ? -parseBRL(form.valor_ajustado)
+    : parseBRL(form.valor_ajustado) - parseBRL(form.valor_original)
   const needsApproval = Math.abs(diff) > 3000
 
   const handleSubmit = async (e) => {
@@ -392,11 +395,12 @@ function AdjustmentModal({ cycleId, idSmart, totals, onClose, onSuccess }) {
     if (!form.justificativa.trim()) return toast.error('Justificativa obrigatória')
     setLoading(true)
     try {
+      const valorEntrada = parseBRL(form.valor_ajustado)
       await billingApi.createAdjustment(+cycleId, {
         ...form,
         id_smart: idSmart,
-        valor_original: parseBRL(form.valor_original),
-        valor_ajustado: parseBRL(form.valor_ajustado),
+        valor_original: isMensageria ? valorEntrada : parseBRL(form.valor_original),
+        valor_ajustado: isMensageria ? 0 : valorEntrada,
       })
       toast.success('Ajuste criado!')
       onSuccess()
@@ -497,11 +501,16 @@ function AdjustmentModal({ cycleId, idSmart, totals, onClose, onSuccess }) {
                 required placeholder="0,00" className={INPUT} />
             </div>
             <div>
-              <label className="gs-label mb-1 flex items-center gap-0.5 whitespace-nowrap">Valor Ajustado (R$) <span className="text-red-500">*</span></label>
+              <label className="gs-label mb-1 flex items-center gap-0.5 whitespace-nowrap">
+                {isMensageria ? 'Valor a Remover (R$)' : 'Valor Ajustado (R$)'} <span className="text-red-500">*</span>
+              </label>
               <input type="text" inputMode="decimal" value={form.valor_ajustado}
                 onChange={e => set('valor_ajustado', e.target.value)}
                 onBlur={e => handleBRLBlur('valor_ajustado', e.target.value)}
                 required placeholder="0,00" className={INPUT} />
+              {isMensageria && form.valor_ajustado && (
+                <p className="text-xs text-blue-600 mt-1">Resultado na fatura: R$&nbsp;0,00</p>
+              )}
             </div>
             <div>
               <label className="gs-label block mb-1">Diferença</label>

@@ -332,7 +332,10 @@ function AdjustmentModal({ onClose, onSuccess, defaultCycleId, defaultIdSmart, d
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
 
-  const diff = parseFloat(form.valor_ajustado || 0) - parseFloat(form.valor_original || 0)
+  const isMensageria = form.component === 'mensageria'
+  const diff = isMensageria
+    ? -parseFloat(form.valor_ajustado || 0)
+    : parseFloat(form.valor_ajustado || 0) - parseFloat(form.valor_original || 0)
   const needsApproval = Math.abs(diff) > 3000
 
   const handleSubmit = async (e) => {
@@ -340,10 +343,11 @@ function AdjustmentModal({ onClose, onSuccess, defaultCycleId, defaultIdSmart, d
     if (!form.cycle_id) return toast.error('Selecione o ciclo')
     setLoading(true)
     try {
+      const valorEntrada = parseFloat(form.valor_ajustado)
       await billingApi.createAdjustment(+form.cycle_id, {
         ...form,
-        valor_original: parseFloat(form.valor_original),
-        valor_ajustado: parseFloat(form.valor_ajustado),
+        valor_original: isMensageria ? valorEntrada : parseFloat(form.valor_original),
+        valor_ajustado: isMensageria ? 0 : valorEntrada,
       })
       toast.success('Ajuste registrado!')
       onSuccess()
@@ -464,10 +468,15 @@ function AdjustmentModal({ onClose, onSuccess, defaultCycleId, defaultIdSmart, d
                 placeholder="0,00" className={INPUT} />
             </div>
             <div>
-              <label className="gs-label mb-1 flex items-center gap-0.5 whitespace-nowrap">Valor Ajustado (R$) <span className="text-red-500">*</span></label>
+              <label className="gs-label mb-1 flex items-center gap-0.5 whitespace-nowrap">
+                {isMensageria ? 'Valor a Remover (R$)' : 'Valor Ajustado (R$)'} <span className="text-red-500">*</span>
+              </label>
               <input type="number" step="0.01" value={form.valor_ajustado}
                 onChange={e => set('valor_ajustado', e.target.value)} required
                 placeholder="0,00" className={INPUT} />
+              {isMensageria && form.valor_ajustado && (
+                <p className="text-xs text-blue-600 mt-1">Resultado na fatura: R$&nbsp;0,00</p>
+              )}
             </div>
             <div>
               <label className="gs-label block mb-1">Diferença</label>
