@@ -44,6 +44,13 @@ export default function AdjustmentsPage() {
   const [showForm, setShowForm] = useState(false)
   const [expanded, setExpanded] = useState(null)
   const [approving, setApproving] = useState(null)
+  const [sortBy,  setSortBy]  = useState(null)
+  const [sortDir, setSortDir] = useState('asc')
+
+  const toggleSort = (col) => {
+    if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortBy(col); setSortDir('asc') }
+  }
 
   const handleApprove = async (a) => {
     setApproving(a.id)
@@ -81,6 +88,44 @@ export default function AdjustmentsPage() {
     return acc
   }, {})
   const ofensorList = Object.entries(byOfensor).sort((a, b) => a[1].valor - b[1].valor)
+
+  const sortedAdjustments = [...adjustments].sort((a, b) => {
+    if (!sortBy) return 0
+    let av, bv
+    switch (sortBy) {
+      case 'periodo':         av = a.cycle_year * 100 + a.cycle_month;           bv = b.cycle_year * 100 + b.cycle_month;           break
+      case 'cliente':         av = (a.client_nome || a.id_smart || '').toLowerCase(); bv = (b.client_nome || b.id_smart || '').toLowerCase(); break
+      case 'analista':        av = (a.analista  || '').toLowerCase();             bv = (b.analista  || '').toLowerCase();             break
+      case 'consultor':       av = (a.consultor || '').toLowerCase();             bv = (b.consultor || '').toLowerCase();             break
+      case 'ofensor':         av = (a.ofensor   || '').toLowerCase();             bv = (b.ofensor   || '').toLowerCase();             break
+      case 'num_fatura':      av = (a.num_fatura || '');                          bv = (b.num_fatura || '');                          break
+      case 'valor_original':  av = a.valor_original  || 0;                       bv = b.valor_original  || 0;                        break
+      case 'valor_ajustado':  av = a.valor_ajustado  || 0;                       bv = b.valor_ajustado  || 0;                        break
+      case 'valor_diferenca': av = a.valor_diferenca || 0;                       bv = b.valor_diferenca || 0;                        break
+      case 'status':          av = a.approved_at ? 2 : a.requires_approval ? 1 : 0; bv = b.approved_at ? 2 : b.requires_approval ? 1 : 0; break
+      default: return 0
+    }
+    if (av < bv) return sortDir === 'asc' ? -1 : 1
+    if (av > bv) return sortDir === 'asc' ?  1 : -1
+    return 0
+  })
+
+  const SortIcon = (col) => sortBy === col
+    ? (sortDir === 'asc'
+        ? <ChevronUp   size={11} className="text-green-600 shrink-0" />
+        : <ChevronDown size={11} className="text-green-600 shrink-0" />)
+    : <ChevronUp size={11} className="text-gray-300 shrink-0" />
+
+  const thSort = (col, label, right = false) => (
+    <th
+      className={`${right ? 'gs-th-right' : 'gs-th'} cursor-pointer select-none hover:bg-gray-50 transition-colors`}
+      onClick={() => toggleSort(col)}
+    >
+      <span className={`inline-flex items-center gap-0.5 ${right ? 'justify-end w-full' : ''}`}>
+        {label}{SortIcon(col)}
+      </span>
+    </th>
+  )
 
   const toggleRow = (id) => setExpanded(expanded === id ? null : id)
 
@@ -187,21 +232,21 @@ export default function AdjustmentsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr>
-                  <th className="gs-th">Período</th>
-                  <th className="gs-th">Cliente</th>
-                  <th className="gs-th">Analista</th>
-                  <th className="gs-th">Consultor</th>
-                  <th className="gs-th">Ofensor</th>
-                  <th className="gs-th">N.° Fatura</th>
-                  <th className="gs-th-right">Valor Fatura</th>
-                  <th className="gs-th-right">Valor Ajustado</th>
-                  <th className="gs-th-right">Diferença</th>
-                  <th className="gs-th">Status</th>
+                  {thSort('periodo',         'Período')}
+                  {thSort('cliente',         'Cliente')}
+                  {thSort('analista',        'Analista')}
+                  {thSort('consultor',       'Consultor')}
+                  {thSort('ofensor',         'Ofensor')}
+                  {thSort('num_fatura',      'N.° Fatura')}
+                  {thSort('valor_original',  'Valor Fatura',   true)}
+                  {thSort('valor_ajustado',  'Valor Ajustado', true)}
+                  {thSort('valor_diferenca', 'Diferença',      true)}
+                  {thSort('status',          'Status')}
                   <th className="gs-th"></th>
                 </tr>
               </thead>
               <tbody>
-                {adjustments.map(a => (
+                {sortedAdjustments.map(a => (
                   <Fragment key={a.id}>
                     <tr className="gs-tr border-t border-gray-100">
                       <td className="gs-td whitespace-nowrap text-xs text-gray-500">
