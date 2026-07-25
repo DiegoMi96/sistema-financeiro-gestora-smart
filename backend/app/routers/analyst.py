@@ -1282,6 +1282,21 @@ async def payment_planning(
         hy -= 1
     hist_start = _date(hy, hm, 1)
 
+    # Overrides de vencimento planejado vindos da Lista de Vencidos do mês
+    import re as _re
+    from app.models.extra import VencidoNota as _VencidoNota
+
+    def _digits(s):
+        return _re.sub(r'\D', '', s or '')
+
+    _notas = db.query(_VencidoNota).filter(
+        _VencidoNota.mes == month,
+        _VencidoNota.ano == year,
+        _VencidoNota.vencimento_planejado.isnot(None),
+    ).all()
+    # chave: apenas dígitos do CNPJ/CPF → dia do mês planejado
+    planned_overrides = {_digits(n.cnpj): n.vencimento_planejado.day for n in _notas if n.vencimento_planejado}
+
     try:
         _db2 = SessionLocal()
         try:
@@ -1325,14 +1340,20 @@ async def payment_planning(
     clientes_com: set = set()
     clientes_sem: set = set()
 
-    # Asaas — planejado (comportamental por CPF/CNPJ)
+    # Asaas — planejado
+    # Prioridade: 1) venc. planejado da Lista de Vencidos  2) offset histórico  3) due_date
     for r in curr_rows:
         if not r.due_date:
             continue
-        cpf_cnpj = r.customer_cpf_cnpj
-        valor    = r.net_value or r.value or 0
+        cpf_cnpj  = r.customer_cpf_cnpj
+        valor     = r.net_value or r.value or 0
+        cnpj_key  = _digits(cpf_cnpj)
 
-        if cpf_cnpj and cpf_cnpj in hist_offsets:
+        if cnpj_key and cnpj_key in planned_overrides:
+            pred_day = max(1, min(planned_overrides[cnpj_key], last_day))
+            if cpf_cnpj:
+                clientes_com.add(cpf_cnpj)
+        elif cpf_cnpj and cpf_cnpj in hist_offsets:
             clientes_com.add(cpf_cnpj)
             offset   = round(hist_offsets[cpf_cnpj])
             pred_day = max(1, min(r.due_date.day + offset, last_day))
@@ -1366,7 +1387,7 @@ async def payment_planning(
     try:
         _db_itau = SessionLocal()
         _itau_plan = _db_itau.execute(text("""
-            SELECT valor_titulo, data_vencimento
+            SELECT valor_titulo, data_vencimento, cpf_cnpj
             FROM itau_boletos
             WHERE upload_ref = :ref
               AND status != 'cancelada'
@@ -1375,7 +1396,11 @@ async def payment_planning(
         """), {"ref": f"{year}-{month:02d}", "m": month, "y": year}).fetchall()
         for r in _itau_plan:
             if r.data_vencimento:
-                d = max(1, min(r.data_vencimento.day, last_day))
+                cnpj_key = _digits(r.cpf_cnpj)
+                if cnpj_key and cnpj_key in planned_overrides:
+                    d = max(1, min(planned_overrides[cnpj_key], last_day))
+                else:
+                    d = max(1, min(r.data_vencimento.day, last_day))
                 plan_por_dia[d] = plan_por_dia.get(d, 0) + (r.valor_titulo or 0)
 
         _itau_real = _db_itau.execute(text("""
