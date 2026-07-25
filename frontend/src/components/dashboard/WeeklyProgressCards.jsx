@@ -204,17 +204,7 @@ export function DailyReceived({ data, month, year }) {
           <h2 className="gs-section-title">Recebimento Diário</h2>
           <p className="text-xs text-gray-400 mt-0.5">Planejado vs recebido por dia (base caixa)</p>
         </div>
-        <div className="flex items-start gap-4">
-          {chartData.length > 0 && (
-            <button
-              onClick={handleExport}
-              disabled={exporting}
-              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-[#3CB54A] border border-gray-200 hover:border-[#3CB54A] rounded-lg px-3 py-1.5 transition-colors self-start"
-            >
-              <Download size={13} />
-              {exporting ? 'Exportando...' : 'Baixar'}
-            </button>
-          )}
+        <div className="flex items-center gap-6">
           <div className="flex gap-6 text-right">
             <div>
               <p className="text-xs text-gray-400">Planejado</p>
@@ -224,11 +214,17 @@ export function DailyReceived({ data, month, year }) {
               <p className="text-xs text-gray-400">Recebido</p>
               <p className="text-sm font-bold text-emerald-700">{fmt(totalReal)}</p>
             </div>
-            <div>
-              <p className="text-xs text-gray-400">Realizado</p>
-              <p className={`text-sm font-bold ${pct >= 100 ? 'text-emerald-600' : pct > 0 ? 'text-green-600' : 'text-gray-400'}`}>{pct}%</p>
-            </div>
           </div>
+          {chartData.length > 0 && (
+            <button
+              onClick={handleExport}
+              disabled={exporting}
+              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-[#3CB54A] border border-gray-200 hover:border-[#3CB54A] rounded-lg px-3 py-1.5 transition-colors"
+            >
+              <Download size={13} />
+              {exporting ? 'Exportando...' : 'Baixar'}
+            </button>
+          )}
         </div>
       </div>
 
