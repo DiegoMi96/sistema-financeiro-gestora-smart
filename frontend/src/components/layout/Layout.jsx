@@ -8,7 +8,7 @@ import {
   LayoutDashboard, FileText, Users, LogOut,
   LayoutGrid, AlertCircle, TrendingUp,
   Settings, SlidersHorizontal, Menu, ChevronRight, ChevronLeft,
-  Truck, BarChart2, LineChart, Contact, Brain
+  Truck, BarChart2, LineChart, Contact, Brain, UserCog
 } from 'lucide-react'
 
 const NAV_ICONS = {
@@ -24,7 +24,7 @@ const NAV_ICONS = {
   '/configuracoes':   Settings,
   '/diagnostico-ia':  Brain,
   '/organograma':                Users,
-  '/organograma/gerenciar':      Settings,
+  '/organograma/gerenciar':      UserCog,
   '/controladoria/indicadores':  LineChart,
 }
 
