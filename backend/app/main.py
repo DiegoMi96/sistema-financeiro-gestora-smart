@@ -79,6 +79,18 @@ def _run_migrations():
     except Exception:
         db.rollback()
 
+    # Índices compostos e faltantes — grandes ganhos em queries de status+data
+    try:
+        db.execute(text("CREATE INDEX IF NOT EXISTS ix_aps_status_due    ON asaas_payments_sync (status, due_date)"))
+        db.execute(text("CREATE INDEX IF NOT EXISTS ix_aps_credit_date   ON asaas_payments_sync (credit_date)"))
+        db.execute(text("CREATE INDEX IF NOT EXISTS ix_ib_status_venc    ON itau_boletos (status, data_vencimento)"))
+        db.execute(text("CREATE INDEX IF NOT EXISTS ix_ib_pagamento      ON itau_boletos (data_pagamento)"))
+        db.execute(text("CREATE INDEX IF NOT EXISTS ix_ba_cycle_created  ON billing_adjustments (cycle_id, created_at DESC)"))
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"[migrations] index creation skipped: {e}")
+
     cols = [
         ("billing_adjustments", "analista",        "VARCHAR(100)"),
         ("billing_adjustments", "consultor",        "VARCHAR(150)"),

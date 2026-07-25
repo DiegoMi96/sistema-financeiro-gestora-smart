@@ -696,29 +696,29 @@ export default function AnalystDashboard() {
   const { data: op, isLoading } = useQuery({
     queryKey: ['analyst-operational', selectedMonth, selectedYear],
     queryFn: () => api.get(`/analyst/operational-summary?month=${selectedMonth}&year=${selectedYear}`).then(r => r.data),
-    staleTime: 5 * 60 * 1000,
-    refetchInterval: 5 * 60 * 1000,
+    staleTime: 15 * 60 * 1000,
+    refetchInterval: 15 * 60 * 1000,
   })
 
   const { data: agenda } = useQuery({
     queryKey: ['analyst-agenda'],
     queryFn: () => api.get('/analyst/weekly-agenda').then(r => r.data),
-    staleTime: 5 * 60 * 1000,
-    refetchInterval: 5 * 60 * 1000,
+    staleTime: 15 * 60 * 1000,
+    refetchInterval: 15 * 60 * 1000,
   })
 
   const { data: alerts } = useQuery({
     queryKey: ['analyst-alerts'],
     queryFn: () => api.get('/analyst/alerts').then(r => r.data),
-    staleTime: 60 * 1000,
-    refetchInterval: 2 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
+    refetchInterval: 10 * 60 * 1000,
   })
 
   const { data: summary } = useQuery({
     queryKey: ['dashboard-summary', selectedMonth, selectedYear],
     queryFn: () => api.get(`/dashboard/summary?month=${selectedMonth}&year=${selectedYear}`).then(r => r.data),
-    staleTime: 5 * 60 * 1000,
-    refetchInterval: 5 * 60 * 1000,
+    staleTime: 15 * 60 * 1000,
+    refetchInterval: 15 * 60 * 1000,
   })
   const history = summary?.monthly_history || []
 

@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
@@ -6,30 +7,41 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ModuleProvider, useModule } from './contexts/ModuleContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import Layout from './components/layout/Layout'
-import WelcomePage from './pages/WelcomePage'
-import LoginPage from './pages/auth/LoginPage'
-import AnalystDashboard from './pages/dashboard/AnalystDashboard'
-import BillingPage from './pages/billing/BillingPage'
-import BillingCyclePage from './pages/billing/BillingCyclePage'
-import ClientDetailPage from './pages/billing/ClientDetailPage'
-import AdjustmentsPage from './pages/billing/AdjustmentsPage'
-import ContestationPage from './pages/contestation/ContestationPage'
-import ContestationCyclePage from './pages/contestation/ContestationCyclePage'
-import AllcomPage from './pages/contestation/AllcomPage'
-import UsersPage from './pages/auth/UsersPage'
-import SettingsPage from './pages/settings/SettingsPage'
-import ComissionamentoPage from './pages/comissionamento/ComissionamentoPage'
-import ParceirosRegionaisPage from './pages/comissionamento/ParceirosRegionaisPage'
-import ComissionamentoInternoPage from './pages/comissionamento/ComissionamentoInternoPage'
-import ClientsPage from './pages/clients/ClientsPage'
-import OrganoPage from './pages/organograma/OrganoPage'
-import IndicadoresPage from './pages/controladoria/IndicadoresPage'
-import ControladoriaDashboard from './pages/controladoria/ControladoriaDashboard'
-import AcessosPage from './pages/acessos/AcessosPage'
 
+// Páginas carregadas sob demanda — browser baixa apenas o chunk necessário
+const WelcomePage              = lazy(() => import('./pages/WelcomePage'))
+const LoginPage                = lazy(() => import('./pages/auth/LoginPage'))
+const AnalystDashboard         = lazy(() => import('./pages/dashboard/AnalystDashboard'))
+const BillingPage              = lazy(() => import('./pages/billing/BillingPage'))
+const BillingCyclePage         = lazy(() => import('./pages/billing/BillingCyclePage'))
+const ClientDetailPage         = lazy(() => import('./pages/billing/ClientDetailPage'))
+const AdjustmentsPage          = lazy(() => import('./pages/billing/AdjustmentsPage'))
+const ContestationPage         = lazy(() => import('./pages/contestation/ContestationPage'))
+const ContestationCyclePage    = lazy(() => import('./pages/contestation/ContestationCyclePage'))
+const AllcomPage               = lazy(() => import('./pages/contestation/AllcomPage'))
+const UsersPage                = lazy(() => import('./pages/auth/UsersPage'))
+const SettingsPage             = lazy(() => import('./pages/settings/SettingsPage'))
+const ComissionamentoPage      = lazy(() => import('./pages/comissionamento/ComissionamentoPage'))
+const ParceirosRegionaisPage   = lazy(() => import('./pages/comissionamento/ParceirosRegionaisPage'))
+const ComissionamentoInternoPage = lazy(() => import('./pages/comissionamento/ComissionamentoInternoPage'))
+const ClientsPage              = lazy(() => import('./pages/clients/ClientsPage'))
+const OrganoPage               = lazy(() => import('./pages/organograma/OrganoPage'))
+const IndicadoresPage          = lazy(() => import('./pages/controladoria/IndicadoresPage'))
+const ControladoriaDashboard   = lazy(() => import('./pages/controladoria/ControladoriaDashboard'))
+const AcessosPage              = lazy(() => import('./pages/acessos/AcessosPage'))
+
+// staleTime padrão: 5 min — dados financeiros não mudam a cada 30s
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 1, staleTime: 30000 } }
+  defaultOptions: { queries: { retry: 1, staleTime: 5 * 60 * 1000 } }
 })
+
+function PageLoader() {
+  return (
+    <div className="flex h-screen items-center justify-center text-gray-400 text-sm">
+      Carregando...
+    </div>
+  )
+}
 
 function AccessDenied() {
   const navigate = useNavigate()
@@ -86,89 +98,91 @@ function ModuleRoute({ children }) {
 
 function AppRoutes() {
   return (
-    <Routes>
-      {/* Público */}
-      <Route path="/login" element={<LoginPage />} />
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        {/* Público */}
+        <Route path="/login" element={<LoginPage />} />
 
-      {/* Tela de boas-vindas / seleção de módulo */}
-      <Route
-        path="/"
-        element={
-          <PrivateRoute>
-            <WelcomePage />
-          </PrivateRoute>
-        }
-      />
-
-      {/* Comissionamento — sem ModuleRoute para não bloquear por activeModule */}
-      <Route path="/comissionamento"           element={<PrivateRoute permission="can_view_comissao"><ComissionamentoPage /></PrivateRoute>} />
-      <Route path="/comissionamento/parceiros" element={<PrivateRoute permission="can_view_comissao"><ParceirosRegionaisPage /></PrivateRoute>} />
-      <Route path="/comissionamento/interno"   element={<PrivateRoute permission="can_view_comissao"><ComissionamentoInternoPage /></PrivateRoute>} />
-
-      {/* Controladoria — dashboard externo em iframe, sem sidebar */}
-      <Route path="/controladoria/dash" element={<PrivateRoute permission="can_view_controladoria"><ControladoriaDashboard /></PrivateRoute>} />
-
-      {/* Gestão de Acessos — página standalone, sem sidebar */}
-      <Route path="/acessos" element={<PrivateRoute permission="can_manage_users"><AcessosPage /></PrivateRoute>} />
-
-      {/* Área interna (com sidebar) */}
-      <Route
-        element={
-          <ModuleRoute>
-            <Layout />
-          </ModuleRoute>
-        }
-      >
-        {/* Dashboard */}
+        {/* Tela de boas-vindas / seleção de módulo */}
         <Route
-          path="/dashboard"
+          path="/"
           element={
-            <PrivateRoute permission="can_view_dashboard">
-              <AnalystDashboard />
-            </PrivateRoute>
-          }
-        />
-        <Route path="/dashboard-analista" element={<Navigate to="/dashboard" replace />} />
-
-        {/* Clientes */}
-        <Route path="/clientes" element={<ClientsPage />} />
-
-        {/* Faturamento */}
-        <Route path="/faturamento"                              element={<BillingPage />} />
-        <Route path="/faturamento/:cycleId"                     element={<BillingCyclePage />} />
-        <Route path="/faturamento/:cycleId/cliente/:idSmart"    element={<ClientDetailPage />} />
-        <Route path="/ajustes"                                  element={<AdjustmentsPage />} />
-
-        <Route path="/contestacao"             element={<PrivateRoute permission="can_view_contestacao"><ContestationPage /></PrivateRoute>} />
-        <Route path="/contestacao/allcom"      element={<PrivateRoute permission="can_view_contestacao"><AllcomPage /></PrivateRoute>} />
-        <Route path="/contestacao/:cycleId"    element={<PrivateRoute permission="can_view_contestacao"><ContestationCyclePage /></PrivateRoute>} />
-        <Route path="/logistica"     element={<PrivateRoute permission="can_view_logistica"><ComingSoon module="Logística" desc="Gestão de fretes, envios e pedidos de chips." /></PrivateRoute>} />
-        <Route path="/controladoria" element={<Navigate to="/controladoria/indicadores" replace />} />
-        <Route path="/controladoria/indicadores" element={<PrivateRoute permission="can_view_controladoria"><IndicadoresPage /></PrivateRoute>} />
-        <Route path="/organograma"          element={<PrivateRoute><OrganoPage /></PrivateRoute>} />
-        <Route path="/organograma/gerenciar" element={<PrivateRoute permission="can_edit_organograma"><OrganoPage /></PrivateRoute>} />
-
-        {/* Usuários */}
-        <Route
-          path="/usuarios"
-          element={
-            <PrivateRoute permission="can_manage_users">
-              <UsersPage />
+            <PrivateRoute>
+              <WelcomePage />
             </PrivateRoute>
           }
         />
 
-        {/* Configurações */}
+        {/* Comissionamento — sem ModuleRoute para não bloquear por activeModule */}
+        <Route path="/comissionamento"           element={<PrivateRoute permission="can_view_comissao"><ComissionamentoPage /></PrivateRoute>} />
+        <Route path="/comissionamento/parceiros" element={<PrivateRoute permission="can_view_comissao"><ParceirosRegionaisPage /></PrivateRoute>} />
+        <Route path="/comissionamento/interno"   element={<PrivateRoute permission="can_view_comissao"><ComissionamentoInternoPage /></PrivateRoute>} />
+
+        {/* Controladoria — dashboard externo em iframe, sem sidebar */}
+        <Route path="/controladoria/dash" element={<PrivateRoute permission="can_view_controladoria"><ControladoriaDashboard /></PrivateRoute>} />
+
+        {/* Gestão de Acessos — página standalone, sem sidebar */}
+        <Route path="/acessos" element={<PrivateRoute permission="can_manage_users"><AcessosPage /></PrivateRoute>} />
+
+        {/* Área interna (com sidebar) */}
         <Route
-          path="/configuracoes"
           element={
-            <PrivateRoute permission="can_manage_users">
-              <SettingsPage />
-            </PrivateRoute>
+            <ModuleRoute>
+              <Layout />
+            </ModuleRoute>
           }
-        />
-      </Route>
-    </Routes>
+        >
+          {/* Dashboard */}
+          <Route
+            path="/dashboard"
+            element={
+              <PrivateRoute permission="can_view_dashboard">
+                <AnalystDashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route path="/dashboard-analista" element={<Navigate to="/dashboard" replace />} />
+
+          {/* Clientes */}
+          <Route path="/clientes" element={<ClientsPage />} />
+
+          {/* Faturamento */}
+          <Route path="/faturamento"                              element={<BillingPage />} />
+          <Route path="/faturamento/:cycleId"                     element={<BillingCyclePage />} />
+          <Route path="/faturamento/:cycleId/cliente/:idSmart"    element={<ClientDetailPage />} />
+          <Route path="/ajustes"                                  element={<AdjustmentsPage />} />
+
+          <Route path="/contestacao"             element={<PrivateRoute permission="can_view_contestacao"><ContestationPage /></PrivateRoute>} />
+          <Route path="/contestacao/allcom"      element={<PrivateRoute permission="can_view_contestacao"><AllcomPage /></PrivateRoute>} />
+          <Route path="/contestacao/:cycleId"    element={<PrivateRoute permission="can_view_contestacao"><ContestationCyclePage /></PrivateRoute>} />
+          <Route path="/logistica"     element={<PrivateRoute permission="can_view_logistica"><ComingSoon module="Logística" desc="Gestão de fretes, envios e pedidos de chips." /></PrivateRoute>} />
+          <Route path="/controladoria" element={<Navigate to="/controladoria/indicadores" replace />} />
+          <Route path="/controladoria/indicadores" element={<PrivateRoute permission="can_view_controladoria"><IndicadoresPage /></PrivateRoute>} />
+          <Route path="/organograma"          element={<PrivateRoute><OrganoPage /></PrivateRoute>} />
+          <Route path="/organograma/gerenciar" element={<PrivateRoute permission="can_edit_organograma"><OrganoPage /></PrivateRoute>} />
+
+          {/* Usuários */}
+          <Route
+            path="/usuarios"
+            element={
+              <PrivateRoute permission="can_manage_users">
+                <UsersPage />
+              </PrivateRoute>
+            }
+          />
+
+          {/* Configurações */}
+          <Route
+            path="/configuracoes"
+            element={
+              <PrivateRoute permission="can_manage_users">
+                <SettingsPage />
+              </PrivateRoute>
+            }
+          />
+        </Route>
+      </Routes>
+    </Suspense>
   )
 }
 

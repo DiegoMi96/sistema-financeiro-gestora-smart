@@ -31,7 +31,7 @@ export default function BillingPage() {
     queryKey: ['billing-cycles'],
     queryFn: () => billingApi.cycles().then(r => r.data),
     staleTime: 2 * 60 * 1000,
-    refetchInterval: (query) => query.state.data?.some(c => c.status === 'rascunho') ? 4000 : false,
+    refetchInterval: (query) => query.state.data?.some(c => c.status === 'rascunho') ? 12000 : false,
   })
 
   const hasProcessing  = cycles.some(c => c.status === 'rascunho')

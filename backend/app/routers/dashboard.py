@@ -62,13 +62,10 @@ def get_dashboard_summary(
     ).count()
 
     # Histórico — ciclos do sistema onde existem; meses sem ciclo: Asaas + Itaú
-    from app.database import SessionLocal
-
     cycle_months = {(c.year, c.month) for c in all_cycles}
 
-    _dbh = SessionLocal()
     # Asaas: agrupa por mês de competência (due_date), exclui meses já cobertos por ciclo
-    asaas_hist = _dbh.execute(text("""
+    asaas_hist = db.execute(text("""
         SELECT
             EXTRACT(YEAR  FROM due_date)::int AS ano,
             EXTRACT(MONTH FROM due_date)::int AS mes,
@@ -80,7 +77,7 @@ def get_dashboard_summary(
         ORDER BY ano, mes
     """)).fetchall()
     # Itaú: upload_ref = "YYYY-MM" representa o mês de competência
-    itau_hist = _dbh.execute(text("""
+    itau_hist = db.execute(text("""
         SELECT
             SPLIT_PART(upload_ref, '-', 1)::int AS ano,
             SPLIT_PART(upload_ref, '-', 2)::int AS mes,
@@ -91,7 +88,6 @@ def get_dashboard_summary(
         GROUP BY upload_ref
         ORDER BY upload_ref
     """)).fetchall()
-    _dbh.close()
 
     # Mescla Asaas + Itaú por mês (apenas meses sem ciclo de faturamento)
     ext_map: dict = {}
@@ -207,19 +203,16 @@ def get_adjustments(
         BillingAdjustment.cycle_id == latest_cycle.id
     ).order_by(BillingAdjustment.created_at.desc()).all()
 
+    # Busca todos os usuários referenciados em uma única query (evita N+1)
+    user_ids = {a.created_by_id for a in adjustments if a.created_by_id} | \
+               {a.approved_by_id for a in adjustments if a.approved_by_id}
+    users = {}
+    if user_ids:
+        for u in db.query(User).filter(User.id.in_(user_ids)).all():
+            users[u.id] = u.name
+
     result = []
     for a in adjustments:
-        # Busca nome de quem criou
-        created_by_name = None
-        if a.created_by_id:
-            u = db.query(User).filter(User.id == a.created_by_id).first()
-            created_by_name = u.name if u else None
-
-        approved_by_name = None
-        if a.approved_by_id:
-            u2 = db.query(User).filter(User.id == a.approved_by_id).first()
-            approved_by_name = u2.name if u2 else None
-
         result.append({
             "id":               a.id,
             "cycle_id":         a.cycle_id,
@@ -232,8 +225,8 @@ def get_adjustments(
             "requires_approval":a.requires_approval,
             "approved_at":      a.approved_at.isoformat() if a.approved_at else None,
             "created_at":       a.created_at.isoformat() if a.created_at else None,
-            "created_by_name":  created_by_name,
-            "approved_by_name": approved_by_name,
+            "created_by_name":  users.get(a.created_by_id),
+            "approved_by_name": users.get(a.approved_by_id),
         })
     return result
 
@@ -327,7 +320,6 @@ async def get_executive_summary(
 ):
     """Resumo executivo: inadimplência, instrumentos, sinais estratégicos."""
     from datetime import date
-    from app.database import SessionLocal
 
     if not get_permission(current_user, "can_view_dashboard"):
         from fastapi import HTTPException
@@ -363,15 +355,13 @@ async def get_executive_summary(
     received_statuses = ("RECEIVED", "CONFIRMED")
 
     # ── Asaas — banco local ──────────────────────────────────────
-    _dba = SessionLocal()
-    asaas_rows = _dba.execute(text("""
+    asaas_rows = db.execute(text("""
         SELECT asaas_id, customer_id, value, net_value, due_date,
                payment_date, credit_date, status, billing_type
         FROM asaas_payments_sync
         WHERE EXTRACT(YEAR  FROM due_date) = :y
           AND EXTRACT(MONTH FROM due_date) = :m
     """), {"y": sel_year, "m": sel_month}).fetchall()
-    _dba.close()
 
     asaas_payments = [
         {
@@ -391,12 +381,10 @@ async def get_executive_summary(
 
     # ── Itaú — planilha importada ────────────────────────────────
     upload_ref = f"{sel_year}-{sel_month:02d}"
-    _dbi = SessionLocal()
-    itau_rows = _dbi.execute(text("""
+    itau_rows = db.execute(text("""
         SELECT valor_titulo, valor_pago, data_vencimento, data_pagamento, status
         FROM itau_boletos WHERE upload_ref = :ref
     """), {"ref": upload_ref}).fetchall()
-    _dbi.close()
 
     itau_payments = [
         {
