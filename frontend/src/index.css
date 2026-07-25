@@ -17,6 +17,20 @@
     box-shadow: 0 6px 20px rgba(60,181,74,0.12), 0 1px 4px rgba(0,0,0,0.06);
   }
 
+  /* Hover verde suave nos itens do menu lateral */
+  .gs-nav-item::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 8px;
+    background: transparent;
+    transition: background 0.15s ease;
+    pointer-events: none;
+  }
+  .gs-nav-item:hover::before {
+    background: rgba(60, 181, 74, 0.08);
+  }
+
   /* ── Tipografia ────────────────────────────────────────── */
   .gs-page-title {
     font-size: 22px;

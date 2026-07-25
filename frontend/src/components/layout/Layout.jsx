@@ -182,7 +182,7 @@ export default function Layout() {
                     to={to}
                     end={isParent}
                     onClick={() => setMobileOpen(false)}
-                    className="relative flex items-center group"
+                    className="relative flex items-center group gs-nav-item"
                     style={({ isActive }) => ({
                       justifyContent:  showText ? 'flex-start' : 'center',
                       gap:             showText ? 10 : 0,
