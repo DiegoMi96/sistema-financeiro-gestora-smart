@@ -997,13 +997,16 @@ def list_adjustments(
 
 
 _COMPONENT_FIELD_MAP = {
-    'mensalidade': 'total_mensalidade',
-    'ativacao':    'total_ativacao',
-    'excedente':   'total_excedente',
-    'multa':       'total_multa',
-    'sms':         'total_sms',
-    'frete':       'total_frete',
-    'mensageria':  'total_mensageria',
+    'mensalidade':        'total_mensalidade',
+    'ativacao':           'total_ativacao',
+    'excedente':          'total_excedente',
+    'multa':              'total_multa',
+    'multa_cancelamento': 'total_multa',
+    'sms':                'total_sms',
+    'frete':              'total_frete',
+    'mensageria':         'total_mensageria',
+    # ativo, pre_ativo, cancelamento, suspenso: sem campo monetário dedicado
+    # — ajuste reflete só em total_ajustes e total_final
 }
 
 

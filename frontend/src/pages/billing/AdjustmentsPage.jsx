@@ -313,6 +313,7 @@ function AdjustmentModal({ onClose, onSuccess, defaultCycleId, defaultIdSmart, d
     cycle_id:        defaultCycleId  ? String(defaultCycleId) : '',
     id_smart:        defaultIdSmart  || '',
     type:            'desconto',
+    component:       'total',
     valor_original:  '',
     valor_ajustado:  '',
     justificativa:   '',
@@ -332,10 +333,7 @@ function AdjustmentModal({ onClose, onSuccess, defaultCycleId, defaultIdSmart, d
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
 
-  const isMensageria = form.component === 'mensageria'
-  const diff = isMensageria
-    ? -parseFloat(form.valor_ajustado || 0)
-    : parseFloat(form.valor_ajustado || 0) - parseFloat(form.valor_original || 0)
+  const diff = -parseFloat(form.valor_ajustado || 0)
   const needsApproval = Math.abs(diff) > 3000
 
   const handleSubmit = async (e) => {
@@ -346,8 +344,8 @@ function AdjustmentModal({ onClose, onSuccess, defaultCycleId, defaultIdSmart, d
       const valorEntrada = parseFloat(form.valor_ajustado)
       await billingApi.createAdjustment(+form.cycle_id, {
         ...form,
-        valor_original: isMensageria ? valorEntrada : parseFloat(form.valor_original),
-        valor_ajustado: isMensageria ? 0 : valorEntrada,
+        valor_original: valorEntrada,
+        valor_ajustado: 0,
       })
       toast.success('Ajuste registrado!')
       onSuccess()
@@ -403,6 +401,28 @@ function AdjustmentModal({ onClose, onSuccess, defaultCycleId, defaultIdSmart, d
                 {defaultIdSmart && <Lock size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />}
               </div>
             </div>
+          </div>
+
+          {/* Componente */}
+          <div>
+            <label className="gs-label block mb-1">Componente <span className="text-red-500">*</span></label>
+            <select value={form.component} onChange={e => set('component', e.target.value)} required className={INPUT}>
+              {[
+                { value: 'total',              label: 'Total' },
+                { value: 'mensalidade',        label: 'Mensalidade' },
+                { value: 'ativacao',           label: 'Ativação' },
+                { value: 'excedente',          label: 'Excedente' },
+                { value: 'multa',              label: 'Multa' },
+                { value: 'multa_cancelamento', label: 'Multa de Cancelamento' },
+                { value: 'sms',               label: 'SMS' },
+                { value: 'frete',             label: 'Frete' },
+                { value: 'mensageria',        label: 'Mensageria' },
+                { value: 'pre_ativo',         label: 'Pré-ativo' },
+                { value: 'ativo',             label: 'Ativo' },
+                { value: 'cancelamento',      label: 'Cancelamento' },
+                { value: 'suspenso',          label: 'Suspenso' },
+              ].map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+            </select>
           </div>
 
           {/* Ofensor + Tipo */}
@@ -469,13 +489,13 @@ function AdjustmentModal({ onClose, onSuccess, defaultCycleId, defaultIdSmart, d
             </div>
             <div>
               <label className="gs-label mb-1 flex items-center gap-0.5 whitespace-nowrap">
-                {isMensageria ? 'Valor a Remover (R$)' : 'Valor Ajustado (R$)'} <span className="text-red-500">*</span>
+                Valor do Ajuste (R$) <span className="text-red-500">*</span>
               </label>
               <input type="number" step="0.01" value={form.valor_ajustado}
                 onChange={e => set('valor_ajustado', e.target.value)} required
                 placeholder="0,00" className={INPUT} />
-              {isMensageria && form.valor_ajustado && (
-                <p className="text-xs text-blue-600 mt-1">Resultado na fatura: R$&nbsp;0,00</p>
+              {form.valor_ajustado && (
+                <p className="text-xs text-blue-600 mt-1">Será removido do total da fatura</p>
               )}
             </div>
             <div>

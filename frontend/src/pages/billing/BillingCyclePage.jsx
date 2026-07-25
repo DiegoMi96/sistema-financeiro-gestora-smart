@@ -703,7 +703,21 @@ function AdjustmentsTab({ adjustments, cycleId, qc, can }) {
 }
 
 function EditAdjustmentModal({ adj, onClose, onSave, isPending }) {
-  const COMPONENTS = ['mensalidade','ativacao','excedente','multa','sms','frete','mensageria']
+  const COMPONENTS = [
+    { value: 'total',              label: 'Total' },
+    { value: 'mensalidade',        label: 'Mensalidade' },
+    { value: 'ativacao',           label: 'Ativação' },
+    { value: 'excedente',          label: 'Excedente' },
+    { value: 'multa',              label: 'Multa' },
+    { value: 'multa_cancelamento', label: 'Multa de Cancelamento' },
+    { value: 'sms',               label: 'SMS' },
+    { value: 'frete',             label: 'Frete' },
+    { value: 'mensageria',        label: 'Mensageria' },
+    { value: 'pre_ativo',         label: 'Pré-ativo' },
+    { value: 'ativo',             label: 'Ativo' },
+    { value: 'cancelamento',      label: 'Cancelamento' },
+    { value: 'suspenso',          label: 'Suspenso' },
+  ]
   const TYPES = [
     { value: 'desconto',  label: 'Desconto' },
     { value: 'acrescimo', label: 'Acréscimo' },
@@ -727,15 +741,13 @@ function EditAdjustmentModal({ adj, onClose, onSave, isPending }) {
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
-  const isMensageria = form.component === 'mensageria'
-
   function handleSubmit(e) {
     e.preventDefault()
     const valorEntrada = parseFloat(form.valor_ajustado)
     onSave({
       ...form,
-      valor_original: isMensageria ? valorEntrada : parseFloat(form.valor_original),
-      valor_ajustado: isMensageria ? 0 : valorEntrada,
+      valor_original: valorEntrada,
+      valor_ajustado: 0,
       data_vencimento: form.data_vencimento || null,
     })
   }
@@ -760,8 +772,7 @@ function EditAdjustmentModal({ adj, onClose, onSave, isPending }) {
               <label className="block text-xs text-gray-500 mb-1">Componente</label>
               <select value={form.component} onChange={e => set('component', e.target.value)}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3CB54A]">
-                <option value="">— nenhum —</option>
-                {COMPONENTS.map(c => <option key={c} value={c}>{c}</option>)}
+                {COMPONENTS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
               </select>
             </div>
           </div>
@@ -773,13 +784,11 @@ function EditAdjustmentModal({ adj, onClose, onSave, isPending }) {
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3CB54A]" />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">
-                {isMensageria ? 'Valor a Remover (R$)' : 'Valor Ajustado (R$)'}
-              </label>
+              <label className="block text-xs text-gray-500 mb-1">Valor do Ajuste (R$)</label>
               <input type="number" step="0.01" value={form.valor_ajustado} onChange={e => set('valor_ajustado', e.target.value)} required
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3CB54A]" />
-              {isMensageria && form.valor_ajustado && (
-                <p className="text-xs text-blue-600 mt-1">Resultado na fatura: R$&nbsp;0,00</p>
+              {form.valor_ajustado && (
+                <p className="text-xs text-blue-600 mt-1">Será removido do total da fatura</p>
               )}
             </div>
           </div>

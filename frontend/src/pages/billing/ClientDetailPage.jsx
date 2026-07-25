@@ -384,10 +384,7 @@ function AdjustmentModal({ cycleId, idSmart, totals, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false)
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
 
-  const isMensageria = form.component === 'mensageria'
-  const diff = isMensageria
-    ? -parseBRL(form.valor_ajustado)
-    : parseBRL(form.valor_ajustado) - parseBRL(form.valor_original)
+  const diff = -parseBRL(form.valor_ajustado)
   const needsApproval = Math.abs(diff) > 3000
 
   const handleSubmit = async (e) => {
@@ -399,8 +396,8 @@ function AdjustmentModal({ cycleId, idSmart, totals, onClose, onSuccess }) {
       await billingApi.createAdjustment(+cycleId, {
         ...form,
         id_smart: idSmart,
-        valor_original: isMensageria ? valorEntrada : parseBRL(form.valor_original),
-        valor_ajustado: isMensageria ? 0 : valorEntrada,
+        valor_original: valorEntrada,
+        valor_ajustado: 0,
       })
       toast.success('Ajuste criado!')
       onSuccess()
@@ -449,17 +446,29 @@ function AdjustmentModal({ cycleId, idSmart, totals, onClose, onSuccess }) {
             <select value={form.component} onChange={e => {
               const comp = e.target.value
               const compToTotal = {
-                mensalidade: totals?.mensalidade, ativacao: totals?.ativacao,
-                excedente: totals?.excedente, multa: totals?.multa,
+                total: totals?.total, mensalidade: totals?.mensalidade,
+                ativacao: totals?.ativacao, excedente: totals?.excedente,
+                multa: totals?.multa, multa_cancelamento: totals?.multa,
                 sms: totals?.sms, frete: totals?.frete, mensageria: totals?.mensageria,
-                total: totals?.total,
               }
               set('component', comp)
               if (compToTotal[comp] != null) set('valor_original', fmtBRL(compToTotal[comp]))
             }} required className={INPUT}>
-              {['total','mensalidade','ativacao','excedente','multa','sms','frete','mensageria'].map(c => (
-                <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
-              ))}
+              {[
+                { value: 'total',              label: 'Total' },
+                { value: 'mensalidade',        label: 'Mensalidade' },
+                { value: 'ativacao',           label: 'Ativação' },
+                { value: 'excedente',          label: 'Excedente' },
+                { value: 'multa',              label: 'Multa' },
+                { value: 'multa_cancelamento', label: 'Multa de Cancelamento' },
+                { value: 'sms',               label: 'SMS' },
+                { value: 'frete',             label: 'Frete' },
+                { value: 'mensageria',        label: 'Mensageria' },
+                { value: 'pre_ativo',         label: 'Pré-ativo' },
+                { value: 'ativo',             label: 'Ativo' },
+                { value: 'cancelamento',      label: 'Cancelamento' },
+                { value: 'suspenso',          label: 'Suspenso' },
+              ].map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
             </select>
           </div>
 
@@ -502,14 +511,14 @@ function AdjustmentModal({ cycleId, idSmart, totals, onClose, onSuccess }) {
             </div>
             <div>
               <label className="gs-label mb-1 flex items-center gap-0.5 whitespace-nowrap">
-                {isMensageria ? 'Valor a Remover (R$)' : 'Valor Ajustado (R$)'} <span className="text-red-500">*</span>
+                Valor do Ajuste (R$) <span className="text-red-500">*</span>
               </label>
               <input type="text" inputMode="decimal" value={form.valor_ajustado}
                 onChange={e => set('valor_ajustado', e.target.value)}
                 onBlur={e => handleBRLBlur('valor_ajustado', e.target.value)}
                 required placeholder="0,00" className={INPUT} />
-              {isMensageria && form.valor_ajustado && (
-                <p className="text-xs text-blue-600 mt-1">Resultado na fatura: R$&nbsp;0,00</p>
+              {form.valor_ajustado && (
+                <p className="text-xs text-blue-600 mt-1">Será removido do total da fatura</p>
               )}
             </div>
             <div>
