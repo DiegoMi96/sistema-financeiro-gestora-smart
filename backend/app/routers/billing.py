@@ -961,13 +961,22 @@ def list_all_adjustments(
     db: Session = Depends(get_db),
 ):
     """Lista todos os ajustes, com filtro opcional por mês/ano do ciclo."""
-    from app.models import Client
+    # Nome do cliente: o cadastro fica em client_profiles (a tabela legada
+    # `clients` está vazia, por isso o nome vinha nulo e a tela repetia o
+    # id_smart). Fallback: nome_cliente do resumo do próprio ciclo.
+    from app.models import ClientProfile
     from sqlalchemy.orm import aliased
-    ClientAlias = aliased(Client)
+    from sqlalchemy import and_
+    ClientAlias  = aliased(ClientProfile)
+    SummaryAlias = aliased(BillingClientSummary)
     q = (
-        db.query(BillingAdjustment, BillingCycle, ClientAlias)
+        db.query(BillingAdjustment, BillingCycle, ClientAlias, SummaryAlias)
         .join(BillingCycle, BillingAdjustment.cycle_id == BillingCycle.id)
         .outerjoin(ClientAlias, ClientAlias.id_smart == BillingAdjustment.id_smart)
+        .outerjoin(SummaryAlias, and_(
+            SummaryAlias.cycle_id == BillingAdjustment.cycle_id,
+            SummaryAlias.id_smart == BillingAdjustment.id_smart,
+        ))
     )
     if month:
         q = q.filter(BillingCycle.month == month)
@@ -975,11 +984,14 @@ def list_all_adjustments(
         q = q.filter(BillingCycle.year == year)
     rows = q.order_by(BillingAdjustment.created_at.desc()).all()
     result = []
-    for a, cycle, client in rows:
+    for a, cycle, client, summary in rows:
         d = _adjustment_to_dict(a)
         d["cycle_month"]  = cycle.month if cycle else None
         d["cycle_year"]   = cycle.year  if cycle else None
-        d["client_nome"]  = client.nome if client else None
+        d["client_nome"]  = (
+            (client.nome if client and client.nome else None)
+            or (summary.nome_cliente if summary and summary.nome_cliente else None)
+        )
         result.append(d)
     return result
 

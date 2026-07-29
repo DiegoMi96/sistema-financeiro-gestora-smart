@@ -254,7 +254,9 @@ export default function AdjustmentsPage() {
                       </td>
                       <td className="gs-td">
                         <p className="font-medium text-gray-900 text-xs">{a.client_nome || a.id_smart}</p>
-                        <p className="text-xs text-gray-400 font-mono">{a.id_smart}</p>
+                        {a.client_nome && (
+                          <p className="text-xs text-gray-400 font-mono">{a.id_smart}</p>
+                        )}
                       </td>
                       <td className="gs-td text-xs text-gray-600">{a.analista || '—'}</td>
                       <td className="gs-td text-xs text-gray-600 max-w-[120px] truncate">{a.consultor || '—'}</td>
