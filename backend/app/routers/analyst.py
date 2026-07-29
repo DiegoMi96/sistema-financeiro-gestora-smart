@@ -183,6 +183,10 @@ async def upload_itau_boletos(
             "status":          status_raw,
             "description":     desc_val,
             "upload_ref":      upload_ref,
+            # Atualiza o carimbo em TODA importação (insert e update) — antes só
+            # o server_default do insert preenchia, então reenviar a mesma planilha
+            # não avançava o "última importação" do Resumo por banco (ficava travado).
+            "uploaded_at":     func.now(),
         }
 
         existing = db.query(ItauBoleto).filter(ItauBoleto.nosso_numero == nosso_num).first()
