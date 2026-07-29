@@ -13,15 +13,16 @@ const YEARS  = [now.getFullYear(), now.getFullYear() - 1]
 const MONTHS = MONTHS_PT.slice(1).map((l, i) => ({ value: i + 1, label: l }))
 
 const OFENSORES = [
-  { value: 'Sistema',      label: 'Sistema',      color: 'gs-badge-red'    },
-  { value: 'Proporcional', label: 'Proporcional', color: 'gs-badge-amber'  },
-  { value: 'Financeiro',   label: 'Financeiro',   color: 'gs-badge-blue'   },
-  { value: 'Logística',    label: 'Logística',    color: 'gs-badge-blue'   },
-  { value: 'Comercial',    label: 'Comercial',    color: 'gs-badge-green'  },
-  { value: 'Pacote',       label: 'Pacote',       color: 'gs-badge-gray'   },
-  { value: 'Transferência',label: 'Transferência',color: 'gs-badge-gray'   },
-  { value: 'Anuidade',     label: 'Anuidade',     color: 'gs-badge-gray'   },
-  { value: 'Payments',     label: 'Payments',     color: 'gs-badge-blue'   },
+  // color = cor só do texto (sem tarja de fundo)
+  { value: 'Sistema',      label: 'Sistema',      color: 'text-red-600'    },
+  { value: 'Proporcional', label: 'Proporcional', color: 'text-amber-600'  },
+  { value: 'Financeiro',   label: 'Financeiro',   color: 'text-blue-600'   },
+  { value: 'Logística',    label: 'Logística',    color: 'text-blue-600'   },
+  { value: 'Comercial',    label: 'Comercial',    color: 'text-green-600'  },
+  { value: 'Pacote',       label: 'Pacote',       color: 'text-gray-600'   },
+  { value: 'Transferência',label: 'Transferência',color: 'text-gray-600'   },
+  { value: 'Anuidade',     label: 'Anuidade',     color: 'text-gray-600'   },
+  { value: 'Payments',     label: 'Payments',     color: 'text-blue-600'   },
 ]
 
 const OFENSOR_COLOR = Object.fromEntries(OFENSORES.map(o => [o.value, o.color]))
@@ -194,7 +195,7 @@ export default function AdjustmentsPage() {
               return (
                 <div key={nome} className="flex items-center gap-3">
                   <div className="w-28 flex-shrink-0">
-                    <span className={`gs-badge ${OFENSOR_COLOR[nome] || 'gs-badge-gray'} text-xs`}>{nome}</span>
+                    <span className={`text-xs font-semibold ${OFENSOR_COLOR[nome] || 'text-gray-600'}`}>{nome}</span>
                   </div>
                   <div className="flex-1 bg-gray-100 rounded-full h-2">
                     <div className="bg-red-400 h-2 rounded-full" style={{ width: `${Math.min(pct, 100)}%` }} />
@@ -249,23 +250,23 @@ export default function AdjustmentsPage() {
                 {sortedAdjustments.map(a => (
                   <Fragment key={a.id}>
                     <tr className="gs-tr border-t border-gray-100">
-                      <td className="gs-td whitespace-nowrap text-xs text-gray-500">
+                      <td className="gs-td text-center whitespace-nowrap text-xs text-gray-500">
                         {MONTHS_PT[a.cycle_month] ?? '—'}/{a.cycle_year}
                       </td>
-                      <td className="gs-td">
+                      <td className="gs-td text-center">
                         <p className="font-medium text-gray-900 text-xs">{a.client_nome || a.id_smart}</p>
                         {a.client_nome && (
                           <p className="text-xs text-gray-400 font-mono">{a.id_smart}</p>
                         )}
                       </td>
-                      <td className="gs-td text-xs text-gray-600">{a.analista || '—'}</td>
-                      <td className="gs-td text-xs text-gray-600 max-w-[120px] truncate">{a.consultor || '—'}</td>
-                      <td className="gs-td">
+                      <td className="gs-td text-center text-xs text-gray-600">{a.analista || '—'}</td>
+                      <td className="gs-td text-center text-xs text-gray-600 max-w-[120px] truncate">{a.consultor || '—'}</td>
+                      <td className="gs-td text-center">
                         {a.ofensor
-                          ? <span className={`gs-badge ${OFENSOR_COLOR[a.ofensor] || 'gs-badge-gray'} text-xs`}>{a.ofensor}</span>
+                          ? <span className={`text-xs font-semibold ${OFENSOR_COLOR[a.ofensor] || 'text-gray-600'}`}>{a.ofensor}</span>
                           : <span className="text-gray-300 text-xs">—</span>}
                       </td>
-                      <td className="gs-td text-xs font-mono text-gray-500">{a.num_fatura || '—'}</td>
+                      <td className="gs-td text-center text-xs font-mono text-gray-500">{a.num_fatura || '—'}</td>
                       <td className="gs-td text-right text-xs text-gray-600">{fmt(a.valor_original)}</td>
                       <td className="gs-td text-right text-xs text-gray-600">{fmt(a.valor_ajustado)}</td>
                       <td className="gs-td text-right text-sm font-semibold">
@@ -273,14 +274,14 @@ export default function AdjustmentsPage() {
                           {a.valor_diferenca >= 0 ? '+' : ''}{fmt(a.valor_diferenca)}
                         </span>
                       </td>
-                      <td className="gs-td">
+                      <td className="gs-td text-center">
                         {a.approved_at
                           ? <span className="gs-badge gs-badge-green text-xs">Aprovado</span>
                           : a.requires_approval
                             ? <span className="gs-badge gs-badge-amber text-xs">Pendente</span>
                             : <span className="gs-badge gs-badge-blue text-xs">Registrado</span>}
                       </td>
-                      <td className="gs-td">
+                      <td className="gs-td text-center">
                         <button onClick={() => toggleRow(a.id)} className="text-gray-400 hover:text-gray-600">
                           {expanded === a.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                         </button>
