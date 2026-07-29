@@ -1147,6 +1147,44 @@ async def get_operational_summary(
     except Exception:
         lista_vencidos = []
 
+    # Descrição dos boletos Itaú (o relatório do Itaú não traz descrição):
+    # gera a partir do resumo de faturamento (qtd de linhas do ciclo mais recente),
+    # cruzando pelo CNPJ. Ex.: "Cobrança referente a 45 linhas — Ref. Jul/2026".
+    try:
+        import re as _re_desc
+        _MESES_ABREV = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+                        'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+        _tem_itau_sem_desc = any(v["banco"] == "Itaú" and not v.get("description") for v in lista_vencidos)
+        if _tem_itau_sem_desc:
+            _last_cycle = db.query(BillingCycle).order_by(BillingCycle.id.desc()).first()
+            if _last_cycle:
+                _qtd_por_cnpj = {}
+                for _s in db.execute(text("""
+                    SELECT id_smart, qtd_linhas_ativas
+                    FROM billing_client_summaries WHERE cycle_id = :cid
+                """), {"cid": _last_cycle.id}).fetchall():
+                    _dig = _re_desc.sub(r'\D', '', _s.id_smart or '')
+                    if _dig:
+                        _qtd_por_cnpj[_dig] = _s.qtd_linhas_ativas or 0
+                for _row in lista_vencidos:
+                    if _row["banco"] != "Itaú" or _row.get("description"):
+                        continue
+                    _dig = _re_desc.sub(r'\D', '', _row.get("cnpj") or '')
+                    _qtd = _qtd_por_cnpj.get(_dig)
+                    if not _qtd:
+                        continue
+                    _ref = ''
+                    _vo = _row.get("vencimento_orig")
+                    if _vo and len(str(_vo)) >= 7:
+                        try:
+                            _mm = int(str(_vo)[5:7])
+                            _ref = f" — Ref. {_MESES_ABREV[_mm]}/{str(_vo)[0:4]}"
+                        except Exception:
+                            _ref = ''
+                    _row["description"] = f"Cobrança referente a {_qtd} linhas{_ref}"
+    except Exception:
+        pass
+
     # ── Clientes a vencer nos próximos 15 dias ─────────────────
     quinze_dias = hoje + timedelta(days=15)
     _INSTRUMENTO = {
