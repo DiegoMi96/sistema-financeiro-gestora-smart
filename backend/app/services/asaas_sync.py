@@ -186,12 +186,12 @@ def _upsert_payments(db: Session, payments: list, customers: dict):
                 asaas_id, customer_id, customer_name, customer_cpf_cnpj,
                 value, value_original, net_value, due_date, payment_date, credit_date,
                 status, billing_type, description, external_reference,
-                invoice_url, synced_at
+                invoice_url, invoice_number, synced_at
             ) VALUES (
                 :asaas_id, :customer_id, :customer_name, :customer_cpf_cnpj,
                 :value, :value_original, :net_value, :due_date, :payment_date, :credit_date,
                 :status, :billing_type, :description, :external_reference,
-                :invoice_url, :now
+                :invoice_url, :invoice_number, :now
             )
             ON CONFLICT (asaas_id) DO UPDATE SET
                 customer_name     = EXCLUDED.customer_name,
@@ -207,6 +207,7 @@ def _upsert_payments(db: Session, payments: list, customers: dict):
                 description       = EXCLUDED.description,
                 external_reference= EXCLUDED.external_reference,
                 invoice_url       = EXCLUDED.invoice_url,
+                invoice_number    = EXCLUDED.invoice_number,
                 synced_at         = EXCLUDED.synced_at
         """), {
             "asaas_id":          p.get("id"),
@@ -224,6 +225,7 @@ def _upsert_payments(db: Session, payments: list, customers: dict):
             "description":       p.get("description"),
             "external_reference": p.get("externalReference"),
             "invoice_url":       p.get("invoiceUrl"),
+            "invoice_number":    (str(p.get("invoiceNumber")) if p.get("invoiceNumber") is not None else None),
             "now":               now,
         })
 

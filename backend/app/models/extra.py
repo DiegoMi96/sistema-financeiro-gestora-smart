@@ -70,6 +70,7 @@ class AsaasPaymentSync(Base):
     billing_type     = Column(String(30))
     description      = Column(Text)
     external_reference = Column(String(100))            # id_smart (ss_CNPJ)
+    invoice_number   = Column(String(50))               # nº da fatura no Asaas (invoiceNumber)
     invoice_url      = Column(String(500))
     synced_at        = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

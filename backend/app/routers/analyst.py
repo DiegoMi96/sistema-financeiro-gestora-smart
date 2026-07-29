@@ -1071,7 +1071,7 @@ async def get_operational_summary(
                 SELECT aps.customer_cpf_cnpj AS cnpj, aps.customer_name AS nome,
                        'Asaas' AS banco, aps.value, aps.due_date,
                        aps.description,
-                       NULL::text AS num_boleto,
+                       aps.invoice_number AS num_boleto,
                        acs.email,
                        CASE
                            WHEN (CURRENT_DATE - aps.due_date) BETWEEN 1  AND 4  THEN '1–4 dias'
