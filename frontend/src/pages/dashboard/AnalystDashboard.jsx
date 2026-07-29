@@ -158,7 +158,7 @@ function ListaVencidos({ rows, month, year }) {
     </span>
   )
 
-  const STR_COLS = new Set(['nome', 'banco', 'email', 'description', 'vencimento_planejado', 'observacao'])
+  const STR_COLS = new Set(['nome', 'banco', 'email', 'description', 'num_boleto', 'vencimento_planejado', 'observacao'])
 
   const base = search.trim()
     ? rows.filter(r => r.nome.toLowerCase().includes(search.toLowerCase()))
@@ -194,7 +194,7 @@ function ListaVencidos({ rows, month, year }) {
 
   function downloadCsvVencidos() {
     const bom    = '﻿'
-    const header = '#;Cliente;CNPJ;Banco;Email;Descrição Boleto;1º Vencimento;Valor Vencido (R$);Dias;Venc. Planejado;Observação\n'
+    const header = '#;Cliente;CNPJ;Banco;Email;Descrição Boleto;Nº Boleto;1º Vencimento;Valor Vencido (R$);Dias;Venc. Planejado;Observação\n'
     const body   = displayed.map((r, i) => {
       const venc = r.vencimento_orig
         ? r.vencimento_orig.slice(8,10) + '/' + r.vencimento_orig.slice(5,7) + '/' + r.vencimento_orig.slice(0,4)
@@ -204,7 +204,7 @@ function ListaVencidos({ rows, month, year }) {
       const vencPlan = nota.vencimento_planejado
         ? nota.vencimento_planejado.slice(8,10) + '/' + nota.vencimento_planejado.slice(5,7) + '/' + nota.vencimento_planejado.slice(0,4)
         : ''
-      return `"${i+1}";"${r.nome || ''}";"${r.cnpj || ''}";"${r.banco || ''}";"${r.email || ''}";"${r.description || ''}";"${venc}";"${val}";"${r.dias ?? ''}";"${vencPlan}";"${nota.observacao || ''}"`
+      return `"${i+1}";"${r.nome || ''}";"${r.cnpj || ''}";"${r.banco || ''}";"${r.email || ''}";"${r.description || ''}";"${r.num_boleto || ''}";"${venc}";"${val}";"${r.dias ?? ''}";"${vencPlan}";"${nota.observacao || ''}"`
     }).join('\n')
     const blob = new Blob([bom + header + body], { type: 'text/csv;charset=utf-8' })
     const url  = URL.createObjectURL(blob)
@@ -272,6 +272,7 @@ function ListaVencidos({ rows, month, year }) {
                 <th className={thSort('banco', 'text-center')} onClick={() => handleSort('banco')}>Banco <SortIcon col="banco" /></th>
                 <th className={thSort('email')} onClick={() => handleSort('email')}>Email <SortIcon col="email" /></th>
                 <th className={thSort('description')} onClick={() => handleSort('description')}>Descrição Boleto <SortIcon col="description" /></th>
+                <th className={thSort('num_boleto', 'text-center')} onClick={() => handleSort('num_boleto')}>Nº Boleto <SortIcon col="num_boleto" /></th>
                 <th className={thSort('vencimento_planejado', 'text-center')} onClick={() => handleSort('vencimento_planejado')}>Venc. Planejado <SortIcon col="vencimento_planejado" /></th>
                 <th className={thSort('observacao')} onClick={() => handleSort('observacao')}>Observação <SortIcon col="observacao" /></th>
               </tr>
@@ -303,6 +304,7 @@ function ListaVencidos({ rows, month, year }) {
                     </td>
                     <td className="py-2.5 px-4 text-xs text-gray-500 max-w-[180px] truncate">{r.email || '—'}</td>
                     <td className="py-2.5 px-4 text-xs text-gray-500 max-w-[200px] truncate">{r.description || '—'}</td>
+                    <td className="py-2.5 px-4 text-center text-xs font-mono text-gray-600 whitespace-nowrap">{r.num_boleto || '—'}</td>
                     <td className="py-2 px-3 text-center">
                       <input
                         type="date"

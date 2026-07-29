@@ -1071,6 +1071,7 @@ async def get_operational_summary(
                 SELECT aps.customer_cpf_cnpj AS cnpj, aps.customer_name AS nome,
                        'Asaas' AS banco, aps.value, aps.due_date,
                        aps.description,
+                       NULL::text AS num_boleto,
                        acs.email,
                        CASE
                            WHEN (CURRENT_DATE - aps.due_date) BETWEEN 1  AND 4  THEN '1–4 dias'
@@ -1091,6 +1092,7 @@ async def get_operational_summary(
                 SELECT ib.cpf_cnpj AS cnpj, ib.pagador AS nome,
                        'Itaú' AS banco, ib.valor_titulo AS value, ib.data_vencimento AS due_date,
                        ib.description,
+                       ib.nosso_numero AS num_boleto,
                        acs.email,
                        CASE
                            WHEN (CURRENT_DATE - ib.data_vencimento) BETWEEN 1  AND 4  THEN '1–4 dias'
@@ -1114,7 +1116,8 @@ async def get_operational_summary(
                 MIN(due_date) AS vencimento_orig,
                 (CURRENT_DATE - MIN(due_date))::int AS dias,
                 MAX(email) AS email,
-                MAX(description) AS description
+                MAX(description) AS description,
+                STRING_AGG(DISTINCT num_boleto::text, ', ') AS num_boleto
             FROM combined
             WHERE due_date IS NOT NULL
             GROUP BY cnpj, banco, bucket
@@ -1134,6 +1137,7 @@ async def get_operational_summary(
                 "banco":          r.banco,
                 "email":          r.email,
                 "description":    r.description,
+                "num_boleto":     r.num_boleto,
                 "score":          "novo",
                 "historico_rec":  0,
                 "historico_tot":  int(r.qtd),
