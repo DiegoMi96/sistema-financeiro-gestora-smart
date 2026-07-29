@@ -83,8 +83,8 @@ export default function AdjustmentsPage() {
   // Agrupamento por ofensor para o painel de análise
   const byOfensor = adjustments.reduce((acc, a) => {
     const k = a.ofensor || 'Não informado'
-    if (!acc[k]) acc[k] = { count: 0, valor: 0 }
-    acc[k].count++
+    if (!acc[k]) acc[k] = { clientes: new Set(), valor: 0 }
+    if (a.id_smart) acc[k].clientes.add(a.id_smart)
     acc[k].valor += a.valor_diferenca || 0
     return acc
   }, {})
@@ -200,7 +200,7 @@ export default function AdjustmentsPage() {
                   <div className="flex-1 bg-gray-100 rounded-full h-2">
                     <div className="bg-red-400 h-2 rounded-full" style={{ width: `${Math.min(pct, 100)}%` }} />
                   </div>
-                  <div className="w-24 text-right text-xs text-gray-500">{d.count} aj.</div>
+                  <div className="w-24 text-right text-xs text-gray-500">{d.clientes.size} {d.clientes.size === 1 ? 'Cliente' : 'Clientes'}</div>
                   <div className="w-28 text-right text-sm font-semibold text-red-600">{fmt(d.valor)}</div>
                 </div>
               )
