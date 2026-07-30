@@ -362,7 +362,6 @@ function AdjustmentModal({ onClose, onSuccess, defaultCycleId, defaultIdSmart, d
     id_smart:        defaultIdSmart  || '',
     type:            'desconto',
     component:       'total',
-    valor_original:  '',
     valor_ajustado:  '',
     justificativa:   '',
     analista:        user?.name || '',
@@ -530,23 +529,15 @@ function AdjustmentModal({ onClose, onSuccess, defaultCycleId, defaultIdSmart, d
           </div>
 
           {/* Valores */}
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="gs-label mb-1 flex items-center gap-0.5 whitespace-nowrap">Valor da Fatura (R$) <span className="text-red-500">*</span></label>
-              <input type="number" step="0.01" value={form.valor_original}
-                onChange={e => set('valor_original', e.target.value)} required
-                placeholder="0,00" className={INPUT} />
-            </div>
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="gs-label mb-1 flex items-center gap-0.5 whitespace-nowrap">
-                Valor do Ajuste (R$) <span className="text-red-500">*</span>
+                Valor a Remover (R$) <span className="text-red-500">*</span>
               </label>
               <input type="number" step="0.01" value={form.valor_ajustado}
                 onChange={e => set('valor_ajustado', e.target.value)} required
                 placeholder="0,00" className={INPUT} />
-              {form.valor_ajustado && (
-                <p className="text-xs text-blue-600 mt-1">Será removido do total da fatura</p>
-              )}
+              <p className="text-xs text-gray-400 mt-1">O valor informado é removido por completo da fatura (resultado final: R$ 0,00 nesse componente)</p>
             </div>
             <div>
               <label className="gs-label block mb-1">Diferença</label>
@@ -555,7 +546,7 @@ function AdjustmentModal({ onClose, onSuccess, defaultCycleId, defaultIdSmart, d
                 diff > 0 ? 'border-green-200 bg-green-50 text-green-700' :
                 'border-gray-200 bg-gray-50 text-gray-400'
               }`}>
-                {form.valor_original && form.valor_ajustado
+                {form.valor_ajustado
                   ? `${diff >= 0 ? '+' : ''}${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(diff)}`
                   : '—'}
               </div>
@@ -563,7 +554,7 @@ function AdjustmentModal({ onClose, onSuccess, defaultCycleId, defaultIdSmart, d
           </div>
 
           {/* Aviso de aprovação necessária */}
-          {needsApproval && form.valor_original && form.valor_ajustado && (
+          {needsApproval && form.valor_ajustado && (
             <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs">
               <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
               <span>Ajuste acima de R$&nbsp;3.000 — será enviado para aprovação do gestor antes de ser aplicado.</span>

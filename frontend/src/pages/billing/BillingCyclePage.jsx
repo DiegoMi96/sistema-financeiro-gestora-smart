@@ -782,12 +782,13 @@ function EditAdjustmentModal({ adj, onClose, onSave, isPending }) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Valor Original (R$)</label>
-              <input type="number" step="0.01" value={form.valor_original} onChange={e => set('valor_original', e.target.value)} required
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3CB54A]" />
+              <label className="block text-xs text-gray-500 mb-1">Valor Removido (referência)</label>
+              <input type="number" step="0.01" value={form.valor_original} readOnly disabled
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500 cursor-not-allowed" />
+              <p className="text-xs text-gray-400 mt-1">Não é salvo — edite ao lado</p>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Valor do Ajuste (R$)</label>
+              <label className="block text-xs text-gray-500 mb-1">Valor a Remover (R$)</label>
               <input type="number" step="0.01" value={form.valor_ajustado} onChange={e => set('valor_ajustado', e.target.value)} required
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3CB54A]" />
               {form.valor_ajustado && (

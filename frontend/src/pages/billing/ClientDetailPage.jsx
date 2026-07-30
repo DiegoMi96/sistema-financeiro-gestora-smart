@@ -503,15 +503,14 @@ function AdjustmentModal({ cycleId, idSmart, totals, onClose, onSuccess }) {
           {/* Valores */}
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="gs-label mb-1 flex items-center gap-0.5 whitespace-nowrap">Valor Fatura (R$) <span className="text-red-500">*</span></label>
-              <input type="text" inputMode="decimal" value={form.valor_original}
-                onChange={e => set('valor_original', e.target.value)}
-                onBlur={e => handleBRLBlur('valor_original', e.target.value)}
-                required placeholder="0,00" className={INPUT} />
+              <label className="gs-label mb-1 flex items-center gap-0.5 whitespace-nowrap">Valor Fatura (referência)</label>
+              <input type="text" value={form.valor_original} readOnly disabled
+                placeholder="0,00" className={`${INPUT} bg-gray-50 text-gray-500 cursor-not-allowed`} />
+              <p className="text-xs text-gray-400 mt-1">Preenchido pelo componente selecionado — não é salvo</p>
             </div>
             <div>
               <label className="gs-label mb-1 flex items-center gap-0.5 whitespace-nowrap">
-                Valor do Ajuste (R$) <span className="text-red-500">*</span>
+                Valor a Remover (R$) <span className="text-red-500">*</span>
               </label>
               <input type="text" inputMode="decimal" value={form.valor_ajustado}
                 onChange={e => set('valor_ajustado', e.target.value)}
