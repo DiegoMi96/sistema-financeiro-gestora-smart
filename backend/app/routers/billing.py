@@ -1005,7 +1005,30 @@ def list_adjustments(
     adjs = db.query(BillingAdjustment).filter(
         BillingAdjustment.cycle_id == cycle_id
     ).order_by(BillingAdjustment.created_at.desc()).all()
-    return [_adjustment_to_dict(a) for a in adjs]
+
+    # Nome do cliente: cadastro fica em client_profiles; fallback no resumo
+    # do próprio ciclo (mesma lógica de list_all_adjustments).
+    from app.models import ClientProfile
+    id_smarts = {a.id_smart for a in adjs if a.id_smart}
+    nomes_profile = {}
+    nomes_summary = {}
+    if id_smarts:
+        nomes_profile = dict(
+            db.query(ClientProfile.id_smart, ClientProfile.nome)
+            .filter(ClientProfile.id_smart.in_(id_smarts)).all()
+        )
+        nomes_summary = dict(
+            db.query(BillingClientSummary.id_smart, BillingClientSummary.nome_cliente)
+            .filter(BillingClientSummary.cycle_id == cycle_id,
+                    BillingClientSummary.id_smart.in_(id_smarts)).all()
+        )
+
+    result = []
+    for a in adjs:
+        d = _adjustment_to_dict(a)
+        d["client_nome"] = nomes_profile.get(a.id_smart) or nomes_summary.get(a.id_smart)
+        result.append(d)
+    return result
 
 
 _COMPONENT_FIELD_MAP = {

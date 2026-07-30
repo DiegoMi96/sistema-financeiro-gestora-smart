@@ -643,7 +643,10 @@ function AdjustmentsTab({ adjustments, cycleId, qc, can }) {
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-sm font-medium text-gray-800">{a.id_smart}</span>
+                <span className="text-sm font-medium text-gray-800">{a.client_nome || a.id_smart}</span>
+                {a.client_nome && (
+                  <span className="text-xs text-gray-400 font-mono">{a.id_smart}</span>
+                )}
                 <AdjTypeBadge type={a.type} />
                 {a.requires_approval && !a.approved_at && (
                   <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded">Aguarda aprovação</span>
@@ -756,7 +759,7 @@ function EditAdjustmentModal({ adj, onClose, onSave, isPending }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-800">Editar Ajuste — {adj.id_smart}</h3>
+          <h3 className="text-sm font-semibold text-gray-800">Editar Ajuste — {adj.client_nome || adj.id_smart}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
         </div>
         <form onSubmit={handleSubmit} className="px-5 py-4 space-y-3">
