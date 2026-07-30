@@ -733,7 +733,10 @@ function EditAdjustmentModal({ adj, onClose, onSave, isPending }) {
     type:            adj.type,
     component:       adj.component || '',
     valor_original:  adj.valor_original,
-    valor_ajustado:  adj.valor_ajustado,
+    // Pré-preenche com o valor JÁ removido (não com adj.valor_ajustado, que é
+    // sempre 0) — salvar sem alterar este campo preserva o desconto existente
+    // em vez de zerá-lo silenciosamente.
+    valor_ajustado:  adj.valor_original,
     justificativa:   adj.justificativa || '',
     observacao:      adj.observacao || '',
     consultor:       adj.consultor || '',
