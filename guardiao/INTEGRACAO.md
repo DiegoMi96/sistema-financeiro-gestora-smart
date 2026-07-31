@@ -85,6 +85,28 @@ sistema principal:
   proxeando para `127.0.0.1:3002`, sem barra final no `proxy_pass` (preserva
   o prefixo `/guardiao` que o Next.js espera por causa do `basePath`).
 
+### 3. Três bugs de roteamento achados testando no navegador real (não aparecem em `next dev` local nem em smoke-test via curl direto)
+
+- **`next.config.js`**: `trailingSlash: true` — sem isso, nginx (location
+  terminada em barra + `proxy_pass`) força redirect 301 sem-barra→com-barra
+  (comportamento documentado do nginx), e o Next.js por padrão faz o oposto
+  na raiz do basePath (308 removendo a barra) — os dois entravam em loop
+  infinito (`ERR_TOO_MANY_REDIRECTS`).
+- **`Dockerfile`**: `ENV NEXT_PUBLIC_API_URL="/guardiao/api"` no estágio de
+  build. Sem isso, `lib/api.ts` (`NEXT_PUBLIC_API_URL || "/api"`) chamaria
+  `/api/...` na raiz do domínio — que é o **backend principal**, não o
+  Guardião! `NEXT_PUBLIC_*` precisa existir em build time (Next.js embute no
+  bundle do cliente, não lê em runtime).
+- **`src/app/page.tsx`**: adicionado `export const dynamic = 'force-dynamic'`.
+  Como a página só faz `redirect('/dashboard')` incondicional, o Next.js
+  tratava isso como rota estática e cacheava uma resposta no formato interno
+  de navegação client-side (RSC), sem header `Location` HTTP tradicional —
+  quebrava o acesso via proxy/primeira carga.
+
+Se mexer nessas 3 configs de novo, cuidado: são sutis e só aparecem
+atrás de um proxy reverso real com basePath — testar em `next dev` local não
+reproduz nenhum dos três.
+
 ## Pendências (o que falta para funcionar de verdade)
 
 - 🔴 **`DATABASE_URL` real do Neon** — só o Thalles tem. Sem isso, o
