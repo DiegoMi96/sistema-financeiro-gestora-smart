@@ -4,10 +4,13 @@ import { useAuth } from './AuthContext'
 const ModuleContext = createContext(null)
 
 // Definição dos módulos — nomes e permissões necessárias
-// Linha 1 (5): Faturamento · Contestação · Comissionamento · Controladoria · SMT
+// Linha 1 (4): Faturamento · Comissionamento · Controladoria · SMT
 // Linha 2 (4): Logística · Guardião · Organograma · Gestão de Acessos
 // Guardião ocupa o antigo lugar do SMT no array; SMT passou para o lado da
 // Controladoria (pedido do Diego em 31/07/2026, integração do Guardião).
+// Contestação removida do grid (pedido do Diego em 31/07/2026, "por
+// enquanto") — objeto mantido comentado abaixo para restaurar fácil depois.
+// A rota /contestacao e as permissões NÃO foram tocadas, só o card sumiu.
 export const MODULES = [
   {
     id:          'faturamento',
@@ -26,6 +29,8 @@ export const MODULES = [
       { to: '/configuracoes',      label: 'Configurações',    permission: 'can_manage_users' },
     ],
   },
+  /* Contestação — removida do grid "por enquanto" (31/07/2026). Descomentar
+     para restaurar o card (lembrar de reajustar o grid em WelcomePage.jsx).
   {
     id:          'contestacao',
     label:       'Contestação',
@@ -40,6 +45,7 @@ export const MODULES = [
       { to: '/configuracoes', label: 'Configurações', permission: 'can_manage_users' },
     ],
   },
+  */
   {
     id:          'comissionamento',
     label:       'Comissionamento',

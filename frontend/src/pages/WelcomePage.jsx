@@ -134,9 +134,9 @@ export default function WelcomePage() {
 
   const firstName = user?.name?.split(' ')[0] || 'usuário'
   const allModules = MODULES
-  // 9 módulos: 5 na 1ª fileira, 4 na 2ª (Guardião integrado 31/07/2026).
-  // lg:grid-cols-5 (era 4) + max-w maior para o card manter o mesmo tamanho.
-  const gridClass  = 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 max-w-[1440px]'
+  // 8 módulos: 4 na 1ª fileira, 4 na 2ª (Contestação removida "por enquanto"
+  // em 31/07/2026 — volta ao grid-cols-4 original, mesmo tamanho de card).
+  const gridClass  = 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 max-w-6xl'
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-start pt-6 p-4"
