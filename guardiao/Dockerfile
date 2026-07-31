@@ -18,6 +18,11 @@ COPY . .
 # para conexão de verdade.
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATABASE_URL="postgres://build-time-placeholder@localhost/placeholder"
+# NEXT_PUBLIC_* precisa existir em BUILD TIME (Next.js embute o valor no
+# bundle do cliente — não é lido em runtime). Sem isto, o axios do Guardião
+# chamaria "/api/..." (raiz do domínio = backend principal!) em vez de
+# "/guardiao/api/..." (o próprio Guardião, respeitando o basePath).
+ENV NEXT_PUBLIC_API_URL="/guardiao/api"
 RUN npm run build
 
 FROM node:18-alpine AS runner

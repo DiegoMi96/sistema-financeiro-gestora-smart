@@ -7,6 +7,13 @@ const nextConfig = {
   // próprios — necessário para o nginx rotear corretamente e para o login
   // unificado funcionar (mesmo localStorage, mesma origem).
   basePath: "/guardiao",
+  // O nginx do sistema principal (location /guardiao/ + proxy_pass) força
+  // redirect 301 de "/guardiao" -> "/guardiao/" (comportamento documentado do
+  // nginx para locations terminadas em barra com proxy_pass). Sem isto, o
+  // Next.js faz o oposto na raiz do basePath (308 removendo a barra) e os
+  // dois entram em loop infinito (ERR_TOO_MANY_REDIRECTS). Alinha a forma
+  // canônica do Next.js com a do nginx: sempre COM barra final.
+  trailingSlash: true,
   // Imagem Docker enxuta — copia só o necessário para rodar (sem depender de
   // node_modules completo em produção).
   output: "standalone",
