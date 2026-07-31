@@ -60,6 +60,9 @@ const PERM_SECTIONS = [
   { key: 'SMT', perms: [
     ['can_view_smt', 'Acesso ao Dashboard SMT'],
   ]},
+  { key: 'GUARDIÃO', perms: [
+    ['can_view_guardiao', 'Acesso ao Dashboard Guardião'],
+  ]},
 ]
 
 const ALL_PERMS = PERM_SECTIONS.flatMap(s => s.perms)

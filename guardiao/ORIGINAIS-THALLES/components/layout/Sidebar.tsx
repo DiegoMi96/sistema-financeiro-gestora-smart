@@ -109,10 +109,12 @@ const menuItems: MenuItem[] = [
       },
     ],
   },
-  // "Usuários" removida do menu (31/07/2026): login unificado com o sistema
-  // principal — a tabela de usuários própria do Guardião não controla mais
-  // acesso real, então essa aba ficou vestigial/confusa. Página e API
-  // continuam existindo (não apagadas), só não aparecem mais no menu.
+  {
+    title: "Usuários",
+    href: "/dashboard/users",
+    icon: Users,
+    roles: ["admin"],
+  },
   {
     title: "Regras de Consumo",
     href: "/dashboard/configuracoes",
