@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../contexts/AuthContext'
 import { useModule, MODULES } from '../contexts/ModuleContext'
-import { FileText, AlertCircle, TrendingUp, Truck, BarChart2, ChevronRight, Building2, Globe2, Shield, Lock } from 'lucide-react'
+import { FileText, AlertCircle, TrendingUp, Truck, BarChart2, ChevronRight, Building2, Globe2, Shield, ShieldCheck, Lock } from 'lucide-react'
 import api from '../services/api'
 
-const ICONS = { FileText, AlertCircle, TrendingUp, Truck, BarChart2, Globe2, Shield }
+const ICONS = { FileText, AlertCircle, TrendingUp, Truck, BarChart2, Globe2, Shield, ShieldCheck }
 
 const MODULE_HOME = {
   faturamento:     '/dashboard',
@@ -17,6 +17,7 @@ const MODULE_HOME = {
   organograma:     '/organograma',
   acessos:         '/acessos',
   smt:             null,
+  guardiao:        null,
 }
 
 const COLOR_MAP = {
@@ -61,6 +62,12 @@ const COLOR_MAP = {
     icon: 'bg-slate-100 text-slate-600',
     dot:  'bg-slate-500',
     cta:  'text-slate-500 group-hover:text-slate-700',
+  },
+  emerald: {
+    card: 'border-emerald-200 hover:border-emerald-400 hover:shadow-emerald-100/60',
+    icon: 'bg-emerald-50 text-emerald-600',
+    dot:  'bg-emerald-500',
+    cta:  'text-emerald-500 group-hover:text-emerald-700',
   },
 }
 
@@ -112,6 +119,13 @@ export default function WelcomePage() {
       window.open(url, '_blank', 'noopener,noreferrer')
       return
     }
+    if (module.id === 'guardiao') {
+      // Mesma origem (sistema.gestorasmart.com.br/guardiao) — navegação de
+      // página inteira, não é rota do React Router nem precisa de nova aba.
+      // A sessão (localStorage 'token'/'user') já é compartilhada.
+      window.location.href = '/guardiao'
+      return
+    }
     const route = MODULE_HOME[module.id]
     if (!route) return
     selectModule(module.id)
@@ -120,7 +134,9 @@ export default function WelcomePage() {
 
   const firstName = user?.name?.split(' ')[0] || 'usuário'
   const allModules = MODULES
-  const gridClass  = 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 max-w-6xl'
+  // 9 módulos: 5 na 1ª fileira, 4 na 2ª (Guardião integrado 31/07/2026).
+  // lg:grid-cols-5 (era 4) + max-w maior para o card manter o mesmo tamanho.
+  const gridClass  = 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 max-w-[1440px]'
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-start pt-6 p-4"

@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/monthly-cleanup",
+      "schedule": "0 3 1 * *"
+    }
+  ]
+}

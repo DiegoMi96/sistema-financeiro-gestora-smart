@@ -4,8 +4,10 @@ import { useAuth } from './AuthContext'
 const ModuleContext = createContext(null)
 
 // Definição dos módulos — nomes e permissões necessárias
-// Linha 1: Faturamento · Contestação · Comissionamento · Controladoria
-// Linha 2: Logística · SMT · Organograma · Gestão de Acessos
+// Linha 1 (5): Faturamento · Contestação · Comissionamento · Controladoria · SMT
+// Linha 2 (4): Logística · Guardião · Organograma · Gestão de Acessos
+// Guardião ocupa o antigo lugar do SMT no array; SMT passou para o lado da
+// Controladoria (pedido do Diego em 31/07/2026, integração do Guardião).
 export const MODULES = [
   {
     id:          'faturamento',
@@ -68,6 +70,16 @@ export const MODULES = [
     ],
   },
   {
+    id:          'smt',
+    label:       'SMT',
+    description: 'Dashboard financeiro SMT — cotações, resultados e operações Brasil e Portugal',
+    icon:        'Globe2',
+    color:       'violet',
+    status:      'active',
+    permission:  'can_view_smt',
+    nav: [],
+  },
+  {
     id:          'logistica',
     label:       'Logística',
     description: 'Gestão de fretes, envios e pedidos de chips por operadora',
@@ -81,13 +93,13 @@ export const MODULES = [
     ],
   },
   {
-    id:          'smt',
-    label:       'SMT',
-    description: 'Dashboard financeiro SMT — cotações, resultados e operações Brasil e Portugal',
-    icon:        'Globe2',
-    color:       'violet',
+    id:          'guardiao',
+    label:       'Guardião',
+    description: 'Controle de consumo de franquias e acionamentos de linhas móveis',
+    icon:        'ShieldCheck',
+    color:       'emerald',
     status:      'active',
-    permission:  'can_view_smt',
+    permission:  'can_view_guardiao',
     nav: [],
   },
   {

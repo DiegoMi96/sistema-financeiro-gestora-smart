@@ -1,0 +1,43 @@
+{
+  "name": "guardiao-frontend",
+  "version": "1.0.0",
+  "description": "Frontend para o sistema Guardião",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@getbrevo/brevo": "^5.0.4",
+    "@neondatabase/serverless": "^1.1.0",
+    "@types/bcryptjs": "^2.4.6",
+    "autoprefixer": "^10.4.16",
+    "axios": "^1.6.4",
+    "bcryptjs": "^3.0.3",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.0.0",
+    "date-fns": "^2.30.0",
+    "jose": "^6.2.3",
+    "lucide-react": "^0.292.0",
+    "next": "^14.0.4",
+    "nextjs-toploader": "^3.9.17",
+    "postcss": "^8.4.32",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "recharts": "^2.10.3",
+    "tailwindcss": "^3.3.6",
+    "typescript": "^5.3.3",
+    "xlsx": "^0.18.5",
+    "zustand": "^4.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "@types/react": "^18.2.45",
+    "@types/react-dom": "^18.2.18",
+    "eslint": "^8.55.0",
+    "eslint-config-next": "^14.0.4"
+  }
+}

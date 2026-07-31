@@ -45,6 +45,8 @@ ALL_PERMISSIONS = [
     "can_view_ctrl_fluxo_caixa",   # DFC Gerencial
     # SMT Dashboard externo
     "can_view_smt",
+    # Guardião — controle de consumo de franquias (integrado 31/07/2026)
+    "can_view_guardiao",
 ]
 
 # ─────────────────────────────────────────────
@@ -79,6 +81,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_ctrl_rh":          True,
         "can_view_ctrl_fluxo_caixa": True,
         "can_view_smt":              True,
+        "can_view_guardiao":         True,
     },
     UserRole.GESTOR: {
         "can_view_dashboard":       True,
@@ -108,6 +111,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_ctrl_rh":          True,
         "can_view_ctrl_fluxo_caixa": True,
         "can_view_smt":              True,
+        "can_view_guardiao":         True,
     },
     UserRole.CONTAS_RECEBER: {
         "can_view_dashboard":       True,
@@ -137,6 +141,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_ctrl_rh":          False,
         "can_view_ctrl_fluxo_caixa": False,
         "can_view_smt":              False,
+        "can_view_guardiao":         False,
     },
     UserRole.SUPORTE_TECNICO: {
         "can_view_dashboard":       False,
@@ -166,6 +171,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_ctrl_rh":          False,
         "can_view_ctrl_fluxo_caixa": False,
         "can_view_smt":              False,
+        "can_view_guardiao":         False,
     },
     UserRole.LOGISTICA: {
         "can_view_dashboard":       False,
@@ -195,6 +201,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_ctrl_rh":          False,
         "can_view_ctrl_fluxo_caixa": False,
         "can_view_smt":              False,
+        "can_view_guardiao":         False,
     },
     UserRole.BACKOFFICE: {
         "can_view_dashboard":       True,
@@ -224,6 +231,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_ctrl_rh":          False,
         "can_view_ctrl_fluxo_caixa": False,
         "can_view_smt":              False,
+        "can_view_guardiao":         False,
     },
     UserRole.COMERCIAL: {
         "can_view_dashboard":       True,
@@ -253,6 +261,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_ctrl_rh":          False,
         "can_view_ctrl_fluxo_caixa": False,
         "can_view_smt":              False,
+        "can_view_guardiao":         False,
     },
 }
 

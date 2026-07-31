@@ -65,13 +65,54 @@ services:
         VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
     restart: unless-stopped
     ports:
-      - "3000:80"
+      # 4000, não 3000: porta 3000 do host já é usada por outro processo
+      # (dashboard legado /var/www/gestora-smart/server.js). O nginx de
+      # produção já aponta para 4000 — corrigido aqui em 31/07/2026 porque o
+      # arquivo real no servidor estava com "4000:80" (editado direto, nunca
+      # sincronizado com o git) enquanto este arquivo dizia "3000:80". Um
+      # `git pull` no servidor teria revertido para 3000 e derrubado o site.
+      - "4000:80"
     depends_on:
       - backend
     deploy:
       resources:
         limits:
           cpus: '0.5'
+          memory: 128M
+
+  # ── Guardião (Next.js) — integrado 31/07/2026 ───────────────
+  # Sistema do Thalles (controle de consumo de franquias). Roda em
+  # /guardiao no mesmo domínio do sistema principal (ver guardiao/next.config.js
+  # basePath). Login unificado: reusa a MESMA SECRET_KEY do backend (nunca
+  # duplicar o valor à mão — sempre referenciar ${SECRET_KEY}).
+  guardiao:
+    build:
+      context: ./guardiao
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      GESTORA_JWT_SECRET: ${SECRET_KEY:-TROQUE-EM-PRODUCAO-USE-OPENSSL-RAND-HEX-32}
+      # PENDENTE: Thalles precisa fornecer a connection string real do Neon
+      # (banco próprio do Guardião, hospedado fora da nossa infra). Sem isso,
+      # o container sobe normalmente mas nenhuma tela com dados funciona.
+      DATABASE_URL:       ${GUARDIAO_DATABASE_URL:-}
+      # Opcionais — funcionalidades específicas falham graciosamente sem eles
+      # (não impedem o resto do sistema de funcionar):
+      CRON_SECRET:        ${GUARDIAO_CRON_SECRET:-}
+      BREVO_API_KEY:      ${GUARDIAO_BREVO_API_KEY:-}
+      SMSMARKET_USER:     ${GUARDIAO_SMSMARKET_USER:-}
+      SMSMARKET_PASSWORD: ${GUARDIAO_SMSMARKET_PASSWORD:-}
+    ports:
+      - "3002:3000"
+    depends_on:
+      - backend
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
           memory: 128M
 
 volumes:
