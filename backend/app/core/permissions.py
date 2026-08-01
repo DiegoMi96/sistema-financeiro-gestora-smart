@@ -43,10 +43,36 @@ ALL_PERMISSIONS = [
     "can_view_ctrl_logistics",     # Logística
     "can_view_ctrl_rh",            # RH
     "can_view_ctrl_fluxo_caixa",   # DFC Gerencial
+    # Faturamento — páginas visíveis (granular, 01/08/2026)
+    "can_view_fat_ciclos",           # Lista de ciclos
+    "can_view_fat_ciclo_detalhe",    # Detalhe do ciclo
+    "can_view_fat_cliente_detalhe",  # Detalhe do cliente
+    "can_view_fat_diagnostico_ia",   # Diagnóstico IA
+    # Comissionamento — páginas visíveis (granular, 01/08/2026)
+    "can_view_com_painel",           # Painel de comissionamento
+    "can_view_com_parceiros",        # Parceiros regionais
+    "can_view_com_interno",          # Comissionamento interno
+    # Contestação — páginas visíveis (granular, 01/08/2026)
+    "can_view_cont_ciclos",          # Lista de ciclos de contestação
+    "can_view_cont_ciclo_detalhe",   # Detalhe do ciclo de contestação
+    "can_view_cont_allcom",          # Allcom
     # SMT Dashboard externo
     "can_view_smt",
     # Guardião — controle de consumo de franquias (integrado 31/07/2026)
     "can_view_guardiao",
+    # Guardião — páginas visíveis (granular, 31/07/2026)
+    "can_view_grd_dashboard",        # Dashboard
+    "can_view_grd_importacoes",      # Monitoramento > Histórico de Importes
+    "can_view_grd_timeline",         # Monitoramento > Linha do Tempo
+    "can_view_grd_analises",         # Monitoramento > Consumo Crítico
+    "can_view_grd_envios",           # Monitoramento > Histórico de Envios
+    "can_view_grd_nao_acionados",    # Monitoramento > Não Acionados
+    "can_view_grd_upload",           # Importar Planilha
+    "can_view_grd_alerts",           # Acionamentos
+    "can_view_grd_history",          # Histórico de Acionamentos
+    "can_view_grd_historico_mensal", # Histórico Mensal
+    "can_view_grd_clientes",         # Cadastros > Clientes
+    "can_view_grd_configuracoes",    # Regras de Consumo
 ]
 
 # ─────────────────────────────────────────────
@@ -80,8 +106,29 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_ctrl_logistics":   True,
         "can_view_ctrl_rh":          True,
         "can_view_ctrl_fluxo_caixa": True,
+        "can_view_fat_ciclos":           True,
+        "can_view_fat_ciclo_detalhe":    True,
+        "can_view_fat_cliente_detalhe":  True,"can_view_fat_diagnostico_ia":   True,
+        "can_view_com_painel":           True,
+        "can_view_com_parceiros":        True,
+        "can_view_com_interno":          True,
+        "can_view_cont_ciclos":          True,
+        "can_view_cont_ciclo_detalhe":   True,
+        "can_view_cont_allcom":          True,
         "can_view_smt":              True,
         "can_view_guardiao":         True,
+        "can_view_grd_dashboard":        True,
+        "can_view_grd_importacoes":      True,
+        "can_view_grd_timeline":         True,
+        "can_view_grd_analises":         True,
+        "can_view_grd_envios":           True,
+        "can_view_grd_nao_acionados":    True,
+        "can_view_grd_upload":           True,
+        "can_view_grd_alerts":           True,
+        "can_view_grd_history":          True,
+        "can_view_grd_historico_mensal": True,
+        "can_view_grd_clientes":         True,
+        "can_view_grd_configuracoes":    True,
     },
     UserRole.GESTOR: {
         "can_view_dashboard":       True,
@@ -110,8 +157,29 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_ctrl_logistics":   True,
         "can_view_ctrl_rh":          True,
         "can_view_ctrl_fluxo_caixa": True,
+        "can_view_fat_ciclos":           True,
+        "can_view_fat_ciclo_detalhe":    True,
+        "can_view_fat_cliente_detalhe":  True,"can_view_fat_diagnostico_ia":   True,
+        "can_view_com_painel":           True,
+        "can_view_com_parceiros":        True,
+        "can_view_com_interno":          True,
+        "can_view_cont_ciclos":          True,
+        "can_view_cont_ciclo_detalhe":   True,
+        "can_view_cont_allcom":          True,
         "can_view_smt":              True,
         "can_view_guardiao":         True,
+        "can_view_grd_dashboard":        True,
+        "can_view_grd_importacoes":      True,
+        "can_view_grd_timeline":         True,
+        "can_view_grd_analises":         True,
+        "can_view_grd_envios":           True,
+        "can_view_grd_nao_acionados":    True,
+        "can_view_grd_upload":           True,
+        "can_view_grd_alerts":           True,
+        "can_view_grd_history":          True,
+        "can_view_grd_historico_mensal": True,
+        "can_view_grd_clientes":         True,
+        "can_view_grd_configuracoes":    True,
     },
     UserRole.CONTAS_RECEBER: {
         "can_view_dashboard":       True,
@@ -140,8 +208,29 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_ctrl_logistics":   False,
         "can_view_ctrl_rh":          False,
         "can_view_ctrl_fluxo_caixa": False,
+        "can_view_fat_ciclos":           True,
+        "can_view_fat_ciclo_detalhe":    True,
+        "can_view_fat_cliente_detalhe":  True,"can_view_fat_diagnostico_ia":   True,
+        "can_view_com_painel":           False,
+        "can_view_com_parceiros":        False,
+        "can_view_com_interno":          False,
+        "can_view_cont_ciclos":          False,
+        "can_view_cont_ciclo_detalhe":   False,
+        "can_view_cont_allcom":          False,
         "can_view_smt":              False,
         "can_view_guardiao":         False,
+        "can_view_grd_dashboard":        False,
+        "can_view_grd_importacoes":      False,
+        "can_view_grd_timeline":         False,
+        "can_view_grd_analises":         False,
+        "can_view_grd_envios":           False,
+        "can_view_grd_nao_acionados":    False,
+        "can_view_grd_upload":           False,
+        "can_view_grd_alerts":           False,
+        "can_view_grd_history":          False,
+        "can_view_grd_historico_mensal": False,
+        "can_view_grd_clientes":         False,
+        "can_view_grd_configuracoes":    False,
     },
     UserRole.SUPORTE_TECNICO: {
         "can_view_dashboard":       False,
@@ -170,8 +259,29 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_ctrl_logistics":   False,
         "can_view_ctrl_rh":          False,
         "can_view_ctrl_fluxo_caixa": False,
+        "can_view_fat_ciclos":           False,
+        "can_view_fat_ciclo_detalhe":    False,
+        "can_view_fat_cliente_detalhe":  False,"can_view_fat_diagnostico_ia":   False,
+        "can_view_com_painel":           False,
+        "can_view_com_parceiros":        False,
+        "can_view_com_interno":          False,
+        "can_view_cont_ciclos":          True,
+        "can_view_cont_ciclo_detalhe":   True,
+        "can_view_cont_allcom":          True,
         "can_view_smt":              False,
         "can_view_guardiao":         False,
+        "can_view_grd_dashboard":        False,
+        "can_view_grd_importacoes":      False,
+        "can_view_grd_timeline":         False,
+        "can_view_grd_analises":         False,
+        "can_view_grd_envios":           False,
+        "can_view_grd_nao_acionados":    False,
+        "can_view_grd_upload":           False,
+        "can_view_grd_alerts":           False,
+        "can_view_grd_history":          False,
+        "can_view_grd_historico_mensal": False,
+        "can_view_grd_clientes":         False,
+        "can_view_grd_configuracoes":    False,
     },
     UserRole.LOGISTICA: {
         "can_view_dashboard":       False,
@@ -200,8 +310,29 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_ctrl_logistics":   False,
         "can_view_ctrl_rh":          False,
         "can_view_ctrl_fluxo_caixa": False,
+        "can_view_fat_ciclos":           True,
+        "can_view_fat_ciclo_detalhe":    True,
+        "can_view_fat_cliente_detalhe":  True,"can_view_fat_diagnostico_ia":   True,
+        "can_view_com_painel":           False,
+        "can_view_com_parceiros":        False,
+        "can_view_com_interno":          False,
+        "can_view_cont_ciclos":          False,
+        "can_view_cont_ciclo_detalhe":   False,
+        "can_view_cont_allcom":          False,
         "can_view_smt":              False,
         "can_view_guardiao":         False,
+        "can_view_grd_dashboard":        False,
+        "can_view_grd_importacoes":      False,
+        "can_view_grd_timeline":         False,
+        "can_view_grd_analises":         False,
+        "can_view_grd_envios":           False,
+        "can_view_grd_nao_acionados":    False,
+        "can_view_grd_upload":           False,
+        "can_view_grd_alerts":           False,
+        "can_view_grd_history":          False,
+        "can_view_grd_historico_mensal": False,
+        "can_view_grd_clientes":         False,
+        "can_view_grd_configuracoes":    False,
     },
     UserRole.BACKOFFICE: {
         "can_view_dashboard":       True,
@@ -230,8 +361,29 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_ctrl_logistics":   False,
         "can_view_ctrl_rh":          False,
         "can_view_ctrl_fluxo_caixa": False,
+        "can_view_fat_ciclos":           True,
+        "can_view_fat_ciclo_detalhe":    True,
+        "can_view_fat_cliente_detalhe":  True,"can_view_fat_diagnostico_ia":   True,
+        "can_view_com_painel":           False,
+        "can_view_com_parceiros":        False,
+        "can_view_com_interno":          False,
+        "can_view_cont_ciclos":          False,
+        "can_view_cont_ciclo_detalhe":   False,
+        "can_view_cont_allcom":          False,
         "can_view_smt":              False,
         "can_view_guardiao":         False,
+        "can_view_grd_dashboard":        False,
+        "can_view_grd_importacoes":      False,
+        "can_view_grd_timeline":         False,
+        "can_view_grd_analises":         False,
+        "can_view_grd_envios":           False,
+        "can_view_grd_nao_acionados":    False,
+        "can_view_grd_upload":           False,
+        "can_view_grd_alerts":           False,
+        "can_view_grd_history":          False,
+        "can_view_grd_historico_mensal": False,
+        "can_view_grd_clientes":         False,
+        "can_view_grd_configuracoes":    False,
     },
     UserRole.COMERCIAL: {
         "can_view_dashboard":       True,
@@ -260,8 +412,29 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_ctrl_logistics":   False,
         "can_view_ctrl_rh":          False,
         "can_view_ctrl_fluxo_caixa": False,
+        "can_view_fat_ciclos":           True,
+        "can_view_fat_ciclo_detalhe":    True,
+        "can_view_fat_cliente_detalhe":  True,"can_view_fat_diagnostico_ia":   True,
+        "can_view_com_painel":           True,
+        "can_view_com_parceiros":        True,
+        "can_view_com_interno":          True,
+        "can_view_cont_ciclos":          False,
+        "can_view_cont_ciclo_detalhe":   False,
+        "can_view_cont_allcom":          False,
         "can_view_smt":              False,
         "can_view_guardiao":         False,
+        "can_view_grd_dashboard":        False,
+        "can_view_grd_importacoes":      False,
+        "can_view_grd_timeline":         False,
+        "can_view_grd_analises":         False,
+        "can_view_grd_envios":           False,
+        "can_view_grd_nao_acionados":    False,
+        "can_view_grd_upload":           False,
+        "can_view_grd_alerts":           False,
+        "can_view_grd_history":          False,
+        "can_view_grd_historico_mensal": False,
+        "can_view_grd_clientes":         False,
+        "can_view_grd_configuracoes":    False,
     },
 }
 

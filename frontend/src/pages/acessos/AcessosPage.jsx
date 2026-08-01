@@ -20,17 +20,16 @@ const ROLES = [
   { value: 'comercial',       label: 'Comercial' },
 ]
 
+// Cada card/módulo do sistema tem sua própria seção com TODAS as suas abas
+// internas (padrão unificado em 01/08/2026 — antes só Controladoria e
+// Guardião tinham esse nível de detalhe; os demais módulos tinham só um
+// toggle "geral" que, no caso do Faturamento, nem chegava a ser checado em
+// lugar nenhum do código — bug corrigido em ModuleContext.jsx/App.jsx).
+// "Acesso ao módulo" decide se o card aparece no grid (ver ModuleContext.jsx);
+// os itens abaixo decidem, dentro do módulo, quais páginas ficam visíveis.
 const PERM_SECTIONS = [
-  { key: 'MÓDULOS — cards visíveis', perms: [
+  { key: 'MÓDULOS — gerais', perms: [
     ['can_view_dashboard',     'Dashboard / Painel'],
-    ['can_view_faturamento',   'Faturamento'],
-    ['can_edit_billing',       'Editar faturamento'],
-    ['can_view_contestacao',   'Contestação'],
-    ['can_view_comissao',      'Comissionamento'],
-    ['can_view_logistica',     'Logística'],
-    ['can_view_organograma',   'Organograma — visualizar'],
-    ['can_edit_organograma',   'Organograma — editar'],
-    ['can_view_controladoria', 'Controladoria'],
     ['can_manage_users',       'Gestão de Acessos'],
     ['can_view_configuracoes', 'Configurações'],
   ]},
@@ -48,7 +47,43 @@ const PERM_SECTIONS = [
     ['can_export_excel','Exportar Excel'],
     ['can_export_pdf',  'Exportar PDF'],
   ]},
-  { key: 'CONTROLADORIA — abas visíveis', perms: [
+  { key: 'FATURAMENTO', perms: [
+    ['can_view_faturamento',        'Acesso ao módulo'],
+    ['can_view_fat_ciclos',         'Ciclos de faturamento'],
+    ['can_view_fat_ciclo_detalhe',  'Detalhe do ciclo'],
+    ['can_view_fat_cliente_detalhe','Detalhe do cliente'],
+    ['can_edit_billing',            'Ajustes (visualizar e editar)'],
+    ['can_view_fat_diagnostico_ia', 'Diagnóstico IA'],
+  ]},
+  { key: 'COMISSIONAMENTO', perms: [
+    ['can_view_comissao',       'Acesso ao módulo'],
+    ['can_view_com_painel',     'Painel de comissionamento'],
+    ['can_view_com_parceiros',  'Parceiros regionais'],
+    ['can_view_com_interno',    'Comissionamento interno'],
+  ]},
+  { key: 'CONTESTAÇÃO', perms: [
+    ['can_view_contestacao',        'Acesso ao módulo'],
+    ['can_view_cont_ciclos',        'Ciclos de contestação'],
+    ['can_view_cont_ciclo_detalhe', 'Detalhe do ciclo'],
+    ['can_view_cont_allcom',        'Allcom'],
+  ]},
+  { key: 'GUARDIÃO', perms: [
+    ['can_view_guardiao',             'Acesso ao módulo'],
+    ['can_view_grd_dashboard',        'Dashboard'],
+    ['can_view_grd_importacoes',      'Monitoramento — Histórico de Importes'],
+    ['can_view_grd_timeline',         'Monitoramento — Linha do Tempo'],
+    ['can_view_grd_analises',         'Monitoramento — Consumo Crítico'],
+    ['can_view_grd_envios',           'Monitoramento — Histórico de Envios'],
+    ['can_view_grd_nao_acionados',    'Monitoramento — Não Acionados'],
+    ['can_view_grd_upload',           'Importar Planilha'],
+    ['can_view_grd_alerts',           'Acionamentos'],
+    ['can_view_grd_history',          'Histórico de Acionamentos'],
+    ['can_view_grd_historico_mensal', 'Histórico Mensal'],
+    ['can_view_grd_clientes',         'Cadastros — Clientes'],
+    ['can_view_grd_configuracoes',    'Regras de Consumo'],
+  ]},
+  { key: 'CONTROLADORIA', perms: [
+    ['can_view_controladoria',   'Acesso ao módulo'],
     ['can_view_ctrl_indicadores', 'Resumo Executivo'],
     ['can_view_ctrl_dre',         'Resumo Financeiro'],
     ['can_view_ctrl_sales',       'Vendas & Performance'],
@@ -57,11 +92,15 @@ const PERM_SECTIONS = [
     ['can_view_ctrl_rh',          'RH'],
     ['can_view_ctrl_fluxo_caixa', 'DFC Gerencial'],
   ]},
+  { key: 'LOGÍSTICA', perms: [
+    ['can_view_logistica', 'Acesso ao módulo'],
+  ]},
+  { key: 'ORGANOGRAMA', perms: [
+    ['can_view_organograma', 'Visualizar'],
+    ['can_edit_organograma', 'Editar'],
+  ]},
   { key: 'SMT', perms: [
     ['can_view_smt', 'Acesso ao Dashboard SMT'],
-  ]},
-  { key: 'GUARDIÃO', perms: [
-    ['can_view_guardiao', 'Acesso ao Dashboard Guardião'],
   ]},
 ]
 
@@ -299,7 +338,7 @@ function UserFormModal({ user, onClose, onSuccess }) {
   })
   const [loading, setLoading] = useState(false)
   const [openSections, setOpenSections] = useState(
-    Object.fromEntries(PERM_SECTIONS.map(s => [s.key, s.key === 'MÓDULOS — cards visíveis']))
+    Object.fromEntries(PERM_SECTIONS.map(s => [s.key, s.key === 'MÓDULOS — gerais']))
   )
 
   const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }))
@@ -602,7 +641,7 @@ function RoleModal({ role, onClose, onSuccess }) {
       : Object.fromEntries(ALL_PERMS.map(([k]) => [k, false]))
   )
   const [open, setOpen] = useState(
-    Object.fromEntries(PERM_SECTIONS.map(s => [s.key, s.key === 'MÓDULOS — cards visíveis']))
+    Object.fromEntries(PERM_SECTIONS.map(s => [s.key, s.key === 'MÓDULOS — gerais']))
   )
   const [loading, setLoading] = useState(false)
 

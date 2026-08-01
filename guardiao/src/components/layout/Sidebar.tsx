@@ -25,6 +25,10 @@ interface MenuItem {
   href?: string
   icon: any
   roles: string[]
+  // Permissão granular do sistema principal (login unificado, 31/07/2026).
+  // Itens-container (com submenu, sem href próprio) não têm permKey — a
+  // visibilidade deles deriva de ter pelo menos um filho visível.
+  permKey?: string
   submenu?: MenuItem[]
 }
 
@@ -34,6 +38,7 @@ const menuItems: MenuItem[] = [
     href: "/dashboard",
     icon: BarChart3,
     roles: ["admin", "supervisor", "analyst"],
+    permKey: "can_view_grd_dashboard",
   },
   {
     title: "Monitoramento",
@@ -45,30 +50,35 @@ const menuItems: MenuItem[] = [
         href: "/dashboard/importacoes",
         icon: Cloud,
         roles: ["admin", "supervisor", "analyst"],
+        permKey: "can_view_grd_importacoes",
       },
       {
         title: "Linha do Tempo",
         href: "/dashboard/timeline",
         icon: GitCommitHorizontal,
         roles: ["admin", "supervisor", "analyst"],
+        permKey: "can_view_grd_timeline",
       },
       {
         title: "Consumo Crítico",
         href: "/dashboard/analises",
         icon: Zap,
         roles: ["admin", "supervisor", "analyst"],
+        permKey: "can_view_grd_analises",
       },
       {
         title: "Histórico de Envios",
         href: "/dashboard/envios",
         icon: Send,
         roles: ["admin", "supervisor", "analyst"],
+        permKey: "can_view_grd_envios",
       },
       {
         title: "Não Acionados",
         href: "/dashboard/nao-acionados",
         icon: AlertCircle,
         roles: ["admin", "supervisor", "analyst"],
+        permKey: "can_view_grd_nao_acionados",
       },
     ],
   },
@@ -77,24 +87,28 @@ const menuItems: MenuItem[] = [
     href: "/dashboard/upload",
     icon: Cloud,
     roles: ["admin", "supervisor", "analyst"],
+    permKey: "can_view_grd_upload",
   },
   {
     title: "Acionamentos",
     href: "/dashboard/alerts",
     icon: AlertCircle,
     roles: ["admin", "supervisor", "analyst"],
+    permKey: "can_view_grd_alerts",
   },
   {
     title: "Histórico de Acionamentos",
     href: "/dashboard/history",
     icon: History,
     roles: ["admin", "supervisor", "analyst"],
+    permKey: "can_view_grd_history",
   },
   {
     title: "Histórico Mensal",
     href: "/dashboard/historico-acionamentos",
     icon: History,
     roles: ["admin", "supervisor", "analyst"],
+    permKey: "can_view_grd_historico_mensal",
   },
   {
     title: "Cadastros",
@@ -106,6 +120,7 @@ const menuItems: MenuItem[] = [
         href: "/dashboard/cadastros/clientes",
         icon: Users,
         roles: ["admin"],
+        permKey: "can_view_grd_clientes",
       },
     ],
   },
@@ -118,6 +133,7 @@ const menuItems: MenuItem[] = [
     href: "/dashboard/configuracoes",
     icon: Settings,
     roles: ["admin"],
+    permKey: "can_view_grd_configuracoes",
   },
 ]
 
@@ -196,14 +212,26 @@ function MenuItemComponent({
   )
 }
 
+// Visível se: item-folha com permKey concedida, ou item-container (submenu)
+// com pelo menos um filho visível. Sem permissões carregadas => nada aparece.
+function isItemVisible(item: MenuItem, user: any): boolean {
+  if (!user) return false
+  if (item.permKey) return !!user.permissions?.[item.permKey]
+  if (item.submenu) return item.submenu.some((sub) => isItemVisible(sub, user))
+  return false
+}
+
 export default function Sidebar() {
   const pathname = usePathname()
   const { user } = useAuth()
 
-  const visibleItems = menuItems.filter((item) => {
-    if (!user) return false
-    return item.roles.includes(user.role)
-  })
+  const visibleItems = menuItems
+    .filter((item) => isItemVisible(item, user))
+    .map((item) =>
+      item.submenu
+        ? { ...item, submenu: item.submenu.filter((sub) => isItemVisible(sub, user)) }
+        : item
+    )
 
   return (
     <aside className="w-64 bg-card border-r border-border flex flex-col">

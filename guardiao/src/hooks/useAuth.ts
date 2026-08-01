@@ -18,6 +18,7 @@ interface MainUser {
   role: string
   is_active: boolean
   created_at?: string
+  permissions?: Record<string, boolean>
 }
 
 export function useAuth() {
@@ -40,6 +41,7 @@ export function useAuth() {
           role: mapMainRoleToGuardiao(mainUser.role),
           is_active: mainUser.is_active,
           created_at: mainUser.created_at ?? new Date().toISOString(),
+          permissions: mainUser.permissions ?? {},
         }
         useAuthStore.setState({ accessToken: mainToken })
         setUser(adapted)

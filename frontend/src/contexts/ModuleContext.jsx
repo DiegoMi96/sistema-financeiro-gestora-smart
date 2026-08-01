@@ -19,13 +19,17 @@ export const MODULES = [
     icon:        'FileText',
     color:       'blue',
     status:      'active',
-    permission:  null,
+    // Corrigido 01/08/2026: estava `null` (nenhuma permissão associada), o que
+    // deixava o card e as rotas de Faturamento visíveis para QUALQUER usuário
+    // logado — foi assim que um usuário de Suporte Técnico viu o Faturamento
+    // mesmo com can_view_faturamento=False. Ver App.jsx e AcessosPage.jsx.
+    permission:  'can_view_faturamento',
     nav: [
       { to: '/dashboard', label: 'Painel', permission: 'can_view_dashboard' },
-      { to: '/faturamento',        label: 'Faturamento'       },
+      { to: '/faturamento',        label: 'Faturamento',      permission: 'can_view_fat_ciclos' },
       { to: '/clientes',           label: 'Clientes'          },
       { to: '/ajustes',            label: 'Ajustes',          permission: 'can_edit_billing' },
-      { to: '/diagnostico-ia',     label: 'Diagnóstico IA',   permission: 'can_view_dashboard' },
+      { to: '/diagnostico-ia',     label: 'Diagnóstico IA',   permission: 'can_view_fat_diagnostico_ia' },
       { to: '/configuracoes',      label: 'Configurações',    permission: 'can_manage_users' },
     ],
   },

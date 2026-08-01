@@ -8,9 +8,6 @@ export interface User {
   is_active: boolean
   created_at: string
   last_login?: string
-  // Permissões granulares do sistema principal (login unificado, 31/07/2026)
-  // — usadas para decidir quais páginas aparecem no menu (ver Sidebar.tsx).
-  permissions?: Record<string, boolean>
 }
 
 export interface LoginCredentials {

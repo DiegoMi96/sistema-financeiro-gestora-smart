@@ -115,9 +115,9 @@ function AppRoutes() {
         />
 
         {/* Comissionamento — sem ModuleRoute para não bloquear por activeModule */}
-        <Route path="/comissionamento"           element={<PrivateRoute permission="can_view_comissao"><ComissionamentoPage /></PrivateRoute>} />
-        <Route path="/comissionamento/parceiros" element={<PrivateRoute permission="can_view_comissao"><ParceirosRegionaisPage /></PrivateRoute>} />
-        <Route path="/comissionamento/interno"   element={<PrivateRoute permission="can_view_comissao"><ComissionamentoInternoPage /></PrivateRoute>} />
+        <Route path="/comissionamento"           element={<PrivateRoute permission="can_view_com_painel"><ComissionamentoPage /></PrivateRoute>} />
+        <Route path="/comissionamento/parceiros" element={<PrivateRoute permission="can_view_com_parceiros"><ParceirosRegionaisPage /></PrivateRoute>} />
+        <Route path="/comissionamento/interno"   element={<PrivateRoute permission="can_view_com_interno"><ComissionamentoInternoPage /></PrivateRoute>} />
 
         {/* Controladoria — dashboard externo em iframe, sem sidebar */}
         <Route path="/controladoria/dash" element={<PrivateRoute permission="can_view_controladoria"><ControladoriaDashboard /></PrivateRoute>} />
@@ -147,20 +147,22 @@ function AppRoutes() {
           {/* Clientes */}
           <Route path="/clientes" element={<ClientsPage />} />
 
-          {/* Faturamento */}
-          <Route path="/faturamento"                              element={<BillingPage />} />
-          <Route path="/faturamento/:cycleId"                     element={<BillingCyclePage />} />
-          <Route path="/faturamento/:cycleId/cliente/:idSmart"    element={<ClientDetailPage />} />
-          <Route path="/ajustes"                                  element={<AdjustmentsPage />} />
-          <Route path="/diagnostico-ia"                           element={<DiagnosticoIAPage />} />
+          {/* Faturamento — rotas protegidas 01/08/2026 (antes ficavam sem
+              PrivateRoute nenhum; bug que deixava Suporte Técnico ver
+              Faturamento, ver ModuleContext.jsx e AcessosPage.jsx) */}
+          <Route path="/faturamento"                              element={<PrivateRoute permission="can_view_fat_ciclos"><BillingPage /></PrivateRoute>} />
+          <Route path="/faturamento/:cycleId"                     element={<PrivateRoute permission="can_view_fat_ciclo_detalhe"><BillingCyclePage /></PrivateRoute>} />
+          <Route path="/faturamento/:cycleId/cliente/:idSmart"    element={<PrivateRoute permission="can_view_fat_cliente_detalhe"><ClientDetailPage /></PrivateRoute>} />
+          <Route path="/ajustes"                                  element={<PrivateRoute permission="can_edit_billing"><AdjustmentsPage /></PrivateRoute>} />
+          <Route path="/diagnostico-ia"                           element={<PrivateRoute permission="can_view_fat_diagnostico_ia"><DiagnosticoIAPage /></PrivateRoute>} />
 
-          <Route path="/contestacao"             element={<PrivateRoute permission="can_view_contestacao"><ContestationPage /></PrivateRoute>} />
-          <Route path="/contestacao/allcom"      element={<PrivateRoute permission="can_view_contestacao"><AllcomPage /></PrivateRoute>} />
-          <Route path="/contestacao/:cycleId"    element={<PrivateRoute permission="can_view_contestacao"><ContestationCyclePage /></PrivateRoute>} />
+          <Route path="/contestacao"             element={<PrivateRoute permission="can_view_cont_ciclos"><ContestationPage /></PrivateRoute>} />
+          <Route path="/contestacao/allcom"      element={<PrivateRoute permission="can_view_cont_allcom"><AllcomPage /></PrivateRoute>} />
+          <Route path="/contestacao/:cycleId"    element={<PrivateRoute permission="can_view_cont_ciclo_detalhe"><ContestationCyclePage /></PrivateRoute>} />
           <Route path="/logistica"     element={<PrivateRoute permission="can_view_logistica"><ComingSoon module="Logística" desc="Gestão de fretes, envios e pedidos de chips." /></PrivateRoute>} />
           <Route path="/controladoria" element={<Navigate to="/controladoria/indicadores" replace />} />
           <Route path="/controladoria/indicadores" element={<PrivateRoute permission="can_view_controladoria"><IndicadoresPage /></PrivateRoute>} />
-          <Route path="/organograma"          element={<PrivateRoute><OrganoPage /></PrivateRoute>} />
+          <Route path="/organograma"          element={<PrivateRoute permission="can_view_organograma"><OrganoPage /></PrivateRoute>} />
           <Route path="/organograma/gerenciar" element={<PrivateRoute permission="can_edit_organograma"><OrganoPage /></PrivateRoute>} />
 
           {/* Usuários */}
