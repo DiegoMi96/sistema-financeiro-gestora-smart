@@ -19,6 +19,34 @@ MONTHS_BACK   = 2          # mês atual + anterior
 PAGE_SIZE     = 100
 MAX_PARALLEL  = 3          # semáforo para requests paralelos ao Asaas
 
+# Uvicorn roda com --workers 2 (ver Dockerfile) — cada worker é um processo
+# separado que chama sync_loop() de forma independente no startup. Sem esse
+# lock, os 2 workers disparavam o sync AO MESMO TEMPO, dobrando as chamadas
+# ao Asaas bem no momento de maior risco (todo restart/deploy) — causa raiz
+# dos 429 "toda hora" relatados pelo Diego em 01/08/2026. Advisory lock do
+# Postgres garante que só um worker de cada vez executa o sync de verdade;
+# o outro só constata que já está rodando e sai sem fazer nenhuma chamada.
+_SYNC_LOCK_KEY = 727272
+
+
+async def _get_with_backoff(client: httpx.AsyncClient, url: str, *, headers: dict,
+                             params: dict | None = None, timeout: float = 15.0,
+                             max_retries: int = 3) -> httpx.Response:
+    """GET com retry/backoff em 429 (rate limit do Asaas). Antes, um 429 no meio
+    do sync era só descartado silenciosamente (ver asyncio.gather com
+    return_exceptions=True) — o dado daquela página/cliente simplesmente
+    sumia sem re-tentativa nenhuma."""
+    wait = 3.0
+    r = None
+    for attempt in range(max_retries + 1):
+        r = await client.get(url, headers=headers, params=params, timeout=timeout)
+        if r.status_code != 429 or attempt == max_retries:
+            return r
+        retry_after = r.headers.get("Retry-After")
+        await asyncio.sleep(float(retry_after) if retry_after else wait)
+        wait *= 2
+    return r
+
 
 # ─── helpers ───────────────────────────────────────────────────────────────
 
@@ -72,7 +100,7 @@ async def _fetch_payments_month(client: httpx.AsyncClient, headers: dict,
         "limit": PAGE_SIZE,
         "offset": 0,
     }
-    r0 = await client.get(f"{base_url}/payments", params=params, headers=headers, timeout=30.0)
+    r0 = await _get_with_backoff(client, f"{base_url}/payments", params=params, headers=headers, timeout=30.0)
     r0.raise_for_status()
     body0 = r0.json()
     all_payments = list(body0.get("data", []))
@@ -83,7 +111,8 @@ async def _fetch_payments_month(client: httpx.AsyncClient, headers: dict,
         sem = asyncio.Semaphore(MAX_PARALLEL)
         async def _page(off):
             async with sem:
-                r = await client.get(
+                r = await _get_with_backoff(
+                    client,
                     f"{base_url}/payments",
                     params={**params, "offset": off},
                     headers=headers,
@@ -102,7 +131,7 @@ async def _fetch_payments_month(client: httpx.AsyncClient, headers: dict,
 async def _fetch_customer(client: httpx.AsyncClient, headers: dict,
                           base_url: str, customer_id: str) -> Optional[dict]:
     try:
-        r = await client.get(f"{base_url}/customers/{customer_id}", headers=headers, timeout=10.0)
+        r = await _get_with_backoff(client, f"{base_url}/customers/{customer_id}", headers=headers, timeout=10.0)
         if r.status_code == 404:
             return None
         r.raise_for_status()
@@ -234,7 +263,14 @@ def _upsert_payments(db: Session, payments: list, customers: dict):
 
 async def run_sync() -> dict:
     db = SessionLocal()
+    got_lock = False
     try:
+        got_lock = bool(db.execute(
+            text("SELECT pg_try_advisory_lock(:k)"), {"k": _SYNC_LOCK_KEY}
+        ).scalar())
+        if not got_lock:
+            return {"status": "skipped", "reason": "sync já em execução em outro worker"}
+
         api_key  = _get_api_key(db)
         base_url = _get_base_url(db)
         if not api_key:
@@ -336,7 +372,8 @@ async def run_sync() -> dict:
                 async def _fetch_payment_detail(asaas_id: str):
                     async with sem_enrich:
                         try:
-                            r = await c_enrich.get(
+                            r = await _get_with_backoff(
+                                c_enrich,
                                 f"{base_url}/payments/{asaas_id}",
                                 headers=headers,
                                 timeout=10.0,
@@ -388,7 +425,8 @@ async def run_sync() -> dict:
             async with httpx.AsyncClient() as c2:
                 async def _by_ext_ref(id_smart):
                     try:
-                        r = await c2.get(
+                        r = await _get_with_backoff(
+                            c2,
                             f"{base_url}/customers",
                             headers=headers,
                             params={"externalReference": id_smart, "limit": 1},
@@ -456,6 +494,12 @@ async def run_sync() -> dict:
         print(f"❌ Asaas sync falhou: {e}")
         return {"status": "error", "error": str(e)}
     finally:
+        if got_lock:
+            try:
+                db.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": _SYNC_LOCK_KEY})
+                db.commit()
+            except Exception:
+                pass
         db.close()
 
 

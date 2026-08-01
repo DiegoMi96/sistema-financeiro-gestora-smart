@@ -18,6 +18,12 @@ from app.models import (
 )
 from app.models.extra import PaymentRecord, ItauBoleto
 from app.routers.auth import get_current_user
+from app.services.asaas_sync import SYNC_INTERVAL as _ASAAS_SYNC_INTERVAL_SECONDS
+
+# Rótulo real do intervalo de sync (era hardcoded "20" mas o valor de verdade
+# em asaas_sync.py sempre foi 60*60 = 1h — corrigido 01/08/2026, junto com o
+# fix de rate-limit/lock entre workers).
+_asaas_sync_interval_minutes = _ASAAS_SYNC_INTERVAL_SECONDS // 60
 
 router = APIRouter(prefix="/analyst", tags=["Dashboard Analista"])
 
@@ -1648,7 +1654,7 @@ async def get_sync_status(
         return {
             "last_sync": row.last_sync.isoformat() if row and row.last_sync else None,
             "total_payments": row.total if row else 0,
-            "sync_interval_minutes": 20,
+            "sync_interval_minutes": _asaas_sync_interval_minutes,
         }
     except Exception:
         return {"last_sync": None, "total_payments": 0, "sync_interval_minutes": 20}

@@ -20,6 +20,17 @@ const AREAS = [
 ]
 const AREA_LABEL = Object.fromEntries(AREAS.map(a => [a.value, a.label]))
 
+// Quais seções de módulo (chaves de PERM_SECTIONS) um gestor de área vê/edita
+// no perfil de um Analista da própria área. Definido com o Diego em
+// 01/08/2026 depois de testar como Gestor de Operações — Contestação ficou
+// de fora de propósito. Espelha AREA_MODULES em backend/app/core/permissions.py
+// — mudou aqui, muda lá também.
+const AREA_MODULE_SECTIONS = {
+  operacoes:      ['LOGÍSTICA', 'ORGANOGRAMA', 'GUARDIÃO'],
+  comercial:      ['COMISSIONAMENTO'],
+  administrativo: ['FATURAMENTO'],
+}
+
 // ── Constantes compartilhadas ─────────────────────────────────
 
 const ROLES = [
@@ -353,6 +364,11 @@ function UsuariosTab() {
 
 function UserFormModal({ user, onClose, onSuccess }) {
   const isEdit = !!user
+  const { user: me } = useAuth()
+  const myScope = me?.manager_scope || null
+  const visibleSections = myScope
+    ? PERM_SECTIONS.filter(s => AREA_MODULE_SECTIONS[myScope]?.includes(s.key))
+    : PERM_SECTIONS
 
   const { data: apiRoles = [] } = useQuery({
     queryKey: ['roles'],
@@ -468,7 +484,7 @@ function UserFormModal({ user, onClose, onSuccess }) {
                 Permissões individuais
               </p>
               <div className="space-y-2">
-                {PERM_SECTIONS.map(section => (
+                {visibleSections.map(section => (
                   <div key={section.key} className="border border-gray-100 rounded-xl overflow-hidden">
                     <button
                       type="button"
@@ -703,6 +719,10 @@ function RoleModal({ role, onClose, onSuccess }) {
   )
   const [loading, setLoading] = useState(false)
 
+  const visibleSections = myScope
+    ? PERM_SECTIONS.filter(s => AREA_MODULE_SECTIONS[myScope]?.includes(s.key))
+    : PERM_SECTIONS
+
   const togglePerm = (key) => setPerms(p => ({ ...p, [key]: !p[key] }))
   const markAll = (sectionPerms, value) => setPerms(p => {
     const next = { ...p }
@@ -832,7 +852,7 @@ function RoleModal({ role, onClose, onSuccess }) {
 
           {/* Seções de permissão */}
           <div className="space-y-2">
-            {PERM_SECTIONS.map(section => (
+            {visibleSections.map(section => (
               <div key={section.key} className="border border-gray-100 rounded-xl overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50">
                   <button

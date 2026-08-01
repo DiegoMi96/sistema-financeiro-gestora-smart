@@ -491,6 +491,68 @@ ROLE_TIER = {
 }
 
 
+# Quais permissões (chaves de ALL_PERMISSIONS) um gestor de área pode ver e
+# alterar ao editar/criar o perfil de um Analista da própria área. Curado com
+# o Diego em 01/08/2026 — ele testou como o "Gestor de Operações" via a tela
+# e definiu explicitamente que Contestação NÃO é operações (mesmo o role
+# nativo Suporte Técnico tendo can_view_contestacao=True por padrão hoje).
+# Mesmas chaves de seção usadas em PERM_SECTIONS no frontend (AcessosPage.jsx)
+# — se uma seção nova for adicionada lá, replicar aqui também.
+MODULE_PERMISSIONS = {
+    "FATURAMENTO": [
+        "can_view_faturamento", "can_view_fat_ciclos", "can_view_fat_ciclo_detalhe",
+        "can_view_fat_cliente_detalhe", "can_edit_billing", "can_view_fat_diagnostico_ia",
+        "can_approve_billing", "can_create_adjustment", "can_approve_adjustment",
+        "can_upload_files", "can_sync_asaas", "can_view_financial_values",
+        "can_export_excel", "can_export_pdf",
+    ],
+    "COMISSIONAMENTO": [
+        "can_view_comissao", "can_view_com_painel", "can_view_com_parceiros", "can_view_com_interno",
+    ],
+    "CONTESTAÇÃO": [
+        "can_view_contestacao", "can_view_cont_ciclos", "can_view_cont_ciclo_detalhe", "can_view_cont_allcom",
+    ],
+    "GUARDIÃO": [
+        "can_view_guardiao", "can_view_grd_dashboard", "can_view_grd_importacoes",
+        "can_view_grd_timeline", "can_view_grd_analises", "can_view_grd_envios",
+        "can_view_grd_nao_acionados", "can_view_grd_upload", "can_view_grd_alerts",
+        "can_view_grd_history", "can_view_grd_historico_mensal", "can_view_grd_clientes",
+        "can_view_grd_configuracoes",
+    ],
+    "CONTROLADORIA": [
+        "can_view_controladoria", "can_view_ctrl_indicadores", "can_view_ctrl_dre",
+        "can_view_ctrl_sales", "can_view_ctrl_ops", "can_view_ctrl_logistics",
+        "can_view_ctrl_rh", "can_view_ctrl_fluxo_caixa",
+    ],
+    "LOGÍSTICA": ["can_view_logistica"],
+    "ORGANOGRAMA": ["can_view_organograma", "can_edit_organograma"],
+    "SMT": ["can_view_smt"],
+    # GERAL (can_view_dashboard/can_manage_users/can_view_configuracoes) fica
+    # DE FORA de propósito — nenhuma área dá a um gestor restrito o poder de
+    # conceder can_manage_users pra um analista dele (viraria um "gestor
+    # fantasma" sem passar pela regra de só-Admin-cria-Gestor).
+}
+
+AREA_MODULES = {
+    "operacoes":      ["LOGÍSTICA", "ORGANOGRAMA", "GUARDIÃO"],
+    "comercial":      ["COMISSIONAMENTO"],
+    "administrativo": ["FATURAMENTO"],
+}
+
+
+def allowed_permission_keys_for_scope(scope: str | None) -> set[str] | None:
+    """
+    Conjunto de chaves de permissão que um gestor de área pode ver/alterar.
+    None = irrestrito (Admin ou gestor global, ex. perfil "Diretoria").
+    """
+    if scope is None:
+        return None
+    keys = set()
+    for module in AREA_MODULES.get(scope, []):
+        keys.update(MODULE_PERMISSIONS.get(module, []))
+    return keys
+
+
 def _get_custom_role_meta(role_key: str, db) -> dict | None:
     """Busca o objeto completo (label/area/tier/permissions/...) de um perfil personalizado."""
     try:

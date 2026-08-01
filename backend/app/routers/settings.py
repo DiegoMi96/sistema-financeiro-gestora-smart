@@ -18,6 +18,7 @@ from app.core.permissions import (
     ROLE_PERMISSIONS, ROLE_LABELS, ROLE_DESCRIPTIONS,
     ALL_PERMISSIONS, require_permission,
     AREAS, ROLE_AREA, ROLE_TIER, get_manager_scope,
+    allowed_permission_keys_for_scope,
 )
 
 router = APIRouter(prefix="/settings", tags=["Configurações"])
@@ -259,6 +260,11 @@ def create_custom_role(
         # Gestor de área restrito: só cria perfil Analista dentro da própria área.
         if tier != "analista" or area != scope:
             raise HTTPException(status_code=403, detail="Você só pode criar perfis de Analista dentro da sua área de gestão")
+        # E só pode marcar permissões dos módulos da própria área — nunca
+        # can_manage_users nem permissões de outro módulo, mesmo que a
+        # requisição tente enviar isso por fora da tela (curl/Postman).
+        allowed_keys = allowed_permission_keys_for_scope(scope)
+        permissions = {k: v for k, v in permissions.items() if k in allowed_keys}
 
     # Gera slug a partir do label
     import re as _re
@@ -311,9 +317,22 @@ def update_custom_role(
     target["label"]       = data.get("label", target["label"])
     target["description"] = data.get("description", target.get("description", ""))
     target["color"]       = data.get("color", target.get("color", "gray"))
-    target["permissions"] = data.get("permissions", target.get("permissions", {}))
     target["area"]        = data.get("area", target.get("area"))
     target["tier"]        = data.get("tier", target.get("tier")) or "analista"
+
+    new_permissions = data.get("permissions", target.get("permissions", {}))
+    if scope is not None:
+        # Gestor de área restrito só altera as chaves dos módulos da própria
+        # área — tudo mais (inclusive can_manage_users) fica como já estava,
+        # mesmo que venha no payload.
+        allowed_keys = allowed_permission_keys_for_scope(scope)
+        merged = dict(target.get("permissions", {}))
+        for k, v in new_permissions.items():
+            if k in allowed_keys:
+                merged[k] = v
+        target["permissions"] = merged
+    else:
+        target["permissions"] = new_permissions
 
     _set(db, "custom_roles", json.dumps(existing_list))
     return {"ok": True}
