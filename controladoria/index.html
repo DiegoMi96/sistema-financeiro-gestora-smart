@@ -854,6 +854,12 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       DFC Gerencial
     </div>
   </nav>
+  <div style="padding:0 8px 8px">
+    <button onclick="trocarModulo()" title="Trocar módulo" style="width:100%;display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;font-size:12px;font-weight:500;color:var(--muted);border:1px dashed var(--border);background:transparent;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'">
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="flex-shrink:0"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Trocar módulo
+    </button>
+  </div>
   <div class="sidebar-foot" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
     <div>
       Última atualização<br><strong id="sidebarLastSync" style="color:var(--text)">—</strong>
@@ -7580,6 +7586,17 @@ buildPoolTabs();
     html.setAttribute('data-screen', ns);
   }, { passive: true });
 })();
+
+// ── Trocar módulo (01/08/2026) ──────────────────────────────────────
+// Esse dashboard roda dentro de um <iframe> no sistema principal
+// (ControladoriaDashboard.jsx), que já escuta esse postMessage e volta
+// pra tela de seleção de módulo. Sem window.parent (ex.: acesso direto
+// pela URL do dashboard), não faz nada — comportamento seguro.
+function trocarModulo() {
+  if (window.parent && window.parent !== window) {
+    window.parent.postMessage({ type: 'TROCAR_MODULO' }, '*')
+  }
+}
 
 // ── Mobile sidebar toggle ─────────────────────────────────────────
 function toggleMobileSidebar() {
