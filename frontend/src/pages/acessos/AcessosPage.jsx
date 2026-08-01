@@ -40,25 +40,18 @@ const ROLES = [
 // "Acesso ao módulo" decide se o card aparece no grid (ver ModuleContext.jsx);
 // os itens abaixo decidem, dentro do módulo, quais páginas ficam visíveis.
 const PERM_SECTIONS = [
-  { key: 'MÓDULOS — gerais', perms: [
+  { key: 'GERAL', perms: [
     ['can_view_dashboard',     'Dashboard / Painel'],
     ['can_manage_users',       'Gestão de Acessos'],
     ['can_view_configuracoes', 'Configurações'],
   ]},
-  { key: 'AÇÕES', perms: [
-    ['can_approve_billing',   'Aprovar faturamento'],
-    ['can_create_adjustment', 'Criar ajustes'],
-    ['can_approve_adjustment','Aprovar ajustes (acima de R$3.000)'],
-    ['can_upload_files',      'Upload de planilhas'],
-    ['can_sync_asaas',        'Sincronizar Asaas'],
-  ]},
-  { key: 'DADOS SENSÍVEIS', perms: [
-    ['can_view_financial_values','Ver valores financeiros'],
-  ]},
-  { key: 'EXPORTAÇÃO', perms: [
-    ['can_export_excel','Exportar Excel'],
-    ['can_export_pdf',  'Exportar PDF'],
-  ]},
+  // Ações/Dados sensíveis/Exportação viviam em seções soltas no topo —
+  // pedido do Diego 01/08/2026: cada uma dentro do card do módulo a que
+  // pertence, "se tiver deixar lá". Hoje as 8 (aprovar/criar/aprovar ajuste,
+  // upload, sync asaas, ver valores financeiros, exportar excel/pdf) são
+  // usadas exclusivamente pelo Faturamento (confirmado por varredura no
+  // código) — nenhum outro módulo tem ação/dado sensível/exportação própria
+  // ainda, então só o card FATURAMENTO ganhou essas linhas extras.
   { key: 'FATURAMENTO', perms: [
     ['can_view_faturamento',        'Acesso ao módulo'],
     ['can_view_fat_ciclos',         'Ciclos de faturamento'],
@@ -66,6 +59,14 @@ const PERM_SECTIONS = [
     ['can_view_fat_cliente_detalhe','Detalhe do cliente'],
     ['can_edit_billing',            'Ajustes (visualizar e editar)'],
     ['can_view_fat_diagnostico_ia', 'Diagnóstico IA'],
+    ['can_approve_billing',         'Aprovar faturamento'],
+    ['can_create_adjustment',       'Criar ajustes'],
+    ['can_approve_adjustment',      'Aprovar ajustes (acima de R$3.000)'],
+    ['can_upload_files',            'Upload de planilhas'],
+    ['can_sync_asaas',              'Sincronizar Asaas'],
+    ['can_view_financial_values',   'Ver valores financeiros'],
+    ['can_export_excel',            'Exportar Excel'],
+    ['can_export_pdf',              'Exportar PDF'],
   ]},
   { key: 'COMISSIONAMENTO', perms: [
     ['can_view_comissao',       'Acesso ao módulo'],
@@ -218,10 +219,18 @@ function UsuariosTab() {
     staleTime: 30 * 1000,
   })
 
+  const { user: me } = useAuth()
+
   const deactivate = useMutation({
     mutationFn: (id) => authApi.deleteUser(id),
     onSuccess: () => { toast.success('Usuário desativado'); qc.invalidateQueries({ queryKey: ['users'] }) },
     onError: () => toast.error('Erro ao desativar usuário'),
+  })
+
+  const deletePermanent = useMutation({
+    mutationFn: (id) => authApi.deleteUserPermanently(id),
+    onSuccess: () => { toast.success('Usuário excluído definitivamente'); qc.invalidateQueries({ queryKey: ['users'] }) },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao excluir usuário'),
   })
 
   const initials = (name = '') => name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?'
@@ -306,6 +315,20 @@ function UsuariosTab() {
                           <Power size={14} />
                         </button>
                       )}
+                      {u.id !== me?.id && (
+                        <button
+                          onClick={() => {
+                            const digitado = window.prompt(
+                              `Isso exclui ${u.name} definitivamente — sem volta. Digite EXCLUIR para confirmar.`
+                            )
+                            if (digitado === 'EXCLUIR') deletePermanent.mutate(u.id)
+                          }}
+                          className="p-1.5 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-700 transition-colors"
+                          title="Excluir definitivamente"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -350,7 +373,7 @@ function UserFormModal({ user, onClose, onSuccess }) {
   })
   const [loading, setLoading] = useState(false)
   const [openSections, setOpenSections] = useState(
-    Object.fromEntries(PERM_SECTIONS.map(s => [s.key, s.key === 'MÓDULOS — gerais']))
+    Object.fromEntries(PERM_SECTIONS.map(s => [s.key, s.key === 'GERAL']))
   )
 
   const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }))
@@ -676,7 +699,7 @@ function RoleModal({ role, onClose, onSuccess }) {
       : Object.fromEntries(ALL_PERMS.map(([k]) => [k, false]))
   )
   const [open, setOpen] = useState(
-    Object.fromEntries(PERM_SECTIONS.map(s => [s.key, s.key === 'MÓDULOS — gerais']))
+    Object.fromEntries(PERM_SECTIONS.map(s => [s.key, s.key === 'GERAL']))
   )
   const [loading, setLoading] = useState(false)
 

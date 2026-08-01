@@ -32,6 +32,7 @@ export const authApi = {
   createUser: (data)        => api.post('/auth/users', data),
   updateUser: (id, data)    => api.put(`/auth/users/${id}`, data),
   deleteUser: (id)          => api.delete(`/auth/users/${id}`),
+  deleteUserPermanently: (id) => api.delete(`/auth/users/${id}/permanent`),
   changePassword: (data)    => api.post('/auth/change-password', data),
 }
 

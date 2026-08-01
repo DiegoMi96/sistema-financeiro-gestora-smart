@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 from datetime import datetime
@@ -285,6 +287,72 @@ def deactivate_user(
 
     user.is_active = False
     db.commit()
+    return {"message": "Usuário desativado"}
+
+
+# Tabelas com FK nullable pra users.id — limpas (SET NULL) antes de excluir de
+# vez, pra preservar o histórico/auditoria sem travar o DELETE. Não inclui
+# billing_adjustments.created_by_id nem payment_records.created_by_id, que são
+# NOT NULL de propósito (exigência de auditoria financeira — ver except abaixo).
+_NULLABLE_USER_REFS = [
+    ("client_reajustes",     "applied_by"),
+    ("billing_cycles",       "created_by"),
+    ("billing_cycles",       "approved_by"),
+    ("billing_adjustments",  "approved_by_id"),
+    ("audit_logs",           "user_id"),
+    ("ai_analyses",          "created_by"),
+    ("contestation_cycles",  "created_by"),
+    ("contestation_cycles",  "approved_by"),
+    ("contestation_items",   "reviewed_by"),
+    ("contestation_credits", "created_by"),
+    ("allcom_pedidos",       "uploaded_by"),
+]
+
+
+@router.delete("/users/{user_id}/permanent")
+def delete_user_permanently(
+    user_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Exclusão DEFINITIVA (diferente de desativar). Pedido do Diego 01/08/2026:
+    "se o cara não faz parte da empresa é melhor excluir" — reduzir acesso
+    acumulado em vez de só marcar como inativo.
+    """
+    if not get_permission(current_user, "can_manage_users", db):
+        raise HTTPException(status_code=403, detail="Sem permissão")
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Não é possível excluir seu próprio usuário")
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+
+    scope = get_manager_scope(current_user, db)
+    if scope is not None and not target_in_scope(scope, user.role, user.custom_role_key, db):
+        raise HTTPException(status_code=403, detail="Usuário fora da sua área de gestão")
+
+    for table, col in _NULLABLE_USER_REFS:
+        db.execute(text(f"UPDATE {table} SET {col} = NULL WHERE {col} = :uid"), {"uid": user_id})
+
+    try:
+        db.delete(user)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Não é possível excluir definitivamente: este usuário criou ajustes de "
+                "faturamento ou pagamentos manuais que precisam manter o vínculo por "
+                "exigência de auditoria financeira. Desative o acesso em vez de excluir."
+            ),
+        )
+
+    db.add(AuditLog(user_id=current_user.id, action="user.delete_permanent", entity="user", entity_id=user_id))
+    db.commit()
+    return {"message": "Usuário excluído definitivamente"}
     return {"message": "Usuário desativado"}
 
 
