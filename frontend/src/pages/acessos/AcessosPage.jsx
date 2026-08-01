@@ -3,10 +3,22 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api, { authApi } from '../../services/api'
 import toast from 'react-hot-toast'
+import { useAuth } from '../../contexts/AuthContext'
 import {
   ArrowLeft, Plus, Edit2, Power, Shield, Trash2,
   ChevronDown, ChevronRight, Users, Loader,
 } from 'lucide-react'
+
+// Áreas de gestão restrita (01/08/2026) — um "gestor de área" (tier=gestor,
+// area != null) só cria/edita usuários e perfis Analista dentro da própria
+// área. Só o Admin geral mexe em perfis de Gestor ou em perfis nativos do
+// sistema. Ver backend/app/core/permissions.py (AREAS/ROLE_AREA/ROLE_TIER).
+const AREAS = [
+  { value: 'administrativo', label: 'Administrativo' },
+  { value: 'comercial',      label: 'Comercial' },
+  { value: 'operacoes',      label: 'Operações' },
+]
+const AREA_LABEL = Object.fromEntries(AREAS.map(a => [a.value, a.label]))
 
 // ── Constantes compartilhadas ─────────────────────────────────
 
@@ -511,8 +523,12 @@ function PerfisTab() {
     </div>
   )
 
-  const systemRoles = roles.filter(r => !r.is_custom)
-  const customRoles = roles.filter(r => r.is_custom)
+  // Agrupado por tier (não mais sistema/custom) — pedido do Diego 01/08/2026:
+  // "Gestores" em cima (autonomia sobre uma área), "Analistas" embaixo
+  // (perfis operacionais). Perfis nativos e personalizados aparecem juntos
+  // no mesmo grupo, diferenciados só pelo badge SISTEMA/CUSTOM no card.
+  const gestores  = roles.filter(r => r.tier !== 'analista')
+  const analistas = roles.filter(r => r.tier === 'analista')
 
   return (
     <div className="space-y-6">
@@ -530,29 +546,38 @@ function PerfisTab() {
         </button>
       </div>
 
-      {/* Perfis do sistema */}
-      <div>
-        <p className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase mb-3">Perfis do sistema</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {systemRoles.map(role => (
-            <RoleCard key={role.role} role={role} onEdit={() => setEditingRole(role)} />
-          ))}
-        </div>
-      </div>
-
-      {/* Perfis personalizados */}
-      {customRoles.length > 0 && (
+      {/* Gestores — administradores e gestores de área */}
+      {gestores.length > 0 && (
         <div>
-          <p className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase mb-3">Perfis personalizados</p>
+          <p className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase mb-3">Gestores</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {customRoles.map(role => (
+            {gestores.map(role => (
               <RoleCard key={role.role} role={role}
                 onEdit={() => setEditingRole(role)}
-                onDelete={() => {
+                onDelete={role.is_custom ? () => {
                   if (window.confirm(`Remover o perfil "${role.label}"?`)) {
                     deleteMutation.mutate(role.role)
                   }
-                }}
+                } : undefined}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Analistas — perfis operacionais, escopados por área */}
+      {analistas.length > 0 && (
+        <div>
+          <p className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase mb-3">Analistas</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {analistas.map(role => (
+              <RoleCard key={role.role} role={role}
+                onEdit={() => setEditingRole(role)}
+                onDelete={role.is_custom ? () => {
+                  if (window.confirm(`Remover o perfil "${role.label}"?`)) {
+                    deleteMutation.mutate(role.role)
+                  }
+                } : undefined}
               />
             ))}
           </div>
@@ -597,6 +622,12 @@ function RoleCard({ role, onEdit, onDelete }) {
         </span>
       </div>
 
+      {role.area && (
+        <span className="text-[10px] font-medium text-gray-400 -mt-2">
+          Área: {AREA_LABEL[role.area] || role.area}
+        </span>
+      )}
+
       <p className="text-xs text-gray-500 line-clamp-2 flex-1">{role.description || '—'}</p>
 
       {/* Barra de progresso de permissões */}
@@ -632,9 +663,13 @@ function RoleCard({ role, onEdit, onDelete }) {
 
 function RoleModal({ role, onClose, onSuccess }) {
   const isEdit = !!role
+  const { user: me } = useAuth()
+  const myScope = me?.manager_scope || null   // gestor de área: só cria/edita Analista da própria área
   const [label, setLabel]   = useState(role?.label || '')
   const [desc, setDesc]     = useState(role?.description || '')
   const [color, setColor]   = useState(role?.color || 'blue')
+  const [area, setArea]     = useState(role?.area ?? (myScope || ''))
+  const [tier, setTier]     = useState(role?.tier || 'analista')
   const [perms, setPerms]   = useState(
     isEdit
       ? { ...role.permissions }
@@ -658,13 +693,13 @@ function RoleModal({ role, onClose, onSuccess }) {
     try {
       if (isEdit) {
         if (role.is_custom) {
-          await api.put(`/settings/roles/custom/${role.role}`, { label, description: desc, color, permissions: perms })
+          await api.put(`/settings/roles/custom/${role.role}`, { label, description: desc, color, permissions: perms, area: area || null, tier })
         } else {
           await api.put(`/settings/roles/${role.role}`, { permissions: perms, description: desc })
         }
         toast.success('Permissões salvas!')
       } else {
-        await api.post('/settings/roles/custom', { label, description: desc, color, permissions: perms })
+        await api.post('/settings/roles/custom', { label, description: desc, color, permissions: perms, area: area || null, tier })
         toast.success('Perfil criado!')
       }
       onSuccess()
@@ -727,6 +762,42 @@ function RoleModal({ role, onClose, onSuccess }) {
               <span className="text-xs text-gray-400">Preview:</span>
               <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${COLOR_CLASSES[color] || ''}`}>{label}</span>
             </div>
+          )}
+
+          {/* Área + Tier — só perfis personalizados. Gestor de área tem os
+              dois campos travados na própria área / tier Analista. */}
+          {(!isEdit || role.is_custom) && (
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <label className="block text-xs font-medium text-gray-700 mb-1">Área</label>
+                <select
+                  value={area}
+                  onChange={e => setArea(e.target.value)}
+                  disabled={!!myScope}
+                  className={INPUT + (myScope ? ' opacity-50 cursor-not-allowed' : '')}
+                >
+                  {!myScope && <option value="">Nenhuma (global)</option>}
+                  {AREAS.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
+                </select>
+              </div>
+              <div className="flex-1">
+                <label className="block text-xs font-medium text-gray-700 mb-1">Tipo</label>
+                <select
+                  value={tier}
+                  onChange={e => setTier(e.target.value)}
+                  disabled={!!myScope}
+                  className={INPUT + (myScope ? ' opacity-50 cursor-not-allowed' : '')}
+                >
+                  <option value="analista">Analista</option>
+                  <option value="gestor">Gestor de área</option>
+                </select>
+              </div>
+            </div>
+          )}
+          {tier === 'gestor' && !area && (!isEdit || role.is_custom) && (
+            <p className="text-[11px] text-amber-600 -mt-2">
+              Um perfil de Gestor sem área fica com acesso irrestrito de gestão de usuários — escolha uma área para restringi-lo.
+            </p>
           )}
 
           <div>

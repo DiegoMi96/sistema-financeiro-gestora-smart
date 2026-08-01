@@ -8,7 +8,10 @@ from datetime import datetime
 from app.database import get_db
 from app.models import User, UserRole, AuditLog
 from app.core.security import verify_password, hash_password, create_access_token, decode_token
-from app.core.permissions import ROLE_PERMISSIONS, ROLE_LABELS, get_permission
+from app.core.permissions import (
+    ROLE_PERMISSIONS, ROLE_LABELS, get_permission,
+    get_manager_scope, target_in_scope,
+)
 
 router = APIRouter(prefix="/auth", tags=["Autenticação"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
@@ -88,6 +91,10 @@ def user_to_dict(user: User, db=None) -> dict:
             perm: get_permission(user, perm, db)
             for perm in ROLE_PERMISSIONS[UserRole.ADMIN].keys()
         },
+        # Área de gestão restrita (None = irrestrito/Admin) — usada pelo
+        # frontend pra saber se o usuário logado é um "gestor de área" e
+        # deve enxergar só uma fatia da tela de Gestão de Acessos.
+        "manager_scope": get_manager_scope(user, db) if db is not None else None,
         "created_at": user.created_at.isoformat() if user.created_at else None,
     }
 
@@ -173,9 +180,13 @@ def list_users(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if not get_permission(current_user, "can_manage_users"):
+    if not get_permission(current_user, "can_manage_users", db):
         raise HTTPException(status_code=403, detail="Sem permissão")
+    scope = get_manager_scope(current_user, db)
     users = db.query(User).order_by(User.name).all()
+    if scope is not None:
+        # Gestor de área: só enxerga usuários de perfis Analista da própria área.
+        users = [u for u in users if target_in_scope(scope, u.role, u.custom_role_key, db)]
     return [user_to_dict(u, db) for u in users]
 
 
@@ -185,8 +196,12 @@ def create_user(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if not get_permission(current_user, "can_manage_users"):
+    if not get_permission(current_user, "can_manage_users", db):
         raise HTTPException(status_code=403, detail="Sem permissão")
+
+    scope = get_manager_scope(current_user, db)
+    if scope is not None and not target_in_scope(scope, data.role, data.custom_role_key, db):
+        raise HTTPException(status_code=403, detail="Você só pode criar usuários dentro da sua área de gestão")
 
     if db.query(User).filter(User.email == data.email).first():
         raise HTTPException(status_code=400, detail="E-mail já cadastrado")
@@ -221,12 +236,21 @@ def update_user(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if not get_permission(current_user, "can_manage_users"):
+    if not get_permission(current_user, "can_manage_users", db):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
+
+    scope = get_manager_scope(current_user, db)
+    if scope is not None:
+        if not target_in_scope(scope, user.role, user.custom_role_key, db):
+            raise HTTPException(status_code=403, detail="Usuário fora da sua área de gestão")
+        new_role = data.role if data.role is not None else user.role
+        new_custom_role_key = data.custom_role_key if data.custom_role_key is not None else user.custom_role_key
+        if not target_in_scope(scope, new_role, new_custom_role_key, db):
+            raise HTTPException(status_code=403, detail="Você não pode atribuir esse perfil")
 
     for field, value in data.model_dump(exclude_none=True).items():
         setattr(user, field, value)
@@ -246,7 +270,7 @@ def deactivate_user(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if not get_permission(current_user, "can_manage_users"):
+    if not get_permission(current_user, "can_manage_users", db):
         raise HTTPException(status_code=403, detail="Sem permissão")
     if user_id == current_user.id:
         raise HTTPException(status_code=400, detail="Não é possível desativar seu próprio usuário")
@@ -254,6 +278,10 @@ def deactivate_user(
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
+
+    scope = get_manager_scope(current_user, db)
+    if scope is not None and not target_in_scope(scope, user.role, user.custom_role_key, db):
+        raise HTTPException(status_code=403, detail="Usuário fora da sua área de gestão")
 
     user.is_active = False
     db.commit()

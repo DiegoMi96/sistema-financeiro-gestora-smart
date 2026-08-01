@@ -16,7 +16,8 @@ from app.models import User, UserRole
 from app.config import settings as env_settings
 from app.core.permissions import (
     ROLE_PERMISSIONS, ROLE_LABELS, ROLE_DESCRIPTIONS,
-    ALL_PERMISSIONS, require_permission
+    ALL_PERMISSIONS, require_permission,
+    AREAS, ROLE_AREA, ROLE_TIER, get_manager_scope,
 )
 
 router = APIRouter(prefix="/settings", tags=["Configurações"])
@@ -192,6 +193,8 @@ def get_roles(
             "total_enabled": total_enabled,
             "total":         len(ALL_PERMISSIONS),
             "is_custom":     False,
+            "area":          ROLE_AREA.get(role_enum),
+            "tier":          ROLE_TIER.get(role_enum, "analista"),
         })
 
     # ── Perfis personalizados ──────────────────────────────────
@@ -214,9 +217,18 @@ def get_roles(
                     "total":         len(ALL_PERMISSIONS),
                     "is_custom":     True,
                     "color":         cr.get("color", "gray"),
+                    "area":          cr.get("area"),
+                    "tier":          cr.get("tier") or "analista",
                 })
         except Exception:
             pass
+
+    # Gestor de área restrito: só enxerga perfis Analista da própria área
+    # (mesma regra aplicada na criação/edição — ver auth.py e os endpoints
+    # abaixo). Evita que ele veja/monte perfis de outras áreas ou de Gestor.
+    scope = get_manager_scope(current_user, db)
+    if scope is not None:
+        result = [r for r in result if r["area"] == scope and r["tier"] == "analista"]
 
     return result
 
@@ -232,9 +244,21 @@ def create_custom_role(
     description = (data.get("description") or "").strip()
     color = data.get("color") or "gray"
     permissions = data.get("permissions") or {}
+    area = data.get("area") or None
+    tier = data.get("tier") or "analista"
 
     if not label:
         raise HTTPException(status_code=400, detail="O nome do perfil é obrigatório")
+    if area is not None and area not in AREAS:
+        raise HTTPException(status_code=400, detail=f"Área inválida: {area}")
+    if tier not in ("gestor", "analista"):
+        raise HTTPException(status_code=400, detail=f"Tier inválido: {tier}")
+
+    scope = get_manager_scope(current_user, db)
+    if scope is not None:
+        # Gestor de área restrito: só cria perfil Analista dentro da própria área.
+        if tier != "analista" or area != scope:
+            raise HTTPException(status_code=403, detail="Você só pode criar perfis de Analista dentro da sua área de gestão")
 
     # Gera slug a partir do label
     import re as _re
@@ -252,6 +276,8 @@ def create_custom_role(
         "description": description,
         "color": color,
         "permissions": permissions,
+        "area": area,
+        "tier": tier,
     })
     _set(db, "custom_roles", json.dumps(existing_list))
     return {"ok": True, "slug": slug}
@@ -266,18 +292,28 @@ def update_custom_role(
 ):
     """Atualiza permissões/descrição de um perfil personalizado."""
     existing_list = json.loads(_get(db, "custom_roles") or "[]")
-    updated = False
-    for cr in existing_list:
-        if cr["slug"] == slug:
-            cr["label"]       = data.get("label", cr["label"])
-            cr["description"] = data.get("description", cr.get("description", ""))
-            cr["color"]       = data.get("color", cr.get("color", "gray"))
-            cr["permissions"] = data.get("permissions", cr.get("permissions", {}))
-            updated = True
-            break
+    scope = get_manager_scope(current_user, db)
 
-    if not updated:
+    target = next((cr for cr in existing_list if cr["slug"] == slug), None)
+    if target is None:
         raise HTTPException(status_code=404, detail="Perfil não encontrado")
+
+    if scope is not None:
+        cur_area = target.get("area")
+        cur_tier = target.get("tier") or "analista"
+        if cur_area != scope or cur_tier != "analista":
+            raise HTTPException(status_code=403, detail="Perfil fora da sua área de gestão")
+        new_area = data.get("area", cur_area)
+        new_tier = data.get("tier", cur_tier) or "analista"
+        if new_area != scope or new_tier != "analista":
+            raise HTTPException(status_code=403, detail="Você não pode mover esse perfil para fora da sua área")
+
+    target["label"]       = data.get("label", target["label"])
+    target["description"] = data.get("description", target.get("description", ""))
+    target["color"]       = data.get("color", target.get("color", "gray"))
+    target["permissions"] = data.get("permissions", target.get("permissions", {}))
+    target["area"]        = data.get("area", target.get("area"))
+    target["tier"]        = data.get("tier", target.get("tier")) or "analista"
 
     _set(db, "custom_roles", json.dumps(existing_list))
     return {"ok": True}
@@ -291,9 +327,16 @@ def delete_custom_role(
 ):
     """Remove um perfil personalizado."""
     existing_list = json.loads(_get(db, "custom_roles") or "[]")
-    new_list = [cr for cr in existing_list if cr["slug"] != slug]
-    if len(new_list) == len(existing_list):
+
+    target = next((cr for cr in existing_list if cr["slug"] == slug), None)
+    if target is None:
         raise HTTPException(status_code=404, detail="Perfil não encontrado")
+
+    scope = get_manager_scope(current_user, db)
+    if scope is not None and (target.get("area") != scope or (target.get("tier") or "analista") != "analista"):
+        raise HTTPException(status_code=403, detail="Perfil fora da sua área de gestão")
+
+    new_list = [cr for cr in existing_list if cr["slug"] != slug]
     _set(db, "custom_roles", json.dumps(new_list))
     return {"ok": True}
 
@@ -306,6 +349,11 @@ def update_role_permissions(
     current_user: User = Depends(require_permission("can_manage_users")),
 ):
     """Atualiza permissões de um perfil. Armazena overrides em system_settings."""
+    # Gestor de área restrito nunca mexe em perfil nativo do sistema (afeta
+    # o default de todo mundo com aquele role, não só a área dele).
+    if get_manager_scope(current_user, db) is not None:
+        raise HTTPException(status_code=403, detail="Gestores de área não podem alterar perfis do sistema")
+
     # Valida role
     valid_roles = [r.value for r in UserRole]
     if role not in valid_roles:

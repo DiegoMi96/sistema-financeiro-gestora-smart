@@ -459,6 +459,80 @@ ROLE_DESCRIPTIONS = {
     "comercial":       "Comercial — comissionamento e painel de resultados.",
 }
 
+# ─────────────────────────────────────────────
+# ÁREAS E GESTÃO RESTRITA (01/08/2026)
+# ─────────────────────────────────────────────
+# Um "gestor de área" tem can_manage_users=True mas só pode gerenciar
+# usuários/perfis dentro da própria área (ex.: Thalles como Gestor de
+# Operações mexe só em Suporte Técnico + Logística; quem cria/edita
+# Administrador ou outro Gestor continua sendo só o Admin geral).
+# tier: "admin" (irrestrito) | "gestor" (gerencia usuários da própria área,
+# se area != None) | "analista" (operacional, não gerencia usuários).
+AREAS = ("administrativo", "comercial", "operacoes")
+
+ROLE_AREA = {
+    UserRole.ADMIN:           None,   # irrestrito
+    UserRole.GESTOR:          None,   # perfil "Diretoria" — global, não amarrado a uma área
+    UserRole.CONTAS_RECEBER:  "administrativo",
+    UserRole.SUPORTE_TECNICO: "operacoes",
+    UserRole.LOGISTICA:       "operacoes",
+    UserRole.BACKOFFICE:      "administrativo",
+    UserRole.COMERCIAL:       "comercial",
+}
+
+ROLE_TIER = {
+    UserRole.ADMIN:           "admin",
+    UserRole.GESTOR:          "gestor",
+    UserRole.CONTAS_RECEBER:  "analista",
+    UserRole.SUPORTE_TECNICO: "analista",
+    UserRole.LOGISTICA:       "analista",
+    UserRole.BACKOFFICE:      "analista",
+    UserRole.COMERCIAL:       "analista",
+}
+
+
+def _get_custom_role_meta(role_key: str, db) -> dict | None:
+    """Busca o objeto completo (label/area/tier/permissions/...) de um perfil personalizado."""
+    try:
+        from app.routers.settings import SystemSetting
+        row = db.query(SystemSetting).filter(SystemSetting.key == "custom_roles").first()
+        if row and row.value:
+            for cr in json.loads(row.value):
+                if cr.get("slug") == role_key:
+                    return cr
+    except Exception:
+        pass
+    return None
+
+
+def resolve_area_tier(role: "UserRole", custom_role_key: str | None, db) -> tuple[str | None, str]:
+    """Resolve (área, tier) de um role/perfil. Perfil personalizado sobrescreve o role base
+    (mesma precedência usada em get_permission). tier default 'analista' se ausente."""
+    if custom_role_key and db is not None:
+        cr = _get_custom_role_meta(custom_role_key, db)
+        if cr is not None:
+            return cr.get("area"), cr.get("tier") or "analista"
+    return ROLE_AREA.get(role), ROLE_TIER.get(role, "analista")
+
+
+def get_manager_scope(user, db) -> str | None:
+    """
+    Área de atuação de um gestor restrito, ou None se tem acesso irrestrito
+    (Admin, ou qualquer perfil/role marcado com area=None). Só faz sentido
+    chamar depois de confirmar que o usuário tem can_manage_users=True.
+    """
+    if user.role == UserRole.ADMIN:
+        return None
+    area, _tier = resolve_area_tier(user.role, getattr(user, "custom_role_key", None), db)
+    return area
+
+
+def target_in_scope(scope: str, target_role: "UserRole", target_custom_role_key: str | None, db) -> bool:
+    """True se o role/perfil-alvo está dentro do escopo de um gestor de área
+    (mesma área E tier 'analista' — gestor de área nunca cria/edita outro gestor)."""
+    area, tier = resolve_area_tier(target_role, target_custom_role_key, db)
+    return area == scope and tier == "analista"
+
 
 def _get_custom_role_permissions(role_key: str, db) -> dict | None:
     """Busca permissões de um perfil personalizado armazenado em system_settings."""
@@ -532,9 +606,14 @@ def require_permission(permission: str):
     """
     from fastapi import Depends, HTTPException, status
     from app.routers.auth import get_current_user
+    from app.database import get_db
 
-    def dependency(current_user=Depends(get_current_user)):
-        if not get_permission(current_user, permission):
+    def dependency(current_user=Depends(get_current_user), db=Depends(get_db)):
+        # Bug corrigido em 01/08/2026: sem passar `db`, overrides de perfil
+        # personalizado ou de system_settings nunca eram resolvidos aqui —
+        # toda checagem caía silenciosamente no ROLE_PERMISSIONS hardcoded do
+        # role nativo do usuário, ignorando qualquer perfil customizado.
+        if not get_permission(current_user, permission, db):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Sem permissão: {permission}",
