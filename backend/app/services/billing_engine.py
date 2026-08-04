@@ -483,12 +483,46 @@ class BillingEngineService:
             return pd.DataFrame()
 
     def _load_fretes(self, data: bytes) -> pd.DataFrame:
-        df = pd.read_excel(io.BytesIO(data), sheet_name="Resumo", engine="openpyxl")
-        df = df[["ID_CNPJCPF", "DESTINATARIO", "VALOR TOTAL"]].dropna(subset=["ID_CNPJCPF"])
-        df.columns = ["id", "cliente", "valor"]
-        df["id"]    = df["id"].astype(str).str.strip()
-        df["valor"] = pd.to_numeric(df["valor"], errors="coerce").fillna(0)
-        return df
+        # Formato antigo: aba "Resumo" com coluna "ID_CNPJCPF".
+        try:
+            df = pd.read_excel(io.BytesIO(data), sheet_name="Resumo", engine="openpyxl")
+            df = df[["ID_CNPJCPF", "DESTINATARIO", "VALOR TOTAL"]].dropna(subset=["ID_CNPJCPF"])
+            df.columns = ["id", "cliente", "valor"]
+            df["id"]    = df["id"].astype(str).str.strip()
+            df["valor"] = pd.to_numeric(df["valor"], errors="coerce").fillna(0)
+            return df
+        except Exception:
+            pass
+
+        # Formato novo (ex.: exportação Allcom, aba "ALLCOM" — 04/08/2026):
+        # sem aba "Resumo", coluna de identificação chama "CNPJ" em vez de
+        # "ID_CNPJCPF". Casa por nome (ignorando maiúsculas/minúsculas) na
+        # primeira aba do arquivo, em vez de exigir nome exato de aba/coluna.
+        xl = pd.ExcelFile(io.BytesIO(data), engine="openpyxl")
+        raw = xl.parse(xl.sheet_names[0])
+        norm = {str(c).strip().lower(): c for c in raw.columns}
+
+        def _find(*names):
+            for name in names:
+                found = norm.get(name.strip().lower())
+                if found is not None:
+                    return found
+            return None
+
+        col_id    = _find("ID_CNPJCPF", "CNPJ", "ID_CNPJ", "CPF/CNPJ")
+        col_cli   = _find("DESTINATARIO", "CLIENTE", "NOME")
+        col_valor = _find("VALOR TOTAL", "VALOR")
+        if col_id is None or col_valor is None:
+            raise ValueError(
+                f"Planilha de fretes: não encontrei as colunas de identificação/valor "
+                f"(colunas disponíveis: {list(raw.columns)})"
+            )
+
+        df = pd.DataFrame()
+        df["id"]     = raw[col_id].astype(str).str.strip()
+        df["cliente"]= raw[col_cli] if col_cli is not None else None
+        df["valor"]  = pd.to_numeric(raw[col_valor], errors="coerce").fillna(0)
+        return df.dropna(subset=["id"])
 
     def _load_vencimentos(self, data: bytes) -> dict:
         df = pd.read_excel(io.BytesIO(data), sheet_name="Planilha1", engine="openpyxl", header=0)
