@@ -431,6 +431,26 @@ class BillingEngineService:
                 pass
         if dfs:
             df = pd.concat(dfs, ignore_index=True)
+            # Cabeçalho da planilha de cancelamentos já mudou de caixa entre
+            # meses (ex.: "Valor da multa" em vez de "VALOR DA MULTA") e isso
+            # derrubava o motor inteiro com um KeyError — e como o processamento
+            # roda em background, o request volta 200 OK mesmo assim, então
+            # ninguém via o erro (ver _run_billing_engine em billing.py). Agora
+            # casa o nome da coluna ignorando maiúsculas/minúsculas e espaços.
+            def _find_col(name: str):
+                norm = {str(c).strip().lower(): c for c in df.columns}
+                return norm.get(name.strip().lower())
+
+            for canonical in ["VALOR DA MULTA", "Mensalidade", "Data de cancel", "ID"]:
+                found = _find_col(canonical)
+                if found is None:
+                    raise ValueError(
+                        f"Planilha de cancelamentos: coluna '{canonical}' não encontrada "
+                        f"(colunas disponíveis: {list(df.columns)})"
+                    )
+                if found != canonical:
+                    df = df.rename(columns={found: canonical})
+
             df["VALOR DA MULTA"] = pd.to_numeric(df["VALOR DA MULTA"], errors="coerce").fillna(0)
             df["Mensalidade"]    = pd.to_numeric(df["Mensalidade"], errors="coerce").fillna(0)
             df["Data de cancel"] = pd.to_datetime(df["Data de cancel"], errors="coerce", dayfirst=True)
