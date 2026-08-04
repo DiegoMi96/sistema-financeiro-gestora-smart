@@ -7,7 +7,7 @@ import toast from 'react-hot-toast'
 import {
   Upload, Plus, CheckCircle, FileText,
   Trash2, Layers, ArrowRight, Loader2,
-  DollarSign, Calendar, Clock
+  DollarSign, Calendar, Clock, AlertTriangle
 } from 'lucide-react'
 
 const fmt   = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0)
@@ -19,7 +19,11 @@ const STATUS_CFG = {
   revisao:  { label: 'Em Revisão',   color: '#D97706', bg: '#FFFBEB', step: 1 },
   aprovado: { label: 'Aprovado',     color: '#059669', bg: '#ECFDF5', step: 2 },
   fechado:  { label: 'Fechado',      color: '#374151', bg: '#F9FAFB', step: 3 },
+  erro:     { label: 'Falhou',       color: '#DC2626', bg: '#FEF2F2', step: -1 },
 }
+// Ciclos sem dado de verdade ainda (nem sempre "processando" — pode ter
+// falhado, ver status 'erro') — linhas/boletos/total ficam "—".
+const semDadosAinda = s => s === 'rascunho' || s === 'erro'
 
 export default function BillingPage() {
   const [showUpload, setShowUpload] = useState(false)
@@ -36,6 +40,7 @@ export default function BillingPage() {
 
   const hasProcessing  = cycles.some(c => c.status === 'rascunho')
   const processingCycle = cycles.find(c => c.status === 'rascunho')
+  const errorCycle = cycles.find(c => c.status === 'erro')
 
   const [elapsed, setElapsed] = useState(0)
   useEffect(() => {
@@ -141,6 +146,36 @@ export default function BillingPage() {
         </div>
       )}
 
+      {/* ── Banner de falha (04/08/2026) ──────────────────────
+          Antes, um erro no motor voltava o ciclo pra "rascunho" sem
+          nenhum aviso — ficava com a mesma cara de "ainda não
+          processado" pra sempre. Agora vira status "erro" com a
+          mensagem, e aparece aqui até o ciclo ser reprocessado/excluído. */}
+      {errorCycle && (
+        <div className="gs-card p-4 flex items-start gap-4 border-l-4" style={{ borderLeftColor: '#DC2626' }}>
+          <AlertTriangle size={18} className="text-red-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-red-900 text-sm">
+              O processamento de {MONTHS_PT[errorCycle.month - 1]} {errorCycle.year} falhou
+            </p>
+            <p className="text-red-700 text-xs mt-0.5 break-words">
+              {errorCycle.error_message || 'Erro desconhecido — confira os arquivos enviados e tente novamente.'}
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              if (confirm(`Excluir o ciclo com falha (${MONTHS_PT[errorCycle.month - 1]} ${errorCycle.year}) para tentar de novo?`)) {
+                deleteMutation.mutate(errorCycle.id)
+              }
+            }}
+            className="gs-btn text-xs px-3 py-1.5 flex-shrink-0"
+            style={{ background: '#FEE2E2', color: '#DC2626' }}
+          >
+            Excluir e tentar de novo
+          </button>
+        </div>
+      )}
+
       {/* ── Tabela de ciclos ─────────────────────────────────── */}
       {isLoading ? (
         <div className="gs-card p-8 text-center text-gray-400 text-sm">
@@ -182,21 +217,21 @@ export default function BillingPage() {
                         </span>
                       </td>
                       <td className="gs-td text-center text-xs text-gray-600">
-                        {c.status !== 'rascunho' ? (
+                        {!semDadosAinda(c.status) ? (
                           <span className="flex items-center justify-center gap-1">
                             <Layers size={11} className="text-gray-400" /> {fmtN(c.total_lines)}
                           </span>
                         ) : <span className="text-gray-300">—</span>}
                       </td>
                       <td className="gs-td text-center text-xs text-gray-600">
-                        {c.status !== 'rascunho' ? (
+                        {!semDadosAinda(c.status) ? (
                           <span className="flex items-center justify-center gap-1">
                             <FileText size={11} className="text-gray-400" /> {fmtN(c.total_boletos)}
                           </span>
                         ) : <span className="text-gray-300">—</span>}
                       </td>
                       <td className="gs-td text-center font-semibold text-gray-900">
-                        {c.status !== 'rascunho' ? fmt(c.total_value) : <span className="text-gray-300">—</span>}
+                        {!semDadosAinda(c.status) ? fmt(c.total_value) : <span className="text-gray-300">—</span>}
                       </td>
                       <td className="gs-td">
                         <div className="flex items-center justify-end gap-1">

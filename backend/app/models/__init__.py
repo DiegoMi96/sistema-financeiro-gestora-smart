@@ -30,6 +30,7 @@ class BillingStatus(str, enum.Enum):
     REVISAO    = "revisao"     # gerado, aguardando revisão
     APROVADO   = "aprovado"    # aprovado, boletos emitidos
     FECHADO    = "fechado"     # mês encerrado
+    ERRO       = "erro"        # processamento quebrou — ver error_message
 
 
 class AdjustmentType(str, enum.Enum):
@@ -209,6 +210,10 @@ class BillingCycle(Base):
     total_lines  = Column(Integer, default=0)
     total_value  = Column(Float, default=0.0)
     total_boletos = Column(Integer, default=0)
+    # Preenchido só quando status=ERRO — mensagem do que quebrou no motor
+    # (antes o erro só aparecia no log do container; ciclo ficava com
+    # aparência de "ainda não processado", sem avisar ninguém).
+    error_message = Column(Text)
 
     # Arquivos de entrada usados
     base_filename          = Column(String(255))
