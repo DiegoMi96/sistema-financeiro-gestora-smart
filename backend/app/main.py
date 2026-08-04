@@ -66,6 +66,24 @@ def _run_migrations():
         db.rollback()
         print(f"[migrations] enum update skipped: {e}")
 
+    # Novo status "erro" pra ciclo de faturamento (04/08/2026) — antes uma
+    # falha no motor deixava o ciclo com aparência de "ainda não processado"
+    # (RASCUNHO, 0 linhas), sem nenhum aviso visível.
+    try:
+        # O tipo billingstatus no Postgres guarda os valores pelo NOME do
+        # membro Python (RASCUNHO/REVISAO/APROVADO/FECHADO, maiúsculo), não
+        # pelo .value ("rascunho" etc — só usado nas comparações em Python,
+        # graças ao mixin `str`). Confirmado testando o insert via ORM:
+        # manda literalmente 'ERRO', não 'erro'. Mesma classe de bug do
+        # enum userrole (ver task "Corrigir erro ao criar usuário com
+        # perfil Backoffice") — SQLAlchemy usa .name por padrão sem
+        # values_callable.
+        db.execute(text("ALTER TYPE billingstatus ADD VALUE IF NOT EXISTS 'ERRO'"))
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"[migrations] billingstatus enum update skipped: {e}")
+
     # Garante que billing_cycles.created_at existe (usado na sync de clientes)
     try:
         db.execute(text("""
@@ -103,6 +121,7 @@ def _run_migrations():
         ("billing_lines", "franquia_mb",           "FLOAT"),
         ("itau_boletos",  "description",            "TEXT"),
         ("asaas_payments_sync", "invoice_number",   "VARCHAR(50)"),
+        ("billing_cycles", "error_message",         "TEXT"),
     ]
     try:
         cols.append(("users", "custom_role_key", "VARCHAR(100)"))

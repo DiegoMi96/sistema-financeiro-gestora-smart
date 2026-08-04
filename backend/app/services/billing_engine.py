@@ -431,6 +431,26 @@ class BillingEngineService:
                 pass
         if dfs:
             df = pd.concat(dfs, ignore_index=True)
+            # Cabeçalho da planilha de cancelamentos já mudou de caixa entre
+            # meses (ex.: "Valor da multa" em vez de "VALOR DA MULTA") e isso
+            # derrubava o motor inteiro com um KeyError — e como o processamento
+            # roda em background, o request volta 200 OK mesmo assim, então
+            # ninguém via o erro (ver _run_billing_engine em billing.py). Agora
+            # casa o nome da coluna ignorando maiúsculas/minúsculas e espaços.
+            def _find_col(name: str):
+                norm = {str(c).strip().lower(): c for c in df.columns}
+                return norm.get(name.strip().lower())
+
+            for canonical in ["VALOR DA MULTA", "Mensalidade", "Data de cancel", "ID"]:
+                found = _find_col(canonical)
+                if found is None:
+                    raise ValueError(
+                        f"Planilha de cancelamentos: coluna '{canonical}' não encontrada "
+                        f"(colunas disponíveis: {list(df.columns)})"
+                    )
+                if found != canonical:
+                    df = df.rename(columns={found: canonical})
+
             df["VALOR DA MULTA"] = pd.to_numeric(df["VALOR DA MULTA"], errors="coerce").fillna(0)
             df["Mensalidade"]    = pd.to_numeric(df["Mensalidade"], errors="coerce").fillna(0)
             df["Data de cancel"] = pd.to_datetime(df["Data de cancel"], errors="coerce", dayfirst=True)
@@ -463,12 +483,46 @@ class BillingEngineService:
             return pd.DataFrame()
 
     def _load_fretes(self, data: bytes) -> pd.DataFrame:
-        df = pd.read_excel(io.BytesIO(data), sheet_name="Resumo", engine="openpyxl")
-        df = df[["ID_CNPJCPF", "DESTINATARIO", "VALOR TOTAL"]].dropna(subset=["ID_CNPJCPF"])
-        df.columns = ["id", "cliente", "valor"]
-        df["id"]    = df["id"].astype(str).str.strip()
-        df["valor"] = pd.to_numeric(df["valor"], errors="coerce").fillna(0)
-        return df
+        # Formato antigo: aba "Resumo" com coluna "ID_CNPJCPF".
+        try:
+            df = pd.read_excel(io.BytesIO(data), sheet_name="Resumo", engine="openpyxl")
+            df = df[["ID_CNPJCPF", "DESTINATARIO", "VALOR TOTAL"]].dropna(subset=["ID_CNPJCPF"])
+            df.columns = ["id", "cliente", "valor"]
+            df["id"]    = df["id"].astype(str).str.strip()
+            df["valor"] = pd.to_numeric(df["valor"], errors="coerce").fillna(0)
+            return df
+        except Exception:
+            pass
+
+        # Formato novo (ex.: exportação Allcom, aba "ALLCOM" — 04/08/2026):
+        # sem aba "Resumo", coluna de identificação chama "CNPJ" em vez de
+        # "ID_CNPJCPF". Casa por nome (ignorando maiúsculas/minúsculas) na
+        # primeira aba do arquivo, em vez de exigir nome exato de aba/coluna.
+        xl = pd.ExcelFile(io.BytesIO(data), engine="openpyxl")
+        raw = xl.parse(xl.sheet_names[0])
+        norm = {str(c).strip().lower(): c for c in raw.columns}
+
+        def _find(*names):
+            for name in names:
+                found = norm.get(name.strip().lower())
+                if found is not None:
+                    return found
+            return None
+
+        col_id    = _find("ID_CNPJCPF", "CNPJ", "ID_CNPJ", "CPF/CNPJ")
+        col_cli   = _find("DESTINATARIO", "CLIENTE", "NOME")
+        col_valor = _find("VALOR TOTAL", "VALOR")
+        if col_id is None or col_valor is None:
+            raise ValueError(
+                f"Planilha de fretes: não encontrei as colunas de identificação/valor "
+                f"(colunas disponíveis: {list(raw.columns)})"
+            )
+
+        df = pd.DataFrame()
+        df["id"]     = raw[col_id].astype(str).str.strip()
+        df["cliente"]= raw[col_cli] if col_cli is not None else None
+        df["valor"]  = pd.to_numeric(raw[col_valor], errors="coerce").fillna(0)
+        return df.dropna(subset=["id"])
 
     def _load_vencimentos(self, data: bytes) -> dict:
         df = pd.read_excel(io.BytesIO(data), sheet_name="Planilha1", engine="openpyxl", header=0)

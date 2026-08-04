@@ -204,8 +204,8 @@ def delete_cycle(
     cycle = db.query(BillingCycle).filter(BillingCycle.id == cycle_id).first()
     if not cycle:
         raise HTTPException(status_code=404, detail="Ciclo não encontrado")
-    if cycle.status not in ("rascunho", "revisao"):
-        raise HTTPException(status_code=400, detail=f"Somente ciclos em rascunho ou revisão podem ser excluídos. Status atual: {cycle.status}")
+    if cycle.status not in ("rascunho", "revisao", "erro"):
+        raise HTTPException(status_code=400, detail=f"Somente ciclos em rascunho, revisão ou erro podem ser excluídos. Status atual: {cycle.status}")
 
     # Apaga filhos primeiro (FK sem CASCADE)
     db.query(BillingLine).filter(BillingLine.cycle_id == cycle_id).delete(synchronize_session=False)
@@ -312,7 +312,7 @@ async def process_billing(
     existing = db.query(BillingCycle).filter(
         BillingCycle.year == year, BillingCycle.month == month
     ).first()
-    if existing and existing.status not in (BillingStatus.RASCUNHO,):
+    if existing and existing.status not in (BillingStatus.RASCUNHO, BillingStatus.ERRO):
         raise HTTPException(
             status_code=400,
             detail=f"Já existe um ciclo para {month:02d}/{year} com status '{existing.status}'"
@@ -789,9 +789,14 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
         sys.stderr.flush()
         db.rollback()
         try:
+            # Antes voltava pra RASCUNHO (indistinguível de "ainda não
+            # processado") sem guardar o motivo — ninguém via que quebrou,
+            # só o log do container. Agora marca ERRO com a mensagem, pra
+            # aparecer um aviso na tela (ver BillingPage.jsx/04/08/2026).
             cycle = db.query(BillingCycle).filter(BillingCycle.id == cycle_id).first()
             if cycle:
-                cycle.status = BillingStatus.RASCUNHO
+                cycle.status = BillingStatus.ERRO
+                cycle.error_message = f"{type(e).__name__}: {e}"[:2000]
                 db.commit()
         except Exception:
             pass
@@ -1874,6 +1879,7 @@ def _cycle_to_dict(c: BillingCycle) -> dict:
         "total_value":  round(c.total_value or 0, 2),
         "total_boletos": c.total_boletos,
         "base_filename": c.base_filename,
+        "error_message": c.error_message,
         "created_at":   c.created_at.isoformat() if c.created_at else None,
         "approved_at":  c.approved_at.isoformat() if c.approved_at else None,
     }
