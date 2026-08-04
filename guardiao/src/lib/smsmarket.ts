@@ -1,4 +1,7 @@
+import { sql } from "./db"
+
 const SMS_ENDPOINT = "https://api.smsmarket.com.br/webservice-rest/send-single"
+const CAMPAIGN_ID = "Guardião"
 
 const ALERT_SMS_TEXT =
   "Alerta Guardiao - GESTORA SMART.\n\n" +
@@ -15,9 +18,9 @@ function normalizePhoneNumber(raw: string): string {
 }
 
 export async function sendAlertSms(phone: string): Promise<void> {
-  const user = process.env.SMSMARKET_USER
-  const password = process.env.SMSMARKET_PASSWORD
-  if (!user || !password) { console.error("[smsmarket] SMSMARKET_USER/SMSMARKET_PASSWORD não definidas"); return }
+  const user = process.env.GUARDIAO_SMSMARKET_USER
+  const password = process.env.GUARDIAO_SMSMARKET_PASSWORD
+  if (!user || !password) { console.error("[smsmarket] GUARDIAO_SMSMARKET_USER/GUARDIAO_SMSMARKET_PASSWORD não definidas"); return }
 
   const number = normalizePhoneNumber(phone)
   if (!number) { console.error("[smsmarket] telefone inválido:", phone); return }
@@ -30,9 +33,12 @@ export async function sendAlertSms(phone: string): Promise<void> {
     country_code: "55",
     number,
     content,
+    campaign_id: CAMPAIGN_ID,
   })
 
   console.log("[smsmarket] enviando sms para:", number)
+
+  const competencia = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`
 
   try {
     const res = await fetch(SMS_ENDPOINT, {
@@ -45,7 +51,21 @@ export async function sendAlertSms(phone: string): Promise<void> {
     })
     const json = await res.json().catch(() => null)
     console.log("[smsmarket] resposta:", JSON.stringify(json))
+
+    await sql`
+      INSERT INTO sms_logs
+        (campaign_id, phone, content, provider_message_id, success, response_code, response_description, competencia)
+      VALUES
+        (${CAMPAIGN_ID}, ${number}, ${content}, ${json?.id ?? null},
+         ${json?.success ?? false}, ${json?.responseCode ?? null}, ${json?.responseDescription ?? null}, ${competencia})
+    `
   } catch (err: any) {
     console.error("[smsmarket] erro ao enviar sms:", err?.message ?? err)
+    await sql`
+      INSERT INTO sms_logs
+        (campaign_id, phone, content, success, response_description, competencia)
+      VALUES
+        (${CAMPAIGN_ID}, ${number}, ${content}, false, ${String(err?.message ?? err)}, ${competencia})
+    `.catch((e) => console.error("[smsmarket] falha ao gravar log:", e))
   }
 }

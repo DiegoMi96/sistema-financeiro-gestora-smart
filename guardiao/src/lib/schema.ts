@@ -131,6 +131,23 @@ export async function createSchema() {
   `
 
   await sql`
+    CREATE TABLE IF NOT EXISTS sms_logs (
+      id                    TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      campaign_id           TEXT NOT NULL,
+      phone                 TEXT NOT NULL,
+      content               TEXT,
+      provider_message_id   TEXT,
+      success               BOOLEAN NOT NULL DEFAULT false,
+      response_code         TEXT,
+      response_description  TEXT,
+      competencia           TEXT NOT NULL,
+      sent_at               TIMESTAMPTZ DEFAULT NOW()
+    )
+  `
+  await sql`CREATE INDEX IF NOT EXISTS idx_sms_logs_competencia ON sms_logs(competencia)`
+  await sql`CREATE INDEX IF NOT EXISTS idx_sms_logs_sent_at ON sms_logs(sent_at DESC)`
+
+  await sql`
     CREATE TABLE IF NOT EXISTS users (
       id            TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
       email         TEXT UNIQUE NOT NULL,

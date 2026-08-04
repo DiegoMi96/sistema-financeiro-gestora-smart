@@ -92,16 +92,16 @@ services:
     restart: unless-stopped
     environment:
       GESTORA_JWT_SECRET: ${SECRET_KEY:-TROQUE-EM-PRODUCAO-USE-OPENSSL-RAND-HEX-32}
-      # PENDENTE: Thalles precisa fornecer a connection string real do Neon
-      # (banco próprio do Guardião, hospedado fora da nossa infra). Sem isso,
-      # o container sobe normalmente mas nenhuma tela com dados funciona.
-      DATABASE_URL:       ${GUARDIAO_DATABASE_URL:-}
+      # Nomes passados sem tradução (mesmo nome no .env do host e dentro do
+      # container) — padronizado com prefixo GUARDIAO_ dos dois lados para
+      # evitar o código lendo um nome e o compose só exportando outro.
+      GUARDIAO_DATABASE_URL:       ${GUARDIAO_DATABASE_URL:-}
       # Opcionais — funcionalidades específicas falham graciosamente sem eles
       # (não impedem o resto do sistema de funcionar):
-      CRON_SECRET:        ${GUARDIAO_CRON_SECRET:-}
-      BREVO_API_KEY:      ${GUARDIAO_BREVO_API_KEY:-}
-      SMSMARKET_USER:     ${GUARDIAO_SMSMARKET_USER:-}
-      SMSMARKET_PASSWORD: ${GUARDIAO_SMSMARKET_PASSWORD:-}
+      GUARDIAO_CRON_SECRET:        ${GUARDIAO_CRON_SECRET:-}
+      GUARDIAO_BREVO_API_KEY:      ${GUARDIAO_BREVO_API_KEY:-}
+      GUARDIAO_SMSMARKET_USER:     ${GUARDIAO_SMSMARKET_USER:-}
+      GUARDIAO_SMSMARKET_PASSWORD: ${GUARDIAO_SMSMARKET_PASSWORD:-}
     ports:
       - "3002:3000"
     depends_on:

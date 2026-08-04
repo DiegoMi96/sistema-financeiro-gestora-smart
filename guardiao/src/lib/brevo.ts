@@ -32,8 +32,8 @@ export async function sendAlertNotification(
 
   console.log("[brevo] payload:", JSON.stringify(payload, null, 2))
 
-  const apiKey = process.env.BREVO_API_KEY
-  if (!apiKey) { console.error("[brevo] BREVO_API_KEY não definida"); return }
+  const apiKey = process.env.GUARDIAO_BREVO_API_KEY
+  if (!apiKey) { console.error("[brevo] GUARDIAO_BREVO_API_KEY não definida"); return }
   if (toEmails.length === 0) { console.error("[brevo] nenhum destinatário"); return }
 
   const client = new BrevoClient({ apiKey })

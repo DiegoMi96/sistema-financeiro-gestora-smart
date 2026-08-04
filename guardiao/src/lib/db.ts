@@ -6,8 +6,8 @@ import postgres from "postgres"
 // `postgres` (porsager/postgres) usa a mesma sintaxe de template tag
 // (sql`SELECT ...`) que @neondatabase/serverless, então nenhum dos ~27
 // arquivos que chamam `sql\`...\`` precisou mudar — só este arquivo.
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL não definida no .env.local")
+if (!process.env.GUARDIAO_DATABASE_URL) {
+  throw new Error("GUARDIAO_DATABASE_URL não definida no .env.local")
 }
 
-export const sql = postgres(process.env.DATABASE_URL, { ssl: false })
+export const sql = postgres(process.env.GUARDIAO_DATABASE_URL, { ssl: false })

@@ -60,22 +60,22 @@ export default function NaoAcionadosPage() {
 
       {/* Filtro por data */}
       <div className="flex flex-wrap items-end gap-3">
-        <div>
+        <div className="flex-1 min-w-[160px]">
           <label className="block text-xs font-medium text-muted-foreground mb-1">Data início</label>
           <input
             type="date"
             value={from}
             onChange={(e) => setFrom(e.target.value)}
-            className="px-3 py-2 border border-border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
-        <div>
+        <div className="flex-1 min-w-[160px]">
           <label className="block text-xs font-medium text-muted-foreground mb-1">Data fim</label>
           <input
             type="date"
             value={to}
             onChange={(e) => setTo(e.target.value)}
-            className="px-3 py-2 border border-border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
         <button

@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/monthly-cleanup",
       "schedule": "0 3 1 * *"
+    },
+    {
+      "path": "/api/cron/sms-cleanup",
+      "schedule": "0 3 * * *"
     }
   ]
 }

@@ -491,12 +491,12 @@ export default function ClientsPage() {
                   </div>
                   <div className="bg-muted rounded-xl p-4 text-xs text-muted-foreground space-y-1.5">
                     <p className="font-medium text-foreground text-sm mb-2">Colunas esperadas:</p>
-                    <p>â€¢ <strong className="text-foreground">Razão Social</strong> â€" nome do cliente</p>
-                    <p>â€¢ <strong className="text-foreground">CNPJ</strong> â€" se vazio, usa CPF</p>
-                    <p>â€¢ <strong className="text-foreground">Vendedor</strong></p>
-                    <p>â€¢ <strong className="text-foreground">WhatsApp</strong></p>
-                    <p>â€¢ <strong className="text-foreground">Email</strong></p>
-                    <p>â€¢ <strong className="text-foreground">Assinante Pacote Mensageria</strong> (Sim / Não)</p>
+                    <p>• <strong className="text-foreground">Razão Social</strong> – nome do cliente</p>
+                    <p>• <strong className="text-foreground">CNPJ</strong> – se vazio, usa CPF</p>
+                    <p>• <strong className="text-foreground">Vendedor</strong></p>
+                    <p>• <strong className="text-foreground">WhatsApp</strong></p>
+                    <p>• <strong className="text-foreground">Email</strong></p>
+                    <p>• <strong className="text-foreground">Assinante Pacote Mensageria</strong> (Sim / Não)</p>
                   </div>
                   <div className="flex gap-3 pt-1">
                     <button

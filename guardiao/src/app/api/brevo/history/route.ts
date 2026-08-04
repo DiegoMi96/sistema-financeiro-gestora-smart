@@ -10,7 +10,7 @@ const MAX_PAGES = 20 // cap de segurança: 10.000 eventos
 export async function GET(request: NextRequest) {
   if (!(await requireMainAuth(request))) return unauthorizedResponse()
 
-  const apiKey = process.env.BREVO_API_KEY
+  const apiKey = process.env.GUARDIAO_BREVO_API_KEY
   if (!apiKey) return NextResponse.json({ events: [] })
 
   const client = new BrevoClient({ apiKey })
