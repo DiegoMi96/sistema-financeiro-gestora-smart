@@ -107,13 +107,6 @@ const menuItems: MenuItem[] = [
     permKey: "can_view_grd_history",
   },
   {
-    title: "Histórico Mensal",
-    href: "/dashboard/historico-acionamentos",
-    icon: History,
-    roles: ["admin", "supervisor", "analyst"],
-    permKey: "can_view_grd_historico_mensal",
-  },
-  {
     title: "Cadastros",
     icon: Database,
     roles: ["admin"],
@@ -292,7 +285,7 @@ export default function Sidebar() {
     >
       {/* Logo */}
       <div className={`border-b border-border flex items-center ${collapsed ? "justify-center p-3" : "p-6"}`}>
-        <Link href="/dashboard/v2" className="flex items-center gap-2.5">
+        <Link href="/dashboard" className="flex items-center gap-2.5">
           <svg width="28" height="28" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect width="40" height="40" rx="9" fill="url(#sidebar-grad)"/>
             <path d="M20 7L9 12V20.5C9 27 13.5 32.5 20 34.5C26.5 32.5 31 27 31 20.5V12L20 7Z" fill="white" fillOpacity="0.95"/>

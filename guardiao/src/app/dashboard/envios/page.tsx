@@ -108,10 +108,8 @@ function EmailTab() {
     setIsLoading(true)
     setError("")
     try {
-      const res = await fetch("/api/brevo/history")
-      if (!res.ok) throw new Error()
-      const data = await res.json()
-      setEvents(data.events ?? [])
+      const res = await apiClient.get("/brevo/history")
+      setEvents(res.data.events ?? [])
       setLastRefresh(new Date())
     } catch {
       setError("Erro ao carregar histórico da Brevo.")
