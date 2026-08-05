@@ -12,26 +12,46 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const query = searchParams.get("query")
   const cnpjDigits = query ? normalizeCnpj(query) : ""
+  const skip  = parseInt(searchParams.get("skip") ?? "0")
+  const limit = parseInt(searchParams.get("limit") ?? "25")
 
   // Se a busca tiver algum dígito, compara também pelo CNPJ normalizado (sem
   // pontuação) dos dois lados — assim funciona buscando formatado ou não,
   // e mesmo com registros antigos que ainda tenham pontuação salva.
-  const clients = !query
-    ? await sql`SELECT * FROM clients WHERE is_active = true ORDER BY name`
+  const [clients, countRow] = !query
+    ? await Promise.all([
+        sql`SELECT * FROM clients WHERE is_active = true ORDER BY name LIMIT ${limit} OFFSET ${skip}`,
+        sql`SELECT COUNT(*)::int AS total FROM clients WHERE is_active = true`,
+      ])
     : cnpjDigits
-    ? await sql`
-        SELECT * FROM clients
-        WHERE is_active = true
-          AND (LOWER(name) LIKE ${"%" + query.toLowerCase() + "%"} OR regexp_replace(cnpj, '\D', '', 'g') LIKE ${"%" + cnpjDigits + "%"})
-        ORDER BY name
-      `
-    : await sql`
-        SELECT * FROM clients
-        WHERE is_active = true AND LOWER(name) LIKE ${"%" + query.toLowerCase() + "%"}
-        ORDER BY name
-      `
+    ? await Promise.all([
+        sql`
+          SELECT * FROM clients
+          WHERE is_active = true
+            AND (LOWER(name) LIKE ${"%" + query.toLowerCase() + "%"} OR regexp_replace(cnpj, '\D', '', 'g') LIKE ${"%" + cnpjDigits + "%"})
+          ORDER BY name
+          LIMIT ${limit} OFFSET ${skip}
+        `,
+        sql`
+          SELECT COUNT(*)::int AS total FROM clients
+          WHERE is_active = true
+            AND (LOWER(name) LIKE ${"%" + query.toLowerCase() + "%"} OR regexp_replace(cnpj, '\D', '', 'g') LIKE ${"%" + cnpjDigits + "%"})
+        `,
+      ])
+    : await Promise.all([
+        sql`
+          SELECT * FROM clients
+          WHERE is_active = true AND LOWER(name) LIKE ${"%" + query.toLowerCase() + "%"}
+          ORDER BY name
+          LIMIT ${limit} OFFSET ${skip}
+        `,
+        sql`
+          SELECT COUNT(*)::int AS total FROM clients
+          WHERE is_active = true AND LOWER(name) LIKE ${"%" + query.toLowerCase() + "%"}
+        `,
+      ])
 
-  return NextResponse.json({ clients, total: clients.length })
+  return NextResponse.json({ clients, total: countRow[0]?.total ?? 0 })
 }
 
 export async function POST(request: NextRequest) {

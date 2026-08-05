@@ -21,10 +21,21 @@ export async function POST(request: NextRequest) {
   const completed: any[] = []
   const not_emailed: { line_number: string; client_name: string }[] = []
 
+  // Agrupa por cliente (CNPJ) — o e-mail e o SMS são genéricos (não citam
+  // linha/porcentagem específica), então um cliente com várias linhas
+  // concluídas junto recebe 1 e-mail + 1 SMS, não um de cada por linha.
+  const groups = new Map<string, typeof pendingAlerts>()
   for (const alert of pendingAlerts) {
+    const key = alert.cpf_cnpj ?? ""
+    const group = groups.get(key)
+    if (group) group.push(alert)
+    else groups.set(key, [alert])
+  }
+
+  for (const [cnpj, alertsForClient] of groups) {
     const [client] = await sql`
       SELECT email, phone, messaging_package FROM clients
-      WHERE cnpj = ${alert.cpf_cnpj ?? ""}
+      WHERE cnpj = ${cnpj}
         AND is_active = true
         AND email IS NOT NULL
         AND email != ''
@@ -33,27 +44,31 @@ export async function POST(request: NextRequest) {
 
     if (!client?.email) {
       // Sem cliente/email → mantém pendente
-      not_emailed.push({ line_number: alert.line_number, client_name: alert.client_name ?? "—" })
+      for (const alert of alertsForClient) {
+        not_emailed.push({ line_number: alert.line_number, client_name: alert.client_name ?? "—" })
+      }
       continue
     }
 
-    // Cliente encontrado → conclui
-    const [updated] = await sql`
+    // Cliente encontrado → conclui todas as linhas dele de uma vez
+    const ids = alertsForClient.map((a) => a.id)
+    const updated = await sql`
       UPDATE alerts SET status = 'completed', marked_as_done_at = NOW()
-      WHERE id = ${alert.id}
+      WHERE id = ANY(${ids})
       RETURNING *
     `
-    completed.push(updated)
+    completed.push(...updated)
 
+    const first = alertsForClient[0]
     sendAlertNotification(
       {
-        line_number:      alert.line_number,
-        client_name:      alert.client_name,
-        usage_percentage: alert.usage_percentage,
-        operator:         alert.operator,
-        competencia:      alert.competencia,
-        contract_type:    alert.contract_type,
-        quota_mb:         alert.quota_mb,
+        line_number:      first.line_number,
+        client_name:      first.client_name,
+        usage_percentage: first.usage_percentage,
+        operator:         first.operator,
+        competencia:      first.competencia,
+        contract_type:    first.contract_type,
+        quota_mb:         first.quota_mb,
       },
       [client.email],
     ).catch((err) => console.error("[brevo] falha ao enviar email:", err))

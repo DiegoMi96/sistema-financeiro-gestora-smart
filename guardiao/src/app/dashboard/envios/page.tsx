@@ -5,7 +5,10 @@ import { apiClient } from "@/lib/api"
 import {
   Mail, CheckCircle, AlertCircle, Loader, RefreshCw, Clock, Info,
   MessageSquare, CheckCircle2, XCircle,
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
 } from "lucide-react"
+
+const LIMIT = 25
 
 interface EmailLog {
   id: string
@@ -56,6 +59,49 @@ function formatDate() {
   return new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })
 }
 
+function Pagination({ page, totalPages, onChange }: { page: number; totalPages: number; onChange: (p: number) => void }) {
+  return (
+    <div className="flex items-center justify-between px-5 py-3 border-t border-border">
+      <p className="text-sm text-muted-foreground">
+        Página <span className="font-medium text-foreground">{page}</span> de <span className="font-medium text-foreground">{totalPages}</span>
+      </p>
+
+      <div className="flex items-center gap-1">
+        <button onClick={() => onChange(1)} disabled={page === 1}
+          className="p-1.5 rounded-lg hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+          <ChevronsLeft className="w-4 h-4" />
+        </button>
+        <button onClick={() => onChange(Math.max(1, page - 1))} disabled={page === 1}
+          className="p-1.5 rounded-lg hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+
+        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+          const start = Math.max(1, Math.min(page - 2, totalPages - 4))
+          const p = start + i
+          return p <= totalPages ? (
+            <button key={p} onClick={() => onChange(p)}
+              className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
+                page === p ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+              }`}>
+              {p}
+            </button>
+          ) : null
+        })}
+
+        <button onClick={() => onChange(Math.min(totalPages, page + 1))} disabled={page === totalPages}
+          className="p-1.5 rounded-lg hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+          <ChevronRight className="w-4 h-4" />
+        </button>
+        <button onClick={() => onChange(totalPages)} disabled={page === totalPages}
+          className="p-1.5 rounded-lg hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+          <ChevronsRight className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 type Tab = "email" | "sms"
 
 export default function EnviosPage() {
@@ -101,17 +147,22 @@ export default function EnviosPage() {
 function EmailTab() {
   const [rows, setRows] = useState<EmailLog[]>([])
   const [summary, setSummary] = useState<EmailSummary | null>(null)
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
+
+  const totalPages = Math.max(1, Math.ceil(total / LIMIT))
 
   const fetchHistory = async () => {
     setIsLoading(true)
     setError("")
     try {
-      const res = await apiClient.get("/email-logs")
+      const res = await apiClient.get("/email-logs", { params: { skip: (page - 1) * LIMIT, limit: LIMIT } })
       setRows(res.data.rows ?? [])
       setSummary(res.data.summary ?? null)
+      setTotal(res.data.total ?? 0)
       setLastRefresh(new Date())
     } catch {
       setError("Erro ao carregar histórico de e-mails.")
@@ -120,7 +171,7 @@ function EmailTab() {
     }
   }
 
-  useEffect(() => { fetchHistory() }, [])
+  useEffect(() => { fetchHistory() }, [page])
 
   const tableEvents = rows
 
@@ -220,9 +271,7 @@ function EmailTab() {
             </table>
           </div>
 
-          <div className="px-5 py-3 border-t border-border">
-            <p className="text-xs text-muted-foreground">{tableEvents.length} registro{tableEvents.length !== 1 ? "s" : ""} encontrado{tableEvents.length !== 1 ? "s" : ""} hoje</p>
-          </div>
+          <Pagination page={page} totalPages={totalPages} onChange={setPage} />
         </div>
       )}
     </div>
@@ -232,22 +281,27 @@ function EmailTab() {
 function SmsTab() {
   const [rows, setRows] = useState<SmsLog[]>([])
   const [summary, setSummary] = useState<SmsSummary | null>(null)
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
+
+  const totalPages = Math.max(1, Math.ceil(total / LIMIT))
 
   async function fetchRows() {
     setLoading(true)
     try {
-      const res = await apiClient.get(`/sms-logs`)
+      const res = await apiClient.get(`/sms-logs`, { params: { skip: (page - 1) * LIMIT, limit: LIMIT } })
       setRows(res.data.rows ?? [])
       setSummary(res.data.summary ?? null)
+      setTotal(res.data.total ?? 0)
       setLastRefresh(new Date())
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => { fetchRows() }, [])
+  useEffect(() => { fetchRows() }, [page])
 
   return (
     <div className="space-y-6">
@@ -340,9 +394,7 @@ function SmsTab() {
             </table>
           </div>
 
-          <div className="px-5 py-3 border-t border-border">
-            <p className="text-xs text-muted-foreground">{rows.length} registro{rows.length !== 1 ? "s" : ""} encontrado{rows.length !== 1 ? "s" : ""}</p>
-          </div>
+          <Pagination page={page} totalPages={totalPages} onChange={setPage} />
         </div>
       )}
     </div>

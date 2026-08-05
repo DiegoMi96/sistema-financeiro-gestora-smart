@@ -7,17 +7,21 @@ export const dynamic = "force-dynamic"
 export async function GET(request: NextRequest) {
   if (!(await requireMainAuth(request))) return unauthorizedResponse()
 
-  const rows = await sql`
-    SELECT * FROM sms_logs ORDER BY sent_at DESC
-  `
+  const { searchParams } = new URL(request.url)
+  const skip  = parseInt(searchParams.get("skip") ?? "0")
+  const limit = parseInt(searchParams.get("limit") ?? "25")
 
-  const [summary] = await sql`
-    SELECT
-      COUNT(*)::int AS total,
-      COUNT(*) FILTER (WHERE success)::int AS total_success,
-      COUNT(*) FILTER (WHERE NOT success)::int AS total_failed
-    FROM sms_logs
-  `
+  const [rows, [summary], [countRow]] = await Promise.all([
+    sql`SELECT * FROM sms_logs ORDER BY sent_at DESC LIMIT ${limit} OFFSET ${skip}`,
+    sql`
+      SELECT
+        COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE success)::int AS total_success,
+        COUNT(*) FILTER (WHERE NOT success)::int AS total_failed
+      FROM sms_logs
+    `,
+    sql`SELECT COUNT(*)::int AS total FROM sms_logs`,
+  ])
 
-  return NextResponse.json({ rows, summary })
+  return NextResponse.json({ rows, summary, total: countRow?.total ?? 0 })
 }

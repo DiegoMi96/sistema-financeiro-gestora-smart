@@ -5,7 +5,10 @@ import apiClient from "@/lib/api"
 import {
   Plus, Upload, Edit2, Trash2, Loader, Search,
   X, Building2, CheckCircle, AlertCircle,
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
 } from "lucide-react"
+
+const LIMIT = 25
 
 interface Client {
   id: string
@@ -30,6 +33,8 @@ const emptyForm = {
 
 export default function ClientsPage() {
   const [clients, setClients]             = useState<Client[]>([])
+  const [total, setTotal]                 = useState(0)
+  const [page, setPage]                   = useState(1)
   const [isLoading, setIsLoading]         = useState(true)
   const [flash, setFlash]                 = useState<{ type: "success" | "error"; msg: string } | null>(null)
   const [searchQuery, setSearchQuery]     = useState("")
@@ -43,23 +48,51 @@ export default function ClientsPage() {
   const [saving, setSaving]               = useState(false)
   const [formData, setFormData]           = useState(emptyForm)
 
-  useEffect(() => { fetchClients() }, [])
+  // appliedQuery é a busca que está realmente em vigor (o que o usuário
+  // digitou só vira busca de verdade ao clicar "Buscar"/Enter) — fica
+  // separado de searchQuery (o texto do campo) pra poder ser dependência do
+  // useEffect sem disparar uma busca a cada tecla digitada.
+  const [appliedQuery, setAppliedQuery]   = useState("")
+  const [refreshKey, setRefreshKey]       = useState(0)
+
+  const totalPages = Math.max(1, Math.ceil(total / LIMIT))
+
+  useEffect(() => { fetchClients() }, [page, appliedQuery, refreshKey])
+
+  const resetPage = () => setPage(1)
+  const refresh    = () => setRefreshKey((k) => k + 1)
 
   const showFlash = (type: "success" | "error", msg: string) => {
     setFlash({ type, msg })
     setTimeout(() => setFlash(null), 4000)
   }
 
-  const fetchClients = async (query?: string) => {
+  const fetchClients = async () => {
     setIsLoading(true)
     try {
-      const response = await apiClient.get("/clients", { params: query ? { query } : {} })
+      const params: Record<string, any> = { skip: (page - 1) * LIMIT, limit: LIMIT }
+      if (appliedQuery) params.query = appliedQuery
+      const response = await apiClient.get("/clients", { params })
       setClients(response.data?.clients ?? response.data ?? [])
+      setTotal(response.data?.total ?? response.data?.clients?.length ?? 0)
     } catch {
       showFlash("error", "Erro ao carregar clientes")
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const applySearch = () => {
+    setAppliedQuery(searchQuery)
+    if (page === 1) refresh()
+    else resetPage()
+  }
+
+  const clearSearch = () => {
+    setSearchQuery("")
+    setAppliedQuery("")
+    if (page === 1) refresh()
+    else resetPage()
   }
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,7 +113,7 @@ export default function ClientsPage() {
       setFormData(emptyForm)
       setEditingId(null)
       setShowModal(false)
-      fetchClients(searchQuery)
+      refresh()
     } catch (err: any) {
       showFlash("error", err.response?.data?.detail || "Erro ao salvar cliente")
     } finally {
@@ -108,7 +141,7 @@ export default function ClientsPage() {
       await apiClient.delete(`/clients/${deleteTarget.id}`)
       showFlash("success", `Cliente "${deleteTarget.name}" removido.`)
       setDeleteTarget(null)
-      fetchClients(searchQuery)
+      refresh()
     } catch {
       showFlash("error", "Erro ao remover cliente")
     } finally {
@@ -131,7 +164,7 @@ export default function ClientsPage() {
         headers: { "Content-Type": "multipart/form-data" },
       })
       setImportResult({ created: response.data.created, updated: response.data.updated })
-      fetchClients(searchQuery)
+      refresh()
     } catch (err: any) {
       showFlash("error", err.response?.data?.detail || "Erro ao importar clientes")
       setShowImportModal(false)
@@ -150,9 +183,9 @@ export default function ClientsPage() {
           <p className="text-muted-foreground">Gerencie o cadastro mestre de clientes</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          {!isLoading && clients.length > 0 && (
+          {!isLoading && total > 0 && (
             <div className="bg-primary/10 text-primary px-4 py-2 rounded-xl text-sm font-semibold">
-              {clients.length} cliente{clients.length !== 1 ? "s" : ""}
+              {total} cliente{total !== 1 ? "s" : ""}
             </div>
           )}
           <button
@@ -196,12 +229,12 @@ export default function ClientsPage() {
             placeholder="Buscar por razão social, CNPJ/CPF ou email..."
             value={searchQuery}
             onChange={handleSearch}
-            onKeyDown={(e) => e.key === "Enter" && fetchClients(searchQuery)}
+            onKeyDown={(e) => e.key === "Enter" && applySearch()}
             className="w-full pl-10 pr-8 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary text-sm"
           />
           {searchQuery && (
             <button
-              onClick={() => { setSearchQuery(""); fetchClients("") }}
+              onClick={clearSearch}
               className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
               <X className="w-3.5 h-3.5" />
@@ -209,7 +242,7 @@ export default function ClientsPage() {
           )}
         </div>
         <button
-          onClick={() => fetchClients(searchQuery)}
+          onClick={applySearch}
           className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
         >
           <Search className="w-4 h-4" />
@@ -228,7 +261,7 @@ export default function ClientsPage() {
           <Building2 className="w-12 h-12 mx-auto text-muted-foreground/20 mb-4" />
           <p className="font-semibold text-lg">Nenhum cliente cadastrado</p>
           <p className="text-muted-foreground text-sm mt-1">
-            {searchQuery ? `Sem resultados para "${searchQuery}"` : "Importe uma planilha ou cadastre manualmente"}
+            {appliedQuery ? `Sem resultados para "${appliedQuery}"` : "Importe uma planilha ou cadastre manualmente"}
           </p>
         </div>
       ) : (
@@ -299,6 +332,46 @@ export default function ClientsPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Paginação */}
+          <div className="flex items-center justify-between px-5 py-3 border-t border-border">
+            <p className="text-sm text-muted-foreground">
+              Página <span className="font-medium text-foreground">{page}</span> de <span className="font-medium text-foreground">{totalPages}</span>
+            </p>
+
+            <div className="flex items-center gap-1">
+              <button onClick={() => setPage(1)} disabled={page === 1}
+                className="p-1.5 rounded-lg hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                <ChevronsLeft className="w-4 h-4" />
+              </button>
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
+                className="p-1.5 rounded-lg hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                const start = Math.max(1, Math.min(page - 2, totalPages - 4))
+                const p = start + i
+                return p <= totalPages ? (
+                  <button key={p} onClick={() => setPage(p)}
+                    className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
+                      page === p ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+                    }`}>
+                    {p}
+                  </button>
+                ) : null
+              })}
+
+              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                className="p-1.5 rounded-lg hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                <ChevronRight className="w-4 h-4" />
+              </button>
+              <button onClick={() => setPage(totalPages)} disabled={page === totalPages}
+                className="p-1.5 rounded-lg hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                <ChevronsRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       )}

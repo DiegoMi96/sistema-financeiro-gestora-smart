@@ -257,7 +257,7 @@ export default function AlertsPage() {
                         >
                           <Eye className="w-4 h-4" />
                         </button>
-                        {alert.status === "pending" && (
+                        {/* {alert.status === "pending" && (
                           <button
                             onClick={() => setConfirmSingle(alert)}
                             title="Marcar como acionado"
@@ -265,7 +265,7 @@ export default function AlertsPage() {
                           >
                             <BadgeCheck className="w-4 h-4" />
                           </button>
-                        )}
+                        )} */}
                       </div>
                     </td>
                   </tr>
