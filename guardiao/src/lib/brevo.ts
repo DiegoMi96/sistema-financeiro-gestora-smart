@@ -1,6 +1,8 @@
 import { BrevoClient } from "@getbrevo/brevo"
+import { sql } from "./db"
 
 const TEMPLATE_ID = 493
+const EMAIL_SUBJECT = "Guardião"
 
 export interface AlertEmailData {
   line_number: string
@@ -38,9 +40,23 @@ export async function sendAlertNotification(
 
   const client = new BrevoClient({ apiKey })
   try {
-    const res = await client.transactionalEmails.sendTransacEmail(payload)
+    const res: any = await client.transactionalEmails.sendTransacEmail(payload)
     console.log("[brevo] enviado com sucesso:", JSON.stringify(res))
+
+    const messageId = res?.messageId ?? res?.messageIds?.[0] ?? null
+    for (const email of toEmails) {
+      await sql`
+        INSERT INTO email_logs (email, event, subject, message_id, template_id)
+        VALUES (${email}, 'sent', ${EMAIL_SUBJECT}, ${messageId}, ${TEMPLATE_ID})
+      `
+    }
   } catch (err: any) {
     console.error("[brevo] erro ao enviar:", err?.message ?? err)
+    for (const email of toEmails) {
+      await sql`
+        INSERT INTO email_logs (email, event, subject, template_id, error_message)
+        VALUES (${email}, 'error', ${EMAIL_SUBJECT}, ${TEMPLATE_ID}, ${String(err?.message ?? err)})
+      `.catch((e) => console.error("[brevo] falha ao gravar log:", e))
+    }
   }
 }

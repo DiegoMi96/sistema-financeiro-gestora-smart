@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/sms-cleanup",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/email-cleanup",
+      "schedule": "0 3 * * *"
     }
   ]
 }

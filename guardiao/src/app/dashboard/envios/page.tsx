@@ -7,13 +7,21 @@ import {
   MessageSquare, CheckCircle2, XCircle,
 } from "lucide-react"
 
-interface BrevoEvent {
+interface EmailLog {
+  id: string
   email: string
-  date: string
-  subject?: string
-  messageId?: string
   event: string
-  from?: string
+  subject: string | null
+  from_email: string | null
+  message_id: string | null
+  template_id: number | null
+  event_at: string
+}
+
+interface EmailSummary {
+  total_recipients: number
+  total_sent: number
+  total_errors: number
 }
 
 interface SmsLog {
@@ -36,14 +44,8 @@ interface SmsSummary {
 }
 
 const EVENT_LABEL: Record<string, { label: string; color: string }> = {
-  sent:          { label: "Enviado",    color: "bg-blue-500/10 text-blue-600" },
-  delivered:     { label: "Entregue",   color: "bg-green-500/10 text-green-600" },
-  error:         { label: "Erro",       color: "bg-red-500/10 text-red-600" },
-  opened:        { label: "Aberto",     color: "bg-purple-500/10 text-purple-600" },
-  clicked:       { label: "Clicado",    color: "bg-indigo-500/10 text-indigo-600" },
-  spam:          { label: "Spam",       color: "bg-orange-500/10 text-orange-600" },
-  blocked:       { label: "Bloqueado",  color: "bg-gray-500/10 text-gray-600" },
-  unsubscribed:  { label: "Descadastrado", color: "bg-yellow-500/10 text-yellow-600" },
+  sent: { label: "Enviado", color: "bg-green-500/10 text-green-600" },
+  error: { label: "Falha", color: "bg-red-500/10 text-red-600" },
 }
 
 function formatTime(dateStr: string) {
@@ -63,7 +65,7 @@ export default function EnviosPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold mb-1">Histórico de Envios</h1>
+        <h1 className="text-3xl font-bold mb-1">Histórico de Envios Diário</h1>
         <p className="text-muted-foreground capitalize">{formatDate()}</p>
       </div>
 
@@ -71,22 +73,20 @@ export default function EnviosPage() {
       <div className="flex gap-1 border-b border-border">
         <button
           onClick={() => setActiveTab("email")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === "email"
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === "email"
               ? "border-primary text-primary"
               : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
+            }`}
         >
           <Mail className="w-4 h-4" />
           E-mail (Brevo)
         </button>
         <button
           onClick={() => setActiveTab("sms")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === "sms"
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === "sms"
               ? "border-primary text-primary"
               : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
+            }`}
         >
           <MessageSquare className="w-4 h-4" />
           SMS
@@ -99,20 +99,22 @@ export default function EnviosPage() {
 }
 
 function EmailTab() {
-  const [events, setEvents]     = useState<BrevoEvent[]>([])
+  const [rows, setRows] = useState<EmailLog[]>([])
+  const [summary, setSummary] = useState<EmailSummary | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError]       = useState("")
+  const [error, setError] = useState("")
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
 
   const fetchHistory = async () => {
     setIsLoading(true)
     setError("")
     try {
-      const res = await apiClient.get("/brevo/history")
-      setEvents(res.data.events ?? [])
+      const res = await apiClient.get("/email-logs")
+      setRows(res.data.rows ?? [])
+      setSummary(res.data.summary ?? null)
       setLastRefresh(new Date())
     } catch {
-      setError("Erro ao carregar histórico da Brevo.")
+      setError("Erro ao carregar histórico de e-mails.")
     } finally {
       setIsLoading(false)
     }
@@ -120,10 +122,7 @@ function EmailTab() {
 
   useEffect(() => { fetchHistory() }, [])
 
-  const sent      = new Set(events.map((e) => e.email)).size
-  const delivered = events.filter((e) => e.event === "delivered").length
-  const errors    = events.filter((e) => e.event === "error").length
-  const tableEvents = events.filter((e) => e.event === "delivered" || e.event === "error")
+  const tableEvents = rows
 
   return (
     <div className="space-y-6">
@@ -147,25 +146,16 @@ function EmailTab() {
         <Info className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
         <p className="text-muted-foreground">
           São exibidos apenas os emails enviados <span className="font-medium text-foreground">hoje</span> pelo Guardião.
-          Para consultar envios de outros dias, acesse o{" "}
-          <a
-            href="https://app.brevo.com/transactional/email/logs"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 hover:underline font-medium"
-          >
-            painel da Brevo
-          </a>
-          .
+          O histórico é limpo automaticamente à meia-noite.
         </p>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: "Destinatários",  value: sent,      icon: Mail,         color: "text-blue-600",   bg: "bg-blue-500/10" },
-          { label: "Entregues", value: delivered,  icon: CheckCircle,  color: "text-green-600",  bg: "bg-green-500/10" },
-          { label: "Erros",     value: errors,     icon: AlertCircle,  color: "text-red-600",    bg: "bg-red-500/10" },
+          { label: "Destinatários", value: summary?.total_recipients ?? 0, icon: Mail, color: "text-blue-600", bg: "bg-blue-500/10" },
+          { label: "Enviados", value: summary?.total_sent ?? 0, icon: CheckCircle, color: "text-green-600", bg: "bg-green-500/10" },
+          { label: "Erros", value: summary?.total_errors ?? 0, icon: AlertCircle, color: "text-red-600", bg: "bg-red-500/10" },
         ].map(({ label, value, icon: Icon, color, bg }) => (
           <div key={label} className="bg-card rounded-xl border border-border p-5">
             <div className="flex items-center justify-between mb-3">
@@ -208,16 +198,16 @@ function EmailTab() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {tableEvents.map((ev, i) => {
+                {tableEvents.map((ev) => {
                   const badge = EVENT_LABEL[ev.event] ?? { label: ev.event, color: "bg-muted text-muted-foreground" }
                   return (
-                    <tr key={i} className="hover:bg-muted/40 transition-colors">
+                    <tr key={ev.id} className="hover:bg-muted/40 transition-colors">
                       <td className="px-5 py-3.5 text-muted-foreground text-xs flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5" />
-                        {formatTime(ev.date)}
+                        {formatTime(ev.event_at)}
                       </td>
                       <td className="px-5 py-3.5 font-medium">{ev.email}</td>
-                      <td className="px-5 py-3.5 text-muted-foreground text-xs">{ev.from ?? "—"}</td>
+                      <td className="px-5 py-3.5 text-muted-foreground text-xs">{ev.from_email ?? "—"}</td>
                       <td className="px-5 py-3.5">
                         <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${badge.color}`}>
                           {badge.label}
@@ -240,9 +230,9 @@ function EmailTab() {
 }
 
 function SmsTab() {
-  const [rows, setRows]         = useState<SmsLog[]>([])
-  const [summary, setSummary]   = useState<SmsSummary | null>(null)
-  const [loading, setLoading]   = useState(true)
+  const [rows, setRows] = useState<SmsLog[]>([])
+  const [summary, setSummary] = useState<SmsSummary | null>(null)
+  const [loading, setLoading] = useState(true)
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
 
   async function fetchRows() {
@@ -288,9 +278,9 @@ function SmsTab() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: "Envios",   value: summary?.total ?? 0,         icon: MessageSquare, color: "text-blue-600",  bg: "bg-blue-500/10" },
-          { label: "Enviados", value: summary?.total_success ?? 0, icon: CheckCircle2,  color: "text-green-600", bg: "bg-green-500/10" },
-          { label: "Falhas",   value: summary?.total_failed ?? 0,  icon: XCircle,       color: "text-red-600",   bg: "bg-red-500/10" },
+          { label: "Envios", value: summary?.total ?? 0, icon: MessageSquare, color: "text-blue-600", bg: "bg-blue-500/10" },
+          { label: "Enviados", value: summary?.total_success ?? 0, icon: CheckCircle2, color: "text-green-600", bg: "bg-green-500/10" },
+          { label: "Falhas", value: summary?.total_failed ?? 0, icon: XCircle, color: "text-red-600", bg: "bg-red-500/10" },
         ].map(({ label, value, icon: Icon, color, bg }) => (
           <div key={label} className="bg-card rounded-xl border border-border p-5">
             <div className="flex items-center justify-between mb-3">
@@ -333,11 +323,10 @@ function SmsTab() {
                   <tr key={row.id} className="hover:bg-muted/40 transition-colors">
                     <td className="px-5 py-3.5 font-mono text-xs">{row.phone}</td>
                     <td className="px-5 py-3.5">
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        row.success
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${row.success
                           ? "bg-green-500/10 text-green-600"
                           : "bg-red-500/10 text-red-600"
-                      }`}>
+                        }`}>
                         {row.success ? "Enviado" : "Falha"}
                       </span>
                     </td>

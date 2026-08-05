@@ -14,8 +14,8 @@ export const metadata: Metadata = {
   title: 'Guardião - Sistema de Controle de Consumo',
   description: 'Sistema de controle de consumo de linhas móveis para a Gestora SMART',
   icons: {
-    icon: '/favicon.svg',
-    apple: '/favicon.svg',
+    icon: '/guardiao/favicon.svg',
+    apple: '/guardiao/favicon.svg',
   },
 }
 

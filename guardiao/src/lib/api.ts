@@ -24,22 +24,21 @@ apiClient.interceptors.request.use(
   }
 )
 
-// Response interceptor
+// Response interceptor — login unificado (31/07/2026): não existe mais
+// refresh token nesse modelo (a sessão é a mesma do sistema principal, via
+// localStorage 'token'/'user'). Um 401 aqui significa que esse token expirou
+// ou ficou inválido — desloga de vez (limpa a sessão compartilhada) e manda
+// de volta pro sistema principal, em vez de deixar o erro passar em silêncio.
 apiClient.interceptors.response.use(
   (response) => response,
-  async (error) => {
-    const { accessToken, refreshToken, clearAuth, setTokens } = useAuthStore.getState()
-
-    if (error.response?.status === 401 && refreshToken) {
-      try {
-        const response = await axios.post(`${API_URL}/v1/auth/refresh`, {
-          refresh_token: refreshToken,
-        })
-        setTokens(response.data)
-        return apiClient.request(error.config)
-      } catch (refreshError) {
-        clearAuth()
-        window.location.href = "/login"
+  (error) => {
+    if (error.response?.status === 401) {
+      const { clearAuth } = useAuthStore.getState()
+      clearAuth()
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("token")
+        localStorage.removeItem("user")
+        window.location.href = "/"
       }
     }
 

@@ -70,7 +70,7 @@ const menuItems: MenuItem[] = [
         permKey: "can_view_grd_analises",
       },
       {
-        title: "Histórico de Envios",
+        title: "Histórico de Envios Diário",
         href: "/dashboard/envios",
         icon: Send,
         roles: ["admin", "supervisor", "analyst"],
