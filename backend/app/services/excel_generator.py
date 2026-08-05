@@ -2,6 +2,7 @@
 Gerador de Excel — Gestora Smart
 """
 import io
+import math
 from openpyxl import Workbook
 from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
@@ -83,11 +84,17 @@ PCT       = '0.00%'
 
 def _g(line, attr, default=None):
     if hasattr(line, attr):
-        return getattr(line, attr, default)
-    try:
-        return line[attr]
-    except Exception:
+        v = getattr(line, attr, default)
+    else:
+        try:
+            v = line[attr]
+        except Exception:
+            v = default
+    # Alguns campos numéricos vêm como NaN/Inf quando o dado de origem é
+    # vazio — nem openpyxl nem xlsxwriter aceitam esses valores na célula.
+    if isinstance(v, float) and (math.isnan(v) or math.isinf(v)):
         return default
+    return v
 
 
 def _row_from_line(line) -> list:
@@ -301,9 +308,18 @@ def generate_client_excel_fast(cycle, lines) -> io.BytesIO:
 
     # Dados a partir da linha 1 — write_row sem formato por célula (rápido)
     # Células herdam o formato de coluna definido em set_column()
+    def _clean(v):
+        # xlsxwriter não aceita NaN/Inf em write_number() — alguns campos
+        # numéricos chegam como NaN quando o dado de origem vem vazio.
+        if v is None:
+            return ''
+        if isinstance(v, float) and (math.isnan(v) or math.isinf(v)):
+            return ''
+        return v
+
     for row_idx, line in enumerate(lines, 1):
         vals = _row_from_line(line)
-        ws.write_row(row_idx, 0, ['' if v is None else v for v in vals])
+        ws.write_row(row_idx, 0, [_clean(v) for v in vals])
 
     wb.close()
     buf.seek(0)
