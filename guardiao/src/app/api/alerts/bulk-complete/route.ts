@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
   // Agrupa por cliente (CNPJ) — o e-mail e o SMS são genéricos (não citam
   // linha/porcentagem específica), então um cliente com várias linhas
   // concluídas junto recebe 1 e-mail + 1 SMS, não um de cada por linha.
-  const groups = new Map<string, typeof pendingAlerts>()
+  const groups = new Map<string, any[]>()
   for (const alert of pendingAlerts) {
     const key = alert.cpf_cnpj ?? ""
     const group = groups.get(key)
