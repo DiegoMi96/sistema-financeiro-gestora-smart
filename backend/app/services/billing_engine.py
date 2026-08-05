@@ -73,24 +73,52 @@ class BillingEngineService:
 
     def _excel_to_csv(self, source, csv_path: str) -> None:
         """
-        Lê o Excel base com calamine (rápido) e grava como CSV no disco,
-        liberando o DataFrame logo em seguida.
-        Pico de RAM: ~830 MB por ~45 s; depois cai para 0.
+        Lê o Excel base linha a linha (openpyxl read_only) e grava como CSV
+        em disco — sem nunca montar a planilha inteira em memória.
+
+        Trocado de calamine pra streaming em 04/08/2026: a base desse mês
+        tem XML interno de ~1,5 GB (58 colunas — a maioria telemetria não
+        usada pelo motor, tipo GPS/última conexão/hostname) e travava o
+        processo mesmo com >3,8 GB de RAM disponível (confirmado testando
+        localmente com o arquivo real — calamine monta a planilha inteira
+        de uma vez, então o pico de memória escala com o tamanho do XML,
+        não só com o número de linhas). O servidor de produção só tem
+        1,9 GB de RAM no total. openpyxl read_only processa uma linha por
+        vez — bem mais lento que calamine, mas memória praticamente
+        constante (não escala com o tamanho do arquivo).
         """
+        from openpyxl import load_workbook
+        import csv as _csv
+
         file_input = io.BytesIO(source) if isinstance(source, (bytes, bytearray)) else source
-        print("📂 Lendo base com calamine...", flush=True)
-        try:
-            df = pd.read_excel(file_input, sheet_name="Inventário", engine="calamine")
-        except Exception:
-            if hasattr(file_input, "seek"):
-                file_input.seek(0)
-            df = pd.read_excel(file_input, sheet_name=0, engine="calamine")
+        print("📂 Lendo base (streaming, linha a linha)...", flush=True)
+
+        wb = load_workbook(file_input, read_only=True, data_only=True)
+        ws = wb["Inventário"] if "Inventário" in wb.sheetnames else wb[wb.sheetnames[0]]
+        if "Inventário" not in wb.sheetnames:
             print("⚠️ Aba 'Inventário' não encontrada, usando primeira aba", flush=True)
-        print(f"📂 {len(df):,} linhas lidas — gravando CSV em disco...", flush=True)
-        df.to_csv(csv_path, index=False)
-        del df
+
+        rows_iter = ws.iter_rows(values_only=True)
+        header = list(next(rows_iter))
+
+        n = 0
+        with open(csv_path, "w", newline="", encoding="utf-8") as f:
+            writer = _csv.writer(f)
+            writer.writerow(header)
+            batch = []
+            for row in rows_iter:
+                batch.append(row)
+                n += 1
+                if len(batch) >= 50_000:
+                    writer.writerows(batch)
+                    batch = []
+                    print(f"📂 {n:,} linhas convertidas...", flush=True)
+            if batch:
+                writer.writerows(batch)
+
+        wb.close()
         gc.collect()
-        print("📂 Base liberada da memória — processamento em chunks a seguir", flush=True)
+        print(f"📂 {n:,} linhas gravadas em CSV — processamento em chunks a seguir", flush=True)
 
     def _prepare_base_chunk(self, df: pd.DataFrame) -> pd.DataFrame:
         """Aplica conversões de tipo a um chunk raw lido do CSV (substitui _load_base para streaming)."""
