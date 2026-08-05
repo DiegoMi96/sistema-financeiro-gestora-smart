@@ -720,7 +720,11 @@ class BillingEngineService:
         if df_fretes.empty: return pd.DataFrame()
         rows = []
         for _, r in df_fretes.iterrows():
-            rows.append({"ID_CPF/CNPJ": r["id"], "Nome do cliente": r.get("cliente"),
+            id_cli = _sanitize_id(r["id"])
+            if not id_cli:
+                continue
+            rows.append({"ID_CPF/CNPJ": id_cli, "CPF/CNPJ": id_cli.replace("ss_", ""),
+                         "Nome do cliente": r.get("cliente"),
                          "Status": "Frete", "_dias": 0, "_reajuste_pct": 0,
                          "_mensalidade_reaj": 0, "_mensalidade_cobr": 0,
                          "_ativacao": 0, "_excedente": 0, "_multa": 0, "_sms": 0,
