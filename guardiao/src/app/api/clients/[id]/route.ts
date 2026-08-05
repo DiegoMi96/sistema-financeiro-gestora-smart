@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { sql } from "@/lib/db"
 import { requireMainAuth, unauthorizedResponse } from "@/lib/mainAuth"
+import { normalizeCnpj } from "@/lib/cnpj"
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   if (!(await requireMainAuth(request))) return unauthorizedResponse()
@@ -9,7 +10,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
   const [client] = await sql`
     UPDATE clients SET
-      cnpj              = COALESCE(${body.cnpj ?? null}, cnpj),
+      cnpj              = COALESCE(${body.cnpj != null ? normalizeCnpj(body.cnpj) : null}, cnpj),
       name              = COALESCE(${body.name ?? null}, name),
       consultant_name   = COALESCE(${body.consultant_name ?? null}, consultant_name),
       phone             = COALESCE(${body.phone ?? null}, phone),

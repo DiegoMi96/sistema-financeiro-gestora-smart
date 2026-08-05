@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { sql } from "@/lib/db"
 import { requireMainAuth, unauthorizedResponse } from "@/lib/mainAuth"
+import { normalizeCnpj } from "@/lib/cnpj"
 
 const COL_MAP: Record<string, string> = {
   // Identificadores
@@ -93,7 +94,7 @@ export async function POST(request: NextRequest) {
         if (mapped) row[mapped] = String(v ?? "").trim()
       }
 
-      const identifier = row.cnpj || row.cpf || ""
+      const identifier = normalizeCnpj(row.cnpj || row.cpf || "")
       if (!identifier) continue
 
       seen.set(identifier, {

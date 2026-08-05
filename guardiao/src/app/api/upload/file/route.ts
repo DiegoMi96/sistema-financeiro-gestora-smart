@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { sql } from "@/lib/db"
 import { requireMainAuth, unauthorizedResponse } from "@/lib/mainAuth"
+import { normalizeCnpj } from "@/lib/cnpj"
 
 const COL_MAP: Record<string, string> = {
   "cpf/cnpj":                   "cpf_cnpj",
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
     const clientsWithPackage = await sql`
       SELECT cnpj FROM clients WHERE is_active = true AND messaging_package = 'Sim'
     `
-    const hasMessaging = new Set(clientsWithPackage.map((r: any) => r.cnpj))
+    const hasMessaging = new Set(clientsWithPackage.map((r: any) => normalizeCnpj(r.cnpj)))
 
     // Remove alertas pendentes antigos (serão substituídos pelos do novo upload)
     await sql`DELETE FROM alerts WHERE status = 'pending'`
@@ -138,7 +139,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Sem pacote de mensageria → registra em skipped_lines e ignora
-        if (!hasMessaging.has(cpfCnpj)) {
+        if (!hasMessaging.has(normalizeCnpj(cpfCnpj))) {
           skippedLinesToInsert.push({
             line_number: lineNumber, client_name: clientName, cpf_cnpj: cpfCnpj, operator,
             contract_type: contractType, quota_mb: quotaMb, used_mb: Math.round(usedMb * 100) / 100,
