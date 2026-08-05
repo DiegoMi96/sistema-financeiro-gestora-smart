@@ -783,6 +783,15 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
         db.commit()
         print(f"🎉 Ciclo {cycle_id} finalizado — {inv_count} linhas, {len(boleto_rows)} boletos, R$ {total_value:,.2f}", flush=True)
 
+        # Pré-gera o Excel completo já aqui (não só na aprovação) — já estamos
+        # numa background task, então isso não atrasa a resposta HTTP. Assim
+        # o download fica instantâneo assim que o usuário for revisar o ciclo,
+        # em vez de gerar do zero (minutos) a cada vez que alguém pedir.
+        try:
+            _bg_excel_pregenerate(cycle_id)
+        except Exception as exc:
+            print(f"⚠️ Pré-geração do Excel falhou (ignorado, pode gerar sob demanda depois): {exc}", flush=True)
+
     except BaseException as e:
         import traceback, sys
         print(f"❌ ERRO no motor de faturamento (cycle_id={cycle_id}): {type(e).__name__}: {e}", flush=True)
