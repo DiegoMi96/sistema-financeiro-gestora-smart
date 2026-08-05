@@ -642,7 +642,10 @@ class BillingEngineService:
         df["_ativacao"] = np.where(mask_ativ_mes, df.get("Preço de ativação", 0), 0.0)
 
         credito = pd.to_numeric(df.get("Crédito adicionado no Simcard", 0), errors="coerce").fillna(0)
-        _exc_raw = credito.apply(_kb_to_mb) * pd.to_numeric(df.get("Preço do MB Excedente", 0), errors="coerce").fillna(0)
+        # Preço do MB Excedente tem piso de R$2,00 — qualquer valor abaixo disso
+        # na base é elevado a R$2,00 antes de multiplicar pelo consumo.
+        preco_mb_exc = pd.to_numeric(df.get("Preço do MB Excedente", 0), errors="coerce").fillna(0).clip(lower=2.00)
+        _exc_raw = credito.apply(_kb_to_mb) * preco_mb_exc
         # Máscara usa .round(2) para definir quais linhas têm excedente real (>= R$0,01).
         # O valor armazenado é full-precision para que a soma por cliente bata com a planilha.
         mask_exc_pos = _exc_raw.round(2) > 0
