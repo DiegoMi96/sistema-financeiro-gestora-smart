@@ -80,9 +80,10 @@ def _bg_excel_export(task_id: str, cycle_id: int) -> None:
                         bl.reajuste_pct, bl.mensalidade_reaj, bl.dias,
                         bl.mensalidade_cobrada, bl.ativacao_cobrada, bl.excedente_cobrado,
                         bl.multa_cobrada, bl.sms_cobrado, bl.total_linha,
-                        c.nome AS client_nome
+                        COALESCE(bl.apelido, bcs.nome_cliente) AS client_nome
                     FROM billing_lines bl
-                    LEFT JOIN clients c ON c.id_smart = bl.id_smart
+                    LEFT JOIN billing_client_summaries bcs
+                        ON bcs.cycle_id = bl.cycle_id AND bcs.id_smart = bl.id_smart
                     WHERE bl.cycle_id = :cid
                     ORDER BY bl.id_smart
                 """).execution_options(stream_results=True),
@@ -135,9 +136,10 @@ def _bg_excel_pregenerate(cycle_id: int) -> None:
                         bl.reajuste_pct, bl.mensalidade_reaj, bl.dias,
                         bl.mensalidade_cobrada, bl.ativacao_cobrada, bl.excedente_cobrado,
                         bl.multa_cobrada, bl.sms_cobrado, bl.total_linha,
-                        c.nome AS client_nome
+                        COALESCE(bl.apelido, bcs.nome_cliente) AS client_nome
                     FROM billing_lines bl
-                    LEFT JOIN clients c ON c.id_smart = bl.id_smart
+                    LEFT JOIN billing_client_summaries bcs
+                        ON bcs.cycle_id = bl.cycle_id AND bcs.id_smart = bl.id_smart
                     WHERE bl.cycle_id = :cid
                     ORDER BY bl.id_smart
                 """).execution_options(stream_results=True),
@@ -1740,9 +1742,10 @@ def export_client_excel(
                 bl.reajuste_pct, bl.mensalidade_reaj, bl.dias,
                 bl.mensalidade_cobrada, bl.ativacao_cobrada, bl.excedente_cobrado,
                 bl.multa_cobrada, bl.sms_cobrado, bl.total_linha,
-                c.nome AS client_nome
+                COALESCE(bl.apelido, bcs.nome_cliente) AS client_nome
             FROM billing_lines bl
-            LEFT JOIN clients c ON c.id_smart = bl.id_smart
+            LEFT JOIN billing_client_summaries bcs
+                ON bcs.cycle_id = bl.cycle_id AND bcs.id_smart = bl.id_smart
             WHERE bl.cycle_id = :cid AND bl.id_smart = :smart
             ORDER BY bl.iccid
         """),

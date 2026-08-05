@@ -606,7 +606,14 @@ class BillingEngineService:
         mr = self.mes_ref
         mes_ts = pd.Timestamp(mr)
 
-        db  = pd.to_datetime(df.get("Data de início da suspensão"), errors="coerce")
+        # "Data de início da suspensão" costuma vir vazia na base; quando isso
+        # acontece, a data real do bloqueio está em "Data de início do bloqueio
+        # de rede" (mesmo evento, coluna diferente preenchida pelo sistema de
+        # origem). Sem esse fallback, linha suspensa sem a 1ª coluna caía no
+        # default de dias = mês inteiro em vez de 0/proporcional.
+        db_susp = pd.to_datetime(df.get("Data de início da suspensão"), errors="coerce")
+        db_bloq = pd.to_datetime(df.get("Data de início do bloqueio de rede"), errors="coerce")
+        db  = db_susp.fillna(db_bloq)
         dc  = pd.to_datetime(df.get("Data de cancelamento"), errors="coerce")
         da  = pd.to_datetime(df.get("Data de ativação"), errors="coerce")
 
@@ -720,7 +727,11 @@ class BillingEngineService:
         if df_fretes.empty: return pd.DataFrame()
         rows = []
         for _, r in df_fretes.iterrows():
-            rows.append({"ID_CPF/CNPJ": r["id"], "Nome do cliente": r.get("cliente"),
+            id_cli = _sanitize_id(r["id"])
+            if not id_cli:
+                continue
+            rows.append({"ID_CPF/CNPJ": id_cli, "CPF/CNPJ": id_cli.replace("ss_", ""),
+                         "Nome do cliente": r.get("cliente"),
                          "Status": "Frete", "_dias": 0, "_reajuste_pct": 0,
                          "_mensalidade_reaj": 0, "_mensalidade_cobr": 0,
                          "_ativacao": 0, "_excedente": 0, "_multa": 0, "_sms": 0,
