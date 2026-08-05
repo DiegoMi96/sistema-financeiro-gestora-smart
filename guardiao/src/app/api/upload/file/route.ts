@@ -92,9 +92,20 @@ export async function POST(request: NextRequest) {
     await sql`DELETE FROM skipped_lines WHERE competencia = ${competencia}`
 
     let processedCount = 0
-    let alertsGenerated = 0
     let skippedAlreadyDone = 0
     let skippedNoMessaging = 0
+
+    const skippedLinesToInsert: {
+      line_number: string; client_name: string; cpf_cnpj: string; operator: string
+      contract_type: string; quota_mb: number; used_mb: number; usage_percentage: number
+      competencia: string; reason: string
+    }[] = []
+
+    const alertsToInsert: {
+      id: string; line_number: string; client_name: string; cpf_cnpj: string; operator: string
+      contract_type: string; quota_mb: number; quota_gb: number; used_gb: number
+      usage_percentage: number; block_status: string; competencia: string; status: string
+    }[] = []
 
     for (const rawRow of rows) {
       const row: Record<string, unknown> = {}
@@ -128,33 +139,53 @@ export async function POST(request: NextRequest) {
 
         // Sem pacote de mensageria → registra em skipped_lines e ignora
         if (!hasMessaging.has(cpfCnpj)) {
-          await sql`
-            INSERT INTO skipped_lines
-              (line_number, client_name, cpf_cnpj, operator, contract_type,
-               quota_mb, used_mb, usage_percentage, competencia, reason)
-            VALUES
-              (${lineNumber}, ${clientName}, ${cpfCnpj}, ${operator}, ${contractType},
-               ${quotaMb}, ${Math.round(usedMb * 100) / 100}, ${usagePct}, ${competencia}, 'sem_mensageria')
-          `
+          skippedLinesToInsert.push({
+            line_number: lineNumber, client_name: clientName, cpf_cnpj: cpfCnpj, operator,
+            contract_type: contractType, quota_mb: quotaMb, used_mb: Math.round(usedMb * 100) / 100,
+            usage_percentage: usagePct, competencia, reason: "sem_mensageria",
+          })
           skippedNoMessaging++
           continue
         }
 
         const alertId = `${lineNumber}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
 
-        await sql`
-          INSERT INTO alerts
-            (id, line_number, client_name, cpf_cnpj, operator, contract_type,
-             quota_mb, quota_gb, used_gb, usage_percentage, block_status, competencia, status)
-          VALUES
-            (${alertId}, ${lineNumber}, ${clientName}, ${cpfCnpj}, ${operator}, ${contractType},
-             ${quotaMb}, ${Math.round(quotaGb * 100) / 100}, ${Math.round(usedGb * 100) / 100},
-             ${usagePct}, ${blockStatus}, ${competencia}, 'pending')
-          ON CONFLICT (id) DO NOTHING
-        `
-        alertsGenerated++
+        alertsToInsert.push({
+          id: alertId, line_number: lineNumber, client_name: clientName, cpf_cnpj: cpfCnpj, operator,
+          contract_type: contractType, quota_mb: quotaMb, quota_gb: Math.round(quotaGb * 100) / 100,
+          used_gb: Math.round(usedGb * 100) / 100, usage_percentage: usagePct,
+          block_status: blockStatus, competencia, status: "pending",
+        })
       }
     }
+
+    // Grava skipped_lines e alerts em lotes (em vez de 1 INSERT por linha
+    // dentro do loop acima) — evita timeout do proxy em planilhas com muitas
+    // linhas ultrapassando o limite.
+    const BATCH_SIZE = 500
+
+    for (let i = 0; i < skippedLinesToInsert.length; i += BATCH_SIZE) {
+      const batch = skippedLinesToInsert.slice(i, i + BATCH_SIZE)
+      await sql`
+        INSERT INTO skipped_lines ${sql(batch,
+          "line_number", "client_name", "cpf_cnpj", "operator", "contract_type",
+          "quota_mb", "used_mb", "usage_percentage", "competencia", "reason"
+        )}
+      `
+    }
+
+    for (let i = 0; i < alertsToInsert.length; i += BATCH_SIZE) {
+      const batch = alertsToInsert.slice(i, i + BATCH_SIZE)
+      await sql`
+        INSERT INTO alerts ${sql(batch,
+          "id", "line_number", "client_name", "cpf_cnpj", "operator", "contract_type",
+          "quota_mb", "quota_gb", "used_gb", "usage_percentage", "block_status", "competencia", "status"
+        )}
+        ON CONFLICT (id) DO NOTHING
+      `
+    }
+
+    const alertsGenerated = alertsToInsert.length
 
     // Calcula resolved_month já existente neste mês para inicializar o novo snapshot
     const [monthRow] = await sql`

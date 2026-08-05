@@ -15,6 +15,10 @@ export async function createSchema() {
     )
   `
 
+  // Necessário para o upsert em lote em import/sync (ON CONFLICT (cnpj)) —
+  // sem isso o Postgres recusa o comando por falta de constraint única.
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_clients_cnpj_unique ON clients(cnpj)`
+
   await sql`
     CREATE TABLE IF NOT EXISTS alerts (
       id               TEXT PRIMARY KEY,

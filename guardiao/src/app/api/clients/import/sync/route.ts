@@ -76,8 +76,15 @@ export async function POST(request: NextRequest) {
       }, { status: 422 })
     }
 
-    let created = 0
-    let updated = 0
+    // Monta a lista de clientes a partir da planilha. Se o mesmo identificador
+    // (CNPJ/CPF) aparecer mais de uma vez, a última ocorrência vence — evita o
+    // erro do Postgres "ON CONFLICT DO UPDATE command cannot affect row a
+    // second time" quando duas linhas do mesmo lote tentam upsertar a mesma
+    // chave.
+    const seen = new Map<string, {
+      cnpj: string; name: string; consultant_name: string
+      phone: string; email: string; messaging_package: string; is_active: boolean
+    }>()
 
     for (const rawRow of rows) {
       const row: Record<string, string> = {}
@@ -89,25 +96,41 @@ export async function POST(request: NextRequest) {
       const identifier = row.cnpj || row.cpf || ""
       if (!identifier) continue
 
-      const existing = await sql`SELECT id FROM clients WHERE cnpj = ${identifier} LIMIT 1`
+      seen.set(identifier, {
+        cnpj:              identifier,
+        name:              row.name ?? "",
+        consultant_name:   row.consultant_name ?? "",
+        phone:             row.phone ?? "",
+        email:             row.email ?? "",
+        messaging_package: row.messaging_package ?? "",
+        is_active:         true,
+      })
+    }
 
-      if (existing.length > 0) {
-        await sql`
-          UPDATE clients SET
-            name              = COALESCE(NULLIF(${row.name ?? ""}, ''), name),
-            consultant_name   = COALESCE(NULLIF(${row.consultant_name ?? ""}, ''), consultant_name),
-            phone             = COALESCE(NULLIF(${row.phone ?? ""}, ''), phone),
-            email             = COALESCE(NULLIF(${row.email ?? ""}, ''), email),
-            messaging_package = COALESCE(NULLIF(${row.messaging_package ?? ""}, ''), messaging_package)
-          WHERE cnpj = ${identifier}
-        `
-        updated++
-      } else {
-        await sql`
-          INSERT INTO clients (cnpj, name, consultant_name, phone, email, messaging_package, is_active)
-          VALUES (${identifier}, ${row.name ?? ""}, ${row.consultant_name ?? ""}, ${row.phone ?? ""}, ${row.email ?? ""}, ${row.messaging_package ?? ""}, true)
-        `
-        created++
+    const clients = Array.from(seen.values())
+
+    // Upsert em lote (em vez de 1 SELECT + 1 INSERT/UPDATE por linha) — muito
+    // mais rápido em planilhas grandes. BATCH_SIZE limita o tamanho de cada
+    // comando SQL para não estourar o limite de parâmetros do Postgres.
+    const BATCH_SIZE = 500
+    let created = 0
+    let updated = 0
+
+    for (let i = 0; i < clients.length; i += BATCH_SIZE) {
+      const batch = clients.slice(i, i + BATCH_SIZE)
+      const result = await sql`
+        INSERT INTO clients ${sql(batch, "cnpj", "name", "consultant_name", "phone", "email", "messaging_package", "is_active")}
+        ON CONFLICT (cnpj) DO UPDATE SET
+          name              = COALESCE(NULLIF(EXCLUDED.name, ''), clients.name),
+          consultant_name   = COALESCE(NULLIF(EXCLUDED.consultant_name, ''), clients.consultant_name),
+          phone             = COALESCE(NULLIF(EXCLUDED.phone, ''), clients.phone),
+          email             = COALESCE(NULLIF(EXCLUDED.email, ''), clients.email),
+          messaging_package = COALESCE(NULLIF(EXCLUDED.messaging_package, ''), clients.messaging_package)
+        RETURNING (xmax = 0) AS inserted
+      `
+      for (const row of result) {
+        if (row.inserted) created++
+        else updated++
       }
     }
 
