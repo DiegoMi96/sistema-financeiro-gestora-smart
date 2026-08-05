@@ -606,7 +606,14 @@ class BillingEngineService:
         mr = self.mes_ref
         mes_ts = pd.Timestamp(mr)
 
-        db  = pd.to_datetime(df.get("Data de início da suspensão"), errors="coerce")
+        # "Data de início da suspensão" costuma vir vazia na base; quando isso
+        # acontece, a data real do bloqueio está em "Data de início do bloqueio
+        # de rede" (mesmo evento, coluna diferente preenchida pelo sistema de
+        # origem). Sem esse fallback, linha suspensa sem a 1ª coluna caía no
+        # default de dias = mês inteiro em vez de 0/proporcional.
+        db_susp = pd.to_datetime(df.get("Data de início da suspensão"), errors="coerce")
+        db_bloq = pd.to_datetime(df.get("Data de início do bloqueio de rede"), errors="coerce")
+        db  = db_susp.fillna(db_bloq)
         dc  = pd.to_datetime(df.get("Data de cancelamento"), errors="coerce")
         da  = pd.to_datetime(df.get("Data de ativação"), errors="coerce")
 
