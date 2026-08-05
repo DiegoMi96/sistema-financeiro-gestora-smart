@@ -50,7 +50,7 @@ def _read_task(task_id: str) -> dict | None:
 def _bg_excel_export(task_id: str, cycle_id: int) -> None:
     """Background task: generates Excel, writes state to /tmp (shared across workers)."""
     from app.database import SessionLocal
-    from app.services.excel_generator import generate_faturamento_excel
+    from app.services.excel_generator import generate_client_excel_fast as generate_faturamento_excel
 
     # Preserva user_id do estado inicial para manter a verificação de acesso
     initial = _read_task(task_id) or {}
@@ -89,7 +89,7 @@ def _bg_excel_export(task_id: str, cycle_id: int) -> None:
                 """).execution_options(stream_results=True),
                 {"cid": cycle_id},
             )
-            buf = generate_faturamento_excel(cycle, cursor.yield_per(2000))
+            buf = generate_faturamento_excel(cycle, cursor.yield_per(2000), low_memory=True)
         finally:
             db.close()
 
@@ -108,7 +108,7 @@ def _bg_excel_export(task_id: str, cycle_id: int) -> None:
 def _bg_excel_pregenerate(cycle_id: int) -> None:
     """Pré-gera Excel do ciclo na aprovação — salva em path estável sem vínculo de task_id."""
     from app.database import SessionLocal
-    from app.services.excel_generator import generate_faturamento_excel
+    from app.services.excel_generator import generate_client_excel_fast as generate_faturamento_excel
 
     prebuilt = _prebuilt_excel_path(cycle_id)
     print(f"[pre-gen] Iniciando pré-geração Excel ciclo {cycle_id}", flush=True)
@@ -145,7 +145,7 @@ def _bg_excel_pregenerate(cycle_id: int) -> None:
                 """).execution_options(stream_results=True),
                 {"cid": cycle_id},
             )
-            buf = generate_faturamento_excel(cycle, cursor.yield_per(2000))
+            buf = generate_faturamento_excel(cycle, cursor.yield_per(2000), low_memory=True)
         finally:
             db.close()
 
