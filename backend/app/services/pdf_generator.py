@@ -36,7 +36,7 @@ _CSS = """
   body {
     font-family: Arial, Helvetica, sans-serif;
     background: #fff;
-    padding: 30px 40px;
+    padding: 20px 40px;
   }
 
   /* ── HEADER ── */
@@ -44,9 +44,9 @@ _CSS = """
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-bottom: 14px;
+    padding-bottom: 10px;
     border-bottom: 3px solid var(--green);
-    margin-bottom: 14px;
+    margin-bottom: 10px;
   }
 
   .logo-img { height: 160px; width: auto; display: block; margin-bottom: -28px; }
@@ -66,8 +66,8 @@ _CSS = """
     background: var(--gray-light);
     border: 1px solid var(--border);
     border-radius: 3px;
-    padding: 10px 14px;
-    margin-bottom: 12px;
+    padding: 8px 14px;
+    margin-bottom: 8px;
   }
   .company-bar .cb-name {
     font-size: 12px; font-weight: 800;
@@ -80,24 +80,24 @@ _CSS = """
   /* ── CLIENTE ── */
   .client-block {
     border: 1px solid var(--border);
-    border-radius: 3px; overflow: hidden; margin-bottom: 12px;
+    border-radius: 3px; overflow: hidden; margin-bottom: 8px;
   }
   .block-header {
     background: var(--gray-dark); color: #fff;
     font-size: 10px; font-weight: 700;
-    letter-spacing: 1px; padding: 6px 12px; text-transform: uppercase;
+    letter-spacing: 1px; padding: 5px 12px; text-transform: uppercase;
   }
   .block-body {
-    padding: 10px 14px; font-size: 11px;
-    color: var(--text); line-height: 1.8;
+    padding: 8px 14px; font-size: 11px;
+    color: var(--text); line-height: 1.6;
   }
   .block-body strong { font-weight: 700; }
 
   /* ── PERÍODO ── */
   .period-bar {
     background: var(--gray-light); border: 1px solid var(--border);
-    border-radius: 3px; padding: 10px 16px; margin-bottom: 14px;
-    font-size: 11px; color: var(--text-muted); line-height: 1.7;
+    border-radius: 3px; padding: 8px 16px; margin-bottom: 10px;
+    font-size: 11px; color: var(--text-muted); line-height: 1.5;
   }
   .period-bar strong { color: var(--text); }
 
@@ -106,29 +106,34 @@ _CSS = """
     font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
     text-transform: uppercase; color: var(--green);
     border-bottom: 2px solid var(--green-light);
-    padding-bottom: 4px; margin-bottom: 8px; margin-top: 0;
+    padding-bottom: 4px; margin-bottom: 6px; margin-top: 0;
   }
+  .st-pagamento { text-align: center; }
 
   /* ── TABELAS ── */
   table {
     width: 100%; border-collapse: collapse;
-    font-size: 11px; margin-bottom: 10px; table-layout: fixed;
+    font-size: 11px; margin-bottom: 6px; table-layout: fixed;
+    page-break-inside: avoid;
+  }
+  .payment-table {
+    width: 70%; margin: 0 auto 6px;
   }
   .tbl-section-header td {
     background: var(--gray-dark); color: #fff;
     font-weight: 700; font-size: 10.5px; letter-spacing: 0.6px;
-    text-align: center; padding: 6px 8px;
+    text-align: center; padding: 4px 8px;
     text-transform: uppercase; border: none;
   }
   .tbl-section-header td.th-green { background: var(--green); border: none; }
   .tbl-col-header th {
     background: #444; color: #fff; font-size: 10px; font-weight: 600;
-    padding: 5px 8px; text-align: center; border: 1px solid #E0E0E0;
+    padding: 4px 8px; text-align: center; border: 1px solid #E0E0E0;
   }
   .tbl-col-header th.th-green { background: var(--green); }
   tbody tr { background: var(--gray-light); }
   td {
-    padding: 5px 8px; border: 1px solid #E0E0E0;
+    padding: 4px 8px; border: 1px solid #E0E0E0;
     text-align: center; color: var(--text);
     background: var(--gray-light);
   }
@@ -145,7 +150,7 @@ _CSS = """
   .total-final {
     display: flex; align-items: center; justify-content: space-between;
     background: var(--green); border-radius: 3px;
-    padding: 11px 20px 11px 24px; margin-top: 2px; margin-bottom: 18px;
+    padding: 9px 20px 9px 24px; margin-top: 2px; margin-bottom: 10px;
   }
   .total-final .tf-label {
     font-size: 11px; font-weight: 600; letter-spacing: 1px;
