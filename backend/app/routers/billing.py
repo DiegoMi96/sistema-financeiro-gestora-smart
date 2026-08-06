@@ -1704,6 +1704,46 @@ def export_client_pdf(
         pass
 
     nome_fallback = getattr(summary, "nome_cliente", None) or None
+    due_date = getattr(summary, "due_date", None)
+
+    # Nº da fatura no Asaas — casa por external_reference (id_smart exato) e,
+    # como o sync do Asaas não preenche esse campo hoje, cai pro fallback por
+    # CPF/CNPJ. Filtra pelo vencimento do ciclo pra achar a fatura certa (o
+    # mesmo cliente tem uma linha por mês em asaas_payments_sync).
+    asaas_invoice_number = None
+    try:
+        row = db.execute(
+            text("""
+                SELECT invoice_number FROM asaas_payments_sync
+                WHERE (external_reference = :id_smart OR customer_cpf_cnpj = :cpf)
+                  AND (:due_date IS NULL OR due_date = :due_date)
+                  AND invoice_number IS NOT NULL
+                ORDER BY (external_reference = :id_smart) DESC, synced_at DESC
+                LIMIT 1
+            """),
+            {"id_smart": id_smart, "cpf": cpf_cnpj_raw, "due_date": due_date}
+        ).fetchone()
+        asaas_invoice_number = row.invoice_number if row else None
+    except Exception:
+        pass
+
+    # Nosso Número do boleto Itaú — casa pelo CPF/CNPJ (a coluna vem com
+    # pontuação no relatório importado, ex. "48.836.642/0001-51") +
+    # vencimento do ciclo.
+    itau_nosso_numero = None
+    try:
+        row = db.execute(
+            text("""
+                SELECT nosso_numero FROM itau_boletos
+                WHERE regexp_replace(cpf_cnpj, '\\D', '', 'g') = :cpf
+                  AND (:due_date IS NULL OR data_vencimento = :due_date)
+                ORDER BY uploaded_at DESC LIMIT 1
+            """),
+            {"cpf": cpf_cnpj_raw, "due_date": due_date}
+        ).fetchone()
+        itau_nosso_numero = row.nosso_numero if row else None
+    except Exception:
+        pass
 
     output = generate_client_invoice_pdf(
         cycle, agg_rows, summary, adjs,
@@ -1711,6 +1751,8 @@ def export_client_pdf(
         asaas_cust=asaas_cust,
         nome_override=nome_fallback,
         cpf_cnpj_override=cpf_cnpj_raw,
+        asaas_invoice_number=asaas_invoice_number,
+        itau_nosso_numero=itau_nosso_numero,
     )
 
     return StreamingResponse(
