@@ -367,12 +367,12 @@ export default function BillingCyclePage() {
                 return sortDir === 'asc' ? av - bv : bv - av
               })
               return (<>
-            <div className="flex border-b border-gray-100 min-w-[1100px]" style={{background:'#F9FAFB'}}>
+            <div className="flex border-b border-gray-100 min-w-[1900px]" style={{background:'#F9FAFB'}}>
               {COLS.map(({ key, label, fixed }) => (
                 <div key={key}
-                  className={`${fixed ? 'w-56 shrink-0' : 'flex-1'} gs-th cursor-pointer select-none hover:text-gray-600`}
+                  className={`${fixed ? 'w-56 shrink-0' : 'flex-1 min-w-0'} gs-th cursor-pointer select-none hover:text-gray-600`}
                   onClick={() => handleSort(key)}>
-                  <span className="inline-flex items-center justify-center gap-1">
+                  <span className="inline-flex items-center justify-center gap-1 w-full truncate">
                     <span className="text-gray-400 text-xs invisible">↕</span>
                     {label}
                     <span className="text-gray-400 text-xs">{sortCol === key ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
@@ -385,20 +385,20 @@ export default function BillingCyclePage() {
             {items.map(c => (
               <div key={c.id_smart}
                 onClick={() => navigate(`/faturamento/${cycleId}/cliente/${encodeURIComponent(c.id_smart)}`)}
-                className="flex px-0 py-3.5 border-b border-gray-100 last:border-0 hover:bg-gray-50 cursor-pointer text-sm items-center min-w-[1100px]">
+                className="flex px-0 py-3.5 border-b border-gray-100 last:border-0 hover:bg-gray-50 cursor-pointer text-sm items-center min-w-[1900px]">
                 <div className="w-56 shrink-0 px-4">
                   <p className="font-medium text-gray-800 truncate">{c.client_nome || c.id_smart}</p>
                   <p className="text-xs text-gray-400 font-mono">{c.id_smart}</p>
                 </div>
-                <div className="flex-1 text-center text-gray-700">{fmt(c.total_mensalidade)}</div>
-                <div className="flex-1 text-center text-gray-700">{fmt(c.total_ativacao)}</div>
-                <div className="flex-1 text-center text-gray-700">{fmt(c.total_excedente)}</div>
-                <div className="flex-1 text-center text-gray-700">{fmt(c.total_cancelamento)}</div>
-                <div className="flex-1 text-center text-gray-700">{fmt(c.total_multa)}</div>
-                <div className="flex-1 text-center text-gray-700">{fmt(c.total_sms)}</div>
-                <div className="flex-1 text-center text-gray-700">{fmt(c.total_frete)}</div>
-                <div className="flex-1 text-center text-gray-700">{fmt(c.total_mensageria)}</div>
-                <div className="flex-1 text-center font-semibold text-gray-900">{fmt(c.total_final)}</div>
+                <div className="flex-1 min-w-0 text-center text-gray-700 truncate">{fmt(c.total_mensalidade)}</div>
+                <div className="flex-1 min-w-0 text-center text-gray-700 truncate">{fmt(c.total_ativacao)}</div>
+                <div className="flex-1 min-w-0 text-center text-gray-700 truncate">{fmt(c.total_excedente)}</div>
+                <div className="flex-1 min-w-0 text-center text-gray-700 truncate">{fmt(c.total_cancelamento)}</div>
+                <div className="flex-1 min-w-0 text-center text-gray-700 truncate">{fmt(c.total_multa)}</div>
+                <div className="flex-1 min-w-0 text-center text-gray-700 truncate">{fmt(c.total_sms)}</div>
+                <div className="flex-1 min-w-0 text-center text-gray-700 truncate">{fmt(c.total_frete)}</div>
+                <div className="flex-1 min-w-0 text-center text-gray-700 truncate">{fmt(c.total_mensageria)}</div>
+                <div className="flex-1 min-w-0 text-center font-semibold text-gray-900 truncate">{fmt(c.total_final)}</div>
                 <div className="w-8 shrink-0 flex justify-end pr-2">
                   <ChevronRight size={16} className="text-gray-300" />
                 </div>
