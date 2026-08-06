@@ -57,17 +57,25 @@ class BillingEngineService:
 
     def __init__(self, year: int, month: int,
                  cnpj_excluidos: set | None = None,
-                 mensageria_valor: float | None = None):
+                 mensageria_valor: float | None = None,
+                 cnpj_sem_arredondamento: set | None = None):
         self.year            = year
         self.month           = month
         self.mes_ref         = datetime(year, month, 1)
         self.total_dias      = calendar.monthrange(year, month)[1]
         self.cnpj_excluidos  = cnpj_excluidos if cnpj_excluidos is not None else CNPJ_EXCLUIDOS_DEFAULT
         self.mensageria_valor = mensageria_valor if mensageria_valor is not None else 9.90
+        # Clientes cujo Mensalidade cobrada usa arredondamento padrão (ROUND)
+        # em vez do ROUNDUP normal do sistema — configurável em Configurações.
+        self.cnpj_sem_arredondamento = cnpj_sem_arredondamento or set()
 
     def _is_excluido(self, cnpj_str: str) -> bool:
         digits = re.sub(r"\D", "", str(cnpj_str))
         return digits in self.cnpj_excluidos
+
+    def _sem_arredondamento(self, id_smart: str) -> bool:
+        digits = re.sub(r"\D", "", str(id_smart))
+        return digits in self.cnpj_sem_arredondamento
 
     # ── API de processamento em streaming (baixa RAM) ─────────────────────────
 
@@ -637,6 +645,12 @@ class BillingEngineService:
         df["_mensalidade_reaj"]  = df["Mensalidade"] * (1 + df["_reajuste_pct"])
         raw = df["_mensalidade_reaj"] / td * df["_dias"]
         df["_mensalidade_cobr"]  = raw.apply(_roundup2)
+        # Exceção configurável: alguns clientes cobram com arredondamento
+        # padrão (pro mais próximo) em vez do ROUNDUP normal do sistema.
+        if self.cnpj_sem_arredondamento:
+            mask_sem_arred = df["ID_CPF/CNPJ"].apply(self._sem_arredondamento)
+            if mask_sem_arred.any():
+                df.loc[mask_sem_arred, "_mensalidade_cobr"] = raw[mask_sem_arred].round(2)
 
         mask_ativ_mes = (da.dt.year == mr.year) & (da.dt.month == mr.month)
         df["_ativacao"] = np.where(mask_ativ_mes, df.get("Preço de ativação", 0), 0.0)

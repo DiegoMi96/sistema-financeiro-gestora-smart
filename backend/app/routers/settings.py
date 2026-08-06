@@ -70,6 +70,7 @@ class SettingsOut(BaseModel):
     mensageria_valor:    str
     cnpj_excluidos:      str
     prefixos_excluidos:  str
+    cnpj_sem_arredondamento: str
     cnpj_categorias:     str
     parametros_calculo:  str
     asaas_configured:    bool
@@ -89,6 +90,7 @@ class SettingsIn(BaseModel):
     mensageria_valor:    Optional[str] = None
     cnpj_excluidos:      Optional[str] = None
     prefixos_excluidos:  Optional[str] = None
+    cnpj_sem_arredondamento: Optional[str] = None
     cnpj_categorias:     Optional[str] = None
     parametros_calculo:  Optional[str] = None
 
@@ -121,6 +123,7 @@ def get_settings(
         mensageria_valor    = _get(db, "mensageria_valor") or "9.90",
         cnpj_excluidos      = _get(db, "cnpj_excluidos") or "22222222222\n24152616000146",
         prefixos_excluidos  = _get(db, "prefixos_excluidos") or "ANUIDADE",
+        cnpj_sem_arredondamento = _get(db, "cnpj_sem_arredondamento") or "",
         parametros_calculo  = _get(db, "parametros_calculo") or json.dumps([
             {"key": "mensageria_valor", "label": "Mensageria", "valor": _get(db, "mensageria_valor") or "9.90"},
         ]),

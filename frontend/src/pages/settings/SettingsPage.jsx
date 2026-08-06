@@ -216,6 +216,7 @@ function RegrasNegocio({ cfg, save }) {
   const [form, setForm] = useState({
     cnpj_excluidos:      cfg?.cnpj_excluidos     || '',
     prefixos_excluidos:  cfg?.prefixos_excluidos || 'ANUIDADE',
+    cnpj_sem_arredondamento: cfg?.cnpj_sem_arredondamento || '',
     cnpj_categorias: (() => {
       try { return JSON.parse(cfg?.cnpj_categorias || '{}') }
       catch { return {} }
@@ -393,6 +394,18 @@ function RegrasNegocio({ cfg, save }) {
             placeholder="ANUIDADE"
           />
           <p className="text-xs text-gray-400 mt-1">Um prefixo por linha — clientes cujo nome começa com esses termos (maiúsc.) são excluídos automaticamente.</p>
+        </div>
+
+        <div>
+          <label className="gs-label block mb-1">CNPJs/CPFs sem arredondamento para cima</label>
+          <textarea
+            rows={3}
+            value={form.cnpj_sem_arredondamento}
+            onChange={e => setForm(p => ({ ...p, cnpj_sem_arredondamento: e.target.value }))}
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono resize-none"
+            placeholder="12345678000199"
+          />
+          <p className="text-xs text-gray-400 mt-1">Um CNPJ/CPF por linha, sem pontuação. Por padrão a mensalidade sempre arredonda pra cima (nunca perde centavo); estes clientes usam arredondamento normal (pro mais próximo).</p>
         </div>
       </div>
 

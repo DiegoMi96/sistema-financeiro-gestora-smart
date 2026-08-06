@@ -413,14 +413,20 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
         try:
             _cnpj_raw = db.execute(_text("SELECT value FROM system_settings WHERE key='cnpj_excluidos'")).scalar()
             _mens_raw = db.execute(_text("SELECT value FROM system_settings WHERE key='mensageria_valor'")).scalar()
+            _sem_arred_raw = db.execute(_text("SELECT value FROM system_settings WHERE key='cnpj_sem_arredondamento'")).scalar()
         except Exception:
-            _cnpj_raw = _mens_raw = None
+            _cnpj_raw = _mens_raw = _sem_arred_raw = None
 
         _cnpj_excluidos = {
             _re.sub(r"\D", "", line).strip()
             for line in (_cnpj_raw or "").splitlines()
             if _re.sub(r"\D", "", line.strip())
         } or None
+        _cnpj_sem_arredondamento = {
+            _re.sub(r"\D", "", line).strip()
+            for line in (_sem_arred_raw or "").splitlines()
+            if _re.sub(r"\D", "", line.strip())
+        }
         try:
             _mensageria_valor = float((_mens_raw or "").replace(",", ".")) if _mens_raw else None
         except (ValueError, TypeError):
@@ -429,7 +435,8 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
         print(f"⏳ Iniciando motor — ciclo {cycle_id} ({month:02d}/{year})", flush=True)
         engine = BillingEngineService(year=year, month=month,
                                       cnpj_excluidos=_cnpj_excluidos,
-                                      mensageria_valor=_mensageria_valor)
+                                      mensageria_valor=_mensageria_valor,
+                                      cnpj_sem_arredondamento=_cnpj_sem_arredondamento)
 
         # ── Setup: carrega refs + converte base Excel → CSV (pico 830 MB, depois 0) ──
         ref = engine.setup(file_paths, base_bytes=base_bytes)
