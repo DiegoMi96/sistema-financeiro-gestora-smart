@@ -203,15 +203,13 @@ def generate_client_invoice_pdf(
 
     today = datetime.date.today()
     mes_ext = f"{MESES[cycle.month]} {cycle.year}"
-    numero = str(getattr(cycle, "id", 0)).zfill(6)
+    # Nº da cobrança: usa a fatura do Asaas quando existir (é o número que o
+    # cliente reconhece); sem ela, cai no id do ciclo como antes.
+    numero = escape(str(asaas_invoice_number)) if asaas_invoice_number else str(getattr(cycle, "id", 0)).zfill(6)
     data_emissao = today.strftime("%d/%m/%Y")
 
     refs_html = ""
-    if asaas_invoice_number:
-        refs_html += f"Fatura Asaas: {escape(str(asaas_invoice_number))}"
     if itau_nosso_numero:
-        if refs_html:
-            refs_html += " &nbsp;·&nbsp; "
         refs_html += f"Nosso Nº Itaú: {escape(str(itau_nosso_numero))}"
 
     def _ac(field):
