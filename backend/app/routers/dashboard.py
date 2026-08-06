@@ -159,6 +159,7 @@ def get_dashboard_summary(
             SELECT status, COUNT(*) AS qtd, ROUND(SUM(total_linha)::numeric, 2) AS valor
             FROM billing_lines
             WHERE cycle_id = :cid
+              AND NOT (status = 'Cancelamento' AND iccid <> '')
             GROUP BY status
         """), {"cid": latest_cycle.id}).fetchall()
         for r in rows:
@@ -254,6 +255,7 @@ def get_status_evolution(
               EXTRACT(YEAR FROM CURRENT_DATE)::int * 100
               + EXTRACT(MONTH FROM CURRENT_DATE)::int - 23
           )
+          AND NOT (bl.status = 'Cancelamento' AND bl.iccid <> '')
         GROUP BY bc.year, bc.month, bl.status
         ORDER BY bc.year, bc.month, bl.status
     """)).fetchall()
@@ -287,7 +289,8 @@ def get_cycle_breakdown(
             ROUND(SUM(sms_cobrado)::numeric,         2),
             ROUND(SUM(total_linha)::numeric,         2),
             COUNT(*)
-        FROM billing_lines WHERE cycle_id = :cid
+        FROM billing_lines
+        WHERE cycle_id = :cid AND NOT (status = 'Cancelamento' AND iccid <> '')
     """), {"cid": cycle_id}).fetchone()
 
     if not row or not row[6]:
@@ -295,7 +298,8 @@ def get_cycle_breakdown(
 
     by_status = db.execute(text("""
         SELECT status, COUNT(*), ROUND(SUM(total_linha)::numeric, 2)
-        FROM billing_lines WHERE cycle_id = :cid
+        FROM billing_lines
+        WHERE cycle_id = :cid AND NOT (status = 'Cancelamento' AND iccid <> '')
         GROUP BY status
     """), {"cid": cycle_id}).fetchall()
 

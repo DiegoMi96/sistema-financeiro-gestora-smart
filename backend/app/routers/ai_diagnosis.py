@@ -7,7 +7,7 @@ import json
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, not_, and_
 
 from app.database import get_db
 from app.models import BillingCycle, BillingClientSummary, BillingLine, BillingStatus
@@ -34,11 +34,17 @@ def _build_context(cycle_id: int, db: Session) -> dict:
     ).all()
 
     # Breakdown por status
+    # Exclui a linha de Cancelamento vinda da base (iccid != "") — o valor
+    # oficial já vem da linha do arquivo dedicado (iccid==""), contá-las
+    # juntas dobra o total de Cancelamento.
     breakdown = db.query(
         BillingLine.status,
         func.count(BillingLine.id).label("qtd"),
         func.sum(BillingLine.total_linha).label("valor"),
-    ).filter(BillingLine.cycle_id == cycle_id).group_by(BillingLine.status).all()
+    ).filter(
+        BillingLine.cycle_id == cycle_id,
+        not_(and_(BillingLine.status == "Cancelamento", BillingLine.iccid != "")),
+    ).group_by(BillingLine.status).all()
 
     # Histórico dos 3 ciclos anteriores
     historico = db.query(BillingCycle).filter(

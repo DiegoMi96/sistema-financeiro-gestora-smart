@@ -1380,8 +1380,13 @@ def get_cycle_breakdown(
     db: Session = Depends(get_db),
 ):
     """Resumo do ciclo agrupado por status — igual à tabela de pivot do Excel."""
-    from sqlalchemy import func
+    from sqlalchemy import func, not_, and_
 
+    # Todo SIM cancelado gera 2 linhas em billing_lines: uma vinda da base
+    # principal (com ICCID real, cobrada com a regra "mês inteiro") e outra
+    # do arquivo dedicado de cancelamentos (iccid="", com o cálculo oficial
+    # já usado no total_final do cliente). Somar as duas dobra o valor de
+    # Cancelamento aqui — a linha da base é só rastreabilidade, não conta.
     rows = (
         db.query(
             BillingLine.status,
@@ -1389,6 +1394,7 @@ def get_cycle_breakdown(
             func.sum(BillingLine.total_linha).label("total"),
         )
         .filter(BillingLine.cycle_id == cycle_id)
+        .filter(not_(and_(BillingLine.status == "Cancelamento", BillingLine.iccid != "")))
         .group_by(BillingLine.status)
         .all()
     )
