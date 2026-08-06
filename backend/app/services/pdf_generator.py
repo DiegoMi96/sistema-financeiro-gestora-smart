@@ -161,6 +161,7 @@ _CSS = """
   .payment-table th {
     background: var(--gray-dark); color: #fff;
     font-size: 10px; padding: 6px 10px; font-weight: 600;
+    text-align: center;
   }
   .badge-pix {
     background: #00C4B4; color: #fff; font-size: 9px; font-weight: 700;
