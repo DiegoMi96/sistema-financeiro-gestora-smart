@@ -673,18 +673,17 @@ class BillingEngineService:
         df["_sms"]   = df["MSISDN"].astype(str).str.strip().map(sms_map).fillna(0) if sms_map and "MSISDN" in df.columns else 0.0
         df["_total"] = (df["_ativacao"] + df["_mensalidade_cobr"] + df["_sms"] + df["_multa"] + df["_excedente"]).round(2)
 
-        # Cancelamento da base principal é só rastreabilidade — o valor oficial
-        # já vem da linha extra gerada a partir do arquivo dedicado de
-        # cancelamentos (_montar_cancelamentos, iccid=""). Contar os dois
-        # dobra mensalidade/multa/total tanto no resumo por status quanto na
-        # soma bruta da coluna TOTAL da planilha completa. Mantém status e
-        # dias (referência), zera só os valores monetários.
-        df.loc[mask_c, ["_mensalidade_cobr", "_excedente", "_multa", "_sms", "_ativacao", "_total"]] = 0.0
-
         # Pré-ativo: sem mensalidade/excedente/multa/SMS — mas cobra ativação se ativado neste mês
         mask_pre = df["Status"] == "Pré-ativo"
         df.loc[mask_pre, ["_excedente", "_multa", "_sms", "_mensalidade_cobr"]] = 0.0
         df.loc[mask_pre, "_total"] = df.loc[mask_pre, "_ativacao"].round(2)
+
+        # Cancelamento da base principal é descartado — o valor oficial já vem
+        # da linha extra gerada a partir do arquivo dedicado de cancelamentos
+        # (_montar_cancelamentos, iccid=""). Manter as duas linhas só poluía a
+        # planilha (duas entradas pro mesmo SIM, uma sempre zerada); a linha
+        # do arquivo dedicado já carrega o status/datas/valores corretos.
+        df = df[~mask_c].copy()
 
         return df
 
