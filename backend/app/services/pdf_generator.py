@@ -60,10 +60,6 @@ _CSS = """
     font-size: 11px; font-weight: 500;
     color: var(--gray-mid); margin-top: 2px;
   }
-  .doc-id .doc-refs {
-    font-size: 10px; font-weight: 500;
-    color: var(--gray-mid); margin-top: 4px;
-  }
 
   /* ── EMPRESA ── */
   .company-bar {
@@ -203,14 +199,16 @@ def generate_client_invoice_pdf(
 
     today = datetime.date.today()
     mes_ext = f"{MESES[cycle.month]} {cycle.year}"
-    # Nº da cobrança: usa a fatura do Asaas quando existir (é o número que o
-    # cliente reconhece); sem ela, cai no id do ciclo como antes.
-    numero = escape(str(asaas_invoice_number)) if asaas_invoice_number else str(getattr(cycle, "id", 0)).zfill(6)
+    # Nº da cobrança: usa o número que o cliente reconhece no boleto —
+    # fatura do Asaas ou nº do boleto Itaú, o que existir (Asaas tem
+    # prioridade se o cliente tiver os dois). Sem nenhum, cai no id do ciclo.
+    if asaas_invoice_number:
+        numero = escape(str(asaas_invoice_number))
+    elif itau_nosso_numero:
+        numero = escape(str(itau_nosso_numero))
+    else:
+        numero = str(getattr(cycle, "id", 0)).zfill(6)
     data_emissao = today.strftime("%d/%m/%Y")
-
-    refs_html = ""
-    if itau_nosso_numero:
-        refs_html += f"Nosso Nº Itaú: {escape(str(itau_nosso_numero))}"
 
     def _ac(field):
         """Lê campo de asaas_cust (Row namedtuple ou dict)."""
@@ -357,7 +355,6 @@ def generate_client_invoice_pdf(
     <div class="doc-id">
       <div class="doc-number">COBRANÇA Nº {numero}</div>
       <div class="doc-date">Emissão: {data_emissao}</div>
-      {f'<div class="doc-refs">{refs_html}</div>' if refs_html else ''}
     </div>
   </div>
 
