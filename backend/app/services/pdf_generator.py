@@ -116,9 +116,6 @@ _CSS = """
     font-size: 11px; margin-bottom: 6px; table-layout: fixed;
     page-break-inside: avoid;
   }
-  .payment-table {
-    width: 70%; margin: 0 auto 6px;
-  }
   .tbl-section-header td {
     background: var(--gray-dark); color: #fff;
     font-weight: 700; font-size: 10.5px; letter-spacing: 0.6px;
