@@ -1787,14 +1787,21 @@ async def download_vencidos_template(
                 FROM combined
                 WHERE cnpj_raw IS NOT NULL AND cnpj_raw <> ''
                 GROUP BY cnpj_raw
+            ),
+            id_smart_map AS (
+                SELECT
+                    REGEXP_REPLACE(id_smart, '[^0-9]', '', 'g') AS cnpj_raw,
+                    MAX(id_smart) AS id_smart
+                FROM billing_client_summaries
+                GROUP BY 1
             )
             SELECT
                 v.cnpj_raw,
                 v.nome,
                 v.valor,
-                COALESCE(c.id_smart, '') AS id_smart
+                COALESCE(m.id_smart, '') AS id_smart
             FROM venc_by_cnpj v
-            LEFT JOIN clients c ON REGEXP_REPLACE(c.cpf_cnpj, '[^0-9]', '', 'g') = v.cnpj_raw
+            LEFT JOIN id_smart_map m ON m.cnpj_raw = v.cnpj_raw
             ORDER BY v.valor DESC
         """), {"inicio": _inicio, "lim": _lim}).fetchall()
     except Exception as _e:
