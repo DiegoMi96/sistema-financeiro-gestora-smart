@@ -365,7 +365,7 @@ def generate_client_invoice_pdf(
     <div class="cb-name">Gestora Smart Sim Card, Hardware e Software Ltda</div>
     <div class="cb-details">
       Rua das Bandeiras, 35 - 2º Andar - Jardim - Santo André/SP - CEP: 09090-780<br>
-      CNPJ: 35.775.152/0001-40 &nbsp;|&nbsp; financeiro@gestorasmart.com.br &nbsp;|&nbsp; (11) 8977-0913
+      CNPJ: 35.775.152/0001-40 &nbsp;|&nbsp; contasareceber@gestorasmart.com.br &nbsp;|&nbsp; (11) 91731-2712
     </div>
   </div>
 
