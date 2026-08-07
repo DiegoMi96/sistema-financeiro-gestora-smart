@@ -1755,6 +1755,7 @@ async def download_vencidos_template(
     import calendar as _cal
 
     _last_day = _cal.monthrange(ano, mes)[1]
+    _inicio   = _date(ano, mes, 1)
     _lim      = _date(ano, mes, _last_day)
 
     try:
@@ -1766,7 +1767,7 @@ async def download_vencidos_template(
                     aps.value
                 FROM asaas_payments_sync aps
                 WHERE aps.status = 'OVERDUE'
-                  AND aps.due_date <= :lim
+                  AND aps.due_date >= :inicio AND aps.due_date <= :lim
             ),
             itau_venc AS (
                 SELECT
@@ -1775,7 +1776,7 @@ async def download_vencidos_template(
                     ib.valor_titulo AS value
                 FROM itau_boletos ib
                 WHERE ib.status = 'vencida'
-                  AND ib.data_vencimento <= :lim
+                  AND ib.data_vencimento >= :inicio AND ib.data_vencimento <= :lim
             ),
             combined AS (SELECT * FROM asaas_venc UNION ALL SELECT * FROM itau_venc),
             venc_by_cnpj AS (
@@ -1795,7 +1796,7 @@ async def download_vencidos_template(
             FROM venc_by_cnpj v
             LEFT JOIN clients c ON REGEXP_REPLACE(c.cpf_cnpj, '[^0-9]', '', 'g') = v.cnpj_raw
             ORDER BY v.valor DESC
-        """), {"lim": _lim}).fetchall()
+        """), {"inicio": _inicio, "lim": _lim}).fetchall()
     except Exception as _e:
         print(f"⚠️  vencidos-template query: {_e}")
         rows = []
@@ -1821,7 +1822,7 @@ async def download_vencidos_template(
         ("ID_Smart",                     16),
         ("CNPJ",                         18),
         ("Nome",                         35),
-        ("Venc. Planejado (AAAA-MM-DD)", 22),
+        ("Venc. Planejado", 22),
         ("Observação",                   45),
     ]
 
