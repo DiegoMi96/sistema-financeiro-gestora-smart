@@ -89,7 +89,7 @@ def read_tab_csv(spreadsheet_id: str, service_account_json: str, tab: str) -> st
         if v is None:
             return ""
         if isinstance(v, bool):
-            return "TRUE" if v else "FALSE"
+            return "true" if v else "false"  # igual ao String(true) do JS legado
         if isinstance(v, float) and v.is_integer():
             return str(int(v))
         return str(v)
