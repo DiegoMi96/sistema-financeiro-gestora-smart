@@ -879,6 +879,11 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg>
       <span class="nav-label">DFC Gerencial</span>
     </div>
+    <div class="nav-section">Sistema</div>
+    <div class="nav-item" data-page="settings" title="Configurações">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.591 1.07c1.527-.88 3.293.886 2.414 2.414a1.724 1.724 0 001.066 2.59c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.59c.879 1.529-.887 3.295-2.415 2.415a1.724 1.724 0 00-2.59 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.59-1.066c-1.529.88-3.295-.886-2.415-2.415a1.724 1.724 0 00-1.066-2.59c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.59c-.88-1.528.886-3.294 2.415-2.414a1.724 1.724 0 002.59-1.07z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      <span class="nav-label">Configurações</span>
+    </div>
   </nav>
   <div style="padding:0 8px 8px">
     <button onclick="trocarModulo()" title="Trocar módulo" style="width:100%;display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;font-size:12px;font-weight:500;color:#6B7280;border:1px dashed #2A2A2A;background:transparent;cursor:pointer;transition:background .15s" onmouseover="this.style.background='#1A1A1A'" onmouseout="this.style.background='transparent'">
@@ -1866,7 +1871,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
     </div>
 
     <!-- =============== CONFIGURAÇÕES (removida — acesso via sistema principal) =============== -->
-    <section class="page" data-page="settings" style="display:none!important">
+    <section class="page" data-page="settings">
       <div class="page-head">
         <div>
           <h2 class="page-title">Configurações</h2>
@@ -1895,12 +1900,24 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="6" fill="#0F9D58"/><path d="M6 8h12v8H6V8z" fill="white" opacity=".3"/><path d="M8 10h8M8 12h8M8 14h5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
             <div style="flex:1;min-width:0">
               <div style="font-weight:600;font-size:13px;color:var(--text)">Planilha Gestora Smart</div>
-              <a href="https://docs.google.com/spreadsheets/d/1yKDb5cGWnGjbZ4DVFPAFcV7SMWTlSqncWK0O9HbzK3Y/edit" target="_blank" style="font-size:11.5px;color:var(--info);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block">Abrir no Google Sheets →</a>
+              <a id="sheetLink" href="https://docs.google.com/spreadsheets/d/1yKDb5cGWnGjbZ4DVFPAFcV7SMWTlSqncWK0O9HbzK3Y/edit" target="_blank" style="font-size:11.5px;color:var(--info);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block">Abrir no Google Sheets →</a>
             </div>
             <div style="text-align:right;flex-shrink:0">
               <div style="font-size:11px;color:var(--muted)">Última sync</div>
               <div id="lastSyncTime" style="font-size:12px;font-weight:600;color:var(--text-2)">—</div>
             </div>
+          </div>
+
+          <!-- Vincular planilha (Google Sheets) — grava via backend FastAPI /sheets/config -->
+          <div style="display:flex;flex-direction:column;gap:8px;padding:14px;background:var(--bg);border-radius:10px;border:1px solid var(--border);margin-bottom:14px">
+            <label style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Vincular planilha (ID do Google Sheets)</label>
+            <input id="sheetIdInput" type="text" placeholder="1yKDb5cGWnGjbZ4DVF..." style="padding:9px 11px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:13px;font-family:inherit;outline:none">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <button type="button" onclick="testSheetsConnection()" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text-2);border-radius:8px;padding:8px 14px;cursor:pointer;font-size:12.5px;font-weight:600;font-family:inherit">Testar conexão</button>
+              <button type="button" onclick="saveSheetsConfig()" style="background:var(--primary);color:#fff;border:0;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:12.5px;font-weight:700;font-family:inherit">Salvar vínculo</button>
+              <span id="sheetCfgStatus" style="font-size:12px;color:var(--muted)"></span>
+            </div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.5">A conta de serviço do Google já está no servidor. A planilha precisa estar compartilhada com <strong style="color:var(--text-2)">gestora-reader@gestora-smart.iam.gserviceaccount.com</strong> (ou pública para leitura).</div>
           </div>
 
           <!-- Status / log -->
@@ -2027,7 +2044,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         </div>
       </div>
 
-        <div class="chart-card">
+        <div class="chart-card" style="display:none">
           <div class="chart-head">
             <div>
               <div class="chart-title">Acessos</div>
@@ -2818,6 +2835,7 @@ function navigateToPage(key) {
   if (key === 'sales') resetOpTableToCurrentMonth();
   // Configurações: admin vê último acesso atualizado do servidor
   if (key === 'settings' && isCurrentUserAdm()) _refreshUsersFromServer();
+  if (key === 'settings') loadSheetsConfig();
 }
 
 /** Restaura a última aba visitada (salva no localStorage). */
@@ -7678,6 +7696,58 @@ function updateCollapseIcon(collapsed) {
     updateCollapseIcon(true);
   }
 })();
+
+// ── Vínculo Google Sheets (Configurações) — via backend FastAPI /sheets/config ──
+// Rodam apenas sob ação do usuário (abrir Configurações / clicar nos botões),
+// nunca na cadeia de init — não afetam o carregamento do dashboard.
+async function loadSheetsConfig() {
+  const tok = localStorage.getItem('token'); if (!tok) return;
+  try {
+    const r = await fetch('/api/sheets/config', { headers: { Authorization: 'Bearer ' + tok } });
+    if (!r.ok) return;
+    const d = await r.json();
+    const inp = document.getElementById('sheetIdInput');
+    const lnk = document.getElementById('sheetLink');
+    if (inp) inp.value = d.spreadsheet_id || '';
+    if (lnk && d.spreadsheet_id) lnk.href = 'https://docs.google.com/spreadsheets/d/' + d.spreadsheet_id + '/edit';
+  } catch (e) {}
+}
+async function saveSheetsConfig() {
+  const tok = localStorage.getItem('token');
+  const inp = document.getElementById('sheetIdInput');
+  const st  = document.getElementById('sheetCfgStatus');
+  const id  = (inp && inp.value || '').trim();
+  const setSt = (msg, col) => { if (st) { st.textContent = msg; st.style.color = col; } };
+  if (!id) { setSt('Informe o ID da planilha', 'var(--negative)'); return; }
+  setSt('Salvando...', 'var(--muted)');
+  try {
+    const r = await fetch('/api/sheets/config', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok },
+      body: JSON.stringify({ spreadsheet_id: id }),
+    });
+    if (r.ok) {
+      setSt('Vínculo salvo ✓', 'var(--positive)');
+      const lnk = document.getElementById('sheetLink');
+      if (lnk) lnk.href = 'https://docs.google.com/spreadsheets/d/' + id + '/edit';
+    } else {
+      const e = await r.json().catch(() => ({}));
+      setSt(e.detail || 'Erro ao salvar (precisa ser admin)', 'var(--negative)');
+    }
+  } catch (e) { setSt('Erro de conexão', 'var(--negative)'); }
+}
+async function testSheetsConnection() {
+  const tok = localStorage.getItem('token');
+  const st  = document.getElementById('sheetCfgStatus');
+  const setSt = (msg, col) => { if (st) { st.textContent = msg; st.style.color = col; } };
+  setSt('Testando...', 'var(--muted)');
+  try {
+    const r = await fetch('/api/sheets/test-connection', { method: 'POST', headers: { Authorization: 'Bearer ' + tok } });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok && d.ok) setSt('Conectado: "' + d.title + '" · ' + ((d.sheets || []).length) + ' abas ✓', 'var(--positive)');
+    else setSt(d.detail || 'Falha na conexão', 'var(--negative)');
+  } catch (e) { setSt('Erro de conexão', 'var(--negative)'); }
+}
 </script>
 </body>
 </html>
