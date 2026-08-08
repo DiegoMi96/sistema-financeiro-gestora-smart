@@ -1823,7 +1823,15 @@ async def download_vencidos_template(
                 REGEXP_REPLACE(g.cnpj, '[^0-9]', '', 'g') AS cnpj_raw,
                 g.nome, g.banco, g.valor, g.vencimento_orig, g.dias,
                 g.email, g.description, g.num_boleto,
-                COALESCE(m.id_smart, '') AS id_smart
+                -- Prefere o id_smart do histórico de faturamento; se o cliente
+                -- não tem histórico (ex.: boleto avulso no Asaas), monta pelo
+                -- padrão do sistema: 'ss_' + CPF/CNPJ (11 ou 14 dígitos).
+                COALESCE(
+                    m.id_smart,
+                    CASE WHEN LENGTH(REGEXP_REPLACE(g.cnpj, '[^0-9]', '', 'g')) IN (11, 14)
+                         THEN 'ss_' || REGEXP_REPLACE(g.cnpj, '[^0-9]', '', 'g')
+                         ELSE '' END
+                ) AS id_smart
             FROM grp g
             LEFT JOIN id_smart_map m
                 ON m.cnpj_raw = REGEXP_REPLACE(g.cnpj, '[^0-9]', '', 'g')
