@@ -70,13 +70,13 @@ export const MODULES = [
     color:       'teal',
     status:      'active',
     permission:  'can_view_controladoria',
+    // SEPARAÇÃO TOTAL (08/08/2026): o menu da Controladoria contém APENAS
+    // rotas próprias da Controladoria. Antes ele embutia Painel/Faturamento/
+    // Clientes/Ajustes (que pertencem ao Faturamento) — essa mistura fazia o
+    // app cair numa URL de Controladoria com o menu do Faturamento, e vice-
+    // versa. Nenhuma rota é compartilhada entre os dois cards.
     nav: [
-      { to: '/dashboard',               label: 'Painel',        permission: 'can_view_dashboard' },
-      { to: '/controladoria/indicadores',label: 'Indicadores'                                    },
-      { to: '/faturamento',             label: 'Faturamento'                                     },
-      { to: '/clientes',                label: 'Clientes'                                        },
-      { to: '/ajustes',                 label: 'Ajustes',       permission: 'can_edit_billing'   },
-      { to: '/configuracoes',           label: 'Configurações', permission: 'can_manage_users'   },
+      { to: '/controladoria/indicadores', label: 'Indicadores' },
     ],
   },
   {
@@ -139,7 +139,13 @@ export const MODULES = [
 
 export function ModuleProvider({ children }) {
   const { user, can } = useAuth()
-  const [activeModule, setActiveModule] = useState(null)
+  // Lê o módulo ativo da sessão JÁ na primeira renderização. Antes iniciava
+  // null e só restaurava depois (num useEffect), então logo após um F5 havia
+  // um instante "sem módulo" que fazia o ModuleRoute redirecionar — parte da
+  // causa do pulo de tela no reload.
+  const [activeModule, setActiveModule] = useState(() => {
+    try { return sessionStorage.getItem('activeModule') || null } catch { return null }
+  })
 
   // Admin vê todos; demais veem apenas os que têm permissão
   const availableModules = MODULES.filter(
