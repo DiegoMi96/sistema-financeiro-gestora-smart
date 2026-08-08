@@ -96,13 +96,18 @@ def read_tab_csv(spreadsheet_id: str, service_account_json: str, tab: str) -> st
 
     lines = []
     for row in values:
-        cells = []
-        for v in row:
-            s = _cell(v)
+        cells = [_cell(v) for v in row]
+        # Corta células vazias do FIM da linha — o Google Sheets API (usada pelo
+        # server.js legado) não devolve trailing empties; o gspread preenche.
+        # Sem isso a planilha vem com vírgulas sobrando no fim de cada linha.
+        while cells and cells[-1] == "":
+            cells.pop()
+        out = []
+        for s in cells:
             if ("," in s) or ('"' in s) or ("\n" in s):
                 s = '"' + s.replace('"', '""') + '"'
-            cells.append(s)
-        lines.append(",".join(cells))
+            out.append(s)
+        lines.append(",".join(out))
     return "\n".join(lines)
 
 
