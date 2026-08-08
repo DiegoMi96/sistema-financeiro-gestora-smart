@@ -92,7 +92,25 @@ export default function Layout() {
 
   const handleLogout = () => { logout(); navigate('/login') }
 
-  const navItems = currentModule?.nav || []
+  // pageBase = primeiro segmento da rota (ex.: '/controladoria')
+  const pageBase  = '/' + location.pathname.split('/')[1]
+
+  // Módulo efetivo do menu: derivado da URL, não apenas do módulo salvo na
+  // sessão. Sem isto, após um F5 o menu podia mostrar um módulo (ex.:
+  // Faturamento) enquanto o conteúdo era de outro (ex.: Controladoria /
+  // Indicadores), porque o módulo ativo vinha do sessionStorage e podia estar
+  // dessincronizado da rota. Regra: se a rota pertence a UM único módulo,
+  // segue esse módulo; se é compartilhada (ex.: /faturamento e /clientes
+  // aparecem em vários módulos), mantém o módulo ativo atual.
+  const routeOwners = availableModules.filter(m =>
+    (m.nav || []).some(item => ('/' + item.to.split('/')[1]) === pageBase)
+  )
+  const effectiveModule =
+    routeOwners.length === 1
+      ? routeOwners[0]
+      : (routeOwners.find(m => m.id === currentModule?.id) || routeOwners[0] || currentModule)
+
+  const navItems = effectiveModule?.nav || []
   const grouped  = navItems.reduce((acc, item) => {
     if (item.permission && !can(item.permission)) return acc
     if (item.roles    && !item.roles.includes(user?.role)) return acc
@@ -102,8 +120,7 @@ export default function Layout() {
     return acc
   }, {})
 
-  const pageBase  = '/' + location.pathname.split('/')[1]
-  const pageTitle = PAGE_TITLES[pageBase] || currentModule?.label || ''
+  const pageTitle = PAGE_TITLES[pageBase] || effectiveModule?.label || ''
   const initials  = user?.name
     ? user.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
     : '?'
