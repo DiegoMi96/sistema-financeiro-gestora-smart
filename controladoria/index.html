@@ -1227,6 +1227,12 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         </div>
       </div>
 
+      <!-- ===== Alertas e Destaques (mockup 08/08/2026) — preenchido por renderAlertas() ===== -->
+      <div class="section">
+        <div class="section-head"><div class="section-bar"></div><div class="section-title">Alertas e Destaques</div></div>
+        <div class="grid grid-5" id="alertasRow"></div>
+      </div>
+
       <!-- Rodapé — nota gerencial (mockup 08/08/2026) -->
       <div style="margin-top:24px;padding-top:14px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--muted)">
         <span>&#9432; Os valores apresentados são gerenciais e podem sofrer alterações. &nbsp;|&nbsp; Valores em Reais (R$).</span>
@@ -3227,6 +3233,7 @@ function applyPeriod(p) {
   document.getElementById('heroVal2').textContent = d.hero2Val;
   document.getElementById('heroDesc2').textContent = d.hero2Desc;
   const ps = document.getElementById('pageSub'); if (ps) ps.textContent = d.pageSub;
+  renderAlertas(d);
   // KPI cards — atualiza todos; mostra "—" se não houver dado na planilha
   document.querySelectorAll('.kpi-label').forEach(el => {
     const label = el.textContent.trim();
@@ -6688,14 +6695,65 @@ function computePeriodData(dm) {
     const cofPrin  = _cpSlice.some(v => v != null) ? _cpSlice.reduce((s,v) => s + (v ?? 0), 0) : null;
     const cof2     = _c2Slice.some(v => v != null) ? _c2Slice.reduce((s,v) => s + (v ?? 0), 0) : null;
     const tesAcum  = (cofPrin != null || cof2 != null) ? (cofPrin??0)+(cof2??0) : null;
+    // ── Deltas vs mês anterior (mockup) — só p/ mês fechado; Q1/YTD/Janeiro caem no texto padrão ──
+    const _pi = (isQ1 || isYTD || idx <= 0) ? -1 : idx - 1;
+    const _prevLbl = _pi >= 0 ? (shortMon[_pi] + '/' + year.slice(2)) : '';
+    const _recP  = _pi >= 0 ? get('Receita', _pi)   : null;
+    const _cmvP  = _pi >= 0 ? get('CMV', _pi)        : null;
+    const _despP = _pi >= 0 ? get('Despesas', _pi)   : null;
+    const _resP  = _pi >= 0 ? get('Resultado', _pi)  : null;
+    const _recLP = _recP != null ? _recP - (recAtvFinMes[_pi] ?? 0) : null;
+    const _margContribC = (recL && cmv != null) ? ((recL - cmv) / recL) * 100 : null;
+    const _margContribP = (_recLP && _cmvP != null) ? ((_recLP - _cmvP) / _recLP) * 100 : null;
+    const _margLiqC = (rec && res != null) ? (res / rec) * 100 : null;
+    const _margLiqP = (_recP && _resP != null) ? (_resP / _recP) * 100 : null;
+    const _delta = (cur, prev, higherBetter, isPP) => {
+      if (_pi < 0 || cur == null || prev == null || (!isPP && prev === 0)) return null;
+      const d = isPP ? (cur - prev) : (((cur - prev) / Math.abs(prev)) * 100);
+      const up = d >= 0;
+      const good = higherBetter ? up : !up;
+      const txt = (up ? '▲ ' : '▼ ') + d.toFixed(1).replace('.', ',') + (isPP ? ' pp' : '%');
+      return `<span class="delta-chip ${good ? 'up' : 'down'}">${txt}</span> <span style="color:var(--muted)">vs ${_prevLbl}</span>`;
+    };
+    // ── Alertas e Destaques (mockup) — computados dos mesmos dados ──
+    const _baseAtivaP = _pi >= 0 ? get('Base_Ativa', _pi) : null;
+    const _sg = n => (n >= 0 ? '+' : '') + n.toFixed(1).replace('.', ',');
+    const _lucroPct = (_pi >= 0 && _resP) ? ((res - _resP) / Math.abs(_resP)) * 100 : null;
+    const _margPP   = (_margLiqC != null && _margLiqP != null) ? (_margLiqC - _margLiqP) : null;
+    const _cmvRatio = (cmv != null && rec) ? (cmv / rec) * 100 : null;
+    const _gerCaixa = (caixaFim != null && caixaIni != null) ? (caixaFim - caixaIni) : null;
+    const _basePct  = (_baseAtivaP && baseAtivaV != null) ? ((baseAtivaV - _baseAtivaP) / _baseAtivaP) * 100 : null;
+    const _alertas = [
+      { ic:'warn',  col: _lucroPct != null ? (_lucroPct < 0 ? 'red' : 'green') : (res != null && res < 0 ? 'red' : 'green'),
+        title:'Lucro Líquido',
+        val: _lucroPct != null ? _sg(_lucroPct) + '% vs mês anterior' : (res != null ? fmtAutoK(res) : '—'),
+        note: _lucroPct != null ? (_lucroPct < 0 ? 'Atenção à queda de rentabilidade.' : 'Rentabilidade em alta.') : 'Resultado do mês.' },
+      { ic:'pct',   col: _margPP != null ? (_margPP < 0 ? 'orange' : 'green') : 'green',
+        title:'Margem Líquida',
+        val: _margPP != null ? _sg(_margPP) + ' pp vs mês anterior' : margemLiqPct,
+        note: _margPP != null ? (_margPP < 0 ? 'Margem em queda.' : 'Margem em alta.') : 'Resultado / Receita.' },
+      { ic:'warn',  col: _cmvRatio != null ? (_cmvRatio > 70 ? 'red' : 'green') : 'green',
+        title:'CMV / Receita',
+        val: _cmvRatio != null ? _cmvRatio.toFixed(0) + '% da receita' : '—',
+        note: _cmvRatio != null ? (_cmvRatio > 70 ? 'Acima do ideal (>70%).' : 'Dentro do ideal.') : '' },
+      { ic:'cash',  col: _gerCaixa != null ? (_gerCaixa >= 0 ? 'green' : 'red') : 'green',
+        title:'Geração de Caixa',
+        val: _gerCaixa != null ? fmtAutoK(_gerCaixa) + ' no mês' : '—',
+        note: _gerCaixa != null ? (_gerCaixa >= 0 ? 'Acima do esperado.' : 'Queima de caixa no mês.') : '' },
+      { ic:'base',  col: _basePct != null ? (_basePct >= 0 ? 'green' : 'red') : 'green',
+        title:'Base Ativa',
+        val: _basePct != null ? _sg(_basePct) + '% vs mês anterior' : (baseAtivaV != null ? fmtNum(baseAtivaV) : '—'),
+        note: _basePct != null ? (_basePct >= 0 ? 'Crescimento consistente.' : 'Retração na base.') : '' },
+    ];
     return {
-      'Receita Bruta':          { v: fmtAutoK(rec), f: 'Faturamento bruto' },
-      'CSP / CMV':              { v: fmtAutoK(cmv), f: 'Custo de serviços' },
-      'Despesas':               { v: fmtAutoK(desp), f: 'Despesas operacionais' },
-      'Margem de Contribuição': { v: margemPct, f: 'Receita − CMV / Receita' },
+      _alertas,
+      'Receita Bruta':          { v: fmtAutoK(rec), f: _delta(rec, _recP, true) || 'Faturamento bruto' },
+      'CSP / CMV':              { v: fmtAutoK(cmv), f: _delta(cmv, _cmvP, false) || 'Custo de serviços' },
+      'Despesas':               { v: fmtAutoK(desp), f: _delta(desp, _despP, false) || 'Despesas operacionais' },
+      'Margem de Contribuição': { v: margemPct, f: _delta(_margContribC, _margContribP, true, true) || 'Receita − CMV / Receita' },
       'Resultado do Mês':       { v: fmtAutoK(res), f: 'Resultado operacional' },
-      'Lucro Líquido':          { v: fmtAutoK(res), f: 'Resultado do mês' },
-      'Margem Líquida':         { v: margemLiqPct, f: 'Resultado / Receita' },
+      'Lucro Líquido':          { v: fmtAutoK(res), f: _delta(res, _resP, true) || 'Resultado do mês' },
+      'Margem Líquida':         { v: margemLiqPct, f: _delta(_margLiqC, _margLiqP, true, true) || 'Resultado / Receita' },
       'Saldo Acumulado':        { v: fmtAutoK(saldo), f: 'Posição de caixa' },
       'Tesouro':                { v: tesAcum != null ? fmtAutoK(tesAcum) : '—', f: 'Cofre Principal + Cofre Secundário' },
       'Caixa Inicial':          { v: fmtAutoK(caixaIni), f: isQ1||isYTD?'Saldo em 01/01':'Saldo em 01/'+(idx+1<10?'0'+(idx+1):idx+1) },
@@ -7824,6 +7882,37 @@ async function testSheetsConnection() {
     if (r.ok && d.ok) setSt('Conectado: "' + d.title + '" · ' + ((d.sheets || []).length) + ' abas ✓', 'var(--positive)');
     else setSt(d.detail || 'Falha na conexão', 'var(--negative)');
   } catch (e) { setSt('Erro de conexão', 'var(--negative)'); }
+}
+
+// ── Alertas e Destaques (mockup 08/08/2026) — preenche #alertasRow a partir de d.kpis._alertas ──
+function renderAlertas(d) {
+  const row = document.getElementById('alertasRow');
+  if (!row) return;
+  const alertas = (d && d.kpis && Array.isArray(d.kpis._alertas)) ? d.kpis._alertas : [];
+  if (!alertas.length) { row.innerHTML = ''; return; }
+  const COL = {
+    red:    { bg:'rgba(224,70,59,.14)',  fg:'var(--negative)' },
+    orange: { bg:'rgba(234,179,8,.15)',  fg:'var(--warning)' },
+    green:  { bg:'var(--primary-light)', fg:'var(--primary)' },
+  };
+  const IC = {
+    warn: '<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>',
+    pct:  '<span style="font-weight:800;font-size:14px">%</span>',
+    cash: '<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.5 0-2.5.8-2.5 1.8S10.5 11.5 12 11.5s2.5.8 2.5 1.8-1 1.8-2.5 1.8M12 7.5v1m0 7v1"/></svg>',
+    base: '<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 17l6-6 4 4 8-8"/><path stroke-linecap="round" stroke-linejoin="round" d="M14 7h7v7"/></svg>',
+  };
+  row.innerHTML = alertas.map(a => {
+    const c = COL[a.col] || COL.green;
+    const ic = IC[a.ic] || IC.warn;
+    return `<div class="card" style="display:flex;align-items:flex-start;gap:12px">
+      <div style="width:34px;height:34px;border-radius:9px;background:${c.bg};color:${c.fg};display:grid;place-items:center;flex-shrink:0">${ic}</div>
+      <div style="min-width:0">
+        <div style="font-weight:700;font-size:13px;color:var(--text)">${a.title}</div>
+        <div style="font-size:12.5px;color:var(--text-2);margin:2px 0 1px">${a.val}</div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.4">${a.note || ''}</div>
+      </div>
+    </div>`;
+  }).join('');
 }
 </script>
 </body>
