@@ -1022,6 +1022,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           </div>
           <div class="kpi-value">R$ —</div>
           <div class="kpi-foot">Faturamento bruto</div>
+          <div class="kpi-spark"></div>
         </div>
         <div class="card" style="display:flex;flex-direction:column;gap:6px">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px">
@@ -1032,6 +1033,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           </div>
           <div class="kpi-value">R$ —</div>
           <div class="kpi-foot">Custo de serviços</div>
+          <div class="kpi-spark"></div>
         </div>
         <div class="card" style="display:flex;flex-direction:column;gap:6px">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px">
@@ -1042,6 +1044,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           </div>
           <div class="kpi-value">R$ —</div>
           <div class="kpi-foot">Despesas operacionais</div>
+          <div class="kpi-spark"></div>
         </div>
         <div class="card" style="display:flex;flex-direction:column;gap:6px">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px">
@@ -1050,6 +1053,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           </div>
           <div class="kpi-value">—</div>
           <div class="kpi-foot">Receita − CMV / Receita</div>
+          <div class="kpi-spark"></div>
         </div>
         <div class="card kpi-dark" style="display:flex;flex-direction:column;gap:6px;background:linear-gradient(135deg,#16774A,#0D5230);border:none;box-shadow:0 8px 20px rgba(13,82,48,.35)">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px">
@@ -1060,6 +1064,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           </div>
           <div class="kpi-value" style="color:#fff">R$ —</div>
           <div class="kpi-foot" style="color:rgba(255,255,255,.8)">Resultado do mês</div>
+          <div class="kpi-spark"></div>
         </div>
         <div class="card kpi-dark" style="display:flex;flex-direction:column;gap:6px;background:linear-gradient(135deg,#16774A,#0D5230);border:none;box-shadow:0 8px 20px rgba(13,82,48,.35)">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px">
@@ -1068,6 +1073,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           </div>
           <div class="kpi-value" style="color:#fff">—</div>
           <div class="kpi-foot" style="color:rgba(255,255,255,.8)">Resultado / Receita</div>
+          <div class="kpi-spark"></div>
         </div>
       </div>
 
@@ -3257,6 +3263,8 @@ function applyPeriod(p) {
     }
     if (v) v.innerHTML = k.v;
     if (f && k.f !== undefined) f.innerHTML = k.f;
+    const sp = card.querySelector('.kpi-spark');
+    if (sp) sp.innerHTML = k.spark || '';
   });
   // Índice de Satisfação — mantém as estrelas, só atualiza o número
   document.querySelectorAll('.kpi-label').forEach(el => {
@@ -6751,15 +6759,34 @@ function computePeriodData(dm) {
         val: _basePct != null ? _sg(_basePct) + '% vs mês anterior' : (baseAtivaV != null ? fmtNum(baseAtivaV) : '—'),
         note: _basePct != null ? (_basePct >= 0 ? 'Crescimento consistente.' : 'Retração na base.') : '' },
     ];
+    // ── Sparklines (mockup) — série de 12 meses por KPI, SVG inline ──
+    const _sparkSvg = (arr, color) => {
+      const vals = arr.map(v => (v == null ? null : +v));
+      const nums = vals.filter(v => v != null && !isNaN(v));
+      if (nums.length < 2) return '';
+      const mn = Math.min(...nums), mx = Math.max(...nums), rg = (mx - mn) || 1;
+      const W = 100, H = 26, n = vals.length;
+      const pts = [];
+      vals.forEach((v, i) => { if (v == null || isNaN(v)) return; const x = (i/(n-1))*W; const y = H - ((v-mn)/rg)*(H-4) - 2; pts.push(x.toFixed(1)+','+y.toFixed(1)); });
+      if (pts.length < 2) return '';
+      return '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="width:100%;height:26px;display:block;margin-top:6px"><polyline fill="none" stroke="'+color+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" points="'+pts.join(' ')+'"/></svg>';
+    };
+    const _serie = k => Array.from({length:12}, (_,i)=>get(k,i));
+    const _serRec  = _serie('Receita');
+    const _serCmv  = _serie('CMV');
+    const _serDesp = _serie('Despesas');
+    const _serRes  = _serie('Resultado');
+    const _serMC   = Array.from({length:12},(_,i)=>{ const r=get('Receita',i), rl=r!=null?r-(recAtvFinMes[i]??0):null, c=get('CMV',i); return (rl&&c!=null)?((rl-c)/rl)*100:null; });
+    const _serML   = Array.from({length:12},(_,i)=>{ const r=get('Receita',i), rr=get('Resultado',i); return (r&&rr!=null)?(rr/r)*100:null; });
     return {
       _alertas,
-      'Receita Bruta':          { v: fmtAutoK(rec), f: _delta(rec, _recP, true) || 'Faturamento bruto' },
-      'CSP / CMV':              { v: fmtAutoK(cmv), f: _delta(cmv, _cmvP, false) || 'Custo de serviços' },
-      'Despesas':               { v: fmtAutoK(desp), f: _delta(desp, _despP, false) || 'Despesas operacionais' },
-      'Margem de Contribuição': { v: margemPct, f: _delta(_margContribC, _margContribP, true, true) || 'Receita − CMV / Receita' },
+      'Receita Bruta':          { v: fmtAutoK(rec), f: _delta(rec, _recP, true) || 'Faturamento bruto', spark: _sparkSvg(_serRec, '#1D9E5E') },
+      'CSP / CMV':              { v: fmtAutoK(cmv), f: _delta(cmv, _cmvP, false) || 'Custo de serviços', spark: _sparkSvg(_serCmv, '#E89B2B') },
+      'Despesas':               { v: fmtAutoK(desp), f: _delta(desp, _despP, false) || 'Despesas operacionais', spark: _sparkSvg(_serDesp, '#E0463B') },
+      'Margem de Contribuição': { v: margemPct, f: _delta(_margContribC, _margContribP, true, true) || 'Receita − CMV / Receita', spark: _sparkSvg(_serMC, '#1D9E5E') },
       'Resultado do Mês':       { v: fmtAutoK(res), f: 'Resultado operacional' },
-      'Lucro Líquido':          { v: fmtAutoK(res), f: _delta(res, _resP, true) || 'Resultado do mês' },
-      'Margem Líquida':         { v: margemLiqPct, f: _delta(_margLiqC, _margLiqP, true, true) || 'Resultado / Receita' },
+      'Lucro Líquido':          { v: fmtAutoK(res), f: _delta(res, _resP, true) || 'Resultado do mês', spark: _sparkSvg(_serRes, 'rgba(255,255,255,.85)') },
+      'Margem Líquida':         { v: margemLiqPct, f: _delta(_margLiqC, _margLiqP, true, true) || 'Resultado / Receita', spark: _sparkSvg(_serML, 'rgba(255,255,255,.85)') },
       'Saldo Acumulado':        { v: fmtAutoK(saldo), f: 'Posição de caixa' },
       'Tesouro':                { v: tesAcum != null ? fmtAutoK(tesAcum) : '—', f: 'Cofre Principal + Cofre Secundário' },
       'Caixa Inicial':          { v: fmtAutoK(caixaIni), f: isQ1||isYTD?'Saldo em 01/01':'Saldo em 01/'+(idx+1<10?'0'+(idx+1):idx+1) },
