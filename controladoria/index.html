@@ -6821,7 +6821,7 @@ function computePeriodData(dm) {
       'Total de Saídas':   { v: fmtAutoK(cmv != null ? cmv + (desp ?? 0) : null), f: 'CMV + Despesas + Custo SMT' },
       'CMV':               { v: fmtAutoK(cmv), f: 'CMV / CPS no período' },
       'Outras Despesas':   { v: fmtAutoK(desp), f: 'Despesas operacionais' },
-      'Margem Líquida':    { v: margemLiqPct, f: 'Resultado / Receita' },
+      'Margem Líquida':    { v: margemLiqPct, f: _delta(_margLiqC, _margLiqP, true, true) || 'Resultado / Receita', spark: _sparkSvg(_serML, 'rgba(255,255,255,.85)') },
       'EBITDA':            { v: ebitdaPctKpi, f: 'EBITDA / Receita' },
       'Tesouro Acumulado': { v: tesAcum != null ? fmtAutoK(tesAcum) : '—', f: 'Cofre Principal + Cofre Secundário' },
       'Cofre Principal':   { v: cofPrin != null ? fmtAutoK(cofPrin) : '—', f: 'Acumulado até ' + longMon[idx] },
