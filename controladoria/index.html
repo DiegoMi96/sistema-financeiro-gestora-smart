@@ -324,6 +324,12 @@ body { display: flex; min-height: 100vh; }
 .delta-chip.down { background: rgba(224,70,59,.13); color: var(--negative); }
 [data-theme="dark"] .delta-chip.up { color: #6FD8A4; }
 .delta-chip svg { width: 11px; height: 11px; }
+.delta-vs { color: var(--muted); font-size: 11px; }
+/* Cards escuros de destaque (Lucro/Margem): chip e "vs" legíveis no verde-escuro */
+.kpi-dark .delta-chip { background: rgba(255,255,255,.16); }
+.kpi-dark .delta-chip.up { color: #8FE9B4; }
+.kpi-dark .delta-chip.down { color: #FFB3AB; }
+.kpi-dark .delta-vs { color: rgba(255,255,255,.72); }
 
 /* Chart card */
 .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
@@ -1045,7 +1051,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           <div class="kpi-value">—</div>
           <div class="kpi-foot">Receita − CMV / Receita</div>
         </div>
-        <div class="card" style="display:flex;flex-direction:column;gap:6px;background:linear-gradient(135deg,#16774A,#0D5230);border:none;box-shadow:0 8px 20px rgba(13,82,48,.35)">
+        <div class="card kpi-dark" style="display:flex;flex-direction:column;gap:6px;background:linear-gradient(135deg,#16774A,#0D5230);border:none;box-shadow:0 8px 20px rgba(13,82,48,.35)">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px">
             <div style="width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.18);color:#fff;display:grid;place-items:center;flex-shrink:0">
               <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 17l6-6 4 4 8-8"/><path stroke-linecap="round" stroke-linejoin="round" d="M14 7h7v7"/></svg>
@@ -1055,7 +1061,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           <div class="kpi-value" style="color:#fff">R$ —</div>
           <div class="kpi-foot" style="color:rgba(255,255,255,.8)">Resultado do mês</div>
         </div>
-        <div class="card" style="display:flex;flex-direction:column;gap:6px;background:linear-gradient(135deg,#16774A,#0D5230);border:none;box-shadow:0 8px 20px rgba(13,82,48,.35)">
+        <div class="card kpi-dark" style="display:flex;flex-direction:column;gap:6px;background:linear-gradient(135deg,#16774A,#0D5230);border:none;box-shadow:0 8px 20px rgba(13,82,48,.35)">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px">
             <div style="width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.18);color:#fff;display:grid;place-items:center;flex-shrink:0;font-weight:800;font-size:14px">%</div>
             <div class="kpi-label" style="margin:0;color:rgba(255,255,255,.85)">Margem Líquida</div>
@@ -6713,7 +6719,7 @@ function computePeriodData(dm) {
       const up = d >= 0;
       const good = higherBetter ? up : !up;
       const txt = (up ? '▲ ' : '▼ ') + d.toFixed(1).replace('.', ',') + (isPP ? ' pp' : '%');
-      return `<span class="delta-chip ${good ? 'up' : 'down'}">${txt}</span> <span style="color:var(--muted)">vs ${_prevLbl}</span>`;
+      return `<span class="delta-chip ${good ? 'up' : 'down'}">${txt}</span> <span class="delta-vs">vs ${_prevLbl}</span>`;
     };
     // ── Alertas e Destaques (mockup) — computados dos mesmos dados ──
     const _baseAtivaP = _pi >= 0 ? get('Base_Ativa', _pi) : null;
