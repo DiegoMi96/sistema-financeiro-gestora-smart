@@ -329,6 +329,9 @@ body { display: flex; min-height: 100vh; }
 [data-theme="dark"] .delta-chip.up { color: #6FD8A4; }
 .delta-chip svg { width: 11px; height: 11px; }
 .delta-vs { color: var(--muted); font-size: 11px; }
+/* Chip ▲/▼ vs mês nos cards de Base SMART / Operação (mockup 11/08/2026) */
+.kpi-delta { margin-top: 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-height: 18px; }
+.kpi-delta:empty { display: none; }
 /* Cards escuros de destaque (Lucro/Margem): chip e "vs" legíveis no verde-escuro */
 .kpi-dark .delta-chip { background: rgba(255,255,255,.16); }
 .kpi-dark .delta-chip.up { color: #8FE9B4; }
@@ -1173,26 +1176,31 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
             <div class="kpi-label">Base Ativa</div>
             <div class="kpi-value">—</div>
             <div class="kpi-foot">Simcards faturantes</div>
+            <div class="kpi-delta"></div>
           </div>
           <div class="card"><div class="card-top-line"></div>
             <div class="kpi-label">Pré-Ativa</div>
             <div class="kpi-value">—</div>
             <div class="kpi-foot">Aguardando ativação</div>
+            <div class="kpi-delta"></div>
           </div>
           <div class="card"><div class="card-top-line negative"></div>
             <div class="kpi-label">Suspensão</div>
             <div class="kpi-value">—</div>
             <div class="kpi-foot">Simcards suspensos</div>
+            <div class="kpi-delta"></div>
           </div>
           <div class="card"><div class="card-top-line info"></div>
             <div class="kpi-label">Ativações (Mês)</div>
             <div class="kpi-value">—</div>
             <div class="kpi-foot">vs. previsto</div>
+            <div class="kpi-delta"></div>
           </div>
           <div class="card"><div class="card-top-line"></div>
             <div class="kpi-label">Novos Clientes</div>
             <div class="kpi-value">—</div>
             <div class="kpi-foot">Clientes novos</div>
+            <div class="kpi-delta"></div>
           </div>
         </div>
       </div>
@@ -1204,11 +1212,13 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
             <div class="kpi-label">Cancelamento (Mês)</div>
             <div class="kpi-value">—</div>
             <div class="kpi-foot">Linhas no mês</div>
+            <div class="kpi-delta"></div>
           </div>
           <div class="card"><div class="card-top-line warn"></div>
             <div class="kpi-label">Desistência (Mês)</div>
             <div class="kpi-value">—</div>
             <div class="kpi-foot">Pré-ativação</div>
+            <div class="kpi-delta"></div>
           </div>
           <div class="card">
             <div class="kpi-label">Próximas Ativações</div>
@@ -3287,6 +3297,8 @@ function applyPeriod(p) {
     if (f && k.f !== undefined) f.innerHTML = k.f;
     const sp = card.querySelector('.kpi-spark');
     if (sp) sp.innerHTML = k.spark || '';
+    const dl = card.querySelector('.kpi-delta'); // chip ▲/▼ vs mês (Base SMART / Operação)
+    if (dl) dl.innerHTML = k.d || '';
   });
   // Índice de Satisfação — mantém as estrelas, só atualiza o número
   document.querySelectorAll('.kpi-label').forEach(el => {
@@ -6797,6 +6809,13 @@ function computePeriodData(dm) {
     };
     // ── Alertas e Destaques (mockup) — computados dos mesmos dados ──
     const _baseAtivaP = _pi >= 0 ? get('Base_Ativa', _pi) : null;
+    // Valores do mês de comparação p/ os chips ▲/▼ do Base SMART / Operação
+    const _basePreP  = _pi >= 0 ? get('Base_Pre', _pi)     : null;
+    const _suspP     = _pi >= 0 ? get('Base_Susp', _pi)    : null;
+    const _vendasP   = _pi >= 0 ? get('Vendas_SIM', _pi)   : null;
+    const _novosP    = _pi >= 0 ? get('Novos_CLI', _pi)    : null;
+    const _cancelP   = _pi >= 0 ? get('Cancelam', _pi)     : null;
+    const _desistP   = _pi >= 0 ? get('Desistencia', _pi)  : null;
     const _sg = n => (n >= 0 ? '+' : '') + n.toFixed(1).replace('.', ',');
     const _lucroPct = (_pi >= 0 && _resP) ? ((res - _resP) / Math.abs(_resP)) * 100 : null;
     const _margPP   = (_margLiqC != null && _margLiqP != null) ? (_margLiqC - _margLiqP) : null;
@@ -6860,19 +6879,19 @@ function computePeriodData(dm) {
       'Caixa Inicial':          { v: fmtAutoK(caixaIni), f: isQ1||isYTD?'Saldo em 01/01':'Saldo em 01/'+(idx+1<10?'0'+(idx+1):idx+1) },
       'Caixa Final':            { v: fmtAutoK(caixaFim), f: isQ1||isYTD?'Saldo em 31/03':'Saldo em 31/'+(idx+1<10?'0'+(idx+1):idx+1) },
       'Inadimplências':         { v: fmtAutoK(inadimpl), f: 'A recuperar' },
-      'Base Ativa':             { v: fmtNum(baseAtivaV), f: 'Simcards faturantes' },
+      'Base Ativa':             { v: fmtNum(baseAtivaV), f: 'Simcards faturantes', d: _delta(baseAtivaV, _baseAtivaP, true) },
       'Base Pré-Ativa':         { v: fmtNum(basePreV), f: basePreV!=null?'Aguardando ativação':'Sincronize a planilha' },
       'Base Software':          { v: fmtNum(baseSWV), f: 'Licenças ativas' },
-      'Suspensão':              { v: baseSuspV!=null ? fmtNum(baseSuspV) : '—', f: 'Simcards suspensos' },
+      'Suspensão':              { v: baseSuspV!=null ? fmtNum(baseSuspV) : '—', f: 'Simcards suspensos', d: _delta(baseSuspV, _suspP, false) },
       'Vendas':                 { v: fmtNum(vendasV), f: isQ1||isYTD?'Total Q1':'vs. previsto' },
-      'Novos Clientes':         { v: fmtNum(novos), f: 'Clientes novos' },
+      'Novos Clientes':         { v: fmtNum(novos), f: 'Clientes novos', d: _delta(novos, _novosP, true) },
       'Cancelamento':           { v: fmtNum(cancel), f: 'Linhas no mês' },
       'Desistência':            { v: fmtNum(desist), f: 'Pré-ativação' },
-      // Aliases p/ os labels do mockup (11/08/2026) — mesmos dados, nomes do print
-      'Pré-Ativa':              { v: fmtNum(basePreV), f: basePreV!=null?'Aguardando ativação':'Sincronize a planilha' },
-      'Ativações (Mês)':        { v: fmtNum(vendasV), f: isQ1||isYTD?'Total Q1':'vs. previsto' },
-      'Cancelamento (Mês)':     { v: fmtNum(cancel), f: 'Linhas no mês' },
-      'Desistência (Mês)':      { v: fmtNum(desist), f: 'Pré-ativação' },
+      // Aliases p/ os labels do mockup (11/08/2026) — mesmos dados, nomes do print + chip ▲/▼
+      'Pré-Ativa':              { v: fmtNum(basePreV), f: basePreV!=null?'Aguardando ativação':'Sincronize a planilha', d: _delta(basePreV, _basePreP, true) },
+      'Ativações (Mês)':        { v: fmtNum(vendasV), f: isQ1||isYTD?'Total Q1':'vs. previsto', d: _delta(vendasV, _vendasP, true) },
+      'Cancelamento (Mês)':     { v: fmtNum(cancel), f: 'Linhas no mês', d: _delta(cancel, _cancelP, false) },
+      'Desistência (Mês)':      { v: fmtNum(desist), f: 'Pré-ativação', d: _delta(desist, _desistP, false) },
       'Cancelamento Acumulado': { v: fmtNum(cancelAcum), f: 'Acumulado' },
       'Cancelamento Anual (Previsão)': (() => {
         const _aArr = dm['Atv_Qtd'] || [];
