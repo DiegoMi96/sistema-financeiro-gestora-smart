@@ -1012,6 +1012,12 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           <h2 class="page-title">Resumo Executivo</h2>
           <p class="page-sub" id="pageSub">Visão geral da performance financeira e operacional da empresa.</p>
         </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);white-space:nowrap">
+          <span>Dados atualizados em <strong id="dashUpdatedAt" style="color:var(--text-2);font-weight:600">—</strong></span>
+          <button onclick="syncFromSheets()" title="Atualizar dados" style="background:none;border:1px solid var(--border);color:var(--text-2);border-radius:8px;width:30px;height:30px;display:grid;place-items:center;cursor:pointer;flex-shrink:0">
+            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          </button>
+        </div>
       </div>
       <!-- ===== Fileira de KPIs (mockup 08/08/2026) — cards preenchidos pelo render via .kpi-label ===== -->
       <div class="grid grid-6" style="margin-bottom:22px" id="kpiRow">
@@ -3084,6 +3090,7 @@ function restoreCache() {
     const elSidebar = document.getElementById('sidebarLastSync');
     if (elSync)    elSync.textContent    = ts;
     if (elSidebar) elSidebar.textContent = ts;
+    const elDash = document.getElementById('dashUpdatedAt'); if (elDash) elDash.textContent = ts;
     return true;
   } catch(e) { return false; }
 }
@@ -7265,6 +7272,7 @@ async function syncFromSheets() {
     const now = new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
     const lastSync = document.getElementById('lastSyncTime');
     if (lastSync) lastSync.textContent = now;
+    const elDash2 = document.getElementById('dashUpdatedAt'); if (elDash2) elDash2.textContent = now;
     const sidebarSync = document.getElementById('sidebarLastSync');
     if (sidebarSync) sidebarSync.textContent = now;
     saveCache(dm, now);
