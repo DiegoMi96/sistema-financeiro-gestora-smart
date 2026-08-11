@@ -160,6 +160,10 @@ body { display: flex; min-height: 100vh; }
 .grid-2 { grid-template-columns: repeat(2, 1fr); }
 .grid-2-3 { grid-template-columns: 2fr 1fr; }
 .grid-3-2 { grid-template-columns: 3fr 2fr; }
+/* Par de painéis lado a lado (mockup Resumo Executivo: Resultado Financeiro | Posição de Caixa) */
+.dash-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; margin-bottom: 28px; }
+.dash-2col > .section { margin-bottom: 0; }
+@media (max-width: 1100px) { .dash-2col { grid-template-columns: 1fr; gap: 0; } .dash-2col > .section { margin-bottom: 28px; } }
 @media (max-width: 1200px) {
   .grid-7 { grid-template-columns: repeat(4, 1fr); }
   .grid-6 { grid-template-columns: repeat(3, 1fr); }
@@ -1108,7 +1112,8 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       </div>
 
 
-      <!-- ===== Resultado Financeiro — tabela + gráfico cascata (mockup 08/08/2026) ===== -->
+      <!-- ===== Resultado Financeiro | Posição de Caixa — 2 colunas (mockup 11/08/2026) ===== -->
+      <div class="dash-2col">
       <div class="section">
         <div class="section-head"><div class="section-bar"></div><div class="section-title">Resultado Financeiro</div></div>
         <div class="card">
@@ -1125,47 +1130,53 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
 
       <div class="section">
         <div class="section-head"><div class="section-bar"></div><div class="section-title">Posição de Caixa</div></div>
-        <div class="grid grid-5">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Em R$ milhões</div>
+        <div class="grid grid-4" style="margin-bottom:14px">
           <div class="card"><div class="card-top-line info"></div>
             <div class="kpi-label">Caixa Inicial</div>
-            <div class="kpi-value">R$ 332.640</div>
-            <div class="kpi-foot">Saldo em 01/03</div>
+            <div class="kpi-value">R$ —</div>
+            <div class="kpi-foot">Saldo em 01/—</div>
           </div>
           <div class="card"><div class="card-top-line"></div>
             <div class="kpi-label">Caixa Final</div>
-            <div class="kpi-value">R$ 342.069</div>
-            <div class="kpi-foot">Saldo em 31/03</div>
+            <div class="kpi-value">R$ —</div>
+            <div class="kpi-foot">Saldo em 31/—</div>
           </div>
           <div class="card"><div class="card-top-line warn"></div>
             <div class="kpi-label">Inadimplências</div>
-            <div class="kpi-value">R$ 113.919</div>
+            <div class="kpi-value">R$ —</div>
             <div class="kpi-foot">A recuperar</div>
-          </div>
-          <div class="card"><div class="card-top-line"></div>
-            <div class="kpi-label">Tesouro</div>
-            <div class="kpi-value">R$ 1,269M</div>
-            <div class="kpi-foot">Aplicações financeiras</div>
           </div>
           <div class="card tinted-primary">
             <div class="kpi-label">Saldo Acumulado</div>
-            <div class="kpi-value">R$ 340.745</div>
-            <div class="kpi-foot">YTD 2026</div>
+            <div class="kpi-value">R$ —</div>
+            <div class="kpi-foot">Posição de caixa</div>
           </div>
         </div>
+        <div class="card">
+          <div class="chart-legend" style="justify-content:center;margin-bottom:8px">
+            <span><span class="legend-dot" style="background:var(--primary)"></span>Realizado</span>
+            <span><span class="legend-dot" style="background:var(--primary-soft)"></span>Previsão</span>
+          </div>
+          <div class="chart-canvas-wrap tall"><canvas id="chartCaixaDash"></canvas></div>
+        </div>
       </div>
+      </div>
+      <!-- /dash-2col (Resultado Financeiro | Posição de Caixa) -->
 
+      <!-- ===== Base SMART | Operação e Satisfação — 2 colunas (mockup 11/08/2026) ===== -->
+      <div class="dash-2col">
       <div class="section">
-        <div class="section-head"><div class="section-bar"></div><div class="section-title">BASE SMART</div></div>
-        <!-- Linha 1: Base + Vendas -->
-        <div class="grid grid-6" style="margin-bottom:10px">
-          <div class="card tinted-primary">
+        <div class="section-head"><div class="section-bar"></div><div class="section-title">Base SMART</div><span style="font-size:12px;color:var(--muted);text-transform:none;font-weight:500">(Clientes e Operações)</span></div>
+        <div class="grid grid-5">
+          <div class="card"><div class="card-top-line"></div>
             <div class="kpi-label">Base Ativa</div>
-            <div class="kpi-value lg">565.338</div>
+            <div class="kpi-value">—</div>
             <div class="kpi-foot">Simcards faturantes</div>
           </div>
           <div class="card"><div class="card-top-line"></div>
-            <div class="kpi-label">Base Pré-Ativa</div>
-            <div class="kpi-value">60.825</div>
+            <div class="kpi-label">Pré-Ativa</div>
+            <div class="kpi-value">—</div>
             <div class="kpi-foot">Aguardando ativação</div>
           </div>
           <div class="card"><div class="card-top-line negative"></div>
@@ -1174,41 +1185,30 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
             <div class="kpi-foot">Simcards suspensos</div>
           </div>
           <div class="card"><div class="card-top-line info"></div>
-            <div class="kpi-label">Base Software</div>
-            <div class="kpi-value">14.108</div>
-            <div class="kpi-foot">Licenças ativas</div>
-          </div>
-          <div class="card tinted-primary">
-            <div class="kpi-label">Vendas</div>
-            <div class="kpi-value">36.435</div>
-            <div class="kpi-foot">102% vs. previsto</div>
+            <div class="kpi-label">Ativações (Mês)</div>
+            <div class="kpi-value">—</div>
+            <div class="kpi-foot">vs. previsto</div>
           </div>
           <div class="card"><div class="card-top-line"></div>
             <div class="kpi-label">Novos Clientes</div>
-            <div class="kpi-value">89</div>
-            <div class="kpi-foot">Conversão 3,4%</div>
+            <div class="kpi-value">—</div>
+            <div class="kpi-foot">Clientes novos</div>
           </div>
         </div>
       </div>
 
-      <!-- Linha 2: Cancelamentos + Próximas Ativações + Satisfação -->
       <div class="section">
-        <div class="section-head"><div class="section-bar"></div><div class="section-title">Operação · Satisfação · Próximas Ativações</div></div>
-        <div class="grid grid-5">
+        <div class="section-head"><div class="section-bar"></div><div class="section-title">Operação e Satisfação</div></div>
+        <div class="grid grid-4">
           <div class="card"><div class="card-top-line warn"></div>
-            <div class="kpi-label">Cancelamento</div>
-            <div class="kpi-value">16.751</div>
+            <div class="kpi-label">Cancelamento (Mês)</div>
+            <div class="kpi-value">—</div>
             <div class="kpi-foot">Linhas no mês</div>
           </div>
           <div class="card"><div class="card-top-line warn"></div>
-            <div class="kpi-label">Desistência</div>
-            <div class="kpi-value">10.602</div>
+            <div class="kpi-label">Desistência (Mês)</div>
+            <div class="kpi-value">—</div>
             <div class="kpi-foot">Pré-ativação</div>
-          </div>
-          <div class="card"><div class="card-top-line warn"></div>
-            <div class="kpi-label">Cancelamento Acumulado</div>
-            <div class="kpi-value">78.719</div>
-            <div class="kpi-foot">Acumulado</div>
           </div>
           <div class="card">
             <div class="kpi-label">Próximas Ativações</div>
@@ -1234,6 +1234,8 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           </div>
         </div>
       </div>
+      </div>
+      <!-- /dash-2col (Base SMART | Operação e Satisfação) -->
 
       <!-- ===== Alertas e Destaques (mockup 08/08/2026) — preenchido por renderAlertas() ===== -->
       <div class="section">
@@ -3793,6 +3795,33 @@ function buildSaldo() {
   });
 }
 
+// Gêmeo de buildSaldo para o Resumo Executivo (Posição de Caixa) — canvas próprio
+// chartCaixaDash. Mesmos dados (saldoAcum + saldoIsReal): Realizado vs Previsão.
+function buildCaixaDash() {
+  const ctx = document.getElementById('chartCaixaDash'); if (!ctx) return;
+  destroyChart('caixaDash');
+  const sel = periodMonthIdx[currentPeriod];
+  charts.caixaDash = new Chart(ctx, {
+    type: 'line',
+    data: { labels: meses, datasets: [
+      { label:'Realizado', data: saldoAcum.map((v,i)=>saldoIsReal[i] ? v : null), borderColor: css('--primary'), backgroundColor: 'rgba(29,158,94,.12)', fill:true, tension:.35, pointRadius: saldoAcum.map((_,i) => i===sel ? 8 : 5), pointBackgroundColor: saldoAcum.map((_,i) => i===sel ? css('--primary-dark') : css('--primary')), borderWidth:3 },
+      { label:'Previsão', data: saldoAcum.map((v,i)=>saldoIsReal[i] ? null : v), borderColor: css('--primary-soft'), backgroundColor:'rgba(29,158,94,.06)', fill:true, tension:.35, pointRadius:4, pointBackgroundColor: css('--primary-soft'), borderDash:[6,4], borderWidth:3 }
+    ]},
+    options: commonOpts({
+      plugins: {
+        legend:{display:false},
+        tooltip:{ callbacks:{ label: c => fmtBRL(c.parsed.y) } },
+        datalabels: {
+          display: true, anchor:'end', align:'top',
+          color: css('--text-2'), font: { size: 9, weight: '700' },
+          formatter: v => v == null ? '' : (v/1000).toFixed(0)+'k'
+        }
+      },
+      scales: { ...commonOpts().scales, y: { ...commonOpts().scales.y, ticks: { ...commonOpts().scales.y.ticks, callback: v => (v/1000).toFixed(0)+'k' } } }
+    })
+  });
+}
+
 function buildBaseSim() {
   const ctx = document.getElementById('chartBaseSim'); if (!ctx) return;
   destroyChart('baseSim');
@@ -5583,6 +5612,7 @@ function rerenderAllCharts() {
   const poolActiveBtn = document.querySelector('#poolTabs .op-tab.active');
   buildPool(poolActiveBtn ? +poolActiveBtn.dataset.mes : 0);
   try { buildWaterfall(); } catch (e) { console.warn('waterfall:', e); }
+  try { buildCaixaDash(); } catch (e) { console.warn('caixaDash:', e); }
 }
 
 // Filter saídas
@@ -6838,6 +6868,11 @@ function computePeriodData(dm) {
       'Novos Clientes':         { v: fmtNum(novos), f: 'Clientes novos' },
       'Cancelamento':           { v: fmtNum(cancel), f: 'Linhas no mês' },
       'Desistência':            { v: fmtNum(desist), f: 'Pré-ativação' },
+      // Aliases p/ os labels do mockup (11/08/2026) — mesmos dados, nomes do print
+      'Pré-Ativa':              { v: fmtNum(basePreV), f: basePreV!=null?'Aguardando ativação':'Sincronize a planilha' },
+      'Ativações (Mês)':        { v: fmtNum(vendasV), f: isQ1||isYTD?'Total Q1':'vs. previsto' },
+      'Cancelamento (Mês)':     { v: fmtNum(cancel), f: 'Linhas no mês' },
+      'Desistência (Mês)':      { v: fmtNum(desist), f: 'Pré-ativação' },
       'Cancelamento Acumulado': { v: fmtNum(cancelAcum), f: 'Acumulado' },
       'Cancelamento Anual (Previsão)': (() => {
         const _aArr = dm['Atv_Qtd'] || [];
