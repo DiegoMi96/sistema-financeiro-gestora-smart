@@ -163,7 +163,26 @@ body { display: flex; min-height: 100vh; }
 /* Par de painéis lado a lado (mockup Resumo Executivo: Resultado Financeiro | Posição de Caixa) */
 .dash-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; margin-bottom: 28px; }
 .dash-2col > .section { margin-bottom: 0; }
-@media (max-width: 1100px) { .dash-2col { grid-template-columns: 1fr; gap: 0; } .dash-2col > .section { margin-bottom: 28px; } }
+/* Alturas base dos gráficos do Resumo Executivo (piso quando em coluna única) */
+.wf-wrap { height: 230px; }
+.caixa-wrap { height: 172px; }
+/* dash-2col-eq: as duas colunas esticam pra mesma altura e o último card
+   (gráfico) cresce pra preencher — alinha o fundo de Resultado Financeiro e
+   Posição de Caixa em qualquer mês. */
+.dash-2col-eq { align-items: stretch; }
+.dash-2col-eq > .section { display: flex; flex-direction: column; }
+.dash-2col-eq > .section > .card:last-child { flex: 1 1 auto; display: flex; flex-direction: column; }
+.dash-2col-eq .card:last-child .chart-canvas-wrap { flex: 1 1 auto; height: auto; }
+.dash-2col-eq .card:last-child .wf-wrap { min-height: 230px; }
+.dash-2col-eq .card:last-child .caixa-wrap { min-height: 172px; }
+@media (max-width: 1100px) {
+  .dash-2col { grid-template-columns: 1fr; gap: 0; }
+  .dash-2col > .section { margin-bottom: 28px; }
+  /* coluna única: volta pra alturas fixas (não há par pra alinhar) */
+  .dash-2col-eq .card:last-child .chart-canvas-wrap { flex: 0 0 auto; }
+  .dash-2col-eq .card:last-child .wf-wrap { height: 230px; }
+  .dash-2col-eq .card:last-child .caixa-wrap { height: 172px; }
+}
 @media (max-width: 1200px) {
   .grid-7 { grid-template-columns: repeat(4, 1fr); }
   .grid-6 { grid-template-columns: repeat(3, 1fr); }
@@ -1122,7 +1141,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
 
 
       <!-- ===== Resultado Financeiro | Posição de Caixa — 2 colunas (mockup 11/08/2026) ===== -->
-      <div class="dash-2col">
+      <div class="dash-2col dash-2col-eq">
       <div class="section">
         <div class="section-head"><div class="section-bar"></div><div class="section-title">Resultado Financeiro</div></div>
         <div class="card">
@@ -1133,7 +1152,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
             <div style="padding:14px 8px;border-right:1px solid var(--border)"><div class="kpi-label" style="margin:0 0 5px">(-) Despesas</div><div id="wfDesp" style="font-weight:800;font-size:16px;color:var(--negative)">—</div></div>
             <div style="padding:14px 8px"><div class="kpi-label" style="margin:0 0 5px">Lucro Operacional</div><div id="wfLucro" style="font-weight:800;font-size:16px;color:var(--primary)">—</div></div>
           </div>
-          <div class="chart-canvas-wrap" style="height:230px"><canvas id="chartWaterfall"></canvas></div>
+          <div class="chart-canvas-wrap wf-wrap"><canvas id="chartWaterfall"></canvas></div>
         </div>
       </div>
 
@@ -1166,7 +1185,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
             <span><span class="legend-dot" style="background:var(--primary)"></span>Realizado</span>
             <span><span class="legend-dot" style="background:var(--primary-soft)"></span>Previsão</span>
           </div>
-          <div class="chart-canvas-wrap" style="height:172px"><canvas id="chartCaixaDash"></canvas></div>
+          <div class="chart-canvas-wrap caixa-wrap"><canvas id="chartCaixaDash"></canvas></div>
         </div>
       </div>
       </div>
