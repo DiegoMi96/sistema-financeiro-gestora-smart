@@ -1096,34 +1096,18 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       </div>
 
 
-      <div class="section" style="display:none"><!-- ocultada: cards migraram p/ a fileira de KPIs; volta como tabela+cascata na próxima etapa -->
+      <!-- ===== Resultado Financeiro — tabela + gráfico cascata (mockup 08/08/2026) ===== -->
+      <div class="section">
         <div class="section-head"><div class="section-bar"></div><div class="section-title">Resultado Financeiro</div></div>
-        <div class="grid grid-5">
-          <div class="card"><div class="card-top-line"></div>
-            <div class="kpi-label">Receita Bruta</div>
-            <div class="kpi-value">R$ 4,432M</div>
-            <div class="kpi-foot"><span class="delta-chip up">↑ 154%</span> vs. Previsto</div>
+        <div class="card">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Em R$ milhões</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);text-align:center;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:18px">
+            <div style="padding:14px 8px;border-right:1px solid var(--border)"><div class="kpi-label" style="margin:0 0 5px">Receita</div><div id="wfReceita" style="font-weight:800;font-size:16px;color:var(--primary)">—</div></div>
+            <div style="padding:14px 8px;border-right:1px solid var(--border)"><div class="kpi-label" style="margin:0 0 5px">(-) CMV</div><div id="wfCmv" style="font-weight:800;font-size:16px;color:var(--negative)">—</div></div>
+            <div style="padding:14px 8px;border-right:1px solid var(--border)"><div class="kpi-label" style="margin:0 0 5px">(-) Despesas</div><div id="wfDesp" style="font-weight:800;font-size:16px;color:var(--negative)">—</div></div>
+            <div style="padding:14px 8px"><div class="kpi-label" style="margin:0 0 5px">Lucro Operacional</div><div id="wfLucro" style="font-weight:800;font-size:16px;color:var(--primary)">—</div></div>
           </div>
-          <div class="card"><div class="card-top-line warn"></div>
-            <div class="kpi-label">CSP / CMV</div>
-            <div class="kpi-value">R$ 2,393M</div>
-            <div class="kpi-foot"><span class="delta-chip down">↓ 102%</span> vs. Previsto</div>
-          </div>
-          <div class="card"><div class="card-top-line"></div>
-            <div class="kpi-label">Despesas</div>
-            <div class="kpi-value">R$ 2,144M</div>
-            <div class="kpi-foot"><span class="delta-chip up">↑ 213%</span> vs. Previsto</div>
-          </div>
-          <div class="card tinted-primary">
-            <div class="kpi-label">Margem de Contribuição</div>
-            <div class="kpi-value lg">41,55%</div>
-            <div class="kpi-foot"><span class="delta-chip up">↑ 124%</span> vs. Previsto</div>
-          </div>
-          <div class="card tinted-primary">
-            <div class="kpi-label">Resultado do Mês</div>
-            <div class="kpi-value lg">R$ 13.510</div>
-            <div class="kpi-foot"><span class="delta-chip up">↑ 108%</span> vs. Previsto</div>
-          </div>
+          <div class="chart-canvas-wrap tall"><canvas id="chartWaterfall"></canvas></div>
         </div>
       </div>
 
@@ -5562,6 +5546,7 @@ function rerenderAllCharts() {
   // Pool reconstrói preservando o mês ativo
   const poolActiveBtn = document.querySelector('#poolTabs .op-tab.active');
   buildPool(poolActiveBtn ? +poolActiveBtn.dataset.mes : 0);
+  try { buildWaterfall(); } catch (e) { console.warn('waterfall:', e); }
 }
 
 // Filter saídas
@@ -7946,6 +7931,42 @@ function renderAlertas(d) {
       </div>
     </div>`;
   }).join('');
+}
+
+// ── Gráfico cascata do Resultado Financeiro (mockup 08/08/2026) ──
+function buildWaterfall() {
+  const ctx = document.getElementById('chartWaterfall');
+  if (!ctx) return;
+  const sel  = periodMonthIdx[currentPeriod];
+  const rec  = (sel != null) ? receitaMes[sel] : null;
+  const cmv  = (sel != null) ? custoMes[sel]   : null;
+  const desp = (sel != null) ? despesaMes[sel] : null;
+  const lucro = (rec != null && cmv != null && desp != null) ? (rec - cmv - desp) : null;
+  const setTxt = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = (v != null ? fmtAutoK(v) : '—'); };
+  setTxt('wfReceita', rec); setTxt('wfCmv', cmv); setTxt('wfDesp', desp); setTxt('wfLucro', lucro);
+  destroyChart('chartWaterfall');
+  if (rec == null || cmv == null || desp == null) return;
+  const a = rec, b = rec - cmv, c = rec - cmv - desp;
+  const green = css('--primary'), red = css('--negative');
+  const vals = [rec, -cmv, -desp, c];
+  charts['chartWaterfall'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Receita Bruta', 'CMV', 'Despesas', 'Lucro Operacional'],
+      datasets: [{ data: [[0, a], [b, a], [c, b], [0, c]], backgroundColor: [green, red, red, green], borderRadius: 5, barPercentage: 0.6 }]
+    },
+    options: commonOpts({
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: it => fmtBRL(vals[it.dataIndex]) } },
+        datalabels: {
+          display: true, anchor: 'end', align: 'top', color: css('--text-2'), font: { size: 10, weight: '700' },
+          formatter: (v, it) => { const x = vals[it.dataIndex]; return (x < 0 ? '-' : '') + (Math.abs(x) / 1000000).toFixed(1) + 'M'; }
+        }
+      },
+      scales: { ...commonOpts().scales, y: { ...commonOpts().scales.y, ticks: { ...commonOpts().scales.y.ticks, callback: v => (v / 1000000).toFixed(1) + 'M' } } }
+    })
+  });
 }
 </script>
 </body>
