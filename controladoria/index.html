@@ -332,6 +332,16 @@ body { display: flex; min-height: 100vh; }
 /* Chip ▲/▼ vs mês nos cards de Base SMART / Operação (mockup 11/08/2026) */
 .kpi-delta { margin-top: 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-height: 18px; }
 .kpi-delta:empty { display: none; }
+/* Compactação Resumo Executivo p/ bater com o mockup (11/08/2026) */
+#kpiRow .card { padding: 14px 16px; gap: 2px; }
+#kpiRow .kpi-value { font-size: 23px; }
+#kpiRow .kpi-foot { margin-top: 5px; }
+#kpiRow .kpi-spark { line-height: 0; }
+#kpiRow .kpi-spark svg { height: 20px; margin-top: 3px; }
+.dash-2col .grid-4 .card { padding: 13px 12px; }
+.dash-2col .grid-4 .kpi-value { font-size: 20px; white-space: nowrap; }
+.dash-2col .grid-4 .kpi-foot { margin-top: 6px; }
+.dash-2col .grid-5 .card { padding: 13px 12px; }
 /* Cards escuros de destaque (Lucro/Margem): chip e "vs" legíveis no verde-escuro */
 .kpi-dark .delta-chip { background: rgba(255,255,255,.16); }
 .kpi-dark .delta-chip.up { color: #8FE9B4; }
@@ -1127,7 +1137,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
             <div style="padding:14px 8px;border-right:1px solid var(--border)"><div class="kpi-label" style="margin:0 0 5px">(-) Despesas</div><div id="wfDesp" style="font-weight:800;font-size:16px;color:var(--negative)">—</div></div>
             <div style="padding:14px 8px"><div class="kpi-label" style="margin:0 0 5px">Lucro Operacional</div><div id="wfLucro" style="font-weight:800;font-size:16px;color:var(--primary)">—</div></div>
           </div>
-          <div class="chart-canvas-wrap tall"><canvas id="chartWaterfall"></canvas></div>
+          <div class="chart-canvas-wrap" style="height:230px"><canvas id="chartWaterfall"></canvas></div>
         </div>
       </div>
 
@@ -1161,7 +1171,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
             <span><span class="legend-dot" style="background:var(--primary)"></span>Realizado</span>
             <span><span class="legend-dot" style="background:var(--primary-soft)"></span>Previsão</span>
           </div>
-          <div class="chart-canvas-wrap tall"><canvas id="chartCaixaDash"></canvas></div>
+          <div class="chart-canvas-wrap" style="height:172px"><canvas id="chartCaixaDash"></canvas></div>
         </div>
       </div>
       </div>
