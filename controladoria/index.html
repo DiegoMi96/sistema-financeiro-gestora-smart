@@ -988,9 +988,6 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
     <button id="btnHamburger" onclick="toggleMobileSidebar()" title="Menu">
       <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
     </button>
-    <div>
-      <div class="crumbs">Diretoria / <strong id="crumbPage">Resumo Executivo</strong></div>
-    </div>
     <div class="spacer"></div>
 
     <div class="tb-control">
@@ -1039,12 +1036,6 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         <div>
           <h2 class="page-title">Resumo Executivo</h2>
           <p class="page-sub" id="pageSub">Visão geral da performance financeira e operacional da empresa.</p>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);white-space:nowrap">
-          <span>Dados atualizados em <strong id="dashUpdatedAt" style="color:var(--text-2);font-weight:600">—</strong></span>
-          <button onclick="syncFromSheets()" title="Atualizar dados" style="background:none;border:1px solid var(--border);color:var(--text-2);border-radius:8px;width:30px;height:30px;display:grid;place-items:center;cursor:pointer;flex-shrink:0">
-            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-          </button>
         </div>
       </div>
       <!-- ===== Fileira de KPIs (mockup 08/08/2026) — cards preenchidos pelo render via .kpi-label ===== -->
@@ -1268,11 +1259,6 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         <div class="grid grid-5" id="alertasRow"></div>
       </div>
 
-      <!-- Rodapé — nota gerencial (mockup 08/08/2026) -->
-      <div style="margin-top:24px;padding-top:14px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--muted)">
-        <span>&#9432; Os valores apresentados são gerenciais e podem sofrer alterações. &nbsp;|&nbsp; Valores em Reais (R$).</span>
-        <span>Gestora SMART. Todos os direitos reservados.</span>
-      </div>
     </section>
 
     <!-- =============== P&L =============== -->
