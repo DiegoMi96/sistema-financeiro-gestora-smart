@@ -338,10 +338,15 @@ body { display: flex; min-height: 100vh; }
 #kpiRow .kpi-foot { margin-top: 5px; }
 #kpiRow .kpi-spark { line-height: 0; }
 #kpiRow .kpi-spark svg { height: 20px; margin-top: 3px; }
-.dash-2col .grid-4 .card { padding: 13px 12px; }
-.dash-2col .grid-4 .kpi-value { font-size: 20px; white-space: nowrap; }
+.dash-2col .grid-4 .card, .dash-2col .grid-5 .card { padding: 13px 12px; }
 .dash-2col .grid-4 .kpi-foot { margin-top: 6px; }
-.dash-2col .grid-5 .card { padding: 13px 12px; }
+/* Valor responsivo: encolhe suave em telas estreitas em vez de quebrar o número */
+.dash-2col .grid-4 .kpi-value, .dash-2col .grid-5 .kpi-value { font-size: clamp(17px, 1.5vw, 23px); white-space: nowrap; }
+/* Anti-overflow: permite as colunas/cards encolherem em vez de vazar pra fora
+   da tela (o nowrap sozinho travava a largura mínima e estourava a tela). */
+.dash-2col > .section { min-width: 0; }
+.dash-2col .grid, .dash-2col .grid > * { min-width: 0; }
+.dash-2col .chart-canvas-wrap { width: 100%; min-width: 0; }
 /* Cards escuros de destaque (Lucro/Margem): chip e "vs" legíveis no verde-escuro */
 .kpi-dark .delta-chip { background: rgba(255,255,255,.16); }
 .kpi-dark .delta-chip.up { color: #8FE9B4; }
