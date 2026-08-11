@@ -997,6 +997,12 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         <option value="YTD">Acumulado</option>
       </select>
     </div>
+    <div class="tb-control" id="compareControl" title="Mês de comparação para os deltas (▲/▼)">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4M16 17H4m0 0l4 4m-4-4l4-4"/></svg>
+      <select id="compareSelect">
+        <option value="">Comparar: mês anterior</option>
+      </select>
+    </div>
 
     <button class="icon-btn" id="themeBtn" title="Alternar tema">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -3149,6 +3155,9 @@ const _prevDate  = new Date(); _prevDate.setDate(1); _prevDate.setMonth(_prevDat
 const _prevMonth = String(_prevDate.getMonth() + 1).padStart(2, '0'); // mês anterior (01-12)
 const _prevYear  = String(_prevDate.getFullYear());
 let currentPeriod = `${_nowYear}-${_nowMonth}`;
+// "Comparar com" — índice do mês (0-11) usado como base dos deltas (▲/▼).
+// null => comportamento padrão: compara com o mês imediatamente anterior.
+window._compareIdx = null;
 const periodLabels    = {};
 const periodMonthIdx  = {};
 
@@ -3199,6 +3208,26 @@ function refreshPeriodFilter(year, lastRealIdx) {
   sel.value = (prevVal && opts.includes(prevVal)) ? prevVal : defaultVal;
   window._periodSetInSession = true; // marca que já foi definido nesta sessão
   currentPeriod = `${year}-${sel.value}`;
+
+  // "Comparar com": repovoa apenas com meses que têm dados reais (0..lastRealIdx).
+  // Preserva a escolha do usuário se ainda for válida; senão volta ao padrão (mês anterior).
+  const cmpSel = document.getElementById('compareSelect');
+  if (cmpSel) {
+    const prevCmp = cmpSel.value; // '' = automático (mês anterior)
+    cmpSel.innerHTML = '';
+    const optAuto = document.createElement('option');
+    optAuto.value = ''; optAuto.textContent = 'Comparar: mês anterior';
+    cmpSel.appendChild(optAuto);
+    for (let i = 0; i <= lastRealIdx; i++) {
+      const o = document.createElement('option');
+      o.value = String(i);
+      o.textContent = 'Comparar: ' + MES_NOME[i];
+      cmpSel.appendChild(o);
+    }
+    const cmpOpts = Array.from(cmpSel.options).map(o => o.value);
+    cmpSel.value = cmpOpts.includes(prevCmp) ? prevCmp : '';
+    window._compareIdx = cmpSel.value === '' ? null : parseInt(cmpSel.value, 10);
+  }
 }
 
 // Função auxiliar para criar período vazio — todos os dados vêm do Google Sheets
@@ -6597,6 +6626,16 @@ function onPeriodChange() {
 document.getElementById('yearSelect').addEventListener('change', onPeriodChange);
 document.getElementById('monthSelect').addEventListener('change', onPeriodChange);
 
+// "Comparar com": troca a base dos deltas (▲/▼) e reconstrói os KPIs/alertas.
+document.getElementById('compareSelect')?.addEventListener('change', function () {
+  window._compareIdx = this.value === '' ? null : parseInt(this.value, 10);
+  // Reconstrói periodData a partir do último data-map (os deltas são calculados
+  // dentro de computePeriodData → buildKpis). Sem dados ainda, só re-renderiza.
+  if (window._lastDm) computePeriodData(window._lastDm);
+  applyPeriod(getActivePeriod());
+  rerenderAllCharts();
+});
+
 // ========== Google Sheets Sync ==========
 // ✅ Backend proxy — planilha protegida no servidor Digital Ocean
 const API_SECRET = 'GestoraSmart2026';
@@ -6650,6 +6689,7 @@ function fmtAutoK(v) {
 }
 
 function computePeriodData(dm) {
+  window._lastDm = dm; // guarda o último data-map p/ rebuild ao trocar "Comparar com"
   const year = document.getElementById('yearSelect')?.value || '2026';
   const get = (key, idx) => {
     const v = dm[key] ? (dm[key][idx] ?? null) : null;
@@ -6702,7 +6742,11 @@ function computePeriodData(dm) {
     const cof2     = _c2Slice.some(v => v != null) ? _c2Slice.reduce((s,v) => s + (v ?? 0), 0) : null;
     const tesAcum  = (cofPrin != null || cof2 != null) ? (cofPrin??0)+(cof2??0) : null;
     // ── Deltas vs mês anterior (mockup) — só p/ mês fechado; Q1/YTD/Janeiro caem no texto padrão ──
-    const _pi = (isQ1 || isYTD || idx <= 0) ? -1 : idx - 1;
+    // Base do delta: mês anterior por padrão, ou o mês escolhido em "Comparar com".
+    // Q1/YTD são agregados — comparação mês-a-mês não se aplica (_pi = -1).
+    const _cmp = window._compareIdx;
+    const _cmpSel = (_cmp != null && _cmp >= 0 && _cmp !== idx) ? _cmp : null;
+    const _pi = (isQ1 || isYTD) ? -1 : (_cmpSel != null ? _cmpSel : (idx > 0 ? idx - 1 : -1));
     const _prevLbl = _pi >= 0 ? (shortMon[_pi] + '/' + year.slice(2)) : '';
     const _recP  = _pi >= 0 ? get('Receita', _pi)   : null;
     const _cmvP  = _pi >= 0 ? get('CMV', _pi)        : null;
@@ -6729,14 +6773,16 @@ function computePeriodData(dm) {
     const _cmvRatio = (cmv != null && rec) ? (cmv / rec) * 100 : null;
     const _gerCaixa = (caixaFim != null && caixaIni != null) ? (caixaFim - caixaIni) : null;
     const _basePct  = (_baseAtivaP && baseAtivaV != null) ? ((baseAtivaV - _baseAtivaP) / _baseAtivaP) * 100 : null;
+    // Texto do comparativo — reflete o mês escolhido em "Comparar com" (_pi).
+    const _vsTxt = _pi >= 0 ? ('vs ' + _prevLbl) : 'vs mês anterior';
     const _alertas = [
       { ic:'warn',  col: _lucroPct != null ? (_lucroPct < 0 ? 'red' : 'green') : (res != null && res < 0 ? 'red' : 'green'),
         title:'Lucro Líquido',
-        val: _lucroPct != null ? _sg(_lucroPct) + '% vs mês anterior' : (res != null ? fmtAutoK(res) : '—'),
+        val: _lucroPct != null ? _sg(_lucroPct) + '% ' + _vsTxt : (res != null ? fmtAutoK(res) : '—'),
         note: _lucroPct != null ? (_lucroPct < 0 ? 'Atenção à queda de rentabilidade.' : 'Rentabilidade em alta.') : 'Resultado do mês.' },
       { ic:'pct',   col: _margPP != null ? (_margPP < 0 ? 'orange' : 'green') : 'green',
         title:'Margem Líquida',
-        val: _margPP != null ? _sg(_margPP) + ' pp vs mês anterior' : margemLiqPct,
+        val: _margPP != null ? _sg(_margPP) + ' pp ' + _vsTxt : margemLiqPct,
         note: _margPP != null ? (_margPP < 0 ? 'Margem em queda.' : 'Margem em alta.') : 'Resultado / Receita.' },
       { ic:'warn',  col: _cmvRatio != null ? (_cmvRatio > 70 ? 'red' : 'green') : 'green',
         title:'CMV / Receita',
@@ -6748,7 +6794,7 @@ function computePeriodData(dm) {
         note: _gerCaixa != null ? (_gerCaixa >= 0 ? 'Acima do esperado.' : 'Queima de caixa no mês.') : '' },
       { ic:'base',  col: _basePct != null ? (_basePct >= 0 ? 'green' : 'red') : 'green',
         title:'Base Ativa',
-        val: _basePct != null ? _sg(_basePct) + '% vs mês anterior' : (baseAtivaV != null ? fmtNum(baseAtivaV) : '—'),
+        val: _basePct != null ? _sg(_basePct) + '% ' + _vsTxt : (baseAtivaV != null ? fmtNum(baseAtivaV) : '—'),
         note: _basePct != null ? (_basePct >= 0 ? 'Crescimento consistente.' : 'Retração na base.') : '' },
     ];
     // ── Sparklines (mockup) — série de 12 meses por KPI, SVG inline ──
