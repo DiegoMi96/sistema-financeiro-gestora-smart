@@ -175,6 +175,14 @@ body { display: flex; min-height: 100vh; }
 .dash-2col-eq .card:last-child .chart-canvas-wrap { flex: 1 1 auto; height: auto; }
 .dash-2col-eq .card:last-child .wf-wrap { min-height: 230px; }
 .dash-2col-eq .card:last-child .caixa-wrap { min-height: 172px; }
+/* dash-2col-eq2: Base SMART | Operação — as duas seções esticam pra mesma altura
+   e os grids preenchem, então os cards das duas seções ficam com a mesma altura
+   (evita Base SMART curto vs Operação alto quando o mês está vazio). */
+@media (min-width: 1101px) {
+  .dash-2col-eq2 { align-items: stretch; }
+  .dash-2col-eq2 > .section { display: flex; flex-direction: column; }
+  .dash-2col-eq2 > .section > .grid { flex: 1 1 auto; grid-auto-rows: 1fr; }
+}
 @media (max-width: 1100px) {
   .dash-2col { grid-template-columns: 1fr; gap: 0; }
   .dash-2col > .section { margin-bottom: 28px; }
@@ -1192,7 +1200,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <!-- /dash-2col (Resultado Financeiro | Posição de Caixa) -->
 
       <!-- ===== Base SMART | Operação e Satisfação — 2 colunas (mockup 11/08/2026) ===== -->
-      <div class="dash-2col">
+      <div class="dash-2col dash-2col-eq2">
       <div class="section">
         <div class="section-head"><div class="section-bar"></div><div class="section-title">Base SMART</div><span style="font-size:12px;color:var(--muted);text-transform:none;font-weight:500">(Clientes e Operações)</span></div>
         <div class="grid grid-5">
