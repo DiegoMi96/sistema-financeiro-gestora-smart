@@ -483,6 +483,13 @@ body { display: flex; min-height: 100vh; }
 [data-theme="dark"] .month-pill { color: #6FD8A4; }
 .activation-item .qty { font-family: 'Manrope'; font-weight: 700; font-size: 14px; white-space: nowrap; flex-shrink: 1; min-width: 0; }
 .activation-item .desc { font-size: 11px; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+/* Próximas Ativações (dashboard): pill à esquerda; número e "simcards"
+   empilhados à direita. Cabe em qualquer largura, sem o número sobrepor o
+   "simcards" (bug do flex em tela estreita) nem truncar. */
+#dashAtivacaoList .activation-item { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 8px; row-gap: 0; padding: 8px 10px; }
+#dashAtivacaoList .month-pill { grid-row: 1 / span 2; align-self: center; min-width: 34px; padding: 4px 6px; font-size: 11px; }
+#dashAtivacaoList .activation-item .qty { grid-column: 2; grid-row: 1; text-align: right; font-size: 14px; white-space: nowrap; }
+#dashAtivacaoList .activation-item .desc { grid-column: 2; grid-row: 2; text-align: right; font-size: 10.5px; white-space: nowrap; }
 
 /* Star rating */
 .stars { display: inline-flex; gap: 2px; }
