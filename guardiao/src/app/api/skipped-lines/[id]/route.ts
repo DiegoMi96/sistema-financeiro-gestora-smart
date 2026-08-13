@@ -13,14 +13,14 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   await sql`
     INSERT INTO audit_logs (action, entity_type, entity_id, details)
     VALUES ('skipped_line_forwarded', 'skipped_line', ${params.id},
-      ${JSON.stringify({
+      ${sql.json({
         line_number:      line.line_number,
         client_name:      line.client_name,
         cpf_cnpj:         line.cpf_cnpj,
         operator:         line.operator,
         usage_percentage: line.usage_percentage,
         competencia:      line.competencia,
-      })}::jsonb)
+      })})
   `
 
   await sql`DELETE FROM skipped_lines WHERE id = ${params.id}`

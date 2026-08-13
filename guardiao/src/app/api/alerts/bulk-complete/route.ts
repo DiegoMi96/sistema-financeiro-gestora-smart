@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     await sql`
       INSERT INTO audit_logs (action, entity_type, entity_id, details)
       VALUES ('bulk_alert_resolved', 'alert', 'bulk',
-        ${JSON.stringify({ count, contract_type: contractType ?? "all" })}::jsonb)
+        ${sql.json({ count, contract_type: contractType ?? "all" })})
     `
   }
 

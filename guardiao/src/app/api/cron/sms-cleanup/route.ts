@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
     await sql`
       INSERT INTO audit_logs (action, entity_type, entity_id, details)
-      VALUES ('sms_logs_cleanup', 'sms_log', 'bulk', ${JSON.stringify({ deleted: deleted.length })}::jsonb)
+      VALUES ('sms_logs_cleanup', 'sms_log', 'bulk', ${sql.json({ deleted: deleted.length })})
     `
 
     return NextResponse.json({

@@ -60,7 +60,7 @@ export async function DELETE(request: NextRequest) {
     await sql`
       INSERT INTO audit_logs (action, entity_type, entity_id, details)
       VALUES ('skipped_lines_forwarded_bulk', 'skipped_line', 'bulk',
-        ${JSON.stringify({ count: deleted.length, from: from ?? null, to: to ?? null })}::jsonb)
+        ${sql.json({ count: deleted.length, from: from ?? null, to: to ?? null })})
     `
   }
 

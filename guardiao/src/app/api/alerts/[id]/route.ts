@@ -58,7 +58,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     await sql`
       INSERT INTO audit_logs (action, entity_type, entity_id, details)
       VALUES ('alert_resolved', 'alert', ${params.id},
-        ${JSON.stringify({ line_number: alert.line_number, client_name: alert.client_name, usage_percentage: alert.usage_percentage })}::jsonb)
+        ${sql.json({ line_number: alert.line_number, client_name: alert.client_name, usage_percentage: alert.usage_percentage })})
     `
 
     sendAlertNotification(
