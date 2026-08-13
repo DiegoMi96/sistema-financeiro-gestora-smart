@@ -1,7 +1,8 @@
 """
 Router: /sheets — Indicadores Mensais + integração Google Sheets
 """
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Header
+from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
@@ -104,6 +105,44 @@ def save_config(
         except json.JSONDecodeError:
             raise HTTPException(400, "JSON da service account inválido")
         _set_setting(db, "sheets_service_account", body.service_account_json.strip())
+    return {"ok": True}
+
+
+@router.get("/sync")
+def sync_tab(
+    tab: str,
+    x_api_key: Optional[str] = Header(None),
+    db: Session = Depends(get_db),
+):
+    """Devolve o CSV de uma aba da planilha — substitui o /api/sync do server.js
+    legado (porta 3000). Autenticação por x-api-key (mesmo header que o HTML da
+    Controladoria já envia), validada contra 'sheets_sync_api_key' em settings.
+    Aditivo: nada é servido por aqui até o nginx repontar /api/sync -> :8000."""
+    expected = _get_setting(db, "sheets_sync_api_key")
+    if not expected or x_api_key != expected:
+        raise HTTPException(401, "Não autorizado")
+    sid, sa = _get_sheets_config(db)
+    if not sid or not sa:
+        raise HTTPException(503, "Planilha não configurada")
+    from app.services.google_sheets import read_tab_csv
+    try:
+        csv = read_tab_csv(sid, sa, tab)
+    except Exception as e:
+        logger.error("Erro ao sincronizar aba '%s': %s", tab, e)
+        raise HTTPException(502, f"Erro ao ler a planilha: {e}")
+    return PlainTextResponse(csv, media_type="text/csv; charset=utf-8")
+
+
+@router.post("/cache/clear")
+def cache_clear(
+    x_api_key: Optional[str] = Header(None),
+    db: Session = Depends(get_db),
+):
+    """Compat com o /api/cache/clear do legado. Como o /sync sempre lê fresco,
+    não há cache a limpar — retorna ok para o HTML seguir o fluxo."""
+    expected = _get_setting(db, "sheets_sync_api_key")
+    if not expected or x_api_key != expected:
+        raise HTTPException(401, "Não autorizado")
     return {"ok": True}
 
 

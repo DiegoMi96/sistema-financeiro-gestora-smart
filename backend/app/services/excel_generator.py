@@ -261,17 +261,23 @@ def generate_client_lines_excel(cycle, lines, summary, client_name: str = "") ->
     return generate_faturamento_excel(cycle, [_Wrapped(ln) for ln in lines])
 
 
-def generate_client_excel_fast(cycle, lines) -> io.BytesIO:
+def generate_client_excel_fast(cycle, lines, low_memory: bool = False) -> io.BytesIO:
     """
     Versão otimizada para clientes com muitas linhas usando xlsxwriter.
     Usa set_column() com formato + write_row() sem formato por célula.
     O xlsxwriter aplica o formato de coluna automaticamente via xlsx spec.
     ~20x mais rápido que openpyxl para 30k+ linhas.
+
+    low_memory=True liga 'constant_memory' do xlsxwriter — grava cada linha
+    em disco assim que é escrita, em vez de acumular tudo em RAM. Necessário
+    pra exports do ciclo inteiro (600k+ linhas) num servidor com pouca RAM;
+    exige que as linhas cheguem em ordem sequencial (já é o caso aqui).
     """
     import xlsxwriter
 
     buf = io.BytesIO()
-    wb  = xlsxwriter.Workbook(buf, {'in_memory': True})
+    wb_opts = {'constant_memory': True} if low_memory else {'in_memory': True}
+    wb  = xlsxwriter.Workbook(buf, wb_opts)
     ws  = wb.add_worksheet(f"{MESES[cycle.month]} {cycle.year}")
 
     # Formatos

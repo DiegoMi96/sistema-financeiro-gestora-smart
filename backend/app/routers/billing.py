@@ -50,7 +50,7 @@ def _read_task(task_id: str) -> dict | None:
 def _bg_excel_export(task_id: str, cycle_id: int) -> None:
     """Background task: generates Excel, writes state to /tmp (shared across workers)."""
     from app.database import SessionLocal
-    from app.services.excel_generator import generate_faturamento_excel
+    from app.services.excel_generator import generate_client_excel_fast as generate_faturamento_excel
 
     # Preserva user_id do estado inicial para manter a verificação de acesso
     initial = _read_task(task_id) or {}
@@ -89,7 +89,7 @@ def _bg_excel_export(task_id: str, cycle_id: int) -> None:
                 """).execution_options(stream_results=True),
                 {"cid": cycle_id},
             )
-            buf = generate_faturamento_excel(cycle, cursor.yield_per(2000))
+            buf = generate_faturamento_excel(cycle, cursor.yield_per(2000), low_memory=True)
         finally:
             db.close()
 
@@ -108,7 +108,7 @@ def _bg_excel_export(task_id: str, cycle_id: int) -> None:
 def _bg_excel_pregenerate(cycle_id: int) -> None:
     """Pré-gera Excel do ciclo na aprovação — salva em path estável sem vínculo de task_id."""
     from app.database import SessionLocal
-    from app.services.excel_generator import generate_faturamento_excel
+    from app.services.excel_generator import generate_client_excel_fast as generate_faturamento_excel
 
     prebuilt = _prebuilt_excel_path(cycle_id)
     print(f"[pre-gen] Iniciando pré-geração Excel ciclo {cycle_id}", flush=True)
@@ -145,7 +145,7 @@ def _bg_excel_pregenerate(cycle_id: int) -> None:
                 """).execution_options(stream_results=True),
                 {"cid": cycle_id},
             )
-            buf = generate_faturamento_excel(cycle, cursor.yield_per(2000))
+            buf = generate_faturamento_excel(cycle, cursor.yield_per(2000), low_memory=True)
         finally:
             db.close()
 
@@ -413,14 +413,20 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
         try:
             _cnpj_raw = db.execute(_text("SELECT value FROM system_settings WHERE key='cnpj_excluidos'")).scalar()
             _mens_raw = db.execute(_text("SELECT value FROM system_settings WHERE key='mensageria_valor'")).scalar()
+            _sem_arred_raw = db.execute(_text("SELECT value FROM system_settings WHERE key='cnpj_sem_arredondamento'")).scalar()
         except Exception:
-            _cnpj_raw = _mens_raw = None
+            _cnpj_raw = _mens_raw = _sem_arred_raw = None
 
         _cnpj_excluidos = {
             _re.sub(r"\D", "", line).strip()
             for line in (_cnpj_raw or "").splitlines()
             if _re.sub(r"\D", "", line.strip())
         } or None
+        _cnpj_sem_arredondamento = {
+            _re.sub(r"\D", "", line).strip()
+            for line in (_sem_arred_raw or "").splitlines()
+            if _re.sub(r"\D", "", line.strip())
+        }
         try:
             _mensageria_valor = float((_mens_raw or "").replace(",", ".")) if _mens_raw else None
         except (ValueError, TypeError):
@@ -429,7 +435,8 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
         print(f"⏳ Iniciando motor — ciclo {cycle_id} ({month:02d}/{year})", flush=True)
         engine = BillingEngineService(year=year, month=month,
                                       cnpj_excluidos=_cnpj_excluidos,
-                                      mensageria_valor=_mensageria_valor)
+                                      mensageria_valor=_mensageria_valor,
+                                      cnpj_sem_arredondamento=_cnpj_sem_arredondamento)
 
         # ── Setup: carrega refs + converte base Excel → CSV (pico 830 MB, depois 0) ──
         ref = engine.setup(file_paths, base_bytes=base_bytes)
@@ -1380,8 +1387,13 @@ def get_cycle_breakdown(
     db: Session = Depends(get_db),
 ):
     """Resumo do ciclo agrupado por status — igual à tabela de pivot do Excel."""
-    from sqlalchemy import func
+    from sqlalchemy import func, not_, and_
 
+    # Todo SIM cancelado gera 2 linhas em billing_lines: uma vinda da base
+    # principal (com ICCID real, cobrada com a regra "mês inteiro") e outra
+    # do arquivo dedicado de cancelamentos (iccid="", com o cálculo oficial
+    # já usado no total_final do cliente). Somar as duas dobra o valor de
+    # Cancelamento aqui — a linha da base é só rastreabilidade, não conta.
     rows = (
         db.query(
             BillingLine.status,
@@ -1389,6 +1401,7 @@ def get_cycle_breakdown(
             func.sum(BillingLine.total_linha).label("total"),
         )
         .filter(BillingLine.cycle_id == cycle_id)
+        .filter(not_(and_(BillingLine.status == "Cancelamento", BillingLine.iccid != "")))
         .group_by(BillingLine.status)
         .all()
     )
@@ -1691,6 +1704,46 @@ def export_client_pdf(
         pass
 
     nome_fallback = getattr(summary, "nome_cliente", None) or None
+    due_date = getattr(summary, "due_date", None)
+
+    # Nº da fatura no Asaas — casa por external_reference (id_smart exato) e,
+    # como o sync do Asaas não preenche esse campo hoje, cai pro fallback por
+    # CPF/CNPJ. Filtra pelo vencimento do ciclo pra achar a fatura certa (o
+    # mesmo cliente tem uma linha por mês em asaas_payments_sync).
+    asaas_invoice_number = None
+    try:
+        row = db.execute(
+            text("""
+                SELECT invoice_number FROM asaas_payments_sync
+                WHERE (external_reference = :id_smart OR customer_cpf_cnpj = :cpf)
+                  AND (:due_date IS NULL OR due_date = :due_date)
+                  AND invoice_number IS NOT NULL
+                ORDER BY (external_reference = :id_smart) DESC, synced_at DESC
+                LIMIT 1
+            """),
+            {"id_smart": id_smart, "cpf": cpf_cnpj_raw, "due_date": due_date}
+        ).fetchone()
+        asaas_invoice_number = row.invoice_number if row else None
+    except Exception:
+        pass
+
+    # Nosso Número do boleto Itaú — casa pelo CPF/CNPJ (a coluna vem com
+    # pontuação no relatório importado, ex. "48.836.642/0001-51") +
+    # vencimento do ciclo.
+    itau_nosso_numero = None
+    try:
+        row = db.execute(
+            text("""
+                SELECT nosso_numero FROM itau_boletos
+                WHERE regexp_replace(cpf_cnpj, '\\D', '', 'g') = :cpf
+                  AND (:due_date IS NULL OR data_vencimento = :due_date)
+                ORDER BY uploaded_at DESC LIMIT 1
+            """),
+            {"cpf": cpf_cnpj_raw, "due_date": due_date}
+        ).fetchone()
+        itau_nosso_numero = row.nosso_numero if row else None
+    except Exception:
+        pass
 
     output = generate_client_invoice_pdf(
         cycle, agg_rows, summary, adjs,
@@ -1698,6 +1751,8 @@ def export_client_pdf(
         asaas_cust=asaas_cust,
         nome_override=nome_fallback,
         cpf_cnpj_override=cpf_cnpj_raw,
+        asaas_invoice_number=asaas_invoice_number,
+        itau_nosso_numero=itau_nosso_numero,
     )
 
     return StreamingResponse(

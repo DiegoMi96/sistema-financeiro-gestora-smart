@@ -1758,44 +1758,84 @@ async def download_vencidos_template(
     _inicio   = _date(ano, mes, 1)
     _lim      = _date(ano, mes, _last_day)
 
+    # Mesma consulta da tabela da tela (lista de vencidos): agrupada por
+    # CNPJ + banco + faixa de atraso, com TODAS as colunas (valor, vencimento,
+    # dias, banco, email, descrição, nº do boleto). Assim a planilha sai
+    # idêntica ao que aparece na tela. + id_smart via histórico de faturamento.
     try:
         rows = db.execute(text("""
             WITH asaas_venc AS (
-                SELECT
-                    REGEXP_REPLACE(aps.customer_cpf_cnpj, '[^0-9]', '', 'g') AS cnpj_raw,
-                    aps.customer_name AS nome,
-                    aps.value
+                SELECT aps.customer_cpf_cnpj AS cnpj, aps.customer_name AS nome,
+                       'Asaas' AS banco, aps.value, aps.due_date,
+                       aps.description, aps.invoice_number AS num_boleto, acs.email,
+                       CASE
+                           WHEN (CURRENT_DATE - aps.due_date) BETWEEN 1  AND 4  THEN '1-4'
+                           WHEN (CURRENT_DATE - aps.due_date) BETWEEN 5  AND 7  THEN '5-7'
+                           WHEN (CURRENT_DATE - aps.due_date) BETWEEN 8  AND 15 THEN '8-15'
+                           WHEN (CURRENT_DATE - aps.due_date) BETWEEN 16 AND 30 THEN '16-30'
+                           ELSE '31+'
+                       END AS bucket
                 FROM asaas_payments_sync aps
+                LEFT JOIN (
+                    SELECT DISTINCT ON (cpf_cnpj) cpf_cnpj, email
+                    FROM asaas_customers_sync ORDER BY cpf_cnpj, id
+                ) acs ON acs.cpf_cnpj = aps.customer_cpf_cnpj
                 WHERE aps.status = 'OVERDUE'
                   AND aps.due_date >= :inicio AND aps.due_date <= :lim
             ),
             itau_venc AS (
-                SELECT
-                    REGEXP_REPLACE(ib.cpf_cnpj, '[^0-9]', '', 'g') AS cnpj_raw,
-                    ib.pagador AS nome,
-                    ib.valor_titulo AS value
+                SELECT ib.cpf_cnpj AS cnpj, ib.pagador AS nome,
+                       'Itaú' AS banco, ib.valor_titulo AS value, ib.data_vencimento AS due_date,
+                       ib.description, ib.nosso_numero AS num_boleto, acs.email,
+                       CASE
+                           WHEN (CURRENT_DATE - ib.data_vencimento) BETWEEN 1  AND 4  THEN '1-4'
+                           WHEN (CURRENT_DATE - ib.data_vencimento) BETWEEN 5  AND 7  THEN '5-7'
+                           WHEN (CURRENT_DATE - ib.data_vencimento) BETWEEN 8  AND 15 THEN '8-15'
+                           WHEN (CURRENT_DATE - ib.data_vencimento) BETWEEN 16 AND 30 THEN '16-30'
+                           ELSE '31+'
+                       END AS bucket
                 FROM itau_boletos ib
+                LEFT JOIN (
+                    SELECT DISTINCT ON (cpf_cnpj) cpf_cnpj, email
+                    FROM asaas_customers_sync ORDER BY cpf_cnpj, id
+                ) acs ON acs.cpf_cnpj = REGEXP_REPLACE(ib.cpf_cnpj, '[^0-9]', '', 'g')
                 WHERE ib.status = 'vencida'
                   AND ib.data_vencimento >= :inicio AND ib.data_vencimento <= :lim
             ),
             combined AS (SELECT * FROM asaas_venc UNION ALL SELECT * FROM itau_venc),
-            venc_by_cnpj AS (
-                SELECT
-                    cnpj_raw,
-                    MAX(nome) AS nome,
-                    SUM(value) AS valor
+            grp AS (
+                SELECT cnpj, MAX(nome) AS nome, banco,
+                       SUM(value) AS valor,
+                       MIN(due_date) AS vencimento_orig,
+                       (CURRENT_DATE - MIN(due_date))::int AS dias,
+                       MAX(email) AS email, MAX(description) AS description,
+                       STRING_AGG(DISTINCT num_boleto::text, ', ') AS num_boleto
                 FROM combined
-                WHERE cnpj_raw IS NOT NULL AND cnpj_raw <> ''
-                GROUP BY cnpj_raw
+                WHERE due_date IS NOT NULL
+                GROUP BY cnpj, banco, bucket
+            ),
+            id_smart_map AS (
+                SELECT REGEXP_REPLACE(id_smart, '[^0-9]', '', 'g') AS cnpj_raw,
+                       MAX(id_smart) AS id_smart
+                FROM billing_client_summaries GROUP BY 1
             )
             SELECT
-                v.cnpj_raw,
-                v.nome,
-                v.valor,
-                COALESCE(c.id_smart, '') AS id_smart
-            FROM venc_by_cnpj v
-            LEFT JOIN clients c ON REGEXP_REPLACE(c.cpf_cnpj, '[^0-9]', '', 'g') = v.cnpj_raw
-            ORDER BY v.valor DESC
+                REGEXP_REPLACE(g.cnpj, '[^0-9]', '', 'g') AS cnpj_raw,
+                g.nome, g.banco, g.valor, g.vencimento_orig, g.dias,
+                g.email, g.description, g.num_boleto,
+                -- Prefere o id_smart do histórico de faturamento; se o cliente
+                -- não tem histórico (ex.: boleto avulso no Asaas), monta pelo
+                -- padrão do sistema: 'ss_' + CPF/CNPJ (11 ou 14 dígitos).
+                COALESCE(
+                    m.id_smart,
+                    CASE WHEN LENGTH(REGEXP_REPLACE(g.cnpj, '[^0-9]', '', 'g')) IN (11, 14)
+                         THEN 'ss_' || REGEXP_REPLACE(g.cnpj, '[^0-9]', '', 'g')
+                         ELSE '' END
+                ) AS id_smart
+            FROM grp g
+            LEFT JOIN id_smart_map m
+                ON m.cnpj_raw = REGEXP_REPLACE(g.cnpj, '[^0-9]', '', 'g')
+            ORDER BY g.valor DESC
         """), {"inicio": _inicio, "lim": _lim}).fetchall()
     except Exception as _e:
         print(f"⚠️  vencidos-template query: {_e}")
@@ -1819,11 +1859,18 @@ async def download_vencidos_template(
     lock_font   = Font(color="9CA3AF", size=9)
 
     headers = [
-        ("ID_Smart",                     16),
-        ("CNPJ",                         18),
-        ("Nome",                         35),
-        ("Venc. Planejado (AAAA-MM-DD)", 22),
-        ("Observação",                   45),
+        ("ID_Smart",          16),
+        ("Cliente",           34),
+        ("CNPJ",              20),
+        ("Valor",             14),
+        ("Vencimento",        13),
+        ("Dias",               7),
+        ("Banco",             10),
+        ("Email",             30),
+        ("Descrição Boleto",  42),
+        ("Nº Boleto",         18),
+        ("Venc. Planejado",   18),
+        ("Observação",        42),
     ]
 
     for col, (h, width) in enumerate(headers, 1):
@@ -1843,29 +1890,71 @@ async def download_vencidos_template(
             return f"{d[:3]}.{d[3:6]}.{d[6:9]}-{d[9:]}"
         return raw or ""
 
+    # Descrição dos boletos Itaú (o relatório do Itaú não traz descrição) —
+    # mesma regra da tela: "Cobrança referente a N linhas — Ref. Mês/Ano".
+    _qtd_map = {}
+    try:
+        if any((r.banco == "Itaú" and not r.description) for r in rows):
+            import re as _re_desc
+            _lc = db.query(BillingCycle).order_by(BillingCycle.id.desc()).first()
+            if _lc:
+                for _s in db.execute(text(
+                    "SELECT id_smart, qtd_linhas_ativas FROM billing_client_summaries WHERE cycle_id = :cid"
+                ), {"cid": _lc.id}).fetchall():
+                    _d = _re_desc.sub(r"\D", "", _s.id_smart or "")
+                    if _d:
+                        _qtd_map[_d] = _s.qtd_linhas_ativas or 0
+    except Exception:
+        pass
+
+    _MESES = ["", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
+              "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
+
+    def _descricao(r):
+        if r.description:
+            return r.description
+        if r.banco == "Itaú":
+            q = _qtd_map.get(r.cnpj_raw or "")
+            if q:
+                ref = ""
+                vo = r.vencimento_orig
+                if vo:
+                    try: ref = f" — Ref. {_MESES[vo.month]}/{vo.year}"
+                    except Exception: ref = ""
+                return f"Cobrança referente a {q} linhas{ref}"
+        return ""
+
+    def _lock(col, value, align="left"):
+        c = ws.cell(row=i, column=col, value=value)
+        c.fill = lock_fill; c.font = lock_font
+        c.alignment = Alignment(horizontal=align)
+        return c
+
     for i, r in enumerate(rows, 2):
         cnpj_raw = r.cnpj_raw or ""
         nota     = notas.get(cnpj_raw)
         vp_val   = str(nota.vencimento_planejado) if nota and nota.vencimento_planejado else ""
         obs_val  = nota.observacao if nota and nota.observacao else ""
 
-        c1 = ws.cell(row=i, column=1, value=r.id_smart or "")
-        c1.fill = lock_fill; c1.font = lock_font
-        c1.alignment = Alignment(horizontal="left")
+        # Colunas de referência (fundo cinza) — vêm do sistema, não editar
+        _lock(1, r.id_smart or "")
+        _lock(2, r.nome or "")
+        _lock(3, _fmt_cnpj(cnpj_raw))
+        cval = _lock(4, float(r.valor or 0), "right"); cval.number_format = "#,##0.00"
+        cvenc = _lock(5, r.vencimento_orig or "", "center")
+        if r.vencimento_orig:
+            cvenc.number_format = "DD/MM/YYYY"
+        _lock(6, int(r.dias or 0), "center")
+        _lock(7, r.banco or "", "center")
+        _lock(8, r.email or "", "left")
+        _lock(9, _descricao(r), "left")
+        _lock(10, (r.num_boleto or "").strip(", "), "left")
 
-        c2 = ws.cell(row=i, column=2, value=_fmt_cnpj(cnpj_raw))
-        c2.fill = lock_fill; c2.font = lock_font
-        c2.alignment = Alignment(horizontal="left")
-
-        c3 = ws.cell(row=i, column=3, value=r.nome or "")
-        c3.fill = lock_fill; c3.font = lock_font
-        c3.alignment = Alignment(horizontal="left")
-
-        c4 = ws.cell(row=i, column=4, value=vp_val)
-        c4.font = Font(size=9); c4.alignment = Alignment(horizontal="center")
-
-        c5 = ws.cell(row=i, column=5, value=obs_val)
-        c5.font = Font(size=9); c5.alignment = Alignment(horizontal="left")
+        # Colunas editáveis (fundo branco) — Venc. Planejado e Observação
+        c11 = ws.cell(row=i, column=11, value=vp_val)
+        c11.font = Font(size=9); c11.alignment = Alignment(horizontal="center")
+        c12 = ws.cell(row=i, column=12, value=obs_val)
+        c12.font = Font(size=9); c12.alignment = Alignment(horizontal="left")
 
     buf = io.BytesIO()
     wb.save(buf)

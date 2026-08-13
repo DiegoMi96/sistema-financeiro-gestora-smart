@@ -51,35 +51,58 @@
 html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; -webkit-font-smoothing: antialiased; }
 body { display: flex; min-height: 100vh; }
 
-/* Sidebar */
+/* Sidebar — paleta fixa idêntica ao menu do Faturamento (sistema principal),
+   escopada via custom properties só dentro de .sidebar. Não muda com o tema
+   claro/escuro da página nem afeta nada fora do menu. */
 .sidebar {
+  --surface:      #0D0D0D;
+  --surface-2:    #1A1A1A;
+  --border:       #1F1F1F;
+  --bg:           #1A1A1A;
+  --text:         #FFFFFF;
+  --text-2:       #9CA3AF;
+  --muted:        #6B7280;
+  --primary:      #3CB54A;
+  --primary-dark: #3CB54A;
+  --primary-light: rgba(60,181,74,.12);
   width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border);
   display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh;
-  overflow: hidden;
+  overflow: visible; transition: width .18s ease;
 }
-.brand { padding: 22px 22px 18px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); }
+.sidebar.collapsed { width: 64px; }
+.sidebar.collapsed .brand { justify-content: center; padding: 22px 0 18px; }
+.sidebar.collapsed .brand > div:not(.brand-logo) { display: none; }
+.sidebar.collapsed .nav-section { display: none; }
+.sidebar.collapsed .nav-item { justify-content: center; padding: 8px; margin: 1px 10px; border-left: none; }
+.sidebar.collapsed .nav-item.active { padding-left: 8px; border-left: none; }
+.sidebar.collapsed .nav-label { display: none; }
+.sidebar.collapsed .sf-label { display: none; }
+.sidebar.collapsed .sidebar-foot { justify-content: center; padding: 14px 10px; }
+.sidebar.collapsed .user-info,
+.sidebar.collapsed #profileTrigger svg { display: none; }
+.brand { padding: 22px 22px 18px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); overflow: hidden; }
 .brand-logo {
   width: 38px; height: 38px; border-radius: 11px;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-  display: grid; place-items: center; color: white; font-weight: 800; font-family: 'Manrope'; font-size: 18px;
-  box-shadow: 0 6px 14px rgba(29,158,94,.32);
+  background: var(--primary);
+  display: grid; place-items: center; color: white; font-weight: 800; font-family: 'Inter'; font-size: 18px;
+  box-shadow: 0 6px 14px rgba(60,181,74,.32);
 }
-.brand-text { font-family: 'Manrope'; font-weight: 800; font-size: 15px; letter-spacing: -.2px; }
+.brand-text { font-family: 'Inter'; font-weight: 800; font-size: 15px; letter-spacing: -.2px; color: var(--text); }
 .brand-sub { font-size: 11px; color: var(--muted); margin-top: 1px; letter-spacing: .3px; text-transform: uppercase; }
 
-.nav { padding: 14px 12px; flex: 1; overflow-y: auto; }
-.nav-section { font-size: 10.5px; color: var(--muted); letter-spacing: 1.2px; text-transform: uppercase; padding: 14px 12px 8px; font-weight: 600; }
+.nav { padding: 12px 0; flex: 1; overflow-y: auto; overflow-x: hidden; }
+.nav-section { font-size: 10px; color: #4B5563; letter-spacing: .1em; text-transform: uppercase; padding: 0 16px; margin: 14px 0 4px; font-weight: 600; }
 .nav-item {
-  display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: 9px;
-  cursor: pointer; color: var(--text-2); font-size: 13.5px; font-weight: 500; user-select: none;
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px 8px 16px; margin: 1px 6px; border-radius: 8px;
+  cursor: pointer; color: var(--text-2); font-size: 13px; font-weight: 500; user-select: none;
+  border-left: 3px solid transparent;
   transition: all .15s;
 }
-.nav-item:hover { background: var(--bg); color: var(--text); }
-.nav-item.active { background: var(--primary-light); color: var(--primary-dark); font-weight: 600; }
-[data-theme="dark"] .nav-item.active { color: #6FD8A4; }
-.nav-item svg { width: 17px; height: 17px; flex-shrink: 0; }
+.nav-item:hover { background: rgba(60,181,74,.08); color: var(--text-2); }
+.nav-item.active { background: var(--primary-light); color: var(--primary); font-weight: 600; border-left: 3px solid var(--primary); padding-left: 13px; }
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
 
-.sidebar-foot { padding: 14px 18px; border-top: 1px solid var(--border); font-size: 11.5px; color: var(--muted); }
+.sidebar-foot { padding: 14px 18px; border-top: 1px solid var(--border); font-size: 11.5px; color: var(--muted); overflow: hidden; }
 
 /* Main */
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
@@ -137,6 +160,37 @@ body { display: flex; min-height: 100vh; }
 .grid-2 { grid-template-columns: repeat(2, 1fr); }
 .grid-2-3 { grid-template-columns: 2fr 1fr; }
 .grid-3-2 { grid-template-columns: 3fr 2fr; }
+/* Par de painéis lado a lado (mockup Resumo Executivo: Resultado Financeiro | Posição de Caixa) */
+.dash-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; margin-bottom: 28px; }
+.dash-2col > .section { margin-bottom: 0; }
+/* Alturas base dos gráficos do Resumo Executivo (piso quando em coluna única) */
+.wf-wrap { height: 230px; }
+.caixa-wrap { height: 172px; }
+/* dash-2col-eq: as duas colunas esticam pra mesma altura e o último card
+   (gráfico) cresce pra preencher — alinha o fundo de Resultado Financeiro e
+   Posição de Caixa em qualquer mês. */
+.dash-2col-eq { align-items: stretch; }
+.dash-2col-eq > .section { display: flex; flex-direction: column; }
+.dash-2col-eq > .section > .card:last-child { flex: 1 1 auto; display: flex; flex-direction: column; }
+.dash-2col-eq .card:last-child .chart-canvas-wrap { flex: 1 1 auto; height: auto; }
+.dash-2col-eq .card:last-child .wf-wrap { min-height: 230px; }
+.dash-2col-eq .card:last-child .caixa-wrap { min-height: 172px; }
+/* dash-2col-eq2: Base SMART | Operação — as duas seções esticam pra mesma altura
+   e os grids preenchem, então os cards das duas seções ficam com a mesma altura
+   (evita Base SMART curto vs Operação alto quando o mês está vazio). */
+@media (min-width: 1101px) {
+  .dash-2col-eq2 { align-items: stretch; }
+  .dash-2col-eq2 > .section { display: flex; flex-direction: column; }
+  .dash-2col-eq2 > .section > .grid { flex: 1 1 auto; grid-auto-rows: 1fr; }
+}
+@media (max-width: 1100px) {
+  .dash-2col { grid-template-columns: 1fr; gap: 0; }
+  .dash-2col > .section { margin-bottom: 28px; }
+  /* coluna única: volta pra alturas fixas (não há par pra alinhar) */
+  .dash-2col-eq .card:last-child .chart-canvas-wrap { flex: 0 0 auto; }
+  .dash-2col-eq .card:last-child .wf-wrap { height: 230px; }
+  .dash-2col-eq .card:last-child .caixa-wrap { height: 172px; }
+}
 @media (max-width: 1200px) {
   .grid-7 { grid-template-columns: repeat(4, 1fr); }
   .grid-6 { grid-template-columns: repeat(3, 1fr); }
@@ -174,6 +228,9 @@ body { display: flex; min-height: 100vh; }
 
   /* Botão hamburger */
   #btnHamburger { display: grid; }
+
+  /* Recolher/expandir é recurso de desktop — no mobile o menu já é off-canvas */
+  #btnCollapseSidebar { display: none; }
 
   /* Main ocupa tudo */
   .main { width: 100%; }
@@ -298,6 +355,30 @@ body { display: flex; min-height: 100vh; }
 .delta-chip.down { background: rgba(224,70,59,.13); color: var(--negative); }
 [data-theme="dark"] .delta-chip.up { color: #6FD8A4; }
 .delta-chip svg { width: 11px; height: 11px; }
+.delta-vs { color: var(--muted); font-size: 11px; }
+/* Chip ▲/▼ vs mês nos cards de Base SMART / Operação (mockup 11/08/2026) */
+.kpi-delta { margin-top: 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-height: 18px; }
+.kpi-delta:empty { display: none; }
+/* Compactação Resumo Executivo p/ bater com o mockup (11/08/2026) */
+#kpiRow .card { padding: 14px 16px; gap: 2px; }
+#kpiRow .kpi-value { font-size: 23px; }
+#kpiRow .kpi-foot { margin-top: 5px; }
+#kpiRow .kpi-spark { line-height: 0; }
+#kpiRow .kpi-spark svg { height: 20px; margin-top: 3px; }
+.dash-2col .grid-4 .card, .dash-2col .grid-5 .card { padding: 13px 12px; display: flex; flex-direction: column; justify-content: center; }
+.dash-2col .grid-4 .kpi-foot { margin-top: 6px; }
+/* Valor responsivo: encolhe suave em telas estreitas em vez de quebrar o número */
+.dash-2col .grid-4 .kpi-value, .dash-2col .grid-5 .kpi-value { font-size: clamp(17px, 1.5vw, 23px); white-space: nowrap; }
+/* Anti-overflow: permite as colunas/cards encolherem em vez de vazar pra fora
+   da tela (o nowrap sozinho travava a largura mínima e estourava a tela). */
+.dash-2col > .section { min-width: 0; }
+.dash-2col .grid, .dash-2col .grid > * { min-width: 0; }
+.dash-2col .chart-canvas-wrap { width: 100%; min-width: 0; }
+/* Cards escuros de destaque (Lucro/Margem): chip e "vs" legíveis no verde-escuro */
+.kpi-dark .delta-chip { background: rgba(255,255,255,.16); }
+.kpi-dark .delta-chip.up { color: #8FE9B4; }
+.kpi-dark .delta-chip.down { color: #FFB3AB; }
+.kpi-dark .delta-vs { color: rgba(255,255,255,.72); }
 
 /* Chart card */
 .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
@@ -824,50 +905,65 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
   </div>
   <nav class="nav" id="nav">
     <div class="nav-section">Diretoria</div>
-    <div class="nav-item active" data-page="dashboard">
+    <div class="nav-item active" data-page="dashboard" title="Resumo Executivo">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2 4 4 8-8 4 4"/><path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18"/></svg>
-      Resumo Executivo
+      <span class="nav-label">Resumo Executivo</span>
     </div>
-    <div class="nav-item" data-page="pl">
+    <div class="nav-item" data-page="pl" title="Resumo Financeiro">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17V9m4 8V5m4 12v-6"/><rect x="3" y="3" width="18" height="18" rx="3"/></svg>
-      Resumo Financeiro
+      <span class="nav-label">Resumo Financeiro</span>
     </div>
-    <div class="nav-item" data-page="sales">
+    <div class="nav-item" data-page="sales" title="Vendas &amp; Performance">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M7 15l4-4 4 4 6-6"/></svg>
-      Vendas &amp; Performance
+      <span class="nav-label">Vendas &amp; Performance</span>
     </div>
-    <div class="nav-item" data-page="ops">
+    <div class="nav-item" data-page="ops" title="Operação">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.591 1.07c1.527-.88 3.293.886 2.414 2.414a1.724 1.724 0 001.066 2.59c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.59c.879 1.529-.887 3.295-2.415 2.415a1.724 1.724 0 00-2.59 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.59-1.066c-1.529.88-3.295-.886-2.415-2.415a1.724 1.724 0 00-1.066-2.59c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.59c-.88-1.528.886-3.294 2.415-2.414a1.724 1.724 0 002.59-1.07z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-      Operação
+      <span class="nav-label">Operação</span>
     </div>
-    <div class="nav-item" data-page="logistics">
+    <div class="nav-item" data-page="logistics" title="Logística">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zm10 0a2 2 0 11-4 0 2 2 0 014 0zM3 4h10v10H3z"/><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h4l4 4v6h-3"/></svg>
-      Logística
+      <span class="nav-label">Logística</span>
     </div>
-    <div class="nav-item" data-page="rh">
+    <div class="nav-item" data-page="rh" title="RH">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-5a4 4 0 11-8 0 4 4 0 018 0zm6 3a3 3 0 100-6 3 3 0 000 6z"/></svg>
-      RH
+      <span class="nav-label">RH</span>
     </div>
     <div class="nav-section">Análises</div>
-    <div class="nav-item" data-page="dfc">
+    <div class="nav-item" data-page="dfc" title="DFC Gerencial">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg>
-      DFC Gerencial
+      <span class="nav-label">DFC Gerencial</span>
+    </div>
+    <div class="nav-section">Sistema</div>
+    <div class="nav-item" data-page="settings" title="Configurações">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.591 1.07c1.527-.88 3.293.886 2.414 2.414a1.724 1.724 0 001.066 2.59c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.59c.879 1.529-.887 3.295-2.415 2.415a1.724 1.724 0 00-2.59 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.59-1.066c-1.529.88-3.295-.886-2.415-2.415a1.724 1.724 0 00-1.066-2.59c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.59c-.88-1.528.886-3.294 2.415-2.414a1.724 1.724 0 002.59-1.07z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      <span class="nav-label">Configurações</span>
     </div>
   </nav>
-  <div style="padding:0 8px 8px">
-    <button onclick="trocarModulo()" title="Trocar módulo" style="width:100%;display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;font-size:12px;font-weight:500;color:var(--muted);border:1px dashed var(--border);background:transparent;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'">
+  <div style="padding:0 8px 8px;overflow:hidden">
+    <button onclick="trocarModulo()" title="Trocar módulo" style="width:100%;display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;font-size:12px;font-weight:500;color:#6B7280;border:1px dashed #2A2A2A;background:transparent;cursor:pointer;transition:background .15s" onmouseover="this.style.background='#1A1A1A'" onmouseout="this.style.background='transparent'">
       <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="flex-shrink:0"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-      Trocar módulo
+      <span class="nav-label">Trocar módulo</span>
     </button>
   </div>
   <div class="sidebar-foot" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-    <div>
+    <div class="sf-label">
       Última atualização<br><strong id="sidebarLastSync" style="color:var(--text)">—</strong>
     </div>
     <button onclick="syncFromSheets()" title="Atualizar dados" id="btnSyncSidebar" style="background:var(--bg);border:1px solid var(--border);color:var(--text-2);border-radius:10px;padding:9px 10px;cursor:pointer;display:grid;place-items:center;flex-shrink:0;transition:background .15s,color .15s" onmouseover="this.style.background='var(--primary)';this.style.color='#fff';this.style.borderColor='var(--primary)'" onmouseout="this.style.background='var(--bg)';this.style.color='var(--text-2)';this.style.borderColor='var(--border)'">
       <svg width="19" height="19" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
     </button>
   </div>
+
+  <!-- Botão colapsar — mesma posição do menu principal (Faturamento): canto inferior direito -->
+  <button id="btnCollapseSidebar" onclick="toggleSidebarCollapse()" title="Recolher menu"
+    style="position:absolute;right:-12px;bottom:28px;z-index:10;width:24px;height:24px;border-radius:50%;
+    background:#2A2A2A;border:1px solid #3A3A3A;color:#9CA3AF;cursor:pointer;display:grid;place-items:center;
+    transition:all .15s;box-shadow:0 2px 8px rgba(0,0,0,.5)"
+    onmouseover="this.style.background='var(--primary)';this.style.color='#fff'"
+    onmouseout="this.style.background='#2A2A2A';this.style.color='#9CA3AF'">
+    <svg id="collapseIcon" width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 18l-6-6 6-6"/></svg>
+  </button>
   <div class="logout-wrap">
     <!-- Profile dropdown -->
     <div id="profileMenu">
@@ -919,9 +1015,6 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
     <button id="btnHamburger" onclick="toggleMobileSidebar()" title="Menu">
       <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
     </button>
-    <div>
-      <div class="crumbs">Diretoria / <strong id="crumbPage">Resumo Executivo</strong></div>
-    </div>
     <div class="spacer"></div>
 
     <div class="tb-control">
@@ -950,6 +1043,12 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         <option value="YTD">Acumulado</option>
       </select>
     </div>
+    <div class="tb-control" id="compareControl" title="Mês de comparação para os deltas (▲/▼)">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4M16 17H4m0 0l4 4m-4-4l4-4"/></svg>
+      <select id="compareSelect">
+        <option value="">Comparar: mês anterior</option>
+      </select>
+    </div>
 
     <button class="icon-btn" id="themeBtn" title="Alternar tema">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -963,10 +1062,74 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <div class="page-head">
         <div>
           <h2 class="page-title">Resumo Executivo</h2>
-          <p class="page-sub" id="pageSub">Principais Indicadores de Performance (KPIs) · Março 2026</p>
+          <p class="page-sub" id="pageSub">Visão geral da performance financeira e operacional da empresa.</p>
         </div>
       </div>
-      <div class="hero">
+      <!-- ===== Fileira de KPIs (mockup 08/08/2026) — cards preenchidos pelo render via .kpi-label ===== -->
+      <div class="grid grid-6" style="margin-bottom:22px" id="kpiRow">
+        <div class="card" style="display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px">
+            <div style="width:32px;height:32px;border-radius:9px;background:var(--primary-light);color:var(--primary);display:grid;place-items:center;flex-shrink:0;font-weight:800;font-size:15px">$</div>
+            <div class="kpi-label" style="margin:0">Receita Bruta</div>
+          </div>
+          <div class="kpi-value">R$ —</div>
+          <div class="kpi-foot">Faturamento bruto</div>
+          <div class="kpi-spark"></div>
+        </div>
+        <div class="card" style="display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px">
+            <div style="width:32px;height:32px;border-radius:9px;background:rgba(234,179,8,.15);color:var(--warning);display:grid;place-items:center;flex-shrink:0">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17V9m4 8V5m4 12v-6"/></svg>
+            </div>
+            <div class="kpi-label" style="margin:0">CSP / CMV</div>
+          </div>
+          <div class="kpi-value">R$ —</div>
+          <div class="kpi-foot">Custo de serviços</div>
+          <div class="kpi-spark"></div>
+        </div>
+        <div class="card" style="display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px">
+            <div style="width:32px;height:32px;border-radius:9px;background:rgba(224,70,59,.14);color:var(--negative);display:grid;place-items:center;flex-shrink:0">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M8 12h8"/></svg>
+            </div>
+            <div class="kpi-label" style="margin:0">Despesas</div>
+          </div>
+          <div class="kpi-value">R$ —</div>
+          <div class="kpi-foot">Despesas operacionais</div>
+          <div class="kpi-spark"></div>
+        </div>
+        <div class="card" style="display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px">
+            <div style="width:32px;height:32px;border-radius:9px;background:var(--primary-light);color:var(--primary);display:grid;place-items:center;flex-shrink:0;font-weight:800;font-size:14px">%</div>
+            <div class="kpi-label" style="margin:0">Margem de Contribuição</div>
+          </div>
+          <div class="kpi-value">—</div>
+          <div class="kpi-foot">Receita − CMV / Receita</div>
+          <div class="kpi-spark"></div>
+        </div>
+        <div class="card kpi-dark" style="display:flex;flex-direction:column;gap:6px;background:linear-gradient(135deg,#16774A,#0D5230);border:none;box-shadow:0 8px 20px rgba(13,82,48,.35)">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px">
+            <div style="width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.18);color:#fff;display:grid;place-items:center;flex-shrink:0">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 17l6-6 4 4 8-8"/><path stroke-linecap="round" stroke-linejoin="round" d="M14 7h7v7"/></svg>
+            </div>
+            <div class="kpi-label" style="margin:0;color:rgba(255,255,255,.85)">Lucro Líquido</div>
+          </div>
+          <div class="kpi-value" style="color:#fff">R$ —</div>
+          <div class="kpi-foot" style="color:rgba(255,255,255,.8)">Resultado do mês</div>
+          <div class="kpi-spark"></div>
+        </div>
+        <div class="card kpi-dark" style="display:flex;flex-direction:column;gap:6px;background:linear-gradient(135deg,#16774A,#0D5230);border:none;box-shadow:0 8px 20px rgba(13,82,48,.35)">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px">
+            <div style="width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.18);color:#fff;display:grid;place-items:center;flex-shrink:0;font-weight:800;font-size:14px">%</div>
+            <div class="kpi-label" style="margin:0;color:rgba(255,255,255,.85)">Margem Líquida</div>
+          </div>
+          <div class="kpi-value" style="color:#fff">—</div>
+          <div class="kpi-foot" style="color:rgba(255,255,255,.8)">Resultado / Receita</div>
+          <div class="kpi-spark"></div>
+        </div>
+      </div>
+
+      <div class="hero" style="display:none">
         <div>
           <div class="hero-label">Relatório do Mês</div>
           <h1 class="hero-title">Fechamento Financeiro</h1>
@@ -985,123 +1148,109 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       </div>
 
 
+      <!-- ===== Resultado Financeiro | Posição de Caixa — 2 colunas (mockup 11/08/2026) ===== -->
+      <div class="dash-2col dash-2col-eq">
       <div class="section">
         <div class="section-head"><div class="section-bar"></div><div class="section-title">Resultado Financeiro</div></div>
-        <div class="grid grid-5">
-          <div class="card"><div class="card-top-line"></div>
-            <div class="kpi-label">Receita Bruta</div>
-            <div class="kpi-value">R$ 4,432M</div>
-            <div class="kpi-foot"><span class="delta-chip up">↑ 154%</span> vs. Previsto</div>
+        <div class="card">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Em R$ milhões</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);text-align:center;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:18px">
+            <div style="padding:14px 8px;border-right:1px solid var(--border)"><div class="kpi-label" style="margin:0 0 5px">Receita</div><div id="wfReceita" style="font-weight:800;font-size:16px;color:var(--primary)">—</div></div>
+            <div style="padding:14px 8px;border-right:1px solid var(--border)"><div class="kpi-label" style="margin:0 0 5px">(-) CMV</div><div id="wfCmv" style="font-weight:800;font-size:16px;color:var(--negative)">—</div></div>
+            <div style="padding:14px 8px;border-right:1px solid var(--border)"><div class="kpi-label" style="margin:0 0 5px">(-) Despesas</div><div id="wfDesp" style="font-weight:800;font-size:16px;color:var(--negative)">—</div></div>
+            <div style="padding:14px 8px"><div class="kpi-label" style="margin:0 0 5px">Lucro Operacional</div><div id="wfLucro" style="font-weight:800;font-size:16px;color:var(--primary)">—</div></div>
           </div>
-          <div class="card"><div class="card-top-line warn"></div>
-            <div class="kpi-label">CSP / CMV</div>
-            <div class="kpi-value">R$ 2,393M</div>
-            <div class="kpi-foot"><span class="delta-chip down">↓ 102%</span> vs. Previsto</div>
-          </div>
-          <div class="card"><div class="card-top-line"></div>
-            <div class="kpi-label">Despesas</div>
-            <div class="kpi-value">R$ 2,144M</div>
-            <div class="kpi-foot"><span class="delta-chip up">↑ 213%</span> vs. Previsto</div>
-          </div>
-          <div class="card tinted-primary">
-            <div class="kpi-label">Margem de Contribuição</div>
-            <div class="kpi-value lg">41,55%</div>
-            <div class="kpi-foot"><span class="delta-chip up">↑ 124%</span> vs. Previsto</div>
-          </div>
-          <div class="card tinted-primary">
-            <div class="kpi-label">Resultado do Mês</div>
-            <div class="kpi-value lg">R$ 13.510</div>
-            <div class="kpi-foot"><span class="delta-chip up">↑ 108%</span> vs. Previsto</div>
-          </div>
+          <div class="chart-canvas-wrap wf-wrap"><canvas id="chartWaterfall"></canvas></div>
         </div>
       </div>
 
       <div class="section">
         <div class="section-head"><div class="section-bar"></div><div class="section-title">Posição de Caixa</div></div>
-        <div class="grid grid-5">
+        <div class="grid grid-4" style="margin-bottom:14px">
           <div class="card"><div class="card-top-line info"></div>
             <div class="kpi-label">Caixa Inicial</div>
-            <div class="kpi-value">R$ 332.640</div>
-            <div class="kpi-foot">Saldo em 01/03</div>
+            <div class="kpi-value">R$ —</div>
+            <div class="kpi-foot">Saldo em 01/—</div>
           </div>
           <div class="card"><div class="card-top-line"></div>
             <div class="kpi-label">Caixa Final</div>
-            <div class="kpi-value">R$ 342.069</div>
-            <div class="kpi-foot">Saldo em 31/03</div>
+            <div class="kpi-value">R$ —</div>
+            <div class="kpi-foot">Saldo em 31/—</div>
           </div>
           <div class="card"><div class="card-top-line warn"></div>
             <div class="kpi-label">Inadimplências</div>
-            <div class="kpi-value">R$ 113.919</div>
+            <div class="kpi-value">R$ —</div>
             <div class="kpi-foot">A recuperar</div>
-          </div>
-          <div class="card"><div class="card-top-line"></div>
-            <div class="kpi-label">Tesouro</div>
-            <div class="kpi-value">R$ 1,269M</div>
-            <div class="kpi-foot">Aplicações financeiras</div>
           </div>
           <div class="card tinted-primary">
             <div class="kpi-label">Saldo Acumulado</div>
-            <div class="kpi-value">R$ 340.745</div>
-            <div class="kpi-foot">YTD 2026</div>
+            <div class="kpi-value">R$ —</div>
+            <div class="kpi-foot">Posição de caixa</div>
           </div>
         </div>
+        <div class="card">
+          <div class="chart-legend" style="justify-content:center;margin-bottom:8px">
+            <span><span class="legend-dot" style="background:var(--primary)"></span>Realizado</span>
+            <span><span class="legend-dot" style="background:var(--primary-soft)"></span>Previsão</span>
+          </div>
+          <div class="chart-canvas-wrap caixa-wrap"><canvas id="chartCaixaDash"></canvas></div>
+        </div>
       </div>
+      </div>
+      <!-- /dash-2col (Resultado Financeiro | Posição de Caixa) -->
 
+      <!-- ===== Base SMART | Operação e Satisfação — 2 colunas (mockup 11/08/2026) ===== -->
+      <div class="dash-2col dash-2col-eq2">
       <div class="section">
-        <div class="section-head"><div class="section-bar"></div><div class="section-title">BASE SMART</div></div>
-        <!-- Linha 1: Base + Vendas -->
-        <div class="grid grid-6" style="margin-bottom:10px">
-          <div class="card tinted-primary">
+        <div class="section-head"><div class="section-bar"></div><div class="section-title">Base SMART</div><span style="font-size:12px;color:var(--muted);text-transform:none;font-weight:500">(Clientes e Operações)</span></div>
+        <div class="grid grid-5">
+          <div class="card"><div class="card-top-line"></div>
             <div class="kpi-label">Base Ativa</div>
-            <div class="kpi-value lg">565.338</div>
+            <div class="kpi-value">—</div>
             <div class="kpi-foot">Simcards faturantes</div>
+            <div class="kpi-delta"></div>
           </div>
           <div class="card"><div class="card-top-line"></div>
-            <div class="kpi-label">Base Pré-Ativa</div>
-            <div class="kpi-value">60.825</div>
+            <div class="kpi-label">Pré-Ativa</div>
+            <div class="kpi-value">—</div>
             <div class="kpi-foot">Aguardando ativação</div>
+            <div class="kpi-delta"></div>
           </div>
           <div class="card"><div class="card-top-line negative"></div>
             <div class="kpi-label">Suspensão</div>
             <div class="kpi-value">—</div>
             <div class="kpi-foot">Simcards suspensos</div>
+            <div class="kpi-delta"></div>
           </div>
           <div class="card"><div class="card-top-line info"></div>
-            <div class="kpi-label">Base Software</div>
-            <div class="kpi-value">14.108</div>
-            <div class="kpi-foot">Licenças ativas</div>
-          </div>
-          <div class="card tinted-primary">
-            <div class="kpi-label">Vendas</div>
-            <div class="kpi-value">36.435</div>
-            <div class="kpi-foot">102% vs. previsto</div>
+            <div class="kpi-label">Ativações (Mês)</div>
+            <div class="kpi-value">—</div>
+            <div class="kpi-foot">vs. previsto</div>
+            <div class="kpi-delta"></div>
           </div>
           <div class="card"><div class="card-top-line"></div>
             <div class="kpi-label">Novos Clientes</div>
-            <div class="kpi-value">89</div>
-            <div class="kpi-foot">Conversão 3,4%</div>
+            <div class="kpi-value">—</div>
+            <div class="kpi-foot">Clientes novos</div>
+            <div class="kpi-delta"></div>
           </div>
         </div>
       </div>
 
-      <!-- Linha 2: Cancelamentos + Próximas Ativações + Satisfação -->
       <div class="section">
-        <div class="section-head"><div class="section-bar"></div><div class="section-title">Operação · Satisfação · Próximas Ativações</div></div>
-        <div class="grid grid-5">
+        <div class="section-head"><div class="section-bar"></div><div class="section-title">Operação e Satisfação</div></div>
+        <div class="grid grid-4">
           <div class="card"><div class="card-top-line warn"></div>
-            <div class="kpi-label">Cancelamento</div>
-            <div class="kpi-value">16.751</div>
+            <div class="kpi-label">Cancelamento (Mês)</div>
+            <div class="kpi-value">—</div>
             <div class="kpi-foot">Linhas no mês</div>
+            <div class="kpi-delta"></div>
           </div>
           <div class="card"><div class="card-top-line warn"></div>
-            <div class="kpi-label">Desistência</div>
-            <div class="kpi-value">10.602</div>
+            <div class="kpi-label">Desistência (Mês)</div>
+            <div class="kpi-value">—</div>
             <div class="kpi-foot">Pré-ativação</div>
-          </div>
-          <div class="card"><div class="card-top-line warn"></div>
-            <div class="kpi-label">Cancelamento Acumulado</div>
-            <div class="kpi-value">78.719</div>
-            <div class="kpi-foot">Acumulado</div>
+            <div class="kpi-delta"></div>
           </div>
           <div class="card">
             <div class="kpi-label">Próximas Ativações</div>
@@ -1127,6 +1276,15 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           </div>
         </div>
       </div>
+      </div>
+      <!-- /dash-2col (Base SMART | Operação e Satisfação) -->
+
+      <!-- ===== Alertas e Destaques (mockup 08/08/2026) — preenchido por renderAlertas() ===== -->
+      <div class="section">
+        <div class="section-head"><div class="section-bar"></div><div class="section-title">Alertas e Destaques</div></div>
+        <div class="grid grid-5" id="alertasRow"></div>
+      </div>
+
     </section>
 
     <!-- =============== P&L =============== -->
@@ -1830,7 +1988,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
     </div>
 
     <!-- =============== CONFIGURAÇÕES (removida — acesso via sistema principal) =============== -->
-    <section class="page" data-page="settings" style="display:none!important">
+    <section class="page" data-page="settings">
       <div class="page-head">
         <div>
           <h2 class="page-title">Configurações</h2>
@@ -1854,16 +2012,35 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
             </button>
           </div>
 
-          <!-- Link da planilha -->
-          <div style="display:flex;align-items:center;gap:10px;padding:14px;background:var(--bg);border-radius:10px;border:1px solid var(--border);margin-bottom:14px">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="6" fill="#0F9D58"/><path d="M6 8h12v8H6V8z" fill="white" opacity=".3"/><path d="M8 10h8M8 12h8M8 14h5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
-            <div style="flex:1;min-width:0">
-              <div style="font-weight:600;font-size:13px;color:var(--text)">Planilha Gestora Smart</div>
-              <a href="https://docs.google.com/spreadsheets/d/1yKDb5cGWnGjbZ4DVFPAFcV7SMWTlSqncWK0O9HbzK3Y/edit" target="_blank" style="font-size:11.5px;color:var(--info);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block">Abrir no Google Sheets →</a>
+          <!-- Planilha vinculada + configuração (caixa única) -->
+          <div style="display:flex;flex-direction:column;gap:12px;padding:14px;background:var(--bg);border-radius:10px;border:1px solid var(--border);margin-bottom:14px">
+            <!-- Cabeçalho: nome + abrir + última sync -->
+            <div style="display:flex;align-items:center;gap:10px">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="6" fill="#0F9D58"/><path d="M6 8h12v8H6V8z" fill="white" opacity=".3"/><path d="M8 10h8M8 12h8M8 14h5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <div style="flex:1;min-width:0">
+                <div style="font-weight:600;font-size:13px;color:var(--text)">Planilha Gestora Smart</div>
+                <a id="sheetLink" href="https://docs.google.com/spreadsheets/d/1yKDb5cGWnGjbZ4DVFPAFcV7SMWTlSqncWK0O9HbzK3Y/edit" target="_blank" style="font-size:11.5px;color:var(--info);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block">Abrir no Google Sheets →</a>
+              </div>
+              <div style="text-align:right;flex-shrink:0">
+                <div style="font-size:11px;color:var(--muted)">Última sync</div>
+                <div id="lastSyncTime" style="font-size:12px;font-weight:600;color:var(--text-2)">—</div>
+              </div>
             </div>
-            <div style="text-align:right;flex-shrink:0">
-              <div style="font-size:11px;color:var(--muted)">Última sync</div>
-              <div id="lastSyncTime" style="font-size:12px;font-weight:600;color:var(--text-2)">—</div>
+            <!-- Configuração: ID editável + testar/salvar -->
+            <div style="border-top:1px solid var(--border);padding-top:12px;display:flex;flex-direction:column;gap:8px">
+              <label style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">ID do Google Sheets</label>
+              <div style="position:relative;display:flex;align-items:center">
+                <input id="sheetIdInput" type="password" placeholder="1yKDb5cGWnGjbZ4DVF..." style="flex:1;padding:9px 40px 9px 11px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:13px;font-family:inherit;outline:none">
+                <button type="button" onclick="toggleSheetId()" title="Mostrar / ocultar" style="position:absolute;right:6px;background:none;border:none;cursor:pointer;color:var(--muted);padding:5px;display:grid;place-items:center">
+                  <svg id="sheetIdEye" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                </button>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                <button type="button" onclick="testSheetsConnection()" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text-2);border-radius:8px;padding:8px 14px;cursor:pointer;font-size:12.5px;font-weight:600;font-family:inherit">Testar conexão</button>
+                <button type="button" onclick="saveSheetsConfig()" style="background:var(--primary);color:#fff;border:0;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:12.5px;font-weight:700;font-family:inherit">Salvar vínculo</button>
+                <span id="sheetCfgStatus" style="font-size:12px;color:var(--muted)"></span>
+              </div>
+              <div style="font-size:11px;color:var(--muted);line-height:1.5">A conta de serviço do Google já está no servidor. A planilha precisa estar compartilhada com <strong style="color:var(--text-2)">gestora-reader@gestora-smart.iam.gserviceaccount.com</strong> (ou pública para leitura).</div>
             </div>
           </div>
 
@@ -1991,7 +2168,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         </div>
       </div>
 
-        <div class="chart-card">
+        <div class="chart-card" style="display:none">
           <div class="chart-head">
             <div>
               <div class="chart-title">Acessos</div>
@@ -2782,6 +2959,7 @@ function navigateToPage(key) {
   if (key === 'sales') resetOpTableToCurrentMonth();
   // Configurações: admin vê último acesso atualizado do servidor
   if (key === 'settings' && isCurrentUserAdm()) _refreshUsersFromServer();
+  if (key === 'settings') loadSheetsConfig();
 }
 
 /** Restaura a última aba visitada (salva no localStorage). */
@@ -2957,6 +3135,7 @@ function restoreCache() {
     const elSidebar = document.getElementById('sidebarLastSync');
     if (elSync)    elSync.textContent    = ts;
     if (elSidebar) elSidebar.textContent = ts;
+    const elDash = document.getElementById('dashUpdatedAt'); if (elDash) elDash.textContent = ts;
     return true;
   } catch(e) { return false; }
 }
@@ -3015,6 +3194,9 @@ const _prevDate  = new Date(); _prevDate.setDate(1); _prevDate.setMonth(_prevDat
 const _prevMonth = String(_prevDate.getMonth() + 1).padStart(2, '0'); // mês anterior (01-12)
 const _prevYear  = String(_prevDate.getFullYear());
 let currentPeriod = `${_nowYear}-${_nowMonth}`;
+// "Comparar com" — índice do mês (0-11) usado como base dos deltas (▲/▼).
+// null => comportamento padrão: compara com o mês imediatamente anterior.
+window._compareIdx = null;
 const periodLabels    = {};
 const periodMonthIdx  = {};
 
@@ -3065,6 +3247,26 @@ function refreshPeriodFilter(year, lastRealIdx) {
   sel.value = (prevVal && opts.includes(prevVal)) ? prevVal : defaultVal;
   window._periodSetInSession = true; // marca que já foi definido nesta sessão
   currentPeriod = `${year}-${sel.value}`;
+
+  // "Comparar com": repovoa apenas com meses que têm dados reais (0..lastRealIdx).
+  // Preserva a escolha do usuário se ainda for válida; senão volta ao padrão (mês anterior).
+  const cmpSel = document.getElementById('compareSelect');
+  if (cmpSel) {
+    const prevCmp = cmpSel.value; // '' = automático (mês anterior)
+    cmpSel.innerHTML = '';
+    const optAuto = document.createElement('option');
+    optAuto.value = ''; optAuto.textContent = 'Comparar: mês anterior';
+    cmpSel.appendChild(optAuto);
+    for (let i = 0; i <= lastRealIdx; i++) {
+      const o = document.createElement('option');
+      o.value = String(i);
+      o.textContent = 'Comparar: ' + MES_NOME[i];
+      cmpSel.appendChild(o);
+    }
+    const cmpOpts = Array.from(cmpSel.options).map(o => o.value);
+    cmpSel.value = cmpOpts.includes(prevCmp) ? prevCmp : '';
+    window._compareIdx = cmpSel.value === '' ? null : parseInt(cmpSel.value, 10);
+  }
 }
 
 // Função auxiliar para criar período vazio — todos os dados vêm do Google Sheets
@@ -3072,7 +3274,7 @@ function emptyPeriod(label) {
   return {
     hero1Val: '—', hero1Desc: 'Sincronize a planilha',
     hero2Val: '—', hero2Desc: '—',
-    pageSub: 'Indicadores de Performance',
+    pageSub: 'Visão geral da performance financeira e operacional da empresa.',
     kpis: {},
     satisfacao: { val: '—', volume: '—' },
     proximasAtivacoes: [],
@@ -3102,6 +3304,7 @@ function applyPeriod(p) {
   document.getElementById('heroVal2').textContent = d.hero2Val;
   document.getElementById('heroDesc2').textContent = d.hero2Desc;
   const ps = document.getElementById('pageSub'); if (ps) ps.textContent = d.pageSub;
+  renderAlertas(d);
   // KPI cards — atualiza todos; mostra "—" se não houver dado na planilha
   document.querySelectorAll('.kpi-label').forEach(el => {
     const label = el.textContent.trim();
@@ -3119,6 +3322,10 @@ function applyPeriod(p) {
     }
     if (v) v.innerHTML = k.v;
     if (f && k.f !== undefined) f.innerHTML = k.f;
+    const sp = card.querySelector('.kpi-spark');
+    if (sp) sp.innerHTML = k.spark || '';
+    const dl = card.querySelector('.kpi-delta'); // chip ▲/▼ vs mês (Base SMART / Operação)
+    if (dl) dl.innerHTML = k.d || '';
   });
   // Índice de Satisfação — mantém as estrelas, só atualiza o número
   document.querySelectorAll('.kpi-label').forEach(el => {
@@ -3607,6 +3814,33 @@ function buildSaldo() {
   destroyChart('saldo');
   const sel = periodMonthIdx[currentPeriod];
   charts.saldo = new Chart(ctx, {
+    type: 'line',
+    data: { labels: meses, datasets: [
+      { label:'Realizado', data: saldoAcum.map((v,i)=>saldoIsReal[i] ? v : null), borderColor: css('--primary'), backgroundColor: 'rgba(29,158,94,.12)', fill:true, tension:.35, pointRadius: saldoAcum.map((_,i) => i===sel ? 8 : 5), pointBackgroundColor: saldoAcum.map((_,i) => i===sel ? css('--primary-dark') : css('--primary')), borderWidth:3 },
+      { label:'Previsão', data: saldoAcum.map((v,i)=>saldoIsReal[i] ? null : v), borderColor: css('--primary-soft'), backgroundColor:'rgba(29,158,94,.06)', fill:true, tension:.35, pointRadius:4, pointBackgroundColor: css('--primary-soft'), borderDash:[6,4], borderWidth:3 }
+    ]},
+    options: commonOpts({
+      plugins: {
+        legend:{display:false},
+        tooltip:{ callbacks:{ label: c => fmtBRL(c.parsed.y) } },
+        datalabels: {
+          display: true, anchor:'end', align:'top',
+          color: css('--text-2'), font: { size: 9, weight: '700' },
+          formatter: v => v == null ? '' : (v/1000).toFixed(0)+'k'
+        }
+      },
+      scales: { ...commonOpts().scales, y: { ...commonOpts().scales.y, ticks: { ...commonOpts().scales.y.ticks, callback: v => (v/1000).toFixed(0)+'k' } } }
+    })
+  });
+}
+
+// Gêmeo de buildSaldo para o Resumo Executivo (Posição de Caixa) — canvas próprio
+// chartCaixaDash. Mesmos dados (saldoAcum + saldoIsReal): Realizado vs Previsão.
+function buildCaixaDash() {
+  const ctx = document.getElementById('chartCaixaDash'); if (!ctx) return;
+  destroyChart('caixaDash');
+  const sel = periodMonthIdx[currentPeriod];
+  charts.caixaDash = new Chart(ctx, {
     type: 'line',
     data: { labels: meses, datasets: [
       { label:'Realizado', data: saldoAcum.map((v,i)=>saldoIsReal[i] ? v : null), borderColor: css('--primary'), backgroundColor: 'rgba(29,158,94,.12)', fill:true, tension:.35, pointRadius: saldoAcum.map((_,i) => i===sel ? 8 : 5), pointBackgroundColor: saldoAcum.map((_,i) => i===sel ? css('--primary-dark') : css('--primary')), borderWidth:3 },
@@ -5416,6 +5650,8 @@ function rerenderAllCharts() {
   // Pool reconstrói preservando o mês ativo
   const poolActiveBtn = document.querySelector('#poolTabs .op-tab.active');
   buildPool(poolActiveBtn ? +poolActiveBtn.dataset.mes : 0);
+  try { buildWaterfall(); } catch (e) { console.warn('waterfall:', e); }
+  try { buildCaixaDash(); } catch (e) { console.warn('caixaDash:', e); }
 }
 
 // Filter saídas
@@ -6459,6 +6695,16 @@ function onPeriodChange() {
 document.getElementById('yearSelect').addEventListener('change', onPeriodChange);
 document.getElementById('monthSelect').addEventListener('change', onPeriodChange);
 
+// "Comparar com": troca a base dos deltas (▲/▼) e reconstrói os KPIs/alertas.
+document.getElementById('compareSelect')?.addEventListener('change', function () {
+  window._compareIdx = this.value === '' ? null : parseInt(this.value, 10);
+  // Reconstrói periodData a partir do último data-map (os deltas são calculados
+  // dentro de computePeriodData → buildKpis). Sem dados ainda, só re-renderiza.
+  if (window._lastDm) computePeriodData(window._lastDm);
+  applyPeriod(getActivePeriod());
+  rerenderAllCharts();
+});
+
 // ========== Google Sheets Sync ==========
 // ✅ Backend proxy — planilha protegida no servidor Digital Ocean
 const API_SECRET = 'GestoraSmart2026';
@@ -6512,6 +6758,7 @@ function fmtAutoK(v) {
 }
 
 function computePeriodData(dm) {
+  window._lastDm = dm; // guarda o último data-map p/ rebuild ao trocar "Comparar com"
   const year = document.getElementById('yearSelect')?.value || '2026';
   const get = (key, idx) => {
     const v = dm[key] ? (dm[key][idx] ?? null) : null;
@@ -6563,25 +6810,115 @@ function computePeriodData(dm) {
     const cofPrin  = _cpSlice.some(v => v != null) ? _cpSlice.reduce((s,v) => s + (v ?? 0), 0) : null;
     const cof2     = _c2Slice.some(v => v != null) ? _c2Slice.reduce((s,v) => s + (v ?? 0), 0) : null;
     const tesAcum  = (cofPrin != null || cof2 != null) ? (cofPrin??0)+(cof2??0) : null;
+    // ── Deltas vs mês anterior (mockup) — só p/ mês fechado; Q1/YTD/Janeiro caem no texto padrão ──
+    // Base do delta: mês anterior por padrão, ou o mês escolhido em "Comparar com".
+    // Q1/YTD são agregados — comparação mês-a-mês não se aplica (_pi = -1).
+    const _cmp = window._compareIdx;
+    const _cmpSel = (_cmp != null && _cmp >= 0 && _cmp !== idx) ? _cmp : null;
+    const _pi = (isQ1 || isYTD) ? -1 : (_cmpSel != null ? _cmpSel : (idx > 0 ? idx - 1 : -1));
+    const _prevLbl = _pi >= 0 ? (shortMon[_pi] + '/' + year.slice(2)) : '';
+    const _recP  = _pi >= 0 ? get('Receita', _pi)   : null;
+    const _cmvP  = _pi >= 0 ? get('CMV', _pi)        : null;
+    const _despP = _pi >= 0 ? get('Despesas', _pi)   : null;
+    const _resP  = _pi >= 0 ? get('Resultado', _pi)  : null;
+    const _recLP = _recP != null ? _recP - (recAtvFinMes[_pi] ?? 0) : null;
+    const _margContribC = (recL && cmv != null) ? ((recL - cmv) / recL) * 100 : null;
+    const _margContribP = (_recLP && _cmvP != null) ? ((_recLP - _cmvP) / _recLP) * 100 : null;
+    const _margLiqC = (rec && res != null) ? (res / rec) * 100 : null;
+    const _margLiqP = (_recP && _resP != null) ? (_resP / _recP) * 100 : null;
+    const _delta = (cur, prev, higherBetter, isPP) => {
+      if (_pi < 0 || cur == null || prev == null || (!isPP && prev === 0)) return null;
+      const d = isPP ? (cur - prev) : (((cur - prev) / Math.abs(prev)) * 100);
+      const up = d >= 0;
+      const good = higherBetter ? up : !up;
+      const txt = (up ? '▲ ' : '▼ ') + d.toFixed(1).replace('.', ',') + (isPP ? ' pp' : '%');
+      return `<span class="delta-chip ${good ? 'up' : 'down'}">${txt}</span> <span class="delta-vs">vs ${_prevLbl}</span>`;
+    };
+    // ── Alertas e Destaques (mockup) — computados dos mesmos dados ──
+    const _baseAtivaP = _pi >= 0 ? get('Base_Ativa', _pi) : null;
+    // Valores do mês de comparação p/ os chips ▲/▼ do Base SMART / Operação
+    const _basePreP  = _pi >= 0 ? get('Base_Pre', _pi)     : null;
+    const _suspP     = _pi >= 0 ? get('Base_Susp', _pi)    : null;
+    const _vendasP   = _pi >= 0 ? get('Vendas_SIM', _pi)   : null;
+    const _novosP    = _pi >= 0 ? get('Novos_CLI', _pi)    : null;
+    const _cancelP   = _pi >= 0 ? get('Cancelam', _pi)     : null;
+    const _desistP   = _pi >= 0 ? get('Desistencia', _pi)  : null;
+    const _sg = n => (n >= 0 ? '+' : '') + n.toFixed(1).replace('.', ',');
+    const _lucroPct = (_pi >= 0 && _resP) ? ((res - _resP) / Math.abs(_resP)) * 100 : null;
+    const _margPP   = (_margLiqC != null && _margLiqP != null) ? (_margLiqC - _margLiqP) : null;
+    const _cmvRatio = (cmv != null && rec) ? (cmv / rec) * 100 : null;
+    const _gerCaixa = (caixaFim != null && caixaIni != null) ? (caixaFim - caixaIni) : null;
+    const _basePct  = (_baseAtivaP && baseAtivaV != null) ? ((baseAtivaV - _baseAtivaP) / _baseAtivaP) * 100 : null;
+    // Texto do comparativo — reflete o mês escolhido em "Comparar com" (_pi).
+    const _vsTxt = _pi >= 0 ? ('vs ' + _prevLbl) : 'vs mês anterior';
+    const _alertas = [
+      { ic:'warn',  col: _lucroPct != null ? (_lucroPct < 0 ? 'red' : 'green') : (res != null && res < 0 ? 'red' : 'green'),
+        title:'Lucro Líquido',
+        val: _lucroPct != null ? _sg(_lucroPct) + '% ' + _vsTxt : (res != null ? fmtAutoK(res) : '—'),
+        note: _lucroPct != null ? (_lucroPct < 0 ? 'Atenção à queda de rentabilidade.' : 'Rentabilidade em alta.') : 'Resultado do mês.' },
+      { ic:'pct',   col: _margPP != null ? (_margPP < 0 ? 'orange' : 'green') : 'green',
+        title:'Margem Líquida',
+        val: _margPP != null ? _sg(_margPP) + ' pp ' + _vsTxt : margemLiqPct,
+        note: _margPP != null ? (_margPP < 0 ? 'Margem em queda.' : 'Margem em alta.') : 'Resultado / Receita.' },
+      { ic:'warn',  col: _cmvRatio != null ? (_cmvRatio > 70 ? 'red' : 'green') : 'green',
+        title:'CMV / Receita',
+        val: _cmvRatio != null ? _cmvRatio.toFixed(0) + '% da receita' : '—',
+        note: _cmvRatio != null ? (_cmvRatio > 70 ? 'Acima do ideal (>70%).' : 'Dentro do ideal.') : '' },
+      { ic:'cash',  col: _gerCaixa != null ? (_gerCaixa >= 0 ? 'green' : 'red') : 'green',
+        title:'Geração de Caixa',
+        val: _gerCaixa != null ? fmtAutoK(_gerCaixa) + ' no mês' : '—',
+        note: _gerCaixa != null ? (_gerCaixa >= 0 ? 'Acima do esperado.' : 'Queima de caixa no mês.') : '' },
+      { ic:'base',  col: _basePct != null ? (_basePct >= 0 ? 'green' : 'red') : 'green',
+        title:'Base Ativa',
+        val: _basePct != null ? _sg(_basePct) + '% ' + _vsTxt : (baseAtivaV != null ? fmtNum(baseAtivaV) : '—'),
+        note: _basePct != null ? (_basePct >= 0 ? 'Crescimento consistente.' : 'Retração na base.') : '' },
+    ];
+    // ── Sparklines (mockup) — série de 12 meses por KPI, SVG inline ──
+    const _sparkSvg = (arr, color) => {
+      const vals = arr.map(v => (v == null ? null : +v));
+      const nums = vals.filter(v => v != null && !isNaN(v));
+      if (nums.length < 2) return '';
+      const mn = Math.min(...nums), mx = Math.max(...nums), rg = (mx - mn) || 1;
+      const W = 100, H = 26, n = vals.length;
+      const pts = [];
+      vals.forEach((v, i) => { if (v == null || isNaN(v)) return; const x = (i/(n-1))*W; const y = H - ((v-mn)/rg)*(H-4) - 2; pts.push(x.toFixed(1)+','+y.toFixed(1)); });
+      if (pts.length < 2) return '';
+      return '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="width:100%;height:26px;display:block;margin-top:6px"><polyline fill="none" stroke="'+color+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" points="'+pts.join(' ')+'"/></svg>';
+    };
+    const _serie = k => Array.from({length:12}, (_,i)=>get(k,i));
+    const _serRec  = _serie('Receita');
+    const _serCmv  = _serie('CMV');
+    const _serDesp = _serie('Despesas');
+    const _serRes  = _serie('Resultado');
+    const _serMC   = Array.from({length:12},(_,i)=>{ const r=get('Receita',i), rl=r!=null?r-(recAtvFinMes[i]??0):null, c=get('CMV',i); return (rl&&c!=null)?((rl-c)/rl)*100:null; });
+    const _serML   = Array.from({length:12},(_,i)=>{ const r=get('Receita',i), rr=get('Resultado',i); return (r&&rr!=null)?(rr/r)*100:null; });
     return {
-      'Receita Bruta':          { v: fmtAutoK(rec), f: 'Faturamento bruto' },
-      'CSP / CMV':              { v: fmtAutoK(cmv), f: 'Custo de serviços' },
-      'Despesas':               { v: fmtAutoK(desp), f: 'Despesas operacionais' },
-      'Margem de Contribuição': { v: margemPct, f: 'Receita − CMV / Receita' },
+      _alertas,
+      'Receita Bruta':          { v: fmtAutoK(rec), f: _delta(rec, _recP, true) || 'Faturamento bruto', spark: _sparkSvg(_serRec, '#1D9E5E') },
+      'CSP / CMV':              { v: fmtAutoK(cmv), f: _delta(cmv, _cmvP, false) || 'Custo de serviços', spark: _sparkSvg(_serCmv, '#E89B2B') },
+      'Despesas':               { v: fmtAutoK(desp), f: _delta(desp, _despP, false) || 'Despesas operacionais', spark: _sparkSvg(_serDesp, '#E0463B') },
+      'Margem de Contribuição': { v: margemPct, f: _delta(_margContribC, _margContribP, true, true) || 'Receita − CMV / Receita', spark: _sparkSvg(_serMC, '#1D9E5E') },
       'Resultado do Mês':       { v: fmtAutoK(res), f: 'Resultado operacional' },
+      'Lucro Líquido':          { v: fmtAutoK(res), f: _delta(res, _resP, true) || 'Resultado do mês', spark: _sparkSvg(_serRes, 'rgba(255,255,255,.85)') },
+      'Margem Líquida':         { v: margemLiqPct, f: _delta(_margLiqC, _margLiqP, true, true) || 'Resultado / Receita', spark: _sparkSvg(_serML, 'rgba(255,255,255,.85)') },
       'Saldo Acumulado':        { v: fmtAutoK(saldo), f: 'Posição de caixa' },
       'Tesouro':                { v: tesAcum != null ? fmtAutoK(tesAcum) : '—', f: 'Cofre Principal + Cofre Secundário' },
       'Caixa Inicial':          { v: fmtAutoK(caixaIni), f: isQ1||isYTD?'Saldo em 01/01':'Saldo em 01/'+(idx+1<10?'0'+(idx+1):idx+1) },
       'Caixa Final':            { v: fmtAutoK(caixaFim), f: isQ1||isYTD?'Saldo em 31/03':'Saldo em 31/'+(idx+1<10?'0'+(idx+1):idx+1) },
       'Inadimplências':         { v: fmtAutoK(inadimpl), f: 'A recuperar' },
-      'Base Ativa':             { v: fmtNum(baseAtivaV), f: 'Simcards faturantes' },
+      'Base Ativa':             { v: fmtNum(baseAtivaV), f: 'Simcards faturantes', d: _delta(baseAtivaV, _baseAtivaP, true) },
       'Base Pré-Ativa':         { v: fmtNum(basePreV), f: basePreV!=null?'Aguardando ativação':'Sincronize a planilha' },
       'Base Software':          { v: fmtNum(baseSWV), f: 'Licenças ativas' },
-      'Suspensão':              { v: baseSuspV!=null ? fmtNum(baseSuspV) : '—', f: 'Simcards suspensos' },
+      'Suspensão':              { v: baseSuspV!=null ? fmtNum(baseSuspV) : '—', f: 'Simcards suspensos', d: _delta(baseSuspV, _suspP, false) },
       'Vendas':                 { v: fmtNum(vendasV), f: isQ1||isYTD?'Total Q1':'vs. previsto' },
-      'Novos Clientes':         { v: fmtNum(novos), f: 'Clientes novos' },
+      'Novos Clientes':         { v: fmtNum(novos), f: 'Clientes novos', d: _delta(novos, _novosP, true) },
       'Cancelamento':           { v: fmtNum(cancel), f: 'Linhas no mês' },
       'Desistência':            { v: fmtNum(desist), f: 'Pré-ativação' },
+      // Aliases p/ os labels do mockup (11/08/2026) — mesmos dados, nomes do print + chip ▲/▼
+      'Pré-Ativa':              { v: fmtNum(basePreV), f: basePreV!=null?'Aguardando ativação':'Sincronize a planilha', d: _delta(basePreV, _basePreP, true) },
+      'Ativações (Mês)':        { v: fmtNum(vendasV), f: isQ1||isYTD?'Total Q1':'vs. previsto', d: _delta(vendasV, _vendasP, true) },
+      'Cancelamento (Mês)':     { v: fmtNum(cancel), f: 'Linhas no mês', d: _delta(cancel, _cancelP, false) },
+      'Desistência (Mês)':      { v: fmtNum(desist), f: 'Pré-ativação', d: _delta(desist, _desistP, false) },
       'Cancelamento Acumulado': { v: fmtNum(cancelAcum), f: 'Acumulado' },
       'Cancelamento Anual (Previsão)': (() => {
         const _aArr = dm['Atv_Qtd'] || [];
@@ -6603,7 +6940,7 @@ function computePeriodData(dm) {
       'Total de Saídas':   { v: fmtAutoK(cmv != null ? cmv + (desp ?? 0) : null), f: 'CMV + Despesas + Custo SMT' },
       'CMV':               { v: fmtAutoK(cmv), f: 'CMV / CPS no período' },
       'Outras Despesas':   { v: fmtAutoK(desp), f: 'Despesas operacionais' },
-      'Margem Líquida':    { v: margemLiqPct, f: 'Resultado / Receita' },
+      'Margem Líquida':    { v: margemLiqPct, f: _delta(_margLiqC, _margLiqP, true, true) || 'Resultado / Receita', spark: _sparkSvg(_serML, 'rgba(255,255,255,.85)') },
       'EBITDA':            { v: ebitdaPctKpi, f: 'EBITDA / Receita' },
       'Tesouro Acumulado': { v: tesAcum != null ? fmtAutoK(tesAcum) : '—', f: 'Cofre Principal + Cofre Secundário' },
       'Cofre Principal':   { v: cofPrin != null ? fmtAutoK(cofPrin) : '—', f: 'Acumulado até ' + longMon[idx] },
@@ -7062,6 +7399,7 @@ async function syncFromSheets() {
     const now = new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
     const lastSync = document.getElementById('lastSyncTime');
     if (lastSync) lastSync.textContent = now;
+    const elDash2 = document.getElementById('dashUpdatedAt'); if (elDash2) elDash2.textContent = now;
     const sidebarSync = document.getElementById('sidebarLastSync');
     if (sidebarSync) sidebarSync.textContent = now;
     saveCache(dm, now);
@@ -7620,6 +7958,151 @@ document.querySelectorAll('.nav-item').forEach(item => {
     if (window.innerWidth <= 640) closeMobileSidebar();
   });
 });
+
+// ── Recolher / expandir menu (desktop) ─────────────────────────────
+function toggleSidebarCollapse() {
+  const sidebar = document.querySelector('.sidebar');
+  const collapsed = sidebar.classList.toggle('collapsed');
+  localStorage.setItem('controladoria_sidebar_collapsed', String(collapsed));
+  updateCollapseIcon(collapsed);
+}
+function updateCollapseIcon(collapsed) {
+  const icon = document.getElementById('collapseIcon');
+  const btn  = document.getElementById('btnCollapseSidebar');
+  if (icon) icon.innerHTML = collapsed
+    ? '<path stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6"/>'
+    : '<path stroke-linecap="round" stroke-linejoin="round" d="M15 18l-6-6 6-6"/>';
+  if (btn) btn.title = collapsed ? 'Expandir menu' : 'Recolher menu';
+}
+(function initSidebarCollapse() {
+  if (localStorage.getItem('controladoria_sidebar_collapsed') === 'true') {
+    document.querySelector('.sidebar')?.classList.add('collapsed');
+    updateCollapseIcon(true);
+  }
+})();
+
+// ── Vínculo Google Sheets (Configurações) — via backend FastAPI /sheets/config ──
+// Rodam apenas sob ação do usuário (abrir Configurações / clicar nos botões),
+// nunca na cadeia de init — não afetam o carregamento do dashboard.
+function toggleSheetId() {
+  const i = document.getElementById('sheetIdInput');
+  if (i) i.type = (i.type === 'password') ? 'text' : 'password';
+}
+async function loadSheetsConfig() {
+  const tok = localStorage.getItem('token'); if (!tok) return;
+  try {
+    const r = await fetch('/api/sheets/config', { headers: { Authorization: 'Bearer ' + tok } });
+    if (!r.ok) return;
+    const d = await r.json();
+    const inp = document.getElementById('sheetIdInput');
+    const lnk = document.getElementById('sheetLink');
+    if (inp) inp.value = d.spreadsheet_id || '';
+    if (lnk && d.spreadsheet_id) lnk.href = 'https://docs.google.com/spreadsheets/d/' + d.spreadsheet_id + '/edit';
+  } catch (e) {}
+}
+async function saveSheetsConfig() {
+  const tok = localStorage.getItem('token');
+  const inp = document.getElementById('sheetIdInput');
+  const st  = document.getElementById('sheetCfgStatus');
+  const id  = (inp && inp.value || '').trim();
+  const setSt = (msg, col) => { if (st) { st.textContent = msg; st.style.color = col; } };
+  if (!id) { setSt('Informe o ID da planilha', 'var(--negative)'); return; }
+  setSt('Salvando...', 'var(--muted)');
+  try {
+    const r = await fetch('/api/sheets/config', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok },
+      body: JSON.stringify({ spreadsheet_id: id }),
+    });
+    if (r.ok) {
+      setSt('Vínculo salvo ✓', 'var(--positive)');
+      const lnk = document.getElementById('sheetLink');
+      if (lnk) lnk.href = 'https://docs.google.com/spreadsheets/d/' + id + '/edit';
+    } else {
+      const e = await r.json().catch(() => ({}));
+      setSt(e.detail || 'Erro ao salvar (precisa ser admin)', 'var(--negative)');
+    }
+  } catch (e) { setSt('Erro de conexão', 'var(--negative)'); }
+}
+async function testSheetsConnection() {
+  const tok = localStorage.getItem('token');
+  const st  = document.getElementById('sheetCfgStatus');
+  const setSt = (msg, col) => { if (st) { st.textContent = msg; st.style.color = col; } };
+  setSt('Testando...', 'var(--muted)');
+  try {
+    const r = await fetch('/api/sheets/test-connection', { method: 'POST', headers: { Authorization: 'Bearer ' + tok } });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok && d.ok) setSt('Conectado: "' + d.title + '" · ' + ((d.sheets || []).length) + ' abas ✓', 'var(--positive)');
+    else setSt(d.detail || 'Falha na conexão', 'var(--negative)');
+  } catch (e) { setSt('Erro de conexão', 'var(--negative)'); }
+}
+
+// ── Alertas e Destaques (mockup 08/08/2026) — preenche #alertasRow a partir de d.kpis._alertas ──
+function renderAlertas(d) {
+  const row = document.getElementById('alertasRow');
+  if (!row) return;
+  const alertas = (d && d.kpis && Array.isArray(d.kpis._alertas)) ? d.kpis._alertas : [];
+  if (!alertas.length) { row.innerHTML = ''; return; }
+  const COL = {
+    red:    { bg:'rgba(224,70,59,.14)',  fg:'var(--negative)' },
+    orange: { bg:'rgba(234,179,8,.15)',  fg:'var(--warning)' },
+    green:  { bg:'var(--primary-light)', fg:'var(--primary)' },
+  };
+  const IC = {
+    warn: '<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>',
+    pct:  '<span style="font-weight:800;font-size:14px">%</span>',
+    cash: '<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.5 0-2.5.8-2.5 1.8S10.5 11.5 12 11.5s2.5.8 2.5 1.8-1 1.8-2.5 1.8M12 7.5v1m0 7v1"/></svg>',
+    base: '<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 17l6-6 4 4 8-8"/><path stroke-linecap="round" stroke-linejoin="round" d="M14 7h7v7"/></svg>',
+  };
+  row.innerHTML = alertas.map(a => {
+    const c = COL[a.col] || COL.green;
+    const ic = IC[a.ic] || IC.warn;
+    return `<div class="card" style="display:flex;align-items:flex-start;gap:12px">
+      <div style="width:34px;height:34px;border-radius:9px;background:${c.bg};color:${c.fg};display:grid;place-items:center;flex-shrink:0">${ic}</div>
+      <div style="min-width:0">
+        <div style="font-weight:700;font-size:13px;color:var(--text)">${a.title}</div>
+        <div style="font-size:12.5px;color:var(--text-2);margin:2px 0 1px">${a.val}</div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.4">${a.note || ''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Gráfico cascata do Resultado Financeiro (mockup 08/08/2026) ──
+function buildWaterfall() {
+  const ctx = document.getElementById('chartWaterfall');
+  if (!ctx) return;
+  const sel  = periodMonthIdx[currentPeriod];
+  const rec  = (sel != null) ? receitaMes[sel] : null;
+  const cmv  = (sel != null) ? custoMes[sel]   : null;
+  const desp = (sel != null) ? despesaMes[sel] : null;
+  const lucro = (rec != null && cmv != null && desp != null) ? (rec - cmv - desp) : null;
+  const setTxt = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = (v != null ? fmtAutoK(v) : '—'); };
+  setTxt('wfReceita', rec); setTxt('wfCmv', cmv); setTxt('wfDesp', desp); setTxt('wfLucro', lucro);
+  destroyChart('chartWaterfall');
+  if (rec == null || cmv == null || desp == null) return;
+  const a = rec, b = rec - cmv, c = rec - cmv - desp;
+  const green = css('--primary'), red = css('--negative');
+  const vals = [rec, -cmv, -desp, c];
+  charts['chartWaterfall'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Receita Bruta', 'CMV', 'Despesas', 'Lucro Operacional'],
+      datasets: [{ data: [[0, a], [b, a], [c, b], [0, c]], backgroundColor: [green, red, red, green], borderRadius: 5, barPercentage: 0.6 }]
+    },
+    options: commonOpts({
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: it => fmtBRL(vals[it.dataIndex]) } },
+        datalabels: {
+          display: true, anchor: 'end', align: 'top', color: css('--text-2'), font: { size: 10, weight: '700' },
+          formatter: (v, it) => { const x = vals[it.dataIndex]; return (x < 0 ? '-' : '') + (Math.abs(x) / 1000000).toFixed(1) + 'M'; }
+        }
+      },
+      scales: { ...commonOpts().scales, y: { ...commonOpts().scales.y, ticks: { ...commonOpts().scales.y.ticks, callback: v => (v / 1000000).toFixed(1) + 'M' } } }
+    })
+  });
+}
 </script>
 </body>
 </html>

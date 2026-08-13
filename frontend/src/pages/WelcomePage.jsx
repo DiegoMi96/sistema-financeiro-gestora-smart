@@ -13,7 +13,9 @@ const MODULE_HOME = {
   contestacao:     '/contestacao',
   comissionamento: '/comissionamento',
   logistica:       '/logistica',
-  controladoria:   '/dashboard',
+  // Controladoria tem casa própria (dashboard em iframe), nunca o /dashboard
+  // do Faturamento — separação total dos cards (08/08/2026).
+  controladoria:   '/controladoria/dash',
   organograma:     '/organograma',
   acessos:         '/acessos',
   smt:             null,

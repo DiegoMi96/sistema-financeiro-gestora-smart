@@ -72,6 +72,45 @@ def _row_index(worksheet) -> dict[str, int]:
     return index
 
 
+def read_tab_csv(spreadsheet_id: str, service_account_json: str, tab: str) -> str:
+    """Lê uma aba inteira e devolve CSV — equivalente ao /api/sync do server.js
+    legado (valueRenderOption=UNFORMATTED_VALUE). Mesma escapagem de célula:
+    envolve em aspas se tiver vírgula/aspas/quebra de linha e duplica aspas."""
+    client   = _get_client(service_account_json)
+    workbook = client.open_by_key(spreadsheet_id)
+    ws       = workbook.worksheet(tab)
+    try:
+        values = ws.get_all_values(value_render_option="UNFORMATTED_VALUE")
+    except TypeError:
+        # gspread mais antigo não aceita o kwarg
+        values = ws.get_all_values()
+
+    def _cell(v) -> str:
+        if v is None:
+            return ""
+        if isinstance(v, bool):
+            return "true" if v else "false"  # igual ao String(true) do JS legado
+        if isinstance(v, float) and v.is_integer():
+            return str(int(v))
+        return str(v)
+
+    lines = []
+    for row in values:
+        cells = [_cell(v) for v in row]
+        # Corta células vazias do FIM da linha — o Google Sheets API (usada pelo
+        # server.js legado) não devolve trailing empties; o gspread preenche.
+        # Sem isso a planilha vem com vírgulas sobrando no fim de cada linha.
+        while cells and cells[-1] == "":
+            cells.pop()
+        out = []
+        for s in cells:
+            if ("," in s) or ('"' in s) or ("\n" in s):
+                s = '"' + s.replace('"', '""') + '"'
+            out.append(s)
+        lines.append(",".join(out))
+    return "\n".join(lines)
+
+
 def read_month(
     spreadsheet_id: str,
     service_account_json: str,
