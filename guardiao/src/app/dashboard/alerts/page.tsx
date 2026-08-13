@@ -92,13 +92,10 @@ export default function AlertsPage() {
   const handleExport = async () => {
     setExporting(true)
     try {
-      const params = new URLSearchParams({ status })
-      if (contractType) params.append("contract_type", contractType)
-      const response = await fetch(`/api/alerts/export?${params.toString()}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("access_token") ?? ""}` },
-      })
-      if (!response.ok) throw new Error()
-      const blob = await response.blob()
+      const params: Record<string, string> = { status }
+      if (contractType) params.contract_type = contractType
+      const response = await apiClient.get("/alerts/export", { params, responseType: "blob" })
+      const blob = response.data
       const url  = URL.createObjectURL(blob)
       const a    = document.createElement("a")
       a.href     = url

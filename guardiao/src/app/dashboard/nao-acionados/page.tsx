@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { apiClient } from "@/lib/api"
 import {
-  AlertCircle, Search, X, UserCheck, CheckCircle,
+  AlertCircle, Search, X, UserCheck, CheckCircle, Loader2, Users,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
 } from "lucide-react"
 
@@ -42,6 +42,9 @@ export default function NaoAcionadosPage() {
   const [forwardTarget, setForwardTarget] = useState<SkippedLine | null>(null)
   const [forwarding, setForwarding]       = useState(false)
   const [flash, setFlash]                 = useState<{ msg: string; ok: boolean } | null>(null)
+
+  const [showForwardAll, setShowForwardAll] = useState(false)
+  const [forwardingAll, setForwardingAll]   = useState(false)
 
   const totalPages = Math.max(1, Math.ceil(total / LIMIT))
 
@@ -102,6 +105,25 @@ export default function NaoAcionadosPage() {
     }
   }
 
+  async function handleForwardAllConfirm() {
+    setForwardingAll(true)
+    try {
+      const params = new URLSearchParams()
+      if (appliedFrom) params.set("from", appliedFrom)
+      if (appliedTo) params.set("to", appliedTo)
+      const res = await apiClient.delete(`/skipped-lines?${params.toString()}`)
+      const count = res.data?.deleted ?? 0
+      showFlash(`${count} linha${count !== 1 ? "s" : ""} encaminhada${count !== 1 ? "s" : ""} e removida${count !== 1 ? "s" : ""} da lista.`, true)
+      setShowForwardAll(false)
+      resetPage()
+      refresh()
+    } catch {
+      showFlash("Erro ao encaminhar as linhas.", false)
+    } finally {
+      setForwardingAll(false)
+    }
+  }
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -158,6 +180,15 @@ export default function NaoAcionadosPage() {
           >
             <X className="w-4 h-4" />
             Limpar
+          </button>
+        )}
+        {total > 0 && (
+          <button
+            onClick={() => setShowForwardAll(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-opacity ml-auto"
+          >
+            <Users className="w-4 h-4" />
+            Encaminhar todos
           </button>
         )}
       </div>
@@ -325,6 +356,47 @@ export default function NaoAcionadosPage() {
                 <button
                   onClick={() => setForwardTarget(null)}
                   disabled={forwarding}
+                  className="flex-1 py-2.5 bg-muted rounded-xl text-sm font-medium hover:bg-muted/80 disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Confirmar encaminhar todos */}
+      {showForwardAll && (
+        <div className="fixed inset-0 !mt-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-card rounded-2xl border border-border w-full max-w-sm shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+              <h2 className="text-base font-bold">Encaminhar todos</h2>
+              <button onClick={() => setShowForwardAll(false)} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+                <X className="w-4 h-4 text-muted-foreground" />
+              </button>
+            </div>
+            <div className="px-6 py-5">
+              <div className="flex items-start gap-2.5 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-sm text-yellow-700 mb-6">
+                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <p>
+                  {total} linha{total !== 1 ? "s" : ""}
+                  {(appliedFrom || appliedTo) ? " do período filtrado" : ""} será{total !== 1 ? "ão" : ""} removida{total !== 1 ? "s" : ""} desta lista permanentemente.
+                  Confirma que já foram passadas para um analista verificar?
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleForwardAllConfirm}
+                  disabled={forwardingAll}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:opacity-90 disabled:opacity-50"
+                >
+                  {forwardingAll && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {forwardingAll ? "Encaminhando..." : "Confirmar"}
+                </button>
+                <button
+                  onClick={() => setShowForwardAll(false)}
+                  disabled={forwardingAll}
                   className="flex-1 py-2.5 bg-muted rounded-xl text-sm font-medium hover:bg-muted/80 disabled:opacity-50"
                 >
                   Cancelar
