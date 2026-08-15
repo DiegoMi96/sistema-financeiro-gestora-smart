@@ -6782,6 +6782,37 @@ function computePeriodData(dm) {
   const shortMon = MES_ABREV;
   const longMon  = MES_NOME;
 
+  // ── Planejado (aba Previsao_2026) — arrays de 12 meses p/ comparar Realizado vs Plano ──
+  // Reaproveita a mesma extração usada no forecast do fluxo de caixa, mas p/ TODOS os meses.
+  const _pd = Array.isArray(previsaoData) ? previsaoData : [];
+  const _planCatSum = (catName, m) => {
+    let g = _pd.find(g => g.cat === catName);
+    if (!g) { const kw = catName.toLowerCase(); g = _pd.find(g => g.cat.toLowerCase().includes(kw.replace('total de ',''))); }
+    if (!g) return 0;
+    if (g._headerVals) { const hv = g._headerVals[m] ?? null; if (hv != null && hv !== 0) return hv; }
+    return g.subs.reduce((a, s) => a + (s[m + 1] || 0), 0);
+  };
+  const _planExpGroups = ['Despesas Administrativa','Despesas com pessoal','RH','Despesa Comercial','Despesa Tributaria','D - Atividades Financeiras','Custo SMT'];
+  const _planResGrp = _pd.find(g => g.cat === 'Resultado do mês' || g.cat === 'Resultado do Mês' || g.cat.toLowerCase().includes('resultado do m'));
+  const planReceita = [], planAtvFin = [], planCusto = [], planDesp = [], planResult = [];
+  for (let m = 0; m < 12; m++) {
+    const _ss = _planCatSum('Total de RECEITA - SS', m);
+    const _smt = _planCatSum('Total de RECEITA - SMT', m);
+    const _raf = _planCatSum('R - Atividades Financeiras', m);
+    let _rec = (_ss > 0 || _smt > 0 || _raf > 0) ? _ss + _smt + _raf
+      : _pd.filter(g => g.cat.toLowerCase().includes('receita')).reduce((t, g) => t + g.subs.reduce((a, s) => a + (s[m + 1] || 0), 0), 0);
+    const _cmv = _planCatSum('CMV / CPS', m);
+    const _dsp = _planExpGroups.reduce((t, g) => t + _planCatSum(g, m), 0);
+    const _resDir = _planResGrp?._headerVals?.[m] ?? null;
+    const _res = (_resDir != null && _resDir !== 0) ? _resDir : (_rec - _cmv - _dsp);
+    planReceita[m] = _rec || null;
+    planAtvFin[m]  = _raf || null;
+    planCusto[m]   = _cmv || null;
+    planDesp[m]    = _dsp || null;
+    planResult[m]  = (_rec || _cmv || _dsp) ? _res : null;
+  }
+  const _sumPlan = (arr, to) => { let s = 0, any = false; for (let i = 0; i <= to; i++) { if (arr[i] != null) { s += arr[i]; any = true; } } return any ? s : null; };
+
   const buildKpis = (idx, isQ1, isYTD) => {
     const _toIdx = isQ1 ? 2 : idx;
     const rec = isQ1||isYTD ? sumTo('Receita',_toIdx) : get('Receita',idx);
@@ -6840,6 +6871,23 @@ function computePeriodData(dm) {
       const good = higherBetter ? up : !up;
       const txt = (up ? '▲ ' : '▼ ') + d.toFixed(1).replace('.', ',') + (isPP ? ' pp' : '%');
       return `<span class="delta-chip ${good ? 'up' : 'down'}">${txt}</span> <span class="delta-vs">vs ${_prevLbl}</span>`;
+    };
+    // ── Realizado vs Planejado (aba Previsao_2026) — só nos 6 KPIs do topo ──
+    const _planRec  = isQ1||isYTD ? _sumPlan(planReceita,_toIdx) : planReceita[idx];
+    const _planAtv  = isQ1||isYTD ? _sumPlan(planAtvFin,_toIdx)  : planAtvFin[idx];
+    const _planCmv  = isQ1||isYTD ? _sumPlan(planCusto,_toIdx)   : planCusto[idx];
+    const _planDesp = isQ1||isYTD ? _sumPlan(planDesp,_toIdx)    : planDesp[idx];
+    const _planRes  = isQ1||isYTD ? _sumPlan(planResult,_toIdx)  : planResult[idx];
+    const _planRecL = _planRec != null ? _planRec - (_planAtv || 0) : null;
+    const _planMargContrib = (_planRecL && _planCmv != null) ? ((_planRecL - _planCmv) / _planRecL) * 100 : null;
+    const _planMargLiq = (_planRec && _planRes != null) ? (_planRes / _planRec) * 100 : null;
+    const _deltaPlan = (cur, plan, higherBetter, isPP) => {
+      if (cur == null || plan == null || (!isPP && plan === 0)) return null;
+      const d = isPP ? (cur - plan) : (((cur - plan) / Math.abs(plan)) * 100);
+      const up = d >= 0;
+      const good = higherBetter ? up : !up;
+      const txt = (up ? '▲ ' : '▼ ') + d.toFixed(1).replace('.', ',') + (isPP ? ' pp' : '%');
+      return `<span class="delta-chip ${good ? 'up' : 'down'}">${txt}</span> <span class="delta-vs">vs Plano</span>`;
     };
     // ── Alertas e Destaques (mockup) — computados dos mesmos dados ──
     const _baseAtivaP = _pi >= 0 ? get('Base_Ativa', _pi) : null;
@@ -6901,13 +6949,13 @@ function computePeriodData(dm) {
     const _serML   = Array.from({length:12},(_,i)=>{ const r=get('Receita',i), rr=get('Resultado',i); return (r&&rr!=null)?(rr/r)*100:null; });
     return {
       _alertas,
-      'Receita Bruta':          { v: fmtAutoK(rec), f: _delta(rec, _recP, true) || 'Faturamento bruto', spark: _sparkSvg(_serRec, '#1D9E5E') },
-      'CSP / CMV':              { v: fmtAutoK(cmv), f: _delta(cmv, _cmvP, false) || 'Custo de serviços', spark: _sparkSvg(_serCmv, '#E89B2B') },
-      'Despesas':               { v: fmtAutoK(desp), f: _delta(desp, _despP, false) || 'Despesas operacionais', spark: _sparkSvg(_serDesp, '#E0463B') },
-      'Margem de Contribuição': { v: margemPct, f: _delta(_margContribC, _margContribP, true, true) || 'Receita − CMV / Receita', spark: _sparkSvg(_serMC, '#1D9E5E') },
+      'Receita Bruta':          { v: fmtAutoK(rec), f: _deltaPlan(rec, _planRec, true) || 'Faturamento bruto', spark: _sparkSvg(_serRec, '#1D9E5E') },
+      'CSP / CMV':              { v: fmtAutoK(cmv), f: _deltaPlan(cmv, _planCmv, false) || 'Custo de serviços', spark: _sparkSvg(_serCmv, '#E89B2B') },
+      'Despesas':               { v: fmtAutoK(desp), f: _deltaPlan(desp, _planDesp, false) || 'Despesas operacionais', spark: _sparkSvg(_serDesp, '#E0463B') },
+      'Margem de Contribuição': { v: margemPct, f: _deltaPlan(_margContribC, _planMargContrib, true, true) || 'Receita − CMV / Receita', spark: _sparkSvg(_serMC, '#1D9E5E') },
       'Resultado do Mês':       { v: fmtAutoK(res), f: 'Resultado operacional' },
-      'Lucro Líquido':          { v: fmtAutoK(res), f: _delta(res, _resP, true) || 'Resultado do mês', spark: _sparkSvg(_serRes, 'rgba(255,255,255,.85)') },
-      'Margem Líquida':         { v: margemLiqPct, f: _delta(_margLiqC, _margLiqP, true, true) || 'Resultado / Receita', spark: _sparkSvg(_serML, 'rgba(255,255,255,.85)') },
+      'Lucro Líquido':          { v: fmtAutoK(res), f: _deltaPlan(res, _planRes, true) || 'Resultado do mês', spark: _sparkSvg(_serRes, 'rgba(255,255,255,.85)') },
+      'Margem Líquida':         { v: margemLiqPct, f: _deltaPlan(_margLiqC, _planMargLiq, true, true) || 'Resultado / Receita', spark: _sparkSvg(_serML, 'rgba(255,255,255,.85)') },
       'Saldo Acumulado':        { v: fmtAutoK(saldo), f: 'Posição de caixa' },
       'Tesouro':                { v: tesAcum != null ? fmtAutoK(tesAcum) : '—', f: 'Cofre Principal + Cofre Secundário' },
       'Caixa Inicial':          { v: fmtAutoK(caixaIni), f: isQ1||isYTD?'Saldo em 01/01':'Saldo em 01/'+(idx+1<10?'0'+(idx+1):idx+1) },
@@ -6947,7 +6995,7 @@ function computePeriodData(dm) {
       'Total de Saídas':   { v: fmtAutoK(cmv != null ? cmv + (desp ?? 0) : null), f: 'CMV + Despesas + Custo SMT' },
       'CMV':               { v: fmtAutoK(cmv), f: 'CMV / CPS no período' },
       'Outras Despesas':   { v: fmtAutoK(desp), f: 'Despesas operacionais' },
-      'Margem Líquida':    { v: margemLiqPct, f: _delta(_margLiqC, _margLiqP, true, true) || 'Resultado / Receita', spark: _sparkSvg(_serML, 'rgba(255,255,255,.85)') },
+      'Margem Líquida':    { v: margemLiqPct, f: _deltaPlan(_margLiqC, _planMargLiq, true, true) || 'Resultado / Receita', spark: _sparkSvg(_serML, 'rgba(255,255,255,.85)') },
       'EBITDA':            { v: ebitdaPctKpi, f: 'EBITDA / Receita' },
       'Tesouro Acumulado': { v: tesAcum != null ? fmtAutoK(tesAcum) : '—', f: 'Cofre Principal + Cofre Secundário' },
       'Cofre Principal':   { v: cofPrin != null ? fmtAutoK(cofPrin) : '—', f: 'Acumulado até ' + longMon[idx] },
