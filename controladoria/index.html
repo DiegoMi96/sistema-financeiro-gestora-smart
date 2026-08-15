@@ -1306,12 +1306,12 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <!-- KPI cards — topo da visão financeira -->
       <div class="grid grid-4" style="margin-bottom:14px">
         <div class="card tinted-primary">
-          <div class="kpi-label">Margem Líquida</div>
+          <div class="kpi-label" data-kpi="Margem Líquida (mês)">Margem Líquida</div>
           <div class="kpi-value">—</div>
           <div class="kpi-foot">—</div>
         </div>
         <div class="card">
-          <div class="kpi-label">Margem de Contribuição</div>
+          <div class="kpi-label" data-kpi="Margem de Contribuição (mês)">Margem de Contribuição</div>
           <div class="kpi-value">—</div>
           <div class="kpi-foot">—</div>
         </div>
@@ -3314,7 +3314,9 @@ function applyPeriod(p) {
   renderAlertas(d);
   // KPI cards — atualiza todos; mostra "—" se não houver dado na planilha
   document.querySelectorAll('.kpi-label').forEach(el => {
-    const label = el.textContent.trim();
+    // data-kpi permite o card usar uma CHAVE diferente do texto exibido
+    // (ex.: Resumo Financeiro mostra "Margem Líquida" mas compara vs mês, não vs Plano)
+    const label = el.dataset.kpi || el.textContent.trim();
     const card = el.closest('.card');
     if (!card) return;
     const v = card.querySelector('.kpi-value');
@@ -6996,6 +6998,10 @@ function computePeriodData(dm) {
       'CMV':               { v: fmtAutoK(cmv), f: 'CMV / CPS no período' },
       'Outras Despesas':   { v: fmtAutoK(desp), f: 'Despesas operacionais' },
       'Margem Líquida':    { v: margemLiqPct, f: _deltaPlan(_margLiqC, _planMargLiq, true, true) || 'Resultado / Receita', spark: _sparkSvg(_serML, 'rgba(255,255,255,.85)') },
+      // Variantes "(mês)" — mesmo valor, mas delta vs mês anterior (usadas via data-kpi
+      // no Resumo Financeiro; o Resumo Executivo usa as chaves "vs Plano" acima).
+      'Margem Líquida (mês)':         { v: margemLiqPct, f: _delta(_margLiqC, _margLiqP, true, true) || 'Resultado / Receita', spark: _sparkSvg(_serML, 'rgba(255,255,255,.85)') },
+      'Margem de Contribuição (mês)': { v: margemPct, f: _delta(_margContribC, _margContribP, true, true) || 'Receita − CMV / Receita', spark: _sparkSvg(_serMC, '#1D9E5E') },
       'EBITDA':            { v: ebitdaPctKpi, f: 'EBITDA / Receita' },
       'Tesouro Acumulado': { v: tesAcum != null ? fmtAutoK(tesAcum) : '—', f: 'Cofre Principal + Cofre Secundário' },
       'Cofre Principal':   { v: cofPrin != null ? fmtAutoK(cofPrin) : '—', f: 'Acumulado até ' + longMon[idx] },
