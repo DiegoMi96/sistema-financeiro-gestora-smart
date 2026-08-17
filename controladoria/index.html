@@ -1979,35 +1979,62 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           <div class="kpi-label">Saldo Acumulado</div>
           <div class="kpi-value lg" id="dfcKpiSaldo">—</div>
           <div class="kpi-foot" id="dfcKpiSaldoFoot"></div>
+          <div class="kpi-delta" id="dfcKpiSaldoDelta"></div>
+          <div class="kpi-spark" id="dfcKpiSaldoSpark"></div>
         </div>
         <div class="card tinted-primary">
           <div class="kpi-label">Resultado Líquido Acumulado</div>
           <div class="kpi-value lg" id="dfcKpiResultado">—</div>
           <div class="kpi-foot" id="dfcKpiResultadoFoot"></div>
+          <div class="kpi-delta" id="dfcKpiResultadoDelta"></div>
+          <div class="kpi-spark" id="dfcKpiResultadoSpark"></div>
         </div>
         <div class="card" style="border-left:4px solid var(--warning)">
           <div class="kpi-label">Dividendos Acumulado</div>
           <div class="kpi-value lg" id="dfcKpiDividendos">—</div>
           <div class="kpi-foot" id="dfcKpiDividendosFoot"></div>
+          <div class="kpi-delta" id="dfcKpiDividendosDelta"></div>
+          <div class="kpi-spark" id="dfcKpiDividendosSpark"></div>
         </div>
       </div>
 
       <!-- Anuais + Dividendos Anual -->
       <div class="grid grid-3" style="margin-bottom:14px">
         <div class="card" style="border-left:4px solid var(--primary-soft)">
-          <div class="kpi-label">Saldo Acumulado Anual <span class="prev-badge" style="margin-left:4px;vertical-align:middle">PREV</span></div>
-          <div class="kpi-value lg" id="dfcKpiSaldoAnual">—</div>
-          <div class="kpi-foot" id="dfcKpiSaldoAnualFoot">Projeção Dez/26</div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+            <div style="min-width:0;flex:1">
+              <div class="kpi-label">Saldo Acumulado Anual <span class="prev-badge" style="margin-left:4px;vertical-align:middle">PREV</span></div>
+              <div class="kpi-value lg" id="dfcKpiSaldoAnual">—</div>
+              <div class="kpi-foot" id="dfcKpiSaldoAnualFoot">Projeção Dez/26</div>
+            </div>
+            <div style="width:44px;height:44px;border-radius:12px;background:var(--primary-light);color:var(--primary);display:grid;place-items:center;flex-shrink:0">
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path stroke-linecap="round" d="M3 10h18M8 3v4M16 3v4"/></svg>
+            </div>
+          </div>
         </div>
         <div class="card" style="border-left:4px solid var(--primary-soft)">
-          <div class="kpi-label">Resultado Líquido Anual <span class="prev-badge" style="margin-left:4px;vertical-align:middle">PREV</span></div>
-          <div class="kpi-value lg" id="dfcKpiResultadoAnual">—</div>
-          <div class="kpi-foot" id="dfcKpiResultadoAnualFoot">Real + Previsão 2026</div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+            <div style="min-width:0;flex:1">
+              <div class="kpi-label">Resultado Líquido Anual <span class="prev-badge" style="margin-left:4px;vertical-align:middle">PREV</span></div>
+              <div class="kpi-value lg" id="dfcKpiResultadoAnual">—</div>
+              <div class="kpi-foot" id="dfcKpiResultadoAnualFoot">Real + Previsão 2026</div>
+            </div>
+            <div style="width:44px;height:44px;border-radius:12px;background:var(--primary-light);color:var(--primary);display:grid;place-items:center;flex-shrink:0">
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path stroke-linecap="round" d="M3 10h18M8 3v4M16 3v4"/></svg>
+            </div>
+          </div>
         </div>
         <div class="card" style="border-left:4px solid var(--warning)">
-          <div class="kpi-label">Dividendos Anual <span class="prev-badge" style="margin-left:4px;vertical-align:middle">PREV</span></div>
-          <div class="kpi-value lg" id="dfcKpiDividendosAnual">—</div>
-          <div class="kpi-foot" id="dfcKpiDividendosAnualFoot">Projeção Dez/26</div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+            <div style="min-width:0;flex:1">
+              <div class="kpi-label">Dividendos Anual <span class="prev-badge" style="margin-left:4px;vertical-align:middle">PREV</span></div>
+              <div class="kpi-value lg" id="dfcKpiDividendosAnual">—</div>
+              <div class="kpi-foot" id="dfcKpiDividendosAnualFoot">Projeção Dez/26</div>
+            </div>
+            <div style="width:44px;height:44px;border-radius:12px;background:rgba(234,179,8,.15);color:var(--warning);display:grid;place-items:center;flex-shrink:0">
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path stroke-linecap="round" d="M3 10h18M8 3v4M16 3v4"/></svg>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -4421,6 +4448,28 @@ function buildDFC() {
   });
 }
 
+// Sparkline SVG standalone (mesma lógica de _sparkSvg do Resumo Executivo, mas
+// utilizável fora do escopo de computePeriodData/buildKpis — usada no DFC Gerencial).
+function mkSparkline(arr, color) {
+  const vals = arr.map(v => (v == null ? null : +v));
+  const nums = vals.filter(v => v != null && !isNaN(v));
+  if (nums.length < 2) return '';
+  const mn = Math.min(...nums), mx = Math.max(...nums), rg = (mx - mn) || 1;
+  const W = 100, H = 26, n = vals.length;
+  const pts = [];
+  vals.forEach((v, i) => { if (v == null || isNaN(v)) return; const x = (i/(n-1))*W; const y = H - ((v-mn)/rg)*(H-4) - 2; pts.push(x.toFixed(1)+','+y.toFixed(1)); });
+  if (pts.length < 2) return '';
+  return '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="width:100%;height:26px;display:block;margin-top:6px"><polyline fill="none" stroke="'+color+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" points="'+pts.join(' ')+'"/></svg>';
+}
+function _dfcChip(cur, prev, prevLbl, colorClass) {
+  if (cur == null || prev == null || prev === 0) return '';
+  const d = ((cur - prev) / Math.abs(prev)) * 100;
+  const up = d >= 0;
+  const txt = (up ? '▲ ' : '▼ ') + Math.abs(d).toFixed(1).replace('.', ',') + '%';
+  if (colorClass) return `<span class="ops-chip ${colorClass}">${txt}</span> <span class="delta-vs">vs ${prevLbl}</span>`;
+  return `<span class="delta-chip ${up?'up':'down'}">${txt}</span> <span class="delta-vs">vs ${prevLbl}</span>`;
+}
+
 // DFC table — renderiza thead + tbody a partir de saidasData (real) + previsaoData (forecast) + saldoAcum
 function buildDFCTable() {
   const tbody  = document.querySelector('#dfcTbl tbody');
@@ -4835,10 +4884,17 @@ function buildDFCTable() {
   const kRA  = document.getElementById('dfcKpiResultadoAnual');
   const kRAF = document.getElementById('dfcKpiResultadoAnualFoot');
 
+  const _dfcYr = (document.getElementById('yearSelect')?.value || '2026').slice(2);
+  const _dfcPrevLbl = selIdx > 0 ? shortMons[selIdx-1] + '/' + _dfcYr : '';
+
   // Card 1 — Saldo do período selecionado
   const saldoSel = (vals[saldoIdx]?.[selIdx]) ?? saldoAcum[selIdx];
   if (kS)  kS.textContent  = saldoSel != null ? fmtBRL(saldoSel) : '—';
   if (kSF) kSF.textContent = ''; // legenda removida
+  const kSDelta = document.getElementById('dfcKpiSaldoDelta');
+  if (kSDelta) kSDelta.innerHTML = selIdx > 0 ? _dfcChip(saldoSel, saldoAcum[selIdx-1], _dfcPrevLbl) : '';
+  const kSSpark = document.getElementById('dfcKpiSaldoSpark');
+  if (kSSpark) kSSpark.innerHTML = mkSparkline(saldoAcum, 'rgba(255,255,255,.85)');
 
   // Card 2 — Saldo Anual Projetado (Dez) — fixo
   if (kSA)  kSA.textContent  = saldoAnual != null ? fmtBRL(saldoAnual) : '—';
@@ -4851,6 +4907,12 @@ function buildDFCTable() {
   const resAcumHasData = vals[resIdx].slice(0, selIdx + 1).some(v => v != null);
   if (kR)  kR.textContent  = resAcumHasData ? fmtBRL(resAcum) : '—';
   if (kRF) kRF.textContent = '';
+  const resAcumPrev = selIdx > 0 ? vals[resIdx].slice(0, selIdx).reduce((s, v) => s + Math.max(v ?? 0, 0), 0) : null;
+  const kRDelta = document.getElementById('dfcKpiResultadoDelta');
+  if (kRDelta) kRDelta.innerHTML = selIdx > 0 ? _dfcChip(resAcum, resAcumPrev, _dfcPrevLbl) : '';
+  const _resAcumSerie = vals[resIdx].map((_, m) => vals[resIdx].slice(0, m+1).some(v=>v!=null) ? vals[resIdx].slice(0, m+1).reduce((s,v)=>s+Math.max(v??0,0),0) : null);
+  const kRSpark = document.getElementById('dfcKpiResultadoSpark');
+  if (kRSpark) kRSpark.innerHTML = mkSparkline(_resAcumSerie, 'rgba(255,255,255,.85)');
 
   // Card 4 — Resultado Anual (Real + Previsão) — fixo
   if (kRA)  kRA.textContent  = resultadoAnual != null ? fmtBRL(resultadoAnual) : '—';
@@ -4878,6 +4940,17 @@ function buildDFCTable() {
 
   if (kD)   kD.textContent  = _hasDiv ? fmtBRL(_divAcum) : '—';
   if (kDF)  kDF.textContent = ''; // legenda removida
+  const _divAcumPrev = selIdx > 0
+    ? _divReaisArr.slice(0, selIdx).filter(v => v != null).reduce((s,v) => s+v, 0)
+    : null;
+  const kDDelta = document.getElementById('dfcKpiDividendosDelta');
+  if (kDDelta) kDDelta.innerHTML = selIdx > 0 ? _dfcChip(_divAcum, _divAcumPrev, _dfcPrevLbl, 'orange') : '';
+  const _divAcumSerie = _divReaisArr.map((_, m) => {
+    const slice = _divReaisArr.slice(0, m+1).filter(v => v != null);
+    return slice.length ? slice.reduce((s,v)=>s+v,0) : null;
+  });
+  const kDSpark = document.getElementById('dfcKpiDividendosSpark');
+  if (kDSpark) kDSpark.innerHTML = mkSparkline(_divAcumSerie, '#E59400');
   if (kDA)  kDA.textContent  = _divAnualPrev != null ? fmtBRL(_divAnualPrev) : '—';
   if (kDAF) kDAF.textContent = _divAnualPrev != null
     ? `${_mesesReaisDiv} meses reais + ${_mesesPrevDiv} previstos`
