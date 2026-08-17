@@ -55,19 +55,19 @@ body { display: flex; min-height: 100vh; }
    escopada via custom properties só dentro de .sidebar. Não muda com o tema
    claro/escuro da página nem afeta nada fora do menu. */
 .sidebar {
-  --surface:      #0D5230;
-  --surface-2:    #0F5E38;
-  --border:       rgba(255,255,255,.14);
-  --bg:           #0F5E38;
+  --surface:      #1D9E5E;
+  --surface-2:    #1B915A;
+  --border:       rgba(255,255,255,.18);
+  --bg:           #1B915A;
   --text:         #FFFFFF;
-  --text-2:       rgba(255,255,255,.82);
-  --muted:        rgba(255,255,255,.55);
+  --text-2:       rgba(255,255,255,.88);
+  --muted:        rgba(255,255,255,.62);
   --primary:      #3CB54A;
   --primary-dark: #3CB54A;
-  --primary-light: rgba(255,255,255,.16);
+  --primary-light: rgba(255,255,255,.18);
   width: var(--sidebar-w);
-  /* verde-escuro igual ao card do Lucro Líquido (gradiente vertical p/ o menu alto) */
-  background: linear-gradient(180deg, #16774A 0%, #0D5230 100%);
+  /* mesmo verde da tela de login */
+  background: linear-gradient(135deg, #0E5C3D 0%, #1D9E5E 50%, #46C77C 100%);
   border-right: 1px solid var(--border);
   display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh;
   overflow: visible; transition: width .18s ease;
