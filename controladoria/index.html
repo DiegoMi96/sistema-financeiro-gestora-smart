@@ -340,6 +340,10 @@ body { display: flex; min-height: 100vh; }
 .card.tinted-primary { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; border: 0; }
 .card.tinted-primary .kpi-label, .card.tinted-primary .kpi-foot { color: rgba(255,255,255,.85); }
 .card.tinted-primary .delta-chip { background: rgba(255,255,255,.18); color: white; }
+/* Verde-escuro (mesmo do menu / tela de seleção de módulos) nos cards de destaque
+   do Resumo Executivo: Lucro Líquido, Margem Líquida, Saldo Acumulado, Satisfação. */
+#kpiRow .card.kpi-dark { background: linear-gradient(135deg,#060E07 0%,#0D1F10 50%,#060E07 100%) !important; box-shadow: 0 8px 20px rgba(6,14,7,.42) !important; }
+.card.deep-green { background: linear-gradient(135deg,#060E07 0%,#0D1F10 50%,#060E07 100%) !important; border: 0 !important; box-shadow: 0 8px 20px rgba(6,14,7,.42) !important; }
 .card-top-line { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--primary); }
 .card-top-line.allcom { background: var(--allcom); }
 .card-top-line.warn { background: var(--warning); }
@@ -1196,7 +1200,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
             <div class="kpi-value">R$ —</div>
             <div class="kpi-foot">A recuperar</div>
           </div>
-          <div class="card tinted-primary">
+          <div class="card tinted-primary deep-green">
             <div class="kpi-label">Saldo Acumulado</div>
             <div class="kpi-value">R$ —</div>
             <div class="kpi-foot">Posição de caixa</div>
@@ -1274,7 +1278,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
               <div class="activation-item"><div class="month-pill">JUN</div><div class="qty">135.373</div><div class="desc">simcards</div></div>
             </div>
           </div>
-          <div class="card tinted-primary">
+          <div class="card tinted-primary deep-green">
             <div class="kpi-label">Índice de Satisfação</div>
             <div class="kpi-value lg">96%</div>
             <div class="kpi-foot" style="flex-direction:column;align-items:flex-start;gap:4px">
