@@ -1745,25 +1745,57 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       </div>
 
       <div class="grid grid-4" style="margin-bottom:14px">
-        <div class="card tinted-primary">
-          <div class="kpi-label">Custo de Envio</div>
-          <div class="kpi-value lg">R$ 55.550</div>
-          <div class="kpi-foot">Acumulado YTD</div>
+        <div class="card"><div class="card-top-line"></div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+            <div style="min-width:0;flex:1">
+              <div class="kpi-label">Custo de Envio</div>
+              <div class="kpi-value lg">—</div>
+              <div class="kpi-foot">Acumulado desde Janeiro 2026</div>
+              <div class="kpi-delta"></div>
+            </div>
+            <div style="width:44px;height:44px;border-radius:12px;background:var(--primary-light);color:var(--primary);display:grid;place-items:center;flex-shrink:0">
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7h11v9H3z"/><path stroke-linecap="round" stroke-linejoin="round" d="M14 10h4l3 3v3h-7z"/><circle cx="7" cy="18.5" r="1.6"/><circle cx="17.5" cy="18.5" r="1.6"/></svg>
+            </div>
+          </div>
         </div>
         <div class="card"><div class="card-top-line"></div>
-          <div class="kpi-label">Pacotes Enviados</div>
-          <div class="kpi-value lg">1.393</div>
-          <div class="kpi-foot">YTD</div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+            <div style="min-width:0;flex:1">
+              <div class="kpi-label">Pacotes Enviados</div>
+              <div class="kpi-value lg">—</div>
+              <div class="kpi-foot">Acumulado</div>
+              <div class="kpi-delta"></div>
+            </div>
+            <div style="width:44px;height:44px;border-radius:12px;background:var(--primary-light);color:var(--primary);display:grid;place-items:center;flex-shrink:0">
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M4 7.5L12 12l8-4.5M12 12v9"/></svg>
+            </div>
+          </div>
         </div>
         <div class="card"><div class="card-top-line info"></div>
-          <div class="kpi-label">Custo Médio / Pacote</div>
-          <div class="kpi-value lg">R$ 39,88</div>
-          <div class="kpi-foot">2026</div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+            <div style="min-width:0;flex:1">
+              <div class="kpi-label">Custo Médio / Pacote</div>
+              <div class="kpi-value lg">—</div>
+              <div class="kpi-foot">Custo médio acumulado</div>
+              <div class="kpi-delta"></div>
+            </div>
+            <div style="width:44px;height:44px;border-radius:12px;background:rgba(44,123,229,.13);color:var(--info);display:grid;place-items:center;flex-shrink:0">
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 7v10M14.5 9.2a2.6 2 0 00-2.5-1.2 2.4 2 0 000 4 2.4 2 0 010 4 2.6 2 0 01-2.5-1.2"/></svg>
+            </div>
+          </div>
         </div>
         <div class="card"><div class="card-top-line warn"></div>
-          <div class="kpi-label">Custo / Receita</div>
-          <div class="kpi-value lg">0,51%</div>
-          <div class="kpi-foot">Frete sobre faturamento</div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+            <div style="min-width:0;flex:1">
+              <div class="kpi-label">Custo / Receita</div>
+              <div class="kpi-value lg">—</div>
+              <div class="kpi-foot">Frete sobre faturamento</div>
+              <div class="kpi-delta"></div>
+            </div>
+            <div style="width:44px;height:44px;border-radius:12px;background:rgba(234,179,8,.15);color:var(--warning);display:grid;place-items:center;flex-shrink:0">
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-9-9v9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 3a9 9 0 019 9h-9z"/></svg>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -3157,6 +3189,7 @@ function saveCache(dm, tsDisplay) {
       ts: new Date().toISOString(),
       tsDisplay,
       dm,
+      dmPrev: window._dmPrev || null,
       saidasData,
       previsaoData,
       opMensMes,
@@ -3182,6 +3215,7 @@ function restoreCache() {
     // Versão antiga do cache (sem _headerVals) — descarta e exige nova sincronização
     if ((c.version || 0) < CACHE_VERSION) { localStorage.removeItem(CACHE_KEY); return false; }
     saidasData.splice(0, saidasData.length, ...(c.saidasData || []));
+    window._dmPrev = c.dmPrev || null;
     previsaoData = c.previsaoData || [];
     opMensMes    = c.opMensMes    || Array.from({length:13}, () => new Array(12).fill(null));
     opCustoMes   = c.opCustoMes   || Array.from({length:13}, () => new Array(12).fill(null));
@@ -6953,6 +6987,21 @@ function computePeriodData(dm) {
       return `<span class="ops-chip ${colorClass}">${txt}</span> <span class="delta-vs">vs ${_prevLbl}</span>`;
     };
     const _atvC = get('Atv_Qtd', idx), _atvP = (_pi >= 0 ? get('Atv_Qtd', _pi) : null);
+    // ── Logística — chip "vs Ano Anterior" (mesmo período do ano-1, via window._dmPrev) ──
+    const _pySum = (key) => {
+      const a = (window._dmPrev && window._dmPrev[key]) ? window._dmPrev[key] : null;
+      if (!a) return null;
+      let s = 0, any = false; for (let i = 0; i <= idx; i++) { if (a[i] != null) { s += a[i]; any = true; } }
+      return any ? s : null;
+    };
+    const _custoEnvioPY = _pySum('Custo_Envio'), _volEnvioPY = _pySum('Vol_Envio'), _recPY = _pySum('Receita');
+    const _yoyChip = (cur, prev, higherBetter, isPP) => {
+      if (cur == null || prev == null || (!isPP && prev === 0)) return null;
+      const d = isPP ? (cur - prev) : (((cur - prev) / Math.abs(prev)) * 100);
+      const up = d >= 0, good = higherBetter ? up : !up;
+      const txt = (up ? '▲ ' : '▼ ') + Math.abs(d).toFixed(1).replace('.', ',') + (isPP ? ' p.p.' : '%');
+      return `<span class="delta-chip ${good ? 'up' : 'down'}">${txt}</span> <span class="delta-vs">vs Ano Anterior</span>`;
+    };
     // ── Alertas e Destaques (mockup) — computados dos mesmos dados ──
     const _baseAtivaP = _pi >= 0 ? get('Base_Ativa', _pi) : null;
     // Valores do mês de comparação p/ os chips ▲/▼ do Base SMART / Operação
@@ -7052,10 +7101,10 @@ function computePeriodData(dm) {
       'Cancelamento Anual':        { v: fmtNum(cancelAcum), f: 'Média mensal: '+fmtNum(Math.round(cancelAcum/(idx+1))) },
       'Desistência Anual':      { v: fmtNum(sumTo('Desistencia',idx)), f: 'Média mensal: '+fmtNum(Math.round(sumTo('Desistencia',idx)/(idx+1))), d: _opsChip(desist, _desistP, 'orange') },
       'Churn Implícito':        { v: churnPct, f: 'Cancel / Base ativa' },
-      'Custo de Envio':         { v: custoEnvioAcum != null ? fmtBRL(custoEnvioAcum) : '—', f: 'Acumulado desde Janeiro '+(document.getElementById('yearSelect')?.value||'2026') },
-      'Pacotes Enviados':       { v: fmtNum(volEnvioAcum), f: 'Acumulado' },
-      'Custo Médio / Pacote':   { v: custoEnvioAcum&&volEnvioAcum ? 'R$ '+(custoEnvioAcum/volEnvioAcum).toFixed(2).replace('.',',') : '—', f: 'Custo médio acumulado' },
-      'Custo / Receita':        { v: rec&&custoEnvioAcum ? (custoEnvioAcum/rec*100).toFixed(2).replace('.',',')+'%' : '—', f: 'Frete sobre faturamento' },
+      'Custo de Envio':         { v: custoEnvioAcum != null ? fmtBRL(custoEnvioAcum) : '—', f: 'Acumulado desde Janeiro '+(document.getElementById('yearSelect')?.value||'2026'), d: _yoyChip(custoEnvioAcum, _custoEnvioPY, true) },
+      'Pacotes Enviados':       { v: fmtNum(volEnvioAcum), f: 'Acumulado', d: _yoyChip(volEnvioAcum, _volEnvioPY, true) },
+      'Custo Médio / Pacote':   { v: custoEnvioAcum&&volEnvioAcum ? 'R$ '+(custoEnvioAcum/volEnvioAcum).toFixed(2).replace('.',',') : '—', f: 'Custo médio acumulado', d: _yoyChip((custoEnvioAcum&&volEnvioAcum)?custoEnvioAcum/volEnvioAcum:null, (_custoEnvioPY&&_volEnvioPY)?_custoEnvioPY/_volEnvioPY:null, false) },
+      'Custo / Receita':        { v: rec&&custoEnvioAcum ? (custoEnvioAcum/rec*100).toFixed(2).replace('.',',')+'%' : '—', f: 'Frete sobre faturamento', d: _yoyChip((rec&&custoEnvioAcum)?custoEnvioAcum/rec*100:null, (_recPY&&_custoEnvioPY)?_custoEnvioPY/_recPY*100:null, false, true) },
       'Total de Saídas':   { v: fmtAutoK(cmv != null ? cmv + (desp ?? 0) : null), f: 'CMV + Despesas + Custo SMT' },
       'CMV':               { v: fmtAutoK(cmv), f: 'CMV / CPS no período' },
       'Outras Despesas':   { v: fmtAutoK(desp), f: 'Despesas operacionais' },
@@ -7407,6 +7456,20 @@ async function syncFromSheets() {
       if (!key || key.startsWith('#') || key.startsWith('Chave')) return;
       dm[key] = row.slice(2, 14).map(numOrNull); // skip col B (Descrição)
     });
+
+    // Ano anterior (best-effort) — usado nos chips "vs Ano Anterior" da Logística.
+    // Se a aba do ano-1 não existir, os chips simplesmente não aparecem.
+    window._dmPrev = null;
+    try {
+      const _pyTab = String(parseInt(year, 10) - 1);
+      const _rp = await fetch(SHEET_CSV(_pyTab), { cache: 'no-store', headers: API_HEADERS });
+      if (_rp.ok) {
+        const _rowsP = parseCSV(await _rp.text());
+        const _dp = {};
+        _rowsP.slice(1).forEach(row => { const k=(row[0]||'').trim(); if(!k||k.startsWith('#')||k.startsWith('Chave'))return; _dp[k]=row.slice(2,14).map(numOrNull); });
+        window._dmPrev = _dp;
+      }
+    } catch(e) { window._dmPrev = null; }
 
     if (statusEl) statusEl.textContent = `🔄 Processando indicadores da aba "${year}"…`;
 
