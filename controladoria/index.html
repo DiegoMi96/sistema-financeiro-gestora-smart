@@ -1823,31 +1823,69 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <!-- KPIs principais -->
       <div class="grid grid-3" style="margin-bottom:14px">
         <div class="card tinted-primary">
-          <div class="kpi-label">Total Colaboradores</div>
-          <div class="kpi-value lg" id="rhHeadcount">47</div>
-          <div class="kpi-foot">Quadro ativo · Mar/26</div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+            <div style="min-width:0;flex:1">
+              <div class="kpi-label">Total Colaboradores</div>
+              <div class="kpi-value lg" id="rhHeadcount">47</div>
+              <div class="kpi-foot">Quadro ativo</div>
+              <div class="kpi-delta" id="rhHeadcountDelta"></div>
+            </div>
+            <div style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.18);color:#fff;display:grid;place-items:center;flex-shrink:0">
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20v-1.5a3.5 3.5 0 00-3.5-3.5h-5A3.5 3.5 0 005 18.5V20"/><circle cx="9.5" cy="8" r="3.2"/><path stroke-linecap="round" stroke-linejoin="round" d="M16 8.3a2.8 2.8 0 010 5.4M19 20v-1.3a3 3 0 00-2-2.8"/></svg>
+            </div>
+          </div>
         </div>
-        <div class="card">
-          <div class="kpi-label">Colaboradores CLT</div>
-          <div class="kpi-value lg" id="rhCLT">31</div>
-          <div class="kpi-foot">66% do quadro total</div>
+        <div class="card"><div class="card-top-line"></div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+            <div style="min-width:0;flex:1">
+              <div class="kpi-label">Colaboradores CLT</div>
+              <div class="kpi-value lg" id="rhCLT">31</div>
+              <div class="kpi-foot">Regime CLT</div>
+              <div class="kpi-delta" id="rhCLTDelta"></div>
+            </div>
+            <div style="width:44px;height:44px;border-radius:12px;background:var(--primary-light);color:var(--primary);display:grid;place-items:center;flex-shrink:0">
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16v11H4z"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 8V6a3 3 0 013-3v0a3 3 0 013 3v2"/></svg>
+            </div>
+          </div>
         </div>
-        <div class="card">
-          <div class="kpi-label">Colaboradores PJ</div>
-          <div class="kpi-value lg" id="rhPJ">16</div>
-          <div class="kpi-foot">34% do quadro total</div>
+        <div class="card"><div class="card-top-line info"></div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+            <div style="min-width:0;flex:1">
+              <div class="kpi-label">Colaboradores PJ</div>
+              <div class="kpi-value lg" id="rhPJ">16</div>
+              <div class="kpi-foot">Pessoa jurídica</div>
+              <div class="kpi-delta" id="rhPJDelta"></div>
+            </div>
+            <div style="width:44px;height:44px;border-radius:12px;background:rgba(44,123,229,.13);color:var(--info);display:grid;place-items:center;flex-shrink:0">
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="8" r="3.5"/><path stroke-linecap="round" stroke-linejoin="round" d="M5.5 20a6.5 6.5 0 0113 0"/></svg>
+            </div>
+          </div>
         </div>
       </div>
       <div class="grid grid-2" style="margin-bottom:14px">
-        <div class="card">
-          <div class="kpi-label">Custo Folha (Mês)</div>
-          <div class="kpi-value lg" id="rhFolha">R$ 312k</div>
-          <div class="kpi-foot" id="rhFolhaFoot">Março · +1,8% vs. Fev</div>
+        <div class="card"><div class="card-top-line"></div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+            <div style="min-width:0;flex:1">
+              <div class="kpi-label">Custo Folha (Mês)</div>
+              <div class="kpi-value lg" id="rhFolha">R$ 312k</div>
+              <div class="kpi-foot" id="rhFolhaFoot">Março · +1,8% vs. Fev</div>
+            </div>
+            <div style="width:44px;height:44px;border-radius:12px;background:var(--primary-light);color:var(--primary);display:grid;place-items:center;flex-shrink:0">
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 7v10M14.5 9.2a2.6 2 0 00-2.5-1.2 2.4 2 0 000 4 2.4 2 0 010 4 2.6 2 0 01-2.5-1.2"/></svg>
+            </div>
+          </div>
         </div>
         <div class="card"><div class="card-top-line" style="background:var(--negative)"></div>
-          <div class="kpi-label">Rescisão (Anual)</div>
-          <div class="kpi-value lg" id="rhRescisaoVal">—</div>
-          <div class="kpi-foot" id="rhRescisaoFoot">Sincronize a planilha</div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+            <div style="min-width:0;flex:1">
+              <div class="kpi-label">Rescisão (Anual)</div>
+              <div class="kpi-value lg" id="rhRescisaoVal">—</div>
+              <div class="kpi-foot" id="rhRescisaoFoot">Sincronize a planilha</div>
+            </div>
+            <div style="width:44px;height:44px;border-radius:12px;background:rgba(224,70,59,.13);color:var(--negative);display:grid;place-items:center;flex-shrink:0">
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 3h7l4 4v14H7z"/><path stroke-linecap="round" stroke-linejoin="round" d="M14 3v4h4M9.5 13.5l4 4m0-4l-4 4"/></svg>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -7780,12 +7818,23 @@ function buildRH() {
   const yearSuf = ['Jan/26','Fev/26','Mar/26','Abr/26','Mai/26','Jun/26','Jul/26','Ago/26','Set/26','Out/26','Nov/26','Dez/26'];
   const idx = periodMonthIdx[currentPeriod] ?? 2;
 
+  // Chip "▲N vs Mmm/26 (prev)" — usado nos 3 cards de headcount (mockup 17/08/2026)
+  const _rhChip = (cur, prev) => {
+    if (idx <= 0 || cur == null || prev == null) return '';
+    const diff = cur - prev;
+    const up = diff >= 0;
+    const txt = (up ? '▲ ' : '▼ ') + Math.abs(diff);
+    return `<span class="delta-chip ${up ? 'up' : 'down'}">${txt}</span> <span class="delta-vs">vs ${yearSuf[idx-1]} (${prev})</span>`;
+  };
+
   // KPI card: Total Colaboradores
   const hcEl = document.getElementById('rhHeadcount');
   if (hcEl) {
     hcEl.textContent = rhHeadcountMes[idx] != null ? rhHeadcountMes[idx] : '—';
     const foot = hcEl.closest('.card')?.querySelector('.kpi-foot');
     if (foot) foot.textContent = 'Quadro ativo';
+    const delta = document.getElementById('rhHeadcountDelta');
+    if (delta) delta.innerHTML = _rhChip(rhHeadcountMes[idx], idx > 0 ? rhHeadcountMes[idx-1] : null);
   }
 
   // KPI card: Colaboradores CLT
@@ -7794,6 +7843,8 @@ function buildRH() {
     cltEl.textContent = rhCLTMes[idx] != null ? rhCLTMes[idx] : '—';
     const foot = cltEl.closest('.card')?.querySelector('.kpi-foot');
     if (foot) foot.textContent = 'Regime CLT';
+    const delta = document.getElementById('rhCLTDelta');
+    if (delta) delta.innerHTML = _rhChip(rhCLTMes[idx], idx > 0 ? rhCLTMes[idx-1] : null);
   }
 
   // KPI card: Colaboradores PJ
@@ -7802,6 +7853,8 @@ function buildRH() {
     pjEl.textContent = rhPJMes[idx] != null ? rhPJMes[idx] : '—';
     const foot = pjEl.closest('.card')?.querySelector('.kpi-foot');
     if (foot) foot.textContent = 'Pessoa jurídica';
+    const delta = document.getElementById('rhPJDelta');
+    if (delta) delta.innerHTML = _rhChip(rhPJMes[idx], idx > 0 ? rhPJMes[idx-1] : null);
   }
 
   // KPI card: Custo Folha (Mês)
