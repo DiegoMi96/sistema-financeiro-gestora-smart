@@ -340,10 +340,9 @@ body { display: flex; min-height: 100vh; }
 .card.tinted-primary { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; border: 0; }
 .card.tinted-primary .kpi-label, .card.tinted-primary .kpi-foot { color: rgba(255,255,255,.85); }
 .card.tinted-primary .delta-chip { background: rgba(255,255,255,.18); color: white; }
-/* Verde-escuro (mesmo do menu / tela de seleção de módulos) nos cards de destaque
-   do Resumo Executivo: Lucro Líquido, Margem Líquida, Saldo Acumulado, Satisfação. */
-#kpiRow .card.kpi-dark,
-section[data-page="pl"] .card.kpi-dark { background: linear-gradient(135deg,#15351E 0%,#0D2113 100%) !important; box-shadow: 0 8px 20px rgba(6,14,7,.42) !important; }
+/* Verde-escuro (mesmo do menu / tela de seleção de módulos) só nos cards
+   Saldo Acumulado e Índice de Satisfação. Lucro Líquido e Margem Líquida
+   voltaram para a cor padrão (gradiente inline #16774A→#0D5230). */
 .card.deep-green { background: linear-gradient(135deg,#15351E 0%,#0D2113 100%) !important; border: 0 !important; box-shadow: 0 8px 20px rgba(6,14,7,.42) !important; }
 .card-top-line { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--primary); }
 .card-top-line.allcom { background: var(--allcom); }
