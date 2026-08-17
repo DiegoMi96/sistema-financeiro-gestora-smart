@@ -364,6 +364,11 @@ body { display: flex; min-height: 100vh; }
 /* Chip ▲/▼ vs mês nos cards de Base SMART / Operação (mockup 11/08/2026) */
 .kpi-delta { margin-top: 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-height: 18px; }
 .kpi-delta:empty { display: none; }
+/* Chips coloridos do Suporte Técnico (cor combina com o card) */
+.ops-chip { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 6px; white-space: nowrap; }
+.ops-chip.red    { background: rgba(224,70,59,.13); color: var(--negative); }
+.ops-chip.orange { background: rgba(234,179,8,.16); color: #B4820A; }
+.ops-chip.green  { background: rgba(29,158,94,.13); color: var(--primary-dark); }
 /* Compactação Resumo Executivo p/ bater com o mockup (11/08/2026) */
 #kpiRow .card { padding: 14px 16px; gap: 2px; }
 #kpiRow .kpi-value { font-size: 23px; }
@@ -495,10 +500,10 @@ section[data-page="pl"] .grid-5 .kpi-spark { margin-top: auto; }
 /* Próximas Ativações (dashboard): pill à esquerda; número e "simcards"
    empilhados à direita. Cabe em qualquer largura, sem o número sobrepor o
    "simcards" (bug do flex em tela estreita) nem truncar. */
-#dashAtivacaoList .activation-item { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 8px; row-gap: 0; padding: 8px 10px; }
-#dashAtivacaoList .month-pill { grid-row: 1 / span 2; align-self: center; min-width: 34px; padding: 4px 6px; font-size: 11px; }
-#dashAtivacaoList .activation-item .qty { grid-column: 2; grid-row: 1; text-align: right; font-size: 14px; white-space: nowrap; }
-#dashAtivacaoList .activation-item .desc { grid-column: 2; grid-row: 2; text-align: right; font-size: 10.5px; white-space: nowrap; }
+#dashAtivacaoList .activation-item, #opsAtivacaoList .activation-item { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 8px; row-gap: 0; padding: 8px 10px; }
+#dashAtivacaoList .month-pill, #opsAtivacaoList .month-pill { grid-row: 1 / span 2; align-self: center; min-width: 34px; padding: 4px 6px; font-size: 11px; }
+#dashAtivacaoList .activation-item .qty, #opsAtivacaoList .activation-item .qty { grid-column: 2; grid-row: 1; text-align: right; font-size: 14px; white-space: nowrap; }
+#dashAtivacaoList .activation-item .desc, #opsAtivacaoList .activation-item .desc { grid-column: 2; grid-row: 2; text-align: right; font-size: 10.5px; white-space: nowrap; }
 
 /* Star rating */
 .stars { display: inline-flex; gap: 2px; }
@@ -1640,20 +1645,44 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
 
       <div class="section-head" style="margin:0 0 10px"><div class="section-bar"></div><div class="section-title">Cancelamento e Desistência</div></div>
       <div class="grid grid-4" style="margin-bottom:14px">
-        <div class="card"><div class="card-top-line warn"></div>
-          <div class="kpi-label">Cancelamento Anual (Real)</div>
-          <div class="kpi-value lg">50.181</div>
-          <div class="kpi-foot">Média mensal: 16.727</div>
+        <div class="card"><div class="card-top-line negative"></div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+            <div style="min-width:0;flex:1">
+              <div class="kpi-label">Cancelamento Anual (Real)</div>
+              <div class="kpi-value lg">—</div>
+              <div class="kpi-foot">Média mensal: —</div>
+              <div class="kpi-delta"></div>
+            </div>
+            <div style="width:44px;height:44px;border-radius:12px;background:rgba(224,70,59,.13);color:var(--negative);display:grid;place-items:center;flex-shrink:0">
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M5.6 5.6l12.8 12.8"/></svg>
+            </div>
+          </div>
         </div>
         <div class="card"><div class="card-top-line warn"></div>
-          <div class="kpi-label">Desistência Anual</div>
-          <div class="kpi-value lg">25.902</div>
-          <div class="kpi-foot">Média mensal: 8.634</div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+            <div style="min-width:0;flex:1">
+              <div class="kpi-label">Desistência Anual</div>
+              <div class="kpi-value lg">—</div>
+              <div class="kpi-foot">Média mensal: —</div>
+              <div class="kpi-delta"></div>
+            </div>
+            <div style="width:44px;height:44px;border-radius:12px;background:rgba(234,179,8,.15);color:var(--warning);display:grid;place-items:center;flex-shrink:0">
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="8" r="3.5"/><path stroke-linecap="round" stroke-linejoin="round" d="M6 20v-1a6 6 0 0112 0v1"/></svg>
+            </div>
+          </div>
         </div>
-        <div class="card tinted-primary">
-          <div class="kpi-label">Cancelamento Anual (Previsão)</div>
-          <div class="kpi-value lg">—</div>
-          <div class="kpi-foot"></div>
+        <div class="card"><div class="card-top-line"></div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+            <div style="min-width:0;flex:1">
+              <div class="kpi-label">Cancelamento Anual (Previsão)</div>
+              <div class="kpi-value lg">—</div>
+              <div class="kpi-foot"></div>
+              <div class="kpi-delta"></div>
+            </div>
+            <div style="width:44px;height:44px;border-radius:12px;background:var(--primary-light);color:var(--primary);display:grid;place-items:center;flex-shrink:0">
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 17l6-6 4 4 8-8"/><path stroke-linecap="round" stroke-linejoin="round" d="M14 7h7v7"/></svg>
+            </div>
+          </div>
         </div>
         <div class="card">
           <div class="kpi-label">Próximas Ativações</div>
@@ -6916,6 +6945,14 @@ function computePeriodData(dm) {
       const txt = (up ? '▲ ' : '▼ ') + d.toFixed(1).replace('.', ',') + (isPP ? ' pp' : '%');
       return `<span class="delta-chip ${good ? 'up' : 'down'}">${txt}</span> <span class="delta-vs">vs Plano</span>`;
     };
+    // ── Suporte Técnico — chip colorido (cor combina com o card), vs mês anterior ──
+    const _opsChip = (cur, prev, colorClass) => {
+      if (_pi < 0 || cur == null || prev == null || prev === 0) return null;
+      const d = ((cur - prev) / Math.abs(prev)) * 100;
+      const txt = (d >= 0 ? '▲ ' : '▼ ') + Math.abs(d).toFixed(1).replace('.', ',') + '%';
+      return `<span class="ops-chip ${colorClass}">${txt}</span> <span class="delta-vs">vs ${_prevLbl}</span>`;
+    };
+    const _atvC = get('Atv_Qtd', idx), _atvP = (_pi >= 0 ? get('Atv_Qtd', _pi) : null);
     // ── Alertas e Destaques (mockup) — computados dos mesmos dados ──
     const _baseAtivaP = _pi >= 0 ? get('Base_Ativa', _pi) : null;
     // Valores do mês de comparação p/ os chips ▲/▼ do Base SMART / Operação
@@ -7007,13 +7044,13 @@ function computePeriodData(dm) {
         const _aSum = sumTo('Atv_Qtd', 11);
         const _aLast = _aArr.reduce((l, v, i) => v != null && v > 0 ? i : l, -1);
         const _aLbl = _aLast >= 0 ? 'Smart com a Allcom Até ' + shortMon[_aLast] + '/' + year.slice(2) : '';
-        return { v: _aSum != null ? fmtNum(_aSum) : '—', f: _aLbl };
+        return { v: _aSum != null ? fmtNum(_aSum) : '—', f: _aLbl, d: _opsChip(_atvC, _atvP, 'green') };
       })(),
       'Resultado Líquido':      { v: fmtAutoK(res), f: lbl },
       'Índice de Satisfação':   { v: satV!=null ? Math.round(satV > 1 ? satV : satV*100)+'%' : '—', f: satV!=null?'Pesquisa de satisfação':'Linha Satisfacao na planilha (0 a 100 ou 0 a 1)' },
-      'Cancelamento Anual (Real)': { v: fmtNum(cancelAcum), f: 'Média mensal: '+fmtNum(Math.round(cancelAcum/(idx+1))) },
+      'Cancelamento Anual (Real)': { v: fmtNum(cancelAcum), f: 'Média mensal: '+fmtNum(Math.round(cancelAcum/(idx+1))), d: _opsChip(cancel, _cancelP, 'red') },
       'Cancelamento Anual':        { v: fmtNum(cancelAcum), f: 'Média mensal: '+fmtNum(Math.round(cancelAcum/(idx+1))) },
-      'Desistência Anual':      { v: fmtNum(sumTo('Desistencia',idx)), f: 'Média mensal: '+fmtNum(Math.round(sumTo('Desistencia',idx)/(idx+1))) },
+      'Desistência Anual':      { v: fmtNum(sumTo('Desistencia',idx)), f: 'Média mensal: '+fmtNum(Math.round(sumTo('Desistencia',idx)/(idx+1))), d: _opsChip(desist, _desistP, 'orange') },
       'Churn Implícito':        { v: churnPct, f: 'Cancel / Base ativa' },
       'Custo de Envio':         { v: custoEnvioAcum != null ? fmtBRL(custoEnvioAcum) : '—', f: 'Acumulado desde Janeiro '+(document.getElementById('yearSelect')?.value||'2026') },
       'Pacotes Enviados':       { v: fmtNum(volEnvioAcum), f: 'Acumulado' },
