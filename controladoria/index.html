@@ -87,9 +87,8 @@ body { display: flex; min-height: 100vh; }
   width: 38px; height: 38px; border-radius: 11px;
   background: var(--primary);
   display: grid; place-items: center; color: white; font-weight: 800; font-family: 'Inter'; font-size: 18px;
-  /* Alcance da sombra (offset+blur) fica menor que o padding-bottom do .brand (18px),
-     assim o brilho não vaza sobre a linha divisória abaixo (o "risco quebrado"). */
-  box-shadow: 0 3px 8px rgba(60,181,74,.32);
+  /* Sem box-shadow — qualquer brilho por trás do quadrado interferia visualmente
+     na linha divisória do .brand logo abaixo, dando a impressão de linha quebrada. */
 }
 .brand-text { font-family: 'Inter'; font-weight: 800; font-size: 15px; letter-spacing: -.2px; color: var(--text); }
 .brand-sub { font-size: 11px; color: var(--muted); margin-top: 1px; letter-spacing: .3px; text-transform: uppercase; }
