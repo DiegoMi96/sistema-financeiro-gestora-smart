@@ -780,27 +780,32 @@ export default function AnalystDashboard() {
         <KPICard label="Total emitido"
           value={fmt(op?.emitido)}
           sub={`${fmtN(op?.qtd_total)} cobranças`}
-          icon={TrendingUp} iconColor="green" />
+          icon={TrendingUp} iconColor="green"
+          trend={{ pct: op?.variacao?.emitido_pct, label: op?.variacao?.mes_anterior_label, higherBetter: true }} />
         <KPICard label="Total recebido"
           value={fmt(op?.recebido)}
           sub={`${op?.recebido_pct ?? 0}% do emitido`}
           valueColor="text-emerald-700"
-          icon={CheckCircle} iconColor="green" />
+          icon={CheckCircle} iconColor="green"
+          trend={{ pct: op?.variacao?.recebido_pct, label: op?.variacao?.mes_anterior_label, higherBetter: true }} />
         <KPICard label="Total vencido"
           value={fmt(op?.vencido)}
           sub={`${fmtN(op?.lista_vencidos?.length ?? op?.qtd_vencido)} clientes`}
           valueColor={(op?.vencido || 0) > 0 ? 'text-red-600' : 'text-gray-900'}
-          icon={TrendingDown} iconColor={(op?.vencido || 0) > 0 ? 'red' : 'green'} />
+          icon={TrendingDown} iconColor={(op?.vencido || 0) > 0 ? 'red' : 'green'}
+          trend={{ pct: op?.variacao?.vencido_pct, label: op?.variacao?.mes_anterior_label, higherBetter: false }} />
         <KPICard label="Aguardando pgto."
           value={fmt(op?.confirmado)}
           sub={`${fmtN(op?.qtd_pendente ?? 0)} cobranças em aberto`}
           valueColor={(op?.confirmado || 0) > 0 ? 'text-amber-600' : 'text-gray-900'}
-          icon={Clock} iconColor="yellow" />
+          icon={Clock} iconColor="amber"
+          trend={{ pct: op?.variacao?.confirmado_pct, label: op?.variacao?.mes_anterior_label, higherBetter: false }} />
         <KPICard label="Juros recebidos"
           value={fmt(op?.juros ?? 0)}
           sub="Itaú + Asaas · com acréscimo"
           valueColor={(op?.juros || 0) > 0 ? 'text-green-600' : 'text-gray-500'}
-          icon={Percent} iconColor="green" />
+          icon={Percent} iconColor="green"
+          trend={{ pct: op?.variacao?.juros_pct, label: op?.variacao?.mes_anterior_label, higherBetter: true }} />
       </div>
 
       {/* Planejado vs Realizado · comportamental */}
@@ -1254,13 +1259,19 @@ function DueDateModal({ cycleId, client, onClose, onSuccess }) {
 }
 
 // ── Componentes menores ───────────────────────────────────────
-function KPICard({ label, value, sub, valueColor, large, icon: Icon, iconColor }) {
+function KPICard({ label, value, sub, valueColor, large, icon: Icon, iconColor, trend }) {
   const iconBg = {
     blue:  { background: '#F0FDF4', color: '#3CB54A' },
     green: { background: '#F0FDF4', color: '#16A34A' },
     red:   { background: '#FEF2F2', color: '#DC2626' },
     amber: { background: '#FFFBEB', color: '#D97706' },
   }[iconColor] || { background: '#F0FDF4', color: '#3CB54A' }
+
+  // trend: { pct, label, higherBetter } — pct/label vêm nulos até o backend
+  // calcular o mês anterior (best-effort); nesse caso o chip simplesmente não aparece.
+  const hasTrend = trend && trend.pct != null && trend.label
+  const trendUp   = hasTrend && trend.pct >= 0
+  const trendGood = hasTrend && (trend.higherBetter ? trendUp : !trendUp)
 
   return (
     <div className="gs-card p-4 flex items-center gap-3">
@@ -1273,6 +1284,18 @@ function KPICard({ label, value, sub, valueColor, large, icon: Icon, iconColor }
         <p className="gs-label">{label}</p>
         <p className={`gs-value ${valueColor || ''}`} style={large ? { fontSize: 22 } : { fontSize: 18 }}>{value ?? '—'}</p>
         {sub && <p className="gs-sub">{sub}</p>}
+        {hasTrend && (
+          <div className="flex items-center gap-1.5 mt-1">
+            <span
+              className={`inline-flex items-center gap-0.5 text-[11px] font-semibold px-1.5 py-0.5 rounded ${
+                trendGood ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'
+              }`}
+            >
+              {trendUp ? '▲' : '▼'} {Math.abs(trend.pct).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+            </span>
+            <span className="text-[11px] text-gray-400">vs {trend.label}</span>
+          </div>
+        )}
       </div>
     </div>
   )
