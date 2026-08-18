@@ -72,7 +72,7 @@ body { display: flex; min-height: 100vh; }
   overflow: visible; transition: width .18s ease;
 }
 .sidebar.collapsed { width: 64px; }
-.sidebar.collapsed .brand { justify-content: center; padding: 22px 0 18px; }
+.sidebar.collapsed .brand { justify-content: center; padding: 14px 0; }
 .sidebar.collapsed .brand > div:not(.brand-logo) { display: none; }
 .sidebar.collapsed .nav-section { display: none; }
 .sidebar.collapsed .nav-item { justify-content: center; padding: 8px; margin: 1px 10px; border-left: none; }
@@ -82,7 +82,9 @@ body { display: flex; min-height: 100vh; }
 .sidebar.collapsed .sidebar-foot { justify-content: center; padding: 14px 10px; }
 .sidebar.collapsed .user-info,
 .sidebar.collapsed #profileTrigger svg { display: none; }
-.brand { padding: 22px 22px 18px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); overflow: hidden; }
+/* Altura igual à .topbar (67px) — assim a linha divisória da logo alinha
+   exatamente com a linha divisória da barra de topo, sem "degrau". */
+.brand { padding: 14px 22px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); overflow: hidden; }
 .brand-logo {
   width: 38px; height: 38px; border-radius: 11px;
   background: var(--primary);
