@@ -53,8 +53,8 @@ const PAGE_TITLES = {
   '/comissionamento': 'Comissionamento',
 }
 
-const BG  = '#0D0D0D'
-const BDR = '1px solid #1F1F1F'
+const BG  = '#FFFFFF'
+const BDR = '1px solid #E5E9ED'
 const GRN = '#3CB54A'
 
 export default function Layout() {
@@ -171,8 +171,8 @@ export default function Layout() {
             />
           ) : (
             <div>
-              <p style={{ color: '#9CA3AF', fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 1 }}>GESTORA</p>
-              <p style={{ color: '#FFF', fontSize: 20, fontWeight: 900, letterSpacing: '-0.5px', lineHeight: 1 }}>SMART</p>
+              <p style={{ color: '#6B7280', fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 1 }}>GESTORA</p>
+              <p style={{ color: '#0F1B2D', fontSize: 20, fontWeight: 900, letterSpacing: '-0.5px', lineHeight: 1 }}>SMART</p>
               <div style={{ background: GRN, borderRadius: 3, padding: '1px 6px', display: 'inline-block', marginTop: 3 }}>
                 <p style={{ color: '#FFF', fontSize: 7, fontWeight: 700, letterSpacing: '0.08em' }}>SISTEMA FINANCEIRO</p>
               </div>
@@ -210,7 +210,7 @@ export default function Layout() {
                       borderRadius:    8,
                       fontSize:        13,
                       fontWeight:      isActive ? 600 : 500,
-                      color:           isActive ? GRN : '#9CA3AF',
+                      color:           isActive ? GRN : '#4A5868',
                       background:      isActive ? 'rgba(60,181,74,0.12)' : 'transparent',
                       borderLeft:      isActive && showText ? `3px solid ${GRN}` : '3px solid transparent',
                       paddingLeft:     showText ? (isActive ? 13 : 16) : 0,
@@ -260,10 +260,10 @@ export default function Layout() {
                 gap: showText ? 8 : 0,
                 padding: showText ? '7px 10px' : '8px 0',
                 borderRadius: 8, fontSize: 12, fontWeight: 500,
-                color: '#6B7280', border: '1px dashed #2A2A2A',
+                color: '#6B7280', border: '1px dashed #D8DEE3',
                 background: 'transparent', cursor: 'pointer', transition: 'background 0.15s',
               }}
-              onMouseEnter={e => e.currentTarget.style.background = '#1A1A1A'}
+              onMouseEnter={e => e.currentTarget.style.background = '#F3F4F6'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
               <LayoutGrid size={14} style={{ flexShrink: 0 }} />
@@ -283,7 +283,7 @@ export default function Layout() {
                 onClick={handleLogout}
                 title="Sair da conta"
                 style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6B7280', background: 'transparent', border: 'none', cursor: 'pointer', transition: 'all 0.15s' }}
-                onMouseEnter={e => { e.currentTarget.style.background = '#2A1A1A'; e.currentTarget.style.color = '#EF4444' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.color = '#EF4444' }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#6B7280' }}
               >
                 <LogOut size={14} />
@@ -291,20 +291,20 @@ export default function Layout() {
             </div>
           ) : (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 8, borderRadius: 8, background: '#1A1A1A', marginBottom: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 8, borderRadius: 8, background: '#F6F8FA', marginBottom: 4 }}>
                 <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#1F3A23', color: GRN, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
                   {initials}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ color: '#FFF', fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name}</p>
+                  <p style={{ color: '#0F1B2D', fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name}</p>
                   <p style={{ color: '#6B7280', fontSize: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.role_label}</p>
                 </div>
               </div>
               <button
                 onClick={handleLogout}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 500, color: '#9CA3AF', background: 'transparent', border: 'none', cursor: 'pointer', transition: 'all 0.15s' }}
-                onMouseEnter={e => { e.currentTarget.style.background = '#2A1A1A'; e.currentTarget.style.color = '#EF4444' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#9CA3AF' }}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 500, color: '#4A5868', background: 'transparent', border: 'none', cursor: 'pointer', transition: 'all 0.15s' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.color = '#EF4444' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#4A5868' }}
               >
                 <LogOut size={13} />
                 Sair da conta
@@ -321,12 +321,12 @@ export default function Layout() {
           style={{
             right: -12, bottom: 28, zIndex: 10,
             width: 24, height: 24, borderRadius: '50%',
-            background: '#2A2A2A', border: '1px solid #3A3A3A',
-            color: '#9CA3AF', cursor: 'pointer', transition: 'all 0.15s',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+            background: '#FFFFFF', border: '1px solid #E5E9ED',
+            color: '#4A5868', cursor: 'pointer', transition: 'all 0.15s',
+            boxShadow: '0 2px 8px rgba(15,27,45,0.18)',
           }}
           onMouseEnter={e => { e.currentTarget.style.background = GRN; e.currentTarget.style.color = '#FFF' }}
-          onMouseLeave={e => { e.currentTarget.style.background = '#2A2A2A'; e.currentTarget.style.color = '#9CA3AF' }}
+          onMouseLeave={e => { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.color = '#4A5868' }}
         >
           {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
         </button>
@@ -342,15 +342,15 @@ export default function Layout() {
         >
           <button
             onClick={() => setMobileOpen(true)}
-            style={{ padding: 6, borderRadius: 8, color: '#9CA3AF', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex' }}
-            onMouseEnter={e => e.currentTarget.style.background = '#1F1F1F'}
+            style={{ padding: 6, borderRadius: 8, color: '#4A5868', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex' }}
+            onMouseEnter={e => e.currentTarget.style.background = '#F3F4F6'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
           >
             <Menu size={20} />
           </button>
           <div>
-            <p style={{ color: '#9CA3AF', fontSize: 8, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase' }}>GESTORA SMART</p>
-            <p style={{ color: '#FFF', fontSize: 14, fontWeight: 700, lineHeight: 1.2 }}>{pageTitle}</p>
+            <p style={{ color: '#6B7280', fontSize: 8, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase' }}>GESTORA SMART</p>
+            <p style={{ color: '#0F1B2D', fontSize: 14, fontWeight: 700, lineHeight: 1.2 }}>{pageTitle}</p>
           </div>
         </div>
 
