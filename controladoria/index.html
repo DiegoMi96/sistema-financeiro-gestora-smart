@@ -55,19 +55,18 @@ body { display: flex; min-height: 100vh; }
    escopada via custom properties só dentro de .sidebar. Não muda com o tema
    claro/escuro da página nem afeta nada fora do menu. */
 .sidebar {
-  --surface:      #0D1F10;
-  --surface-2:    #14301B;
-  --border:       #1C3B25;
-  --bg:           #14301B;
-  --text:         #FFFFFF;
-  --text-2:       #9CA3AF;
-  --muted:        #6B7280;
-  --primary:      #3CB54A;
-  --primary-dark: #3CB54A;
-  --primary-light: rgba(60,181,74,.14);
+  --surface:      #FFFFFF;
+  --surface-2:    #FBFCFD;
+  --border:       #E5E9ED;
+  --bg:           #F6F8FA;
+  --text:         #0F1B2D;
+  --text-2:       #4A5868;
+  --muted:        #8895A5;
+  --primary:      #1D9E5E;
+  --primary-dark: #16774A;
+  --primary-light: #E6F5EE;
   width: var(--sidebar-w);
-  /* mesmo verde-escuro da tela de seleção de módulos (WelcomePage) */
-  background: linear-gradient(135deg, #060E07 0%, #0D1F10 50%, #060E07 100%);
+  background: var(--surface);
   border-right: 1px solid var(--border);
   display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh;
   overflow: visible; transition: width .18s ease;
@@ -94,7 +93,7 @@ body { display: flex; min-height: 100vh; }
 .brand-sub { font-size: 11px; color: var(--muted); margin-top: 1px; letter-spacing: .3px; text-transform: uppercase; }
 
 .nav { padding: 12px 0; flex: 1; overflow-y: auto; overflow-x: hidden; }
-.nav-section { font-size: 10px; color: #5B7565; letter-spacing: .1em; text-transform: uppercase; padding: 0 16px; margin: 14px 0 4px; font-weight: 600; }
+.nav-section { font-size: 10px; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; padding: 0 16px; margin: 14px 0 4px; font-weight: 600; }
 .nav-item {
   display: flex; align-items: center; gap: 10px; padding: 8px 12px 8px 16px; margin: 1px 6px; border-radius: 8px;
   cursor: pointer; color: var(--text-2); font-size: 13px; font-weight: 500; user-select: none;
@@ -962,7 +961,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
     </div>
   </nav>
   <div style="padding:0 8px 8px;overflow:hidden">
-    <button onclick="trocarModulo()" title="Trocar módulo" style="width:100%;display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;font-size:12px;font-weight:500;color:#6B7280;border:1px dashed #2A2A2A;background:transparent;cursor:pointer;transition:background .15s" onmouseover="this.style.background='#1A1A1A'" onmouseout="this.style.background='transparent'">
+    <button onclick="trocarModulo()" title="Trocar módulo" style="width:100%;display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;font-size:12px;font-weight:500;color:var(--muted);border:1px dashed var(--border);background:transparent;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'">
       <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="flex-shrink:0"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
       <span class="nav-label">Trocar módulo</span>
     </button>
@@ -979,10 +978,10 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
   <!-- Botão colapsar — mesma posição do menu principal (Faturamento): canto inferior direito -->
   <button id="btnCollapseSidebar" onclick="toggleSidebarCollapse()" title="Recolher menu"
     style="position:absolute;right:-12px;bottom:28px;z-index:10;width:24px;height:24px;border-radius:50%;
-    background:#2A2A2A;border:1px solid #3A3A3A;color:#9CA3AF;cursor:pointer;display:grid;place-items:center;
-    transition:all .15s;box-shadow:0 2px 8px rgba(0,0,0,.5)"
+    background:#FFFFFF;border:1px solid var(--border);color:var(--text-2);cursor:pointer;display:grid;place-items:center;
+    transition:all .15s;box-shadow:0 2px 8px rgba(15,27,45,.18)"
     onmouseover="this.style.background='var(--primary)';this.style.color='#fff'"
-    onmouseout="this.style.background='#2A2A2A';this.style.color='#9CA3AF'">
+    onmouseout="this.style.background='#FFFFFF';this.style.color='var(--text-2)'">
     <svg id="collapseIcon" width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 18l-6-6 6-6"/></svg>
   </button>
   <div class="logout-wrap">
