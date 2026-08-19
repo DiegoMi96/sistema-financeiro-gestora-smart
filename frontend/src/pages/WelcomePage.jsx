@@ -139,9 +139,9 @@ export default function WelcomePage() {
       {/* Logo + Saudação */}
       {/* Logo estática (letra clara, fundo transparente) — feita para o fundo
           escuro desta tela. Independente da logo cadastrada em Configurações. */}
-      <div className="flex flex-col items-center mb-4" style={{ marginTop: 80 }}>
-        <img src="/logo-smart-white.png" alt="Gestora Smart" style={{ height: 64, width: 'auto' }} />
-        <div className="text-center" style={{ marginTop: 16 }}>
+      <div className="flex flex-col items-center mb-4" style={{ marginTop: 0 }}>
+        <img src="/logo-smart-white.png" alt="Gestora Smart" style={{ height: 230, maxWidth: 780, width: 'auto', objectFit: 'contain' }} />
+        <div className="text-center" style={{ marginTop: -50 }}>
           <h1 className="text-xl font-bold text-white mb-0.5">
             Olá, {firstName}!
           </h1>
