@@ -137,18 +137,10 @@ export default function WelcomePage() {
       style={{ background: 'linear-gradient(135deg, #060E07 0%, #0D1F10 50%, #060E07 100%)' }}>
 
       {/* Logo + Saudação */}
-      {/* Logo — sempre a marca em texto (branco/verde), independente da logo
-          cadastrada em Configurações. Nesta tela o fundo é escuro, e a imagem
-          cadastrada (usada em PDFs/telas claras) tem letras escuras — some
-          quase por completo aqui. */}
+      {/* Logo estática (letra clara, fundo transparente) — feita para o fundo
+          escuro desta tela. Independente da logo cadastrada em Configurações. */}
       <div className="flex flex-col items-center mb-4" style={{ marginTop: 80 }}>
-        <div className="text-center">
-          <p style={{ color: '#9CA3AF', fontSize: '10px', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase' }}>GESTORA</p>
-          <p style={{ color: '#FFFFFF', fontSize: '36px', fontWeight: 900, letterSpacing: '-1px', lineHeight: 1 }}>SMART</p>
-          <div style={{ background: '#3CB54A', borderRadius: '3px', padding: '2px 8px', marginTop: '4px', display: 'inline-block' }}>
-            <p style={{ color: '#FFFFFF', fontSize: '8px', fontWeight: 700, letterSpacing: '0.1em' }}>SIMCARD | HARDWARE | SOFTWARE</p>
-          </div>
-        </div>
+        <img src="/logo-smart-white.png" alt="Gestora Smart" style={{ height: 80, width: 'auto' }} />
         <div className="text-center" style={{ marginTop: 16 }}>
           <h1 className="text-xl font-bold text-white mb-0.5">
             Olá, {firstName}!

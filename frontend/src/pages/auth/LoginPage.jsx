@@ -30,18 +30,10 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col items-center justify-center p-4"
       style={{ background: 'linear-gradient(135deg, #060E07 0%, #0D1F10 100%)' }}>
 
-      {/* Logo — sempre a marca em texto (branco/verde), independente da logo
-          cadastrada em Configurações. Nesta tela o fundo é escuro, e a imagem
-          cadastrada (usada em PDFs/telas claras) tem letras escuras — some
-          quase por completo aqui. */}
-      <div className="text-center" style={{ marginBottom: 16, minHeight: 80 }}>
-        <div>
-          <p style={{ color: '#9CA3AF', fontSize: '10px', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase' }}>GESTORA</p>
-          <p style={{ color: '#FFFFFF', fontSize: '36px', fontWeight: 900, letterSpacing: '-1px', lineHeight: 1 }}>SMART</p>
-          <div style={{ background: '#3CB54A', borderRadius: '3px', padding: '2px 8px', marginTop: '4px', display: 'inline-block' }}>
-            <p style={{ color: '#FFFFFF', fontSize: '8px', fontWeight: 700, letterSpacing: '0.1em' }}>SIMCARD | HARDWARE | SOFTWARE</p>
-          </div>
-        </div>
+      {/* Logo estática (letra clara, fundo transparente) — feita para o fundo
+          escuro desta tela. Independente da logo cadastrada em Configurações. */}
+      <div className="text-center" style={{ marginBottom: 16 }}>
+        <img src="/logo-smart-white.png" alt="Gestora Smart" style={{ height: 80, width: 'auto' }} />
       </div>
 
       {/* Card */}
