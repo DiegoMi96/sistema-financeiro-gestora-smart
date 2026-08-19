@@ -87,14 +87,6 @@ export default function WelcomePage() {
     retry: false,
   })
 
-  const { data: appCfg } = useQuery({
-    queryKey: ['settings'],
-    queryFn: () => api.get('/settings').then(r => r.data),
-    staleTime: 1000 * 60 * 10,
-    retry: false,
-  })
-  const companyLogo = appCfg?.empresa_logo || null
-
   useEffect(() => {
     if (availableModules.length === 1) {
       const route = MODULE_HOME[availableModules[0].id]
@@ -145,19 +137,19 @@ export default function WelcomePage() {
       style={{ background: 'linear-gradient(135deg, #060E07 0%, #0D1F10 50%, #060E07 100%)' }}>
 
       {/* Logo + Saudação */}
-      <div className="flex flex-col items-center mb-4" style={{ marginTop: companyLogo ? 0 : 80 }}>
-        {companyLogo ? (
-          <img src={companyLogo} alt="Logo" style={{ height: 230, maxWidth: 780, objectFit: 'contain' }} />
-        ) : (
-          <div className="text-center">
-            <p style={{ color: '#9CA3AF', fontSize: '10px', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase' }}>GESTORA</p>
-            <p style={{ color: '#FFFFFF', fontSize: '36px', fontWeight: 900, letterSpacing: '-1px', lineHeight: 1 }}>SMART</p>
-            <div style={{ background: '#3CB54A', borderRadius: '3px', padding: '2px 8px', marginTop: '4px', display: 'inline-block' }}>
-              <p style={{ color: '#FFFFFF', fontSize: '8px', fontWeight: 700, letterSpacing: '0.1em' }}>SIMCARD | HARDWARE | SOFTWARE</p>
-            </div>
+      {/* Logo — sempre a marca em texto (branco/verde), independente da logo
+          cadastrada em Configurações. Nesta tela o fundo é escuro, e a imagem
+          cadastrada (usada em PDFs/telas claras) tem letras escuras — some
+          quase por completo aqui. */}
+      <div className="flex flex-col items-center mb-4" style={{ marginTop: 80 }}>
+        <div className="text-center">
+          <p style={{ color: '#9CA3AF', fontSize: '10px', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase' }}>GESTORA</p>
+          <p style={{ color: '#FFFFFF', fontSize: '36px', fontWeight: 900, letterSpacing: '-1px', lineHeight: 1 }}>SMART</p>
+          <div style={{ background: '#3CB54A', borderRadius: '3px', padding: '2px 8px', marginTop: '4px', display: 'inline-block' }}>
+            <p style={{ color: '#FFFFFF', fontSize: '8px', fontWeight: 700, letterSpacing: '0.1em' }}>SIMCARD | HARDWARE | SOFTWARE</p>
           </div>
-        )}
-        <div className="text-center" style={{ marginTop: companyLogo ? -50 : 16 }}>
+        </div>
+        <div className="text-center" style={{ marginTop: 16 }}>
           <h1 className="text-xl font-bold text-white mb-0.5">
             Olá, {firstName}!
           </h1>
