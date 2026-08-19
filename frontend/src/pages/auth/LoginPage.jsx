@@ -33,7 +33,7 @@ export default function LoginPage() {
       {/* Logo estática (letra clara, fundo transparente) — feita para o fundo
           escuro desta tela. Independente da logo cadastrada em Configurações. */}
       <div className="text-center" style={{ marginBottom: 16 }}>
-        <img src="/logo-smart-white.png" alt="Gestora Smart" style={{ height: 80, width: 'auto' }} />
+        <img src="/logo-smart-white.png" alt="Gestora Smart" style={{ height: 64, width: 'auto' }} />
       </div>
 
       {/* Card */}
