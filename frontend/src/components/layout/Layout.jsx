@@ -150,13 +150,13 @@ export default function Layout() {
           style={{
             borderBottom: BDR,
             minHeight: 60,
-            padding: (showText && companyLogo) ? 0 : (showText ? '12px 20px' : '12px 0'),
+            padding: showText ? '12px 20px' : '12px 0',
           }}
         >
           {!showText ? (
             <div className="w-full flex justify-center">
               {companyLogo ? (
-                <img src={companyLogo} alt="Logo" style={{ width: 36, height: 36, objectFit: 'contain' }} />
+                <img src={companyLogo} alt="Logo" style={{ width: 32, height: 32, objectFit: 'contain' }} />
               ) : (
                 <div style={{ background: GRN, borderRadius: 6, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <span style={{ color: '#FFF', fontSize: 13, fontWeight: 900 }}>G</span>
@@ -167,7 +167,7 @@ export default function Layout() {
             <img
               src={companyLogo}
               alt="Logo"
-              style={{ width: '100%', height: 60, objectFit: 'cover' }}
+              style={{ height: 36, maxWidth: '100%', objectFit: 'contain' }}
             />
           ) : (
             <div>
