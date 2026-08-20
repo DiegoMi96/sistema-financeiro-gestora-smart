@@ -135,10 +135,8 @@ export default function WelcomePage() {
 
   const firstName = user?.name?.split(' ')[0] || 'usuário'
   const allModules = MODULES
-  // 9 módulos (Contestação removida "por enquanto" em 31/07/2026): 4 + 4 + 1,
-  // grid-cols-4 — card do Controle de Estoque (20/08/2026) fica sozinho na
-  // 3ª fileira, sem redistribuir os demais (pedido do Diego: "novo card, grid
-  // cresce", sem reordenar/substituir nenhum módulo existente).
+  // 8 módulos: 4 na 1ª fileira, 4 na 2ª (Contestação e Logística removidas,
+  // ver comentário em ModuleContext.jsx) — grid-cols-4 limpo de novo.
   const gridClass  = 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 max-w-6xl'
 
   return (
