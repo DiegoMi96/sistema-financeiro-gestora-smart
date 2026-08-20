@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../../contexts/AuthContext'
 import { useModule } from '../../contexts/ModuleContext'
+import api from '../../services/api'
 import {
   LayoutDashboard, FileText, Users, LogOut,
   LayoutGrid, AlertCircle, TrendingUp,
@@ -60,6 +62,14 @@ export default function Layout() {
   const { currentModule, availableModules, clearModule } = useModule()
   const navigate  = useNavigate()
   const location  = useLocation()
+
+  const { data: appCfg } = useQuery({
+    queryKey: ['settings'],
+    queryFn: () => api.get('/settings').then(r => r.data),
+    staleTime: 1000 * 60 * 10,
+    retry: false,
+  })
+  const companyLogo = appCfg?.empresa_logo || null
 
   const [mobileOpen, setMobileOpen] = useState(false)
   const [collapsed,  setCollapsed]  = useState(
@@ -140,18 +150,25 @@ export default function Layout() {
           style={{
             borderBottom: BDR,
             minHeight: 60,
-            padding: showText ? '12px 20px' : '12px 0',
+            padding: (showText && companyLogo) ? 0 : (showText ? '12px 20px' : '12px 0'),
           }}
         >
-          {/* Sempre a marca em texto — sem depender da logo cadastrada em
-              Configurações, pra não ter o flash de troca (placeholder ->
-              imagem real) ao carregar a página. */}
           {!showText ? (
             <div className="w-full flex justify-center">
-              <div style={{ background: GRN, borderRadius: 6, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ color: '#FFF', fontSize: 13, fontWeight: 900 }}>G</span>
-              </div>
+              {companyLogo ? (
+                <img src={companyLogo} alt="Logo" style={{ width: 36, height: 36, objectFit: 'contain' }} />
+              ) : (
+                <div style={{ background: GRN, borderRadius: 6, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ color: '#FFF', fontSize: 13, fontWeight: 900 }}>G</span>
+                </div>
+              )}
             </div>
+          ) : companyLogo ? (
+            <img
+              src={companyLogo}
+              alt="Logo"
+              style={{ width: '100%', height: 60, objectFit: 'cover' }}
+            />
           ) : (
             <div>
               <p style={{ color: '#6B7280', fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 1 }}>GESTORA</p>
