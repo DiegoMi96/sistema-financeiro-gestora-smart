@@ -60,6 +60,8 @@ ALL_PERMISSIONS = [
     "can_view_smt",
     # Guardião — controle de consumo de franquias (integrado 31/07/2026)
     "can_view_guardiao",
+    # Controle de Estoque — chips SMART/SMT (integrado 20/08/2026)
+    "can_view_estoque",
     # Guardião — páginas visíveis (granular, 31/07/2026)
     "can_view_grd_dashboard",        # Dashboard
     "can_view_grd_importacoes",      # Monitoramento > Histórico de Importes
@@ -117,6 +119,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_cont_allcom":          True,
         "can_view_smt":              True,
         "can_view_guardiao":         True,
+        "can_view_estoque":          True,
         "can_view_grd_dashboard":        True,
         "can_view_grd_importacoes":      True,
         "can_view_grd_timeline":         True,
@@ -168,6 +171,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_cont_allcom":          True,
         "can_view_smt":              True,
         "can_view_guardiao":         True,
+        "can_view_estoque":          True,
         "can_view_grd_dashboard":        True,
         "can_view_grd_importacoes":      True,
         "can_view_grd_timeline":         True,
@@ -219,6 +223,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_cont_allcom":          False,
         "can_view_smt":              False,
         "can_view_guardiao":         False,
+        "can_view_estoque":          False,
         "can_view_grd_dashboard":        False,
         "can_view_grd_importacoes":      False,
         "can_view_grd_timeline":         False,
@@ -270,6 +275,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_cont_allcom":          True,
         "can_view_smt":              False,
         "can_view_guardiao":         False,
+        "can_view_estoque":          False,
         "can_view_grd_dashboard":        False,
         "can_view_grd_importacoes":      False,
         "can_view_grd_timeline":         False,
@@ -321,6 +327,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_cont_allcom":          False,
         "can_view_smt":              False,
         "can_view_guardiao":         False,
+        "can_view_estoque":          False,
         "can_view_grd_dashboard":        False,
         "can_view_grd_importacoes":      False,
         "can_view_grd_timeline":         False,
@@ -372,6 +379,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_cont_allcom":          False,
         "can_view_smt":              False,
         "can_view_guardiao":         False,
+        "can_view_estoque":          False,
         "can_view_grd_dashboard":        False,
         "can_view_grd_importacoes":      False,
         "can_view_grd_timeline":         False,
@@ -423,6 +431,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_cont_allcom":          False,
         "can_view_smt":              False,
         "can_view_guardiao":         False,
+        "can_view_estoque":          False,
         "can_view_grd_dashboard":        False,
         "can_view_grd_importacoes":      False,
         "can_view_grd_timeline":         False,
@@ -527,6 +536,7 @@ MODULE_PERMISSIONS = {
     "LOGÍSTICA": ["can_view_logistica"],
     "ORGANOGRAMA": ["can_view_organograma", "can_edit_organograma"],
     "SMT": ["can_view_smt"],
+    "ESTOQUE": ["can_view_estoque"],
     # GERAL (can_view_dashboard/can_manage_users/can_view_configuracoes) fica
     # DE FORA de propósito — nenhuma área dá a um gestor restrito o poder de
     # conceder can_manage_users pra um analista dele (viraria um "gestor
@@ -534,7 +544,7 @@ MODULE_PERMISSIONS = {
 }
 
 AREA_MODULES = {
-    "operacoes":      ["LOGÍSTICA", "ORGANOGRAMA", "GUARDIÃO"],
+    "operacoes":      ["LOGÍSTICA", "ORGANOGRAMA", "GUARDIÃO", "ESTOQUE"],
     "comercial":      ["COMISSIONAMENTO"],
     "administrativo": ["FATURAMENTO"],
 }

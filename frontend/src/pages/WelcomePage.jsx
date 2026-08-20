@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../contexts/AuthContext'
 import { useModule, MODULES } from '../contexts/ModuleContext'
-import { FileText, AlertCircle, TrendingUp, Truck, BarChart2, ChevronRight, Building2, Globe2, Shield, ShieldCheck, Lock } from 'lucide-react'
+import { FileText, AlertCircle, TrendingUp, Truck, BarChart2, ChevronRight, Building2, Globe2, Shield, ShieldCheck, Lock, Boxes } from 'lucide-react'
 import api from '../services/api'
 
-const ICONS = { FileText, AlertCircle, TrendingUp, Truck, BarChart2, Globe2, Shield, ShieldCheck }
+const ICONS = { FileText, AlertCircle, TrendingUp, Truck, BarChart2, Globe2, Shield, ShieldCheck, Boxes }
 
 const MODULE_HOME = {
   faturamento:     '/dashboard',
@@ -20,6 +20,7 @@ const MODULE_HOME = {
   acessos:         '/acessos',
   smt:             null,
   guardiao:        null,
+  estoque:         null,
 }
 
 const COLOR_MAP = {
@@ -120,6 +121,12 @@ export default function WelcomePage() {
       window.location.href = '/guardiao'
       return
     }
+    if (module.id === 'estoque') {
+      // Mesmo padrão do Guardião: app Next.js próprio na mesma origem
+      // (sistema.gestorasmart.com.br/estoque), sessão compartilhada.
+      window.location.href = '/estoque'
+      return
+    }
     const route = MODULE_HOME[module.id]
     if (!route) return
     selectModule(module.id)
@@ -128,8 +135,10 @@ export default function WelcomePage() {
 
   const firstName = user?.name?.split(' ')[0] || 'usuário'
   const allModules = MODULES
-  // 8 módulos: 4 na 1ª fileira, 4 na 2ª (Contestação removida "por enquanto"
-  // em 31/07/2026 — volta ao grid-cols-4 original, mesmo tamanho de card).
+  // 9 módulos (Contestação removida "por enquanto" em 31/07/2026): 4 + 4 + 1,
+  // grid-cols-4 — card do Controle de Estoque (20/08/2026) fica sozinho na
+  // 3ª fileira, sem redistribuir os demais (pedido do Diego: "novo card, grid
+  // cresce", sem reordenar/substituir nenhum módulo existente).
   const gridClass  = 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 max-w-6xl'
 
   return (

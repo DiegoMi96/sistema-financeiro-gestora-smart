@@ -115,6 +115,38 @@ services:
           cpus: '0.25'
           memory: 128M
 
+  # ── Controle de Estoque (Next.js) — integrado 20/08/2026 ────
+  # Sistema do Thalles (controle de estoque de chips SMART/SMT). Roda em
+  # /estoque no mesmo domínio do sistema principal (ver estoque/next.config.ts
+  # basePath). Login unificado: reusa a MESMA SECRET_KEY do backend (nunca
+  # duplicar o valor à mão — sempre referenciar ${SECRET_KEY}). Sem banco de
+  # dados — persistência em arquivo JSON (data/state.json), por isso o volume
+  # próprio abaixo (sem ele, os dados de estoque somem a cada rebuild).
+  estoque:
+    build:
+      context: ./estoque
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      GESTORA_JWT_SECRET: ${SECRET_KEY:-TROQUE-EM-PRODUCAO-USE-OPENSSL-RAND-HEX-32}
+      CANCELAMENTO_SHEET_ID: ${CANCELAMENTO_SHEET_ID:-}
+      SAIDA_SHEET_ID: ${SAIDA_SHEET_ID:-}
+    ports:
+      - "3003:3000"
+    depends_on:
+      - backend
+    volumes:
+      - estoque_data:/app/data
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
 volumes:
   postgres_data:
   uploads_data:
+  estoque_data:

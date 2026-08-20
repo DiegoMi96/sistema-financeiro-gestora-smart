@@ -113,6 +113,16 @@ export const MODULES = [
     nav: [],
   },
   {
+    id:          'estoque',
+    label:       'Controle de Estoque',
+    description: 'Estoque de chips SMART e SMT, saída e cancelamento',
+    icon:        'Boxes',
+    color:       'orange',
+    status:      'active',
+    permission:  'can_view_estoque',
+    nav: [],
+  },
+  {
     id:          'organograma',
     label:       'Organograma',
     description: 'Estrutura organizacional e equipe comercial da empresa',
