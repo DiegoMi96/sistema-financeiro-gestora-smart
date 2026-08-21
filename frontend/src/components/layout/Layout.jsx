@@ -149,35 +149,27 @@ export default function Layout() {
           className="flex items-center flex-shrink-0 overflow-hidden"
           style={{
             borderBottom: BDR,
-            minHeight: 64,
+            minHeight: 76,
             padding: showText ? '8px 16px' : '12px 0',
           }}
         >
+          {/* Sem fallback em texto — pedido do Diego (21/08/2026): o texto
+              "GESTORA/SMART" piscava como placeholder enquanto a query de
+              settings carregava. Agora, enquanto não chega a imagem, não
+              renderiza nada (em vez de mostrar e trocar depois). */}
           {!showText ? (
-            <div className="w-full flex justify-center">
-              {companyLogo ? (
+            companyLogo && (
+              <div className="w-full flex justify-center">
                 <img src={companyLogo} alt="Logo" style={{ width: 32, height: 32, objectFit: 'contain' }} />
-              ) : (
-                <div style={{ background: GRN, borderRadius: 6, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ color: '#FFF', fontSize: 13, fontWeight: 900 }}>G</span>
-                </div>
-              )}
-            </div>
+              </div>
+            )
           ) : companyLogo ? (
             <img
               src={companyLogo}
               alt="Logo"
-              style={{ height: 48, maxWidth: '100%', objectFit: 'contain' }}
+              style={{ height: 60, maxWidth: '100%', objectFit: 'contain' }}
             />
-          ) : (
-            <div>
-              <p style={{ color: '#6B7280', fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 1 }}>GESTORA</p>
-              <p style={{ color: '#0F1B2D', fontSize: 20, fontWeight: 900, letterSpacing: '-0.5px', lineHeight: 1 }}>SMART</p>
-              <div style={{ background: GRN, borderRadius: 3, padding: '1px 6px', display: 'inline-block', marginTop: 3 }}>
-                <p style={{ color: '#FFF', fontSize: 7, fontWeight: 700, letterSpacing: '0.08em' }}>SISTEMA FINANCEIRO</p>
-              </div>
-            </div>
-          )}
+          ) : null}
         </div>
 
         {/* ── Navegação ───────────────────────────────── */}
