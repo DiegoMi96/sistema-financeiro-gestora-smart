@@ -5,7 +5,6 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
-import { TopBar } from "@/components/top-bar";
 import { AuthGate } from "@/components/AuthGate";
 
 const geistSans = Geist({
@@ -40,7 +39,6 @@ export default function RootLayout({
             <SidebarProvider>
               <AppSidebar />
               <SidebarInset>
-                <TopBar />
                 {children}
               </SidebarInset>
             </SidebarProvider>

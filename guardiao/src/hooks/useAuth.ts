@@ -16,6 +16,7 @@ interface MainUser {
   name: string
   email: string
   role: string
+  role_label?: string
   is_active: boolean
   created_at?: string
   permissions?: Record<string, boolean>
@@ -39,6 +40,7 @@ export function useAuth() {
           email: mainUser.email,
           full_name: mainUser.name,
           role: mapMainRoleToGuardiao(mainUser.role),
+          role_label: mainUser.role_label,
           is_active: mainUser.is_active,
           created_at: mainUser.created_at ?? new Date().toISOString(),
           permissions: mainUser.permissions ?? {},

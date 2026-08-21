@@ -5,6 +5,7 @@ export interface User {
   email: string
   full_name: string
   role: UserRole
+  role_label?: string
   is_active: boolean
   created_at: string
   last_login?: string

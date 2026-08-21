@@ -21,7 +21,12 @@ import {
   GitCommitHorizontal,
   Send,
   LayoutGrid,
+  LogOut,
 } from "lucide-react"
+
+// Verde da marca — mesmo valor hardcoded do sistema principal
+// (frontend/src/components/layout/Layout.jsx: const GRN).
+const GRN = "#3CB54A"
 
 interface MenuItem {
   title: string
@@ -245,8 +250,19 @@ const SIDEBAR_COLLAPSED_KEY = "sidebar_collapsed"
 
 export default function Sidebar() {
   const pathname = usePathname()
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   const [collapsed, setCollapsed] = useState(false)
+
+  // Mesmo padrão do sistema principal (Layout.jsx: handleLogout) — desloga
+  // dos dois sistemas de vez (mesma sessão) e volta pra raiz do domínio.
+  const handleLogout = async () => {
+    await logout()
+    window.location.href = "/"
+  }
+
+  const initials = user?.full_name
+    ? user.full_name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase()
+    : "?"
 
   useEffect(() => {
     setCollapsed(localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true")
@@ -314,37 +330,86 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* Trocar módulo */}
-      <div className="p-2 pb-3">
+      {/* Trocar módulo — mesmo padrão/posição do sistema principal (Layout.jsx) */}
+      <div style={{ padding: "0 8px 8px" }}>
         <button
           onClick={handleSwitchModule}
           title="Trocar módulo"
-          className={`relative group w-full flex items-center gap-2 rounded-lg text-xs font-medium text-muted-foreground border border-dashed border-border hover:bg-muted transition-colors ${
-            collapsed ? "justify-center px-0 py-2" : "px-2.5 py-1.5"
-          }`}
+          style={{
+            width: "100%", display: "flex", alignItems: "center",
+            justifyContent: collapsed ? "center" : "flex-start",
+            gap: collapsed ? 0 : 8,
+            padding: collapsed ? "8px 0" : "7px 10px",
+            borderRadius: 8, fontSize: 12, fontWeight: 500,
+            color: "#6B7280", border: "1px dashed #D8DEE3",
+            background: "transparent", cursor: "pointer", transition: "background 0.15s",
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "#F3F4F6" }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
         >
-          <LayoutGrid className="w-3.5 h-3.5 flex-shrink-0" />
+          <LayoutGrid size={14} style={{ flexShrink: 0 }} />
           {!collapsed && <span>Trocar módulo</span>}
-          {collapsed && (
-            <span className="pointer-events-none absolute left-full ml-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap rounded-md bg-foreground text-background text-xs font-medium px-2.5 py-1.5 shadow-lg">
-              Trocar módulo
-            </span>
-          )}
         </button>
+      </div>
+
+      {/* Perfil + Sair — mesmo padrão/posição do sistema principal (Layout.jsx).
+          Antes ficava no Navbar (canto superior direito) — movido pra cá em
+          20/08/2026 a pedido do Diego, pra ficar "exatamente igual" ao
+          Faturamento. */}
+      <div style={{ borderTop: "1px solid #E5E9ED", padding: collapsed ? "10px 6px" : "10px" }}>
+        {collapsed ? (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+            <div title={user?.full_name} style={{ width: 32, height: 32, borderRadius: "50%", background: "#1F3A23", color: GRN, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }}>
+              {initials}
+            </div>
+            <button
+              onClick={handleLogout}
+              title="Sair da conta"
+              style={{ width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", color: "#6B7280", background: "transparent", border: "none", cursor: "pointer", transition: "all 0.15s" }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.08)"; e.currentTarget.style.color = "#EF4444" }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#6B7280" }}
+            >
+              <LogOut size={14} />
+            </button>
+          </div>
+        ) : (
+          <>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 8, borderRadius: 8, background: "#F6F8FA", marginBottom: 4 }}>
+              <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#1F3A23", color: GRN, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+                {initials}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ color: "#0F1B2D", fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.full_name}</p>
+                <p style={{ color: "#6B7280", fontSize: 10, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.role_label}</p>
+              </div>
+            </div>
+            <button
+              onClick={handleLogout}
+              style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 500, color: "#4A5868", background: "transparent", border: "none", cursor: "pointer", transition: "all 0.15s" }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.08)"; e.currentTarget.style.color = "#EF4444" }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#4A5868" }}
+            >
+              <LogOut size={13} />
+              Sair da conta
+            </button>
+          </>
+        )}
       </div>
 
       {/* Botão colapsar — canto inferior direito (mesmo padrão do sistema principal) */}
       <button
         onClick={toggleCollapsed}
         title={collapsed ? "Expandir menu" : "Recolher menu"}
-        className="hidden lg:flex absolute items-center justify-center rounded-full transition-colors"
+        className="hidden lg:flex absolute items-center justify-center"
         style={{
           right: -12, bottom: 28, zIndex: 10,
-          width: 24, height: 24,
-          background: "#2A2A2A", border: "1px solid #3A3A3A", color: "#9CA3AF",
+          width: 24, height: 24, borderRadius: "50%",
+          background: "#FFFFFF", border: "1px solid #E5E9ED",
+          color: "#4A5868", cursor: "pointer", transition: "all 0.15s",
+          boxShadow: "0 2px 8px rgba(15,27,45,0.18)",
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = "#3CB54A"; e.currentTarget.style.color = "#FFF" }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = "#2A2A2A"; e.currentTarget.style.color = "#9CA3AF" }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = GRN; e.currentTarget.style.color = "#FFF" }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = "#FFFFFF"; e.currentTarget.style.color = "#4A5868" }}
       >
         {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
       </button>

@@ -2,7 +2,6 @@
 
 import { ReactNode } from "react"
 import Sidebar from "@/components/layout/Sidebar"
-import Navbar from "@/components/layout/Navbar"
 import { useAuth } from "@/hooks/useAuth"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
@@ -43,11 +42,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   // a sidebar saía da tela ao rolar) e o botão de colapsar ficava
   // sobreposto em cima do "Trocar módulo" — bug relatado pelo Diego em
   // 01/08/2026. Só o <main> rola agora; a sidebar fica estática.
+  //
+  // Navbar removido (20/08/2026): usuário/logout mudaram pra dentro da
+  // sidebar (mesma posição do Faturamento) — o Guardião não tem mais barra
+  // superior no desktop, igual ao sistema principal.
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Navbar />
         <main className="flex-1 overflow-auto bg-background">
           <div className="container mx-auto py-8 px-4 md:px-8">{children}</div>
         </main>
