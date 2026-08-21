@@ -149,8 +149,8 @@ export default function Layout() {
           className="flex items-center flex-shrink-0 overflow-hidden"
           style={{
             borderBottom: BDR,
-            minHeight: 76,
-            padding: showText ? '8px 16px' : '12px 0',
+            minHeight: 64,
+            padding: showText ? '8px 14px' : '12px 0',
           }}
         >
           {/* Sem fallback em texto — pedido do Diego (21/08/2026): o texto
@@ -164,11 +164,19 @@ export default function Layout() {
               </div>
             )
           ) : companyLogo ? (
-            <img
-              src={companyLogo}
-              alt="Logo"
-              style={{ height: 60, maxWidth: '100%', objectFit: 'contain' }}
-            />
+            // A imagem cadastrada tem bastante margem transparente ao redor
+            // do desenho (confirmado: ~34% acima, ~27% abaixo do "SMART") —
+            // por isso aumentar a altura só crescia espaço vazio, não o
+            // desenho. Corta essa margem via CSS (recorte fixo, sem alterar
+            // o arquivo original usado em Configurações/PDFs): a caixa
+            // mostra só a região com conteúdo real, ampliada.
+            <div style={{ width: 197, height: 48, overflow: 'hidden', position: 'relative' }}>
+              <img
+                src={companyLogo}
+                alt="Logo"
+                style={{ position: 'absolute', top: -43, left: -18, height: 125, width: 'auto' }}
+              />
+            </div>
           ) : null}
         </div>
 
