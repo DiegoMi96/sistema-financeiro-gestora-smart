@@ -95,6 +95,18 @@ body { display: flex; min-height: 100vh; }
 .brand-text { font-family: 'Inter'; font-weight: 800; font-size: 15px; letter-spacing: -.2px; color: var(--text); }
 .brand-sub { font-size: 11px; color: var(--muted); margin-top: 1px; letter-spacing: .3px; text-transform: uppercase; }
 
+/* Logo real (empresa_logo, buscada de /api/settings/public) — mesmo recorte
+   usado no Faturamento (frontend/src/components/layout/Layout.jsx): a
+   imagem cadastrada tem bastante margem transparente ao redor do desenho,
+   então a caixa mostra só a região com conteúdo real, centralizada com uma
+   pequena margem. Sem fallback em texto: enquanto a imagem não carrega,
+   não mostra nada (pedido do Diego, 21/08/2026 — nada de "flash"). */
+.brand-logo-crop { display: none; width: 197px; height: 48px; overflow: hidden; position: relative; }
+.brand-logo-mini { display: none; width: 32px; height: 32px; object-fit: contain; }
+.brand.logo-loaded .brand-logo-crop { display: block; }
+.sidebar.collapsed .brand.logo-loaded .brand-logo-crop { display: none; }
+.sidebar.collapsed .brand.logo-loaded .brand-logo-mini { display: block; }
+
 .nav { padding: 12px 0; flex: 1; overflow-y: auto; overflow-x: hidden; }
 .nav-section { font-size: 10px; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; padding: 0 16px; margin: 14px 0 4px; font-weight: 600; }
 .nav-item {
@@ -920,12 +932,25 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
 </div>
 
 <aside class="sidebar">
-  <div class="brand">
-    <div class="brand-logo">S</div>
-    <div>
-      <div class="brand-text">Gestora Smart</div>
+  <div class="brand" id="brandBox">
+    <div class="brand-logo-crop" id="brandLogoCrop">
+      <img id="brandLogoImg" alt="Logo" style="position:absolute; top:-31px; left:2px; height:104px; width:auto;">
     </div>
+    <img class="brand-logo-mini" id="brandLogoMini" alt="Logo">
   </div>
+  <script>
+  (function () {
+    fetch('/api/settings/public')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.empresa_logo) return;
+        document.getElementById('brandLogoImg').src = d.empresa_logo;
+        document.getElementById('brandLogoMini').src = d.empresa_logo;
+        document.getElementById('brandBox').classList.add('logo-loaded');
+      })
+      .catch(function () {});
+  })();
+  </script>
   <nav class="nav" id="nav">
     <div class="nav-section">Diretoria</div>
     <div class="nav-item active" data-page="dashboard" title="Resumo Executivo">

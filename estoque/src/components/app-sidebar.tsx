@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   Boxes,
   Smartphone,
   Router,
   UploadCloud,
-  PackageCheck,
   Truck,
   CalendarDays,
   PackageOpen,
@@ -68,6 +68,16 @@ export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const { user, logout } = useMainUser();
   const collapsed = state === "collapsed";
+  const [companyLogo, setCompanyLogo] = useState<string | null>(null);
+
+  // Logo real da empresa (mesmo padrão do Faturamento, ver Layout.jsx) —
+  // rota pública do backend principal, não precisa de token.
+  useEffect(() => {
+    fetch("/api/settings/public")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.empresa_logo) setCompanyLogo(d.empresa_logo); })
+      .catch(() => {});
+  }, []);
 
   // Mesmo padrão do sistema principal (Layout.jsx): volta pra tela de
   // seleção de módulo, limpando o módulo ativo salvo em sessionStorage.
@@ -84,19 +94,24 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r">
-      <SidebarHeader className="h-16 justify-center border-b">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" render={<div />} className="pointer-events-none">
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <PackageCheck className="size-4" />
-              </div>
-              <div className="grid flex-1 text-left leading-tight">
-                <span className="truncate text-base font-bold">Controle de Estoque</span>
-              </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+      {/* Logo — exatamente igual ao Faturamento (Layout.jsx): mesma logo
+          real cadastrada em Configurações, mesmo recorte/posição/tamanho.
+          Sem fallback em texto (pedido do Diego, 21/08/2026 — "deixa
+          exatamente igual ao que está no Faturamento, tira o que está no
+          lugar dele"). */}
+      <SidebarHeader
+        className="border-b"
+        style={{ minHeight: 64, display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start" }}
+      >
+        {companyLogo && (
+          collapsed ? (
+            <img src={companyLogo} alt="Logo" style={{ width: 32, height: 32, objectFit: "contain" }} />
+          ) : (
+            <div style={{ width: 197, height: 48, overflow: "hidden", position: "relative" }}>
+              <img src={companyLogo} alt="Logo" style={{ position: "absolute", top: -31, left: 2, height: 104, width: "auto" }} />
+            </div>
+          )
+        )}
       </SidebarHeader>
 
       <SidebarContent className="gap-1 px-2 pt-2">

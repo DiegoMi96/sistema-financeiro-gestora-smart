@@ -252,6 +252,16 @@ export default function Sidebar() {
   const pathname = usePathname()
   const { user, logout } = useAuth()
   const [collapsed, setCollapsed] = useState(false)
+  const [companyLogo, setCompanyLogo] = useState<string | null>(null)
+
+  // Logo real da empresa (mesmo padrão do Faturamento, ver Layout.jsx) — rota
+  // pública do backend principal, não precisa de token.
+  useEffect(() => {
+    fetch("/api/settings/public")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.empresa_logo) setCompanyLogo(d.empresa_logo) })
+      .catch(() => {})
+  }, [])
 
   // Mesmo padrão do sistema principal (Layout.jsx: handleLogout) — desloga
   // dos dois sistemas de vez (mesma sessão) e volta pra raiz do domínio.
@@ -299,22 +309,21 @@ export default function Sidebar() {
     <aside
       className={`relative ${collapsed ? "w-14" : "w-64"} bg-card border-r border-border flex flex-col transition-all duration-200 ease-in-out`}
     >
-      {/* Logo */}
-      <div className={`border-b border-border flex items-center ${collapsed ? "justify-center p-3" : "p-6"}`}>
-        <Link href="/dashboard" className="flex items-center gap-2.5">
-          <svg width="28" height="28" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="40" height="40" rx="9" fill="url(#sidebar-grad)"/>
-            <path d="M20 7L9 12V20.5C9 27 13.5 32.5 20 34.5C26.5 32.5 31 27 31 20.5V12L20 7Z" fill="white" fillOpacity="0.95"/>
-            <path d="M15 21L18 24L25 17" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-            <defs>
-              <linearGradient id="sidebar-grad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stopColor="#7ABA4F"/>
-                <stop offset="100%" stopColor="#4E8A2F"/>
-              </linearGradient>
-            </defs>
-          </svg>
-          {!collapsed && <span className="text-xl font-bold">Guardião</span>}
-        </Link>
+      {/* Logo — exatamente igual ao Faturamento (Layout.jsx): mesma logo
+          real cadastrada em Configurações, mesmo recorte/posição/tamanho.
+          Sem link/clique e sem fallback em texto (pedido do Diego,
+          21/08/2026 — "deixa exatamente igual ao que está no Faturamento,
+          tira o que está no lugar dele"). */}
+      <div style={{ borderBottom: "1px solid #E5E9ED", minHeight: 64, display: "flex", alignItems: "center", overflow: "hidden", padding: collapsed ? "12px 0" : "8px 14px", justifyContent: collapsed ? "center" : "flex-start" }}>
+        {companyLogo && (
+          collapsed ? (
+            <img src={companyLogo} alt="Logo" style={{ width: 32, height: 32, objectFit: "contain" }} />
+          ) : (
+            <div style={{ width: 197, height: 48, overflow: "hidden", position: "relative" }}>
+              <img src={companyLogo} alt="Logo" style={{ position: "absolute", top: -31, left: 2, height: 104, width: "auto" }} />
+            </div>
+          )
+        )}
       </div>
 
       {/* Navigation */}
