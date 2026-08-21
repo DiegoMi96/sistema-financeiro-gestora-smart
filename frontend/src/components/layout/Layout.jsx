@@ -149,8 +149,8 @@ export default function Layout() {
           className="flex items-center flex-shrink-0 overflow-hidden"
           style={{
             borderBottom: BDR,
-            minHeight: 60,
-            padding: showText ? '12px 20px' : '12px 0',
+            minHeight: 64,
+            padding: showText ? '8px 16px' : '12px 0',
           }}
         >
           {!showText ? (
@@ -167,7 +167,7 @@ export default function Layout() {
             <img
               src={companyLogo}
               alt="Logo"
-              style={{ height: 36, maxWidth: '100%', objectFit: 'contain' }}
+              style={{ height: 48, maxWidth: '100%', objectFit: 'contain' }}
             />
           ) : (
             <div>
