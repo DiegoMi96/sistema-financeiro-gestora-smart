@@ -168,13 +168,15 @@ export default function Layout() {
             // do desenho (confirmado: ~34% acima, ~27% abaixo do "SMART") —
             // por isso aumentar a altura só crescia espaço vazio, não o
             // desenho. Corta essa margem via CSS (recorte fixo, sem alterar
-            // o arquivo original usado em Configurações/PDFs): a caixa
-            // mostra só a região com conteúdo real, ampliada.
+            // o arquivo original usado em Configurações/PDFs), com uma
+            // margem de ~4px nos 4 lados pra não colar/cortar o "S" na
+            // borda — pedido do Diego (21/08/2026), depois do 1º recorte
+            // ter ficado sem respiro nenhum.
             <div style={{ width: 197, height: 48, overflow: 'hidden', position: 'relative' }}>
               <img
                 src={companyLogo}
                 alt="Logo"
-                style={{ position: 'absolute', top: -43, left: -18, height: 125, width: 'auto' }}
+                style={{ position: 'absolute', top: -31, left: 2, height: 104, width: 'auto' }}
               />
             </div>
           ) : null}
