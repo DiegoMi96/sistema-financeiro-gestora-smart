@@ -147,19 +147,30 @@ async def _call_anthropic(prompt: str, max_tokens: int = 1500) -> str:
             status_code=503,
             detail="ANTHROPIC_API_KEY não configurada. Adicione ao .env para usar o diagnóstico por IA."
         )
-    async with httpx.AsyncClient(timeout=60.0) as client:
-        r = await client.post(
-            ANTHROPIC_API_URL,
-            headers={
-                "x-api-key":         settings.ANTHROPIC_API_KEY,
-                "anthropic-version": "2023-06-01",
-                "content-type":      "application/json",
-            },
-            json={
-                "model":      "claude-sonnet-4-6",
-                "max_tokens": max_tokens,
-                "messages":   [{"role": "user", "content": prompt}],
-            },
+    # Timeout proporcional ao max_tokens — testado em produção: com
+    # max_tokens=4096 (diagnóstico operacional) a geração passa dos 60s do
+    # timeout antigo e o httpx.ReadTimeout subia como 500 cru (sem
+    # HTTPException, sem mensagem clara pro usuário).
+    timeout = max(60.0, max_tokens / 20)
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            r = await client.post(
+                ANTHROPIC_API_URL,
+                headers={
+                    "x-api-key":         settings.ANTHROPIC_API_KEY,
+                    "anthropic-version": "2023-06-01",
+                    "content-type":      "application/json",
+                },
+                json={
+                    "model":      "claude-sonnet-4-6",
+                    "max_tokens": max_tokens,
+                    "messages":   [{"role": "user", "content": prompt}],
+                },
+            )
+    except httpx.TimeoutException:
+        raise HTTPException(
+            status_code=504,
+            detail="A IA demorou demais para responder. Tente atualizar novamente em alguns segundos."
         )
     if r.status_code != 200:
         raise HTTPException(status_code=502, detail=f"Erro na API da IA: {r.text}")
