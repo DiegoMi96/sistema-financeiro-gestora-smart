@@ -423,7 +423,10 @@ async def get_diagnosis_operacional(
         }
 
     prompt  = _build_prompt_operacional(ctx)
-    content = await _call_anthropic(prompt, max_tokens=2200)
+    # 6 seções com nomes/valores reais por cliente ocupam bem mais espaço que
+    # o diagnóstico por ciclo — 2200 cortava a resposta no meio (confirmado
+    # em teste real, truncava na seção de uso da plataforma).
+    content = await _call_anthropic(prompt, max_tokens=4096)
 
     analysis = OperationalDiagnosis(
         month=month,
