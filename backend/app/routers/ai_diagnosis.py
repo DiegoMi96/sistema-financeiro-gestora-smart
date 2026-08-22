@@ -414,25 +414,31 @@ async def get_diagnosis_operacional(
     """
     Diagnóstico operacional e de cobrança — inadimplência/adimplência dos
     clientes + uso da plataforma pelos usuários internos, com recomendações
-    imediatas. Por período (mês/ano), não por ciclo. Cache em
-    operational_diagnoses, mesma lógica de hash do diagnóstico por ciclo.
+    imediatas. Por período (mês/ano), não por ciclo.
+
+    Cache SEM comparação de hash (diferente do diagnóstico por ciclo) — só
+    gera de novo quando force_refresh=true. O diagnóstico por ciclo pode se
+    dar ao luxo de comparar hash porque os dados de um ciclo aprovado não
+    mudam; aqui, o contexto inclui audit_logs dos últimos 30 dias, e o
+    simples fato de o Diego logar pra VER o diagnóstico já grava um evento
+    "auth.login" novo — o hash mudava a cada visita e reprocessava na IA
+    sem ele pedir (bug relatado por ele em 22/08/2026).
     """
-    ctx = await _build_context_operacional(month, year, current_user, db)
-
-    data_hash = hashlib.md5(json.dumps(ctx, sort_keys=True).encode()).hexdigest()
-
     cached = db.query(OperationalDiagnosis).filter(
         OperationalDiagnosis.month == month,
         OperationalDiagnosis.year == year,
     ).order_by(OperationalDiagnosis.created_at.desc()).first()
 
-    if cached and cached.input_hash == data_hash and not force_refresh:
+    if cached and not force_refresh:
         return {
             "month": month, "year": year,
             "content":    cached.content,
             "cached":     True,
             "created_at": cached.created_at.isoformat(),
         }
+
+    ctx = await _build_context_operacional(month, year, current_user, db)
+    data_hash = hashlib.md5(json.dumps(ctx, sort_keys=True).encode()).hexdigest()
 
     prompt  = _build_prompt_operacional(ctx)
     # 6 seções com nomes/valores reais por cliente ocupam bem mais espaço que

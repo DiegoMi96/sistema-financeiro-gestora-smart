@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import ReactMarkdown from 'react-markdown'
 import { Brain, RefreshCw, Clock, Zap, ChevronDown, AlertCircle, TrendingDown } from 'lucide-react'
 import api from '../../services/api'
@@ -101,8 +101,7 @@ function ResultCard({ diagData }) {
 
 function DiagnosticoCiclo() {
   const [selectedCycle, setSelectedCycle] = useState(null)
-  const [diagData, setDiagData] = useState(null)
-  const [forceRefresh, setForceRefresh] = useState(false)
+  const queryClient = useQueryClient()
 
   const { data: cycles = [], isLoading: loadingCycles } = useQuery({
     queryKey: ['billing-cycles-ia'],
@@ -117,17 +116,22 @@ function DiagnosticoCiclo() {
     staleTime: 5 * 60 * 1000,
   })
 
-  const { isLoading: loadingDiag, error } = useQuery({
-    queryKey: ['ai-diagnosis', selectedCycle, forceRefresh],
-    queryFn: () =>
-      api.get(`/ai/diagnosis/${selectedCycle}${forceRefresh ? '?force_refresh=true' : ''}`).then(r => {
-        setDiagData(r.data)
-        setForceRefresh(false)
-        return r.data
-      }),
+  const queryKey = ['ai-diagnosis', selectedCycle]
+
+  // Busca normal: sempre serve o que já foi gerado (cache do backend), sem
+  // comparar se os dados mudaram — só o botão "Atualizar" força um novo.
+  const { data: diagData, isLoading: loadingDiag, error } = useQuery({
+    queryKey,
+    queryFn: () => api.get(`/ai/diagnosis/${selectedCycle}`).then(r => r.data),
     enabled: !!selectedCycle,
     staleTime: 10 * 60 * 1000,
     retry: false,
+  })
+
+  // "Atualizar" é uma ação explícita e separada — só ela manda force_refresh.
+  const refreshMutation = useMutation({
+    mutationFn: () => api.get(`/ai/diagnosis/${selectedCycle}?force_refresh=true`).then(r => r.data),
+    onSuccess: (data) => queryClient.setQueryData(queryKey, data),
   })
 
   const eligibleCycles = cycles.filter(c => c.status === 'aprovado' || c.status === 'fechado')
@@ -135,10 +139,7 @@ function DiagnosticoCiclo() {
     ? `${String(eligibleCycles.find(c => c.id === selectedCycle).month).padStart(2, '0')}/${eligibleCycles.find(c => c.id === selectedCycle).year}`
     : ''
 
-  function handleRefresh() {
-    setDiagData(null)
-    setForceRefresh(true)
-  }
+  const isBusy = loadingDiag || refreshMutation.isPending
 
   return (
     <>
@@ -150,7 +151,7 @@ function DiagnosticoCiclo() {
               <select
                 className="gs-select pr-8 appearance-none cursor-pointer text-sm"
                 value={selectedCycle || ''}
-                onChange={e => { setSelectedCycle(Number(e.target.value)); setDiagData(null) }}
+                onChange={e => setSelectedCycle(Number(e.target.value))}
               >
                 {eligibleCycles.map(c => (
                   <option key={c.id} value={c.id}>
@@ -162,18 +163,18 @@ function DiagnosticoCiclo() {
             </div>
           )}
           <button
-            onClick={handleRefresh}
-            disabled={!selectedCycle || loadingDiag}
+            onClick={() => refreshMutation.mutate()}
+            disabled={!selectedCycle || isBusy}
             className="gs-btn gs-btn-outline gs-btn-sm flex items-center gap-1.5"
           >
-            <RefreshCw size={13} className={loadingDiag ? 'animate-spin' : ''} />
+            <RefreshCw size={13} className={isBusy ? 'animate-spin' : ''} />
             Atualizar
           </button>
         </div>
       </div>
 
-      {error && <ErrorCard error={error} />}
-      {loadingDiag && !diagData && <LoadingCard label={`Analisando os dados do ciclo ${selectedLabel}`} />}
+      {(error || refreshMutation.error) && <ErrorCard error={error || refreshMutation.error} />}
+      {isBusy && !diagData && <LoadingCard label={`Analisando os dados do ciclo ${selectedLabel}`} />}
 
       {!loadingCycles && eligibleCycles.length === 0 && (
         <div className="gs-card p-8 text-center">
@@ -191,27 +192,30 @@ function DiagnosticoOperacional() {
   const now = new Date()
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1)
   const [selectedYear,  setSelectedYear]  = useState(now.getFullYear())
-  const [diagData, setDiagData] = useState(null)
-  const [forceRefresh, setForceRefresh] = useState(false)
+  const queryClient = useQueryClient()
 
   const availableYears = [now.getFullYear(), now.getFullYear() - 1]
+  const queryKey = ['ai-diagnosis-operacional', selectedMonth, selectedYear]
 
-  const { isLoading: loadingDiag, error } = useQuery({
-    queryKey: ['ai-diagnosis-operacional', selectedMonth, selectedYear, forceRefresh],
-    queryFn: () =>
-      api.get(`/ai/diagnosis-operacional?month=${selectedMonth}&year=${selectedYear}${forceRefresh ? '&force_refresh=true' : ''}`).then(r => {
-        setDiagData(r.data)
-        setForceRefresh(false)
-        return r.data
-      }),
+  // Busca normal: sempre serve o que já foi gerado (cache do backend), sem
+  // comparar se os dados mudaram — só o botão "Atualizar" força um novo.
+  // Antes disso, o simples fato de abrir a tela (e logar) já mudava os
+  // dados de uso da plataforma no contexto, e isso disparava um diagnóstico
+  // novo sem o Diego pedir (reportado em 22/08/2026).
+  const { data: diagData, isLoading: loadingDiag, error } = useQuery({
+    queryKey,
+    queryFn: () => api.get(`/ai/diagnosis-operacional?month=${selectedMonth}&year=${selectedYear}`).then(r => r.data),
     staleTime: 10 * 60 * 1000,
     retry: false,
   })
 
-  function handleRefresh() {
-    setDiagData(null)
-    setForceRefresh(true)
-  }
+  // "Atualizar" é uma ação explícita e separada — só ela manda force_refresh.
+  const refreshMutation = useMutation({
+    mutationFn: () => api.get(`/ai/diagnosis-operacional?month=${selectedMonth}&year=${selectedYear}&force_refresh=true`).then(r => r.data),
+    onSuccess: (data) => queryClient.setQueryData(queryKey, data),
+  })
+
+  const isBusy = loadingDiag || refreshMutation.isPending
 
   return (
     <>
@@ -220,7 +224,7 @@ function DiagnosticoOperacional() {
         <div className="flex items-center gap-2">
           <select
             value={selectedMonth}
-            onChange={e => { setSelectedMonth(Number(e.target.value)); setDiagData(null) }}
+            onChange={e => setSelectedMonth(Number(e.target.value))}
             className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-green-500"
           >
             {MONTHS_PT.map(m => (
@@ -229,7 +233,7 @@ function DiagnosticoOperacional() {
           </select>
           <select
             value={selectedYear}
-            onChange={e => { setSelectedYear(Number(e.target.value)); setDiagData(null) }}
+            onChange={e => setSelectedYear(Number(e.target.value))}
             className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-green-500"
           >
             {availableYears.map(y => (
@@ -237,18 +241,18 @@ function DiagnosticoOperacional() {
             ))}
           </select>
           <button
-            onClick={handleRefresh}
-            disabled={loadingDiag}
+            onClick={() => refreshMutation.mutate()}
+            disabled={isBusy}
             className="gs-btn gs-btn-outline gs-btn-sm flex items-center gap-1.5"
           >
-            <RefreshCw size={13} className={loadingDiag ? 'animate-spin' : ''} />
+            <RefreshCw size={13} className={isBusy ? 'animate-spin' : ''} />
             Atualizar
           </button>
         </div>
       </div>
 
-      {error && <ErrorCard error={error} />}
-      {loadingDiag && !diagData && (
+      {(error || refreshMutation.error) && <ErrorCard error={error || refreshMutation.error} />}
+      {isBusy && !diagData && (
         <LoadingCard label={`Analisando cobrança e uso — ${String(selectedMonth).padStart(2, '0')}/${selectedYear}`} />
       )}
       {diagData && <ResultCard diagData={diagData} />}
