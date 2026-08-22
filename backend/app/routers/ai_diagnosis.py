@@ -147,11 +147,12 @@ async def _call_anthropic(prompt: str, max_tokens: int = 1500) -> str:
             status_code=503,
             detail="ANTHROPIC_API_KEY não configurada. Adicione ao .env para usar o diagnóstico por IA."
         )
-    # Timeout proporcional ao max_tokens — testado em produção: com
-    # max_tokens=4096 (diagnóstico operacional) a geração passa dos 60s do
-    # timeout antigo e o httpx.ReadTimeout subia como 500 cru (sem
-    # HTTPException, sem mensagem clara pro usuário).
-    timeout = max(60.0, max_tokens / 20)
+    # Timeout proporcional ao max_tokens, calibrado com throughput real medido
+    # em produção (claude-sonnet-4-6 ~51 tokens/s nesta conta): 8192 tokens
+    # levam ~160s na prática. Fórmula usa 40 tok/s (margem de segurança) +
+    # 20s de folga para latência de rede/input — fica bem abaixo dos 300s do
+    # proxy_read_timeout do nginx em produção.
+    timeout = max(60.0, max_tokens / 40 + 20)
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
             r = await client.post(
@@ -435,9 +436,12 @@ async def get_diagnosis_operacional(
 
     prompt  = _build_prompt_operacional(ctx)
     # 6 seções com nomes/valores reais por cliente ocupam bem mais espaço que
-    # o diagnóstico por ciclo — 2200 cortava a resposta no meio (confirmado
-    # em teste real, truncava na seção de uso da plataforma).
-    content = await _call_anthropic(prompt, max_tokens=4096)
+    # o diagnóstico por ciclo — 2200 e depois 4096 cortaram a resposta no
+    # meio (confirmado em teste real). Com dados de agosto/2026, a resposta
+    # completa (stop_reason=end_turn) usou 4421-4833 tokens — 8192 dá folga
+    # real para meses com mais clientes/ações sem custar tempo desproporcional
+    # (ver timeout calibrado em _call_anthropic).
+    content = await _call_anthropic(prompt, max_tokens=8192)
 
     analysis = OperationalDiagnosis(
         month=month,
