@@ -51,6 +51,26 @@ class AIAnalysis(Base):
     created_by  = Column(Integer, ForeignKey("users.id"))
 
 
+class OperationalDiagnosis(Base):
+    """
+    Cache do Diagnóstico Operacional e de Cobrança — diferente do AIAnalysis
+    (que é por ciclo de faturamento), este é por período (mês/ano) e cobre
+    comportamento de pagamento dos clientes + uso da plataforma pelos
+    usuários internos. Tabela própria porque AIAnalysis.cycle_id é
+    obrigatório e este diagnóstico não pertence a um ciclo específico.
+    """
+    __tablename__ = "operational_diagnoses"
+
+    id          = Column(Integer, primary_key=True)
+    month       = Column(Integer, nullable=False)
+    year        = Column(Integer, nullable=False)
+    content     = Column(Text, nullable=False)
+    model_used  = Column(String(50))
+    input_hash  = Column(String(64))
+    created_at  = Column(DateTime(timezone=True), server_default=func.now())
+    created_by  = Column(Integer, ForeignKey("users.id"))
+
+
 class AsaasPaymentSync(Base):
     """Espelho local dos pagamentos do Asaas — atualizado a cada 20 minutos."""
     __tablename__ = "asaas_payments_sync"
