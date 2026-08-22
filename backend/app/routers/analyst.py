@@ -1352,12 +1352,16 @@ async def payment_planning(
     try:
         _db2 = SessionLocal()
         try:
+            # Offset em dias corridos reais (credit_date - due_date), não em
+            # "dia do mês" — a versão anterior comparava EXTRACT(DAY...) dos
+            # dois lados, o que dava um número sem sentido sempre que o
+            # pagamento cruzava de mês (ex.: vence 25/jan, paga 05/fev virava
+            # offset -20 em vez dos +11 dias de atraso reais). HAVING COUNT>=3
+            # evita aplicar o desvio com base em amostra pequena demais.
             hist_rows = _db2.execute(text("""
                 SELECT
                     customer_cpf_cnpj,
-                    ROUND(AVG(
-                        EXTRACT(DAY FROM credit_date) - EXTRACT(DAY FROM due_date)
-                    )::numeric, 1) AS avg_offset
+                    ROUND(AVG(credit_date - due_date)::numeric, 1) AS avg_offset
                 FROM asaas_payments_sync
                 WHERE status IN ('RECEIVED', 'CONFIRMED')
                   AND credit_date IS NOT NULL
@@ -1366,6 +1370,7 @@ async def payment_planning(
                   AND due_date < :target_start
                   AND customer_cpf_cnpj IS NOT NULL
                 GROUP BY customer_cpf_cnpj
+                HAVING COUNT(*) >= 3
             """), {"hist_start": hist_start, "target_start": target_start}).fetchall()
 
             hist_offsets = {r.customer_cpf_cnpj: float(r.avg_offset or 0) for r in hist_rows}
@@ -1391,9 +1396,18 @@ async def payment_planning(
     real_por_dia: dict = {}
     clientes_com: set = set()
     clientes_sem: set = set()
+    valor_mes_seguinte     = 0.0
+    clientes_mes_seguinte: set = set()
 
     # Asaas — planejado
     # Prioridade: 1) venc. planejado da Lista de Vencidos  2) offset histórico  3) due_date
+    #
+    # Cliente com offset histórico grande o suficiente pra empurrar a data
+    # prevista pra fora do mês do vencimento (cliente que atrasa cronicamente)
+    # NÃO entra na previsão deste mês — antes o `min(..., last_day)` travava
+    # a data dentro do próprio mês, inflando a previsão com dinheiro que na
+    # prática só cai no mês seguinte. Fica separado em valor_mes_seguinte,
+    # visível no card, em vez de simplesmente desaparecer.
     for r in curr_rows:
         if not r.due_date:
             continue
@@ -1405,16 +1419,21 @@ async def payment_planning(
             pred_day = max(1, min(planned_overrides[cnpj_key], last_day))
             if cpf_cnpj:
                 clientes_com.add(cpf_cnpj)
+            plan_por_dia[pred_day] = plan_por_dia.get(pred_day, 0) + valor
         elif cpf_cnpj and cpf_cnpj in hist_offsets:
             clientes_com.add(cpf_cnpj)
-            offset   = round(hist_offsets[cpf_cnpj])
-            pred_day = max(1, min(r.due_date.day + offset, last_day))
+            offset    = round(hist_offsets[cpf_cnpj])
+            pred_date = r.due_date + timedelta(days=offset)
+            if pred_date.year == year and pred_date.month == month:
+                plan_por_dia[pred_date.day] = plan_por_dia.get(pred_date.day, 0) + valor
+            else:
+                valor_mes_seguinte += valor
+                clientes_mes_seguinte.add(cpf_cnpj)
         else:
             if cpf_cnpj:
                 clientes_sem.add(cpf_cnpj)
             pred_day = r.due_date.day
-
-        plan_por_dia[pred_day] = plan_por_dia.get(pred_day, 0) + valor
+            plan_por_dia[pred_day] = plan_por_dia.get(pred_day, 0) + valor
 
     # Asaas — realizado (cash basis: credit_date no mês selecionado, independe do due_date)
     try:
@@ -1508,12 +1527,18 @@ async def payment_planning(
     cobertura = round(len(clientes_com) / total * 100, 1) if total else 0
 
     return {
-        "planejado_por_dia":      planejado_list,
-        "por_semana":             por_semana,
-        "acumulado":              acumulado,
-        "clientes_com_historico": len(clientes_com),
-        "clientes_sem_historico": len(clientes_sem),
-        "cobertura_pct":          cobertura,
+        "planejado_por_dia":            planejado_list,
+        "por_semana":                   por_semana,
+        "acumulado":                    acumulado,
+        "clientes_com_historico":       len(clientes_com),
+        "clientes_sem_historico":       len(clientes_sem),
+        "cobertura_pct":                cobertura,
+        # Valor de clientes com atraso histórico grande o bastante pra cair
+        # fora deste mês — não somado no planejado acima (ver loop "Asaas —
+        # planejado"). Card do frontend deve mostrar isso separado, não
+        # escondido.
+        "valor_previsto_mes_seguinte":     round(valor_mes_seguinte, 2),
+        "clientes_previsto_mes_seguinte":  len(clientes_mes_seguinte),
     }
 
 
