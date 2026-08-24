@@ -1346,8 +1346,12 @@ async def payment_planning(
         _VencidoNota.ano == year,
         _VencidoNota.vencimento_planejado.isnot(None),
     ).all()
-    # chave: apenas dígitos do CNPJ/CPF → dia do mês planejado
-    planned_overrides = {_digits(n.cnpj): n.vencimento_planejado.day for n in _notas if n.vencimento_planejado}
+    # chave: apenas dígitos do CNPJ/CPF → DATA completa planejada (não só o
+    # dia). O campo já guarda a data certa no banco; o bug (reportado pelo
+    # Diego em 24/08/2026) era descartar o mês/ano aqui e travar o valor
+    # dentro do mês do vencimento original — mesma classe do bug já
+    # corrigido pro offset histórico logo abaixo.
+    planned_overrides = {_digits(n.cnpj): n.vencimento_planejado for n in _notas if n.vencimento_planejado}
 
     try:
         _db2 = SessionLocal()
@@ -1416,10 +1420,19 @@ async def payment_planning(
         cnpj_key  = _digits(cpf_cnpj)
 
         if cnpj_key and cnpj_key in planned_overrides:
-            pred_day = max(1, min(planned_overrides[cnpj_key], last_day))
             if cpf_cnpj:
                 clientes_com.add(cpf_cnpj)
-            plan_por_dia[pred_day] = plan_por_dia.get(pred_day, 0) + valor
+            venc_planejado = planned_overrides[cnpj_key]
+            if venc_planejado.year == year and venc_planejado.month == month:
+                pred_day = max(1, min(venc_planejado.day, last_day))
+                plan_por_dia[pred_day] = plan_por_dia.get(pred_day, 0) + valor
+            else:
+                # Vencimento planejado cai em outro mês — some do planejado
+                # deste mês (antes ficava travado aqui usando só o número do
+                # dia, ignorando pra qual mês o Diego tinha movido o boleto).
+                valor_mes_seguinte += valor
+                if cpf_cnpj:
+                    clientes_mes_seguinte.add(cpf_cnpj)
         elif cpf_cnpj and cpf_cnpj in hist_offsets:
             clientes_com.add(cpf_cnpj)
             offset    = round(hist_offsets[cpf_cnpj])
@@ -1468,11 +1481,17 @@ async def payment_planning(
         for r in _itau_plan:
             if r.data_vencimento:
                 cnpj_key = _digits(r.cpf_cnpj)
+                valor_itau = r.valor_titulo or 0
                 if cnpj_key and cnpj_key in planned_overrides:
-                    d = max(1, min(planned_overrides[cnpj_key], last_day))
+                    venc_planejado = planned_overrides[cnpj_key]
+                    if venc_planejado.year == year and venc_planejado.month == month:
+                        d = max(1, min(venc_planejado.day, last_day))
+                        plan_por_dia[d] = plan_por_dia.get(d, 0) + valor_itau
+                    else:
+                        valor_mes_seguinte += valor_itau
                 else:
                     d = max(1, min(r.data_vencimento.day, last_day))
-                plan_por_dia[d] = plan_por_dia.get(d, 0) + (r.valor_titulo or 0)
+                    plan_por_dia[d] = plan_por_dia.get(d, 0) + valor_itau
 
         _itau_real = _db_itau.execute(text("""
             SELECT valor_pago, valor_titulo, data_pagamento

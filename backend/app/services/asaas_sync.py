@@ -259,6 +259,43 @@ def _upsert_payments(db: Session, payments: list, customers: dict):
         })
 
 
+def _delete_missing_payments(db: Session, months_payments: dict) -> int:
+    """
+    Remove de asaas_payments_sync os boletos que não vieram mais na resposta
+    da API pra aquele mês. O Asaas não tem status "DELETED" — quando um
+    boleto é excluído, ele simplesmente some da listagem de /payments. Como
+    o sync antes só fazia upsert do que recebia, um boleto excluído no Asaas
+    ficava congelado pra sempre no banco local (reportado pelo Diego em
+    24/08/2026 — "Lista de Vencidos" e previsão continuavam mostrando
+    boletos já excluídos). Mesmo padrão já usado pro upload do Itaú
+    (analyst.py: DELETE ... WHERE nosso_numero NOT IN ...).
+
+    Só compara meses cuja busca teve sucesso E devolveu pelo menos 1
+    pagamento — nunca contra um mês vazio (falha silenciosa da API
+    devolvendo 200 com lista vazia apagaria TODOS os boletos daquele mês).
+    """
+    total_deleted = 0
+    for (y, m), payments in months_payments.items():
+        if not payments:
+            print(f"  ⚠️  {m:02d}/{y}: API devolveu 0 pagamentos — pulando limpeza de excluídos (possível falha silenciosa)", flush=True)
+            continue
+        fresh_ids = [p["id"] for p in payments if p.get("id")]
+        last_day = calendar.monthrange(y, m)[1]
+        result = db.execute(text("""
+            DELETE FROM asaas_payments_sync
+            WHERE due_date >= :start AND due_date <= :end
+              AND NOT (asaas_id = ANY(:ids))
+        """), {
+            "start": date(y, m, 1),
+            "end":   date(y, m, last_day),
+            "ids":   fresh_ids,
+        })
+        if result.rowcount:
+            print(f"  🗑️  {m:02d}/{y}: {result.rowcount} boleto(s) removido(s) — excluído(s) no Asaas", flush=True)
+        total_deleted += result.rowcount
+    return total_deleted
+
+
 # ─── sync principal ────────────────────────────────────────────────────────
 
 async def run_sync() -> dict:
@@ -280,6 +317,7 @@ async def run_sync() -> dict:
         months  = _months_to_sync()
 
         all_payments: list = []
+        months_payments: dict = {}   # (year, month) -> lista de pagamentos, só dos meses com sucesso
         errors: list = []
 
         async with httpx.AsyncClient() as client:
@@ -293,6 +331,7 @@ async def run_sync() -> dict:
                     errors.append(f"{m:02d}/{y}: {res}")
                 else:
                     all_payments.extend(res)
+                    months_payments[(y, m)] = res
 
             # 2) Busca apenas clientes ainda não conhecidos no banco
             all_cids = {p["customer"] for p in all_payments if p.get("customer")}
@@ -338,6 +377,9 @@ async def run_sync() -> dict:
         # 3) Persiste no banco — só os NOVOS (dados completos vindos da API)
         _upsert_customers(db, customers)
         _upsert_payments(db, all_payments, all_customers_lookup)
+
+        # 3b) Remove boletos excluídos no Asaas (ver docstring de _delete_missing_payments)
+        deleted_count = _delete_missing_payments(db, months_payments)
 
         # 4) Preenche customer_name nos pagamentos que ficaram sem nome
         db.execute(text("""
@@ -485,9 +527,12 @@ async def run_sync() -> dict:
 
         db.commit()
 
-        print(f"✅ Asaas sync: {len(all_payments)} pagamentos, {len(customers)} clientes "
-              f"| erros: {errors or 'nenhum'}")
-        return {"status": "ok", "payments": len(all_payments), "customers": len(customers), "errors": errors}
+        print(f"✅ Asaas sync: {len(all_payments)} pagamentos, {len(customers)} clientes, "
+              f"{deleted_count} removido(s) (excluídos no Asaas) | erros: {errors or 'nenhum'}")
+        return {
+            "status": "ok", "payments": len(all_payments), "customers": len(customers),
+            "deleted": deleted_count, "errors": errors,
+        }
 
     except Exception as e:
         db.rollback()
