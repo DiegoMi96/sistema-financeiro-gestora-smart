@@ -19,6 +19,7 @@ from app.models import (
 from app.models.extra import PaymentRecord, ItauBoleto
 from app.routers.auth import get_current_user
 from app.services.asaas_sync import SYNC_INTERVAL as _ASAAS_SYNC_INTERVAL_SECONDS
+from app.utils.business_days import effective_due_date, is_overdue, is_overdue_iso, effective_due_date_sql
 
 # Rótulo real do intervalo de sync (era hardcoded "20" mas o valor de verdade
 # em asaas_sync.py sempre foi 60*60 = 1h — corrigido 01/08/2026, junto com o
@@ -271,16 +272,18 @@ def get_weekly_agenda(
             continue
 
         total = round(s.total_final or 0, 2)
+        eff = effective_due_date(s.due_date)
+        esta_vencido = eff < hoje
         item  = {
             "id_smart":      s.id_smart,
             "valor":         total,
             "due_date":      s.due_date.isoformat(),
             "boleto_status": s.boleto_status,
             "boleto_url":    s.boleto_url,
-            "dias_atraso":   (hoje - s.due_date).days if s.due_date < hoje else 0,
+            "dias_atraso":   (hoje - eff).days if esta_vencido else 0,
         }
 
-        if s.due_date < hoje:
+        if esta_vencido:
             vencidos.append(item)
         elif s.due_date <= fim_semana:
             vencendo.append(item)
@@ -340,7 +343,7 @@ def get_alerts(
         # Boletos vencidos há mais de 5 dias
         vencidos_criticos = [
             s for s in summaries
-            if s.due_date and s.due_date < (hoje - timedelta(days=5))
+            if s.due_date and effective_due_date(s.due_date) < (hoje - timedelta(days=5))
             and s.boleto_status not in ("RECEIVED", "CONFIRMED")
         ]
         if vencidos_criticos:
@@ -626,7 +629,10 @@ async def get_operational_summary(
     all_payments = payments + itau_payments
 
     received_statuses = ("RECEIVED", "CONFIRMED")
-    vencidos  = [p for p in all_payments if p.get("status") == "OVERDUE"]
+    # status == 'OVERDUE' vem do Asaas/Itaú puro; is_overdue_iso aplica a
+    # regra de dia útil por cima (vencimento no fim de semana só conta como
+    # vencido depois de passar a segunda seguinte — ver business_days.py)
+    vencidos  = [p for p in all_payments if p.get("status") == "OVERDUE" and is_overdue_iso(p.get("dueDate"))]
     pendentes = [p for p in all_payments if p.get("status") == "PENDING"]
 
     total_emitido    = sum(p.get("value", 0) for p in all_payments)
@@ -739,7 +745,7 @@ async def get_operational_summary(
             instr_map[bt] = {"Recebida": 0.0, "Vencida": 0.0}
         if p.get("status") in received_statuses:
             instr_map[bt]["Recebida"] += p.get("netValue") or p.get("value", 0)
-        elif p.get("status") == "OVERDUE":
+        elif p.get("status") == "OVERDUE" and is_overdue_iso(p.get("dueDate")):
             instr_map[bt]["Vencida"] += p.get("value", 0)
     por_instrumento = [
         {"name": k, "Recebida": round(v["Recebida"], 2), "Vencida": round(v["Vencida"], 2)}
@@ -752,7 +758,8 @@ async def get_operational_summary(
     _last_day_sel = _cal.monthrange(sel_year, sel_month)[1]
     _aging_limit  = date(sel_year, sel_month, _last_day_sel)
 
-    _AGING_SQL = text("""
+    _eff_due = effective_due_date_sql("due_date")
+    _AGING_SQL = text(f"""
         WITH combined AS (
             SELECT value, due_date FROM asaas_payments_sync
             WHERE status = 'OVERDUE' AND due_date >= :inicio AND due_date <= :lim
@@ -763,14 +770,16 @@ async def get_operational_summary(
         bucketed AS (
             SELECT
                 CASE
-                    WHEN (CURRENT_DATE - due_date) BETWEEN 1  AND 4    THEN '1–4 dias'
-                    WHEN (CURRENT_DATE - due_date) BETWEEN 5  AND 7    THEN '5–7 dias'
-                    WHEN (CURRENT_DATE - due_date) BETWEEN 8  AND 15   THEN '8–15 dias'
-                    WHEN (CURRENT_DATE - due_date) BETWEEN 16 AND 30   THEN '15–30 dias'
+                    WHEN (CURRENT_DATE - ({_eff_due})) BETWEEN 1  AND 4    THEN '1–4 dias'
+                    WHEN (CURRENT_DATE - ({_eff_due})) BETWEEN 5  AND 7    THEN '5–7 dias'
+                    WHEN (CURRENT_DATE - ({_eff_due})) BETWEEN 8  AND 15   THEN '8–15 dias'
+                    WHEN (CURRENT_DATE - ({_eff_due})) BETWEEN 16 AND 30   THEN '15–30 dias'
                     ELSE '> 31 dias'
                 END AS bucket,
                 value
-            FROM combined WHERE due_date IS NOT NULL
+            -- CURRENT_DATE > vencimento efetivo: vencimento em fim de semana só
+            -- entra no aging depois de passar a segunda seguinte (dia útil)
+            FROM combined WHERE due_date IS NOT NULL AND CURRENT_DATE > ({_eff_due})
         ),
         totals AS (SELECT SUM(value) AS grand_total FROM bucketed)
         SELECT b.bucket, COUNT(*) AS qtd, SUM(b.value) AS valor,
@@ -969,15 +978,18 @@ async def get_operational_summary(
         _last_day_b = _cal_b.monthrange(sel_year, sel_month)[1]
 
         # Asaas — do banco local (mês selecionado)
+        _eff_due_b = effective_due_date_sql("due_date")
         _dbb = SessionLocal()
-        asaas_rows = _dbb.execute(text("""
+        asaas_rows = _dbb.execute(text(f"""
             SELECT
                 SUM(value)                                                  AS faturado,
                 SUM(CASE WHEN status = 'PENDING'
                           AND due_date BETWEEN CURRENT_DATE AND CURRENT_DATE + 30
                          THEN value ELSE 0 END)                           AS a_vencer_30d,
-                SUM(CASE WHEN status = 'OVERDUE' THEN value ELSE 0 END)   AS vencido_ativo,
-                COUNT(CASE WHEN status = 'OVERDUE' THEN 1 END)            AS qtd_vencido
+                SUM(CASE WHEN status = 'OVERDUE' AND CURRENT_DATE > ({_eff_due_b})
+                         THEN value ELSE 0 END)                           AS vencido_ativo,
+                COUNT(CASE WHEN status = 'OVERDUE' AND CURRENT_DATE > ({_eff_due_b})
+                           THEN 1 END)                                     AS qtd_vencido
             FROM asaas_payments_sync
             WHERE EXTRACT(YEAR  FROM due_date) = :y
               AND EXTRACT(MONTH FROM due_date) = :m
@@ -993,16 +1005,18 @@ async def get_operational_summary(
 
         # Itaú — da planilha importada (itau_boletos)
         upload_ref = f"{sel_year}-{sel_month:02d}"
+        _eff_venc_b = effective_due_date_sql("data_vencimento")
         _dbi = SessionLocal()
-        itau_row = _dbi.execute(text("""
+        itau_row = _dbi.execute(text(f"""
             SELECT
                 SUM(valor_titulo)                                            AS faturado,
                 SUM(CASE WHEN status = 'a vencer'
                           AND data_vencimento BETWEEN CURRENT_DATE AND CURRENT_DATE + 30
                          THEN valor_titulo ELSE 0 END)       AS a_vencer_30d,
-                SUM(CASE WHEN status = 'vencida'
+                SUM(CASE WHEN status = 'vencida' AND CURRENT_DATE > ({_eff_venc_b})
                          THEN valor_titulo ELSE 0 END)       AS vencido_ativo,
-                COUNT(CASE WHEN status = 'vencida' THEN 1 END) AS qtd_vencido,
+                COUNT(CASE WHEN status = 'vencida' AND CURRENT_DATE > ({_eff_venc_b})
+                           THEN 1 END)                        AS qtd_vencido,
                 MAX(uploaded_at)                                             AS ultima_importacao
             FROM itau_boletos
             WHERE upload_ref = :ref
@@ -1071,8 +1085,11 @@ async def get_operational_summary(
             return f"{d[:3]}.{d[3:6]}.{d[6:9]}-{d[9:]}"
         return raw or ""
 
+    _eff_aps_due = effective_due_date_sql("aps.due_date")
+    _eff_ib_venc = effective_due_date_sql("ib.data_vencimento")
+    _eff_min_due = effective_due_date_sql("MIN(due_date)")
     try:
-        lv_rows = db.execute(text("""
+        lv_rows = db.execute(text(f"""
             WITH asaas_venc AS (
                 SELECT aps.customer_cpf_cnpj AS cnpj, aps.customer_name AS nome,
                        'Asaas' AS banco, aps.value, aps.due_date,
@@ -1080,10 +1097,10 @@ async def get_operational_summary(
                        aps.invoice_number AS num_boleto,
                        acs.email,
                        CASE
-                           WHEN (CURRENT_DATE - aps.due_date) BETWEEN 1  AND 4  THEN '1–4 dias'
-                           WHEN (CURRENT_DATE - aps.due_date) BETWEEN 5  AND 7  THEN '5–7 dias'
-                           WHEN (CURRENT_DATE - aps.due_date) BETWEEN 8  AND 15 THEN '8–15 dias'
-                           WHEN (CURRENT_DATE - aps.due_date) BETWEEN 16 AND 30 THEN '15–30 dias'
+                           WHEN (CURRENT_DATE - ({_eff_aps_due})) BETWEEN 1  AND 4  THEN '1–4 dias'
+                           WHEN (CURRENT_DATE - ({_eff_aps_due})) BETWEEN 5  AND 7  THEN '5–7 dias'
+                           WHEN (CURRENT_DATE - ({_eff_aps_due})) BETWEEN 8  AND 15 THEN '8–15 dias'
+                           WHEN (CURRENT_DATE - ({_eff_aps_due})) BETWEEN 16 AND 30 THEN '15–30 dias'
                            ELSE '> 31 dias'
                        END AS bucket
                 FROM asaas_payments_sync aps
@@ -1093,6 +1110,7 @@ async def get_operational_summary(
                     ORDER BY cpf_cnpj, id
                 ) acs ON acs.cpf_cnpj = aps.customer_cpf_cnpj
                 WHERE aps.status = 'OVERDUE' AND aps.due_date >= :inicio AND aps.due_date <= :lim
+                  AND CURRENT_DATE > ({_eff_aps_due})
             ),
             itau_venc AS (
                 SELECT ib.cpf_cnpj AS cnpj, ib.pagador AS nome,
@@ -1101,10 +1119,10 @@ async def get_operational_summary(
                        ib.nosso_numero AS num_boleto,
                        acs.email,
                        CASE
-                           WHEN (CURRENT_DATE - ib.data_vencimento) BETWEEN 1  AND 4  THEN '1–4 dias'
-                           WHEN (CURRENT_DATE - ib.data_vencimento) BETWEEN 5  AND 7  THEN '5–7 dias'
-                           WHEN (CURRENT_DATE - ib.data_vencimento) BETWEEN 8  AND 15 THEN '8–15 dias'
-                           WHEN (CURRENT_DATE - ib.data_vencimento) BETWEEN 16 AND 30 THEN '15–30 dias'
+                           WHEN (CURRENT_DATE - ({_eff_ib_venc})) BETWEEN 1  AND 4  THEN '1–4 dias'
+                           WHEN (CURRENT_DATE - ({_eff_ib_venc})) BETWEEN 5  AND 7  THEN '5–7 dias'
+                           WHEN (CURRENT_DATE - ({_eff_ib_venc})) BETWEEN 8  AND 15 THEN '8–15 dias'
+                           WHEN (CURRENT_DATE - ({_eff_ib_venc})) BETWEEN 16 AND 30 THEN '15–30 dias'
                            ELSE '> 31 dias'
                        END AS bucket
                 FROM itau_boletos ib
@@ -1114,13 +1132,14 @@ async def get_operational_summary(
                     ORDER BY cpf_cnpj, id
                 ) acs ON acs.cpf_cnpj = REGEXP_REPLACE(ib.cpf_cnpj, '[^0-9]', '', 'g')
                 WHERE ib.status = 'vencida' AND ib.data_vencimento >= :inicio AND ib.data_vencimento <= :lim
+                  AND CURRENT_DATE > ({_eff_ib_venc})
             ),
             combined AS (SELECT * FROM asaas_venc UNION ALL SELECT * FROM itau_venc)
             SELECT
                 cnpj, MAX(nome) AS nome, banco, bucket,
                 SUM(value) AS valor, COUNT(*) AS qtd,
                 MIN(due_date) AS vencimento_orig,
-                (CURRENT_DATE - MIN(due_date))::int AS dias,
+                (CURRENT_DATE - ({_eff_min_due}))::int AS dias,
                 MAX(email) AS email,
                 MAX(description) AS description,
                 STRING_AGG(DISTINCT num_boleto::text, ', ') AS num_boleto
@@ -1806,17 +1825,20 @@ async def download_vencidos_template(
     # CNPJ + banco + faixa de atraso, com TODAS as colunas (valor, vencimento,
     # dias, banco, email, descrição, nº do boleto). Assim a planilha sai
     # idêntica ao que aparece na tela. + id_smart via histórico de faturamento.
+    _eff_aps_due_t = effective_due_date_sql("aps.due_date")
+    _eff_ib_venc_t = effective_due_date_sql("ib.data_vencimento")
+    _eff_min_due_t = effective_due_date_sql("MIN(due_date)")
     try:
-        rows = db.execute(text("""
+        rows = db.execute(text(f"""
             WITH asaas_venc AS (
                 SELECT aps.customer_cpf_cnpj AS cnpj, aps.customer_name AS nome,
                        'Asaas' AS banco, aps.value, aps.due_date,
                        aps.description, aps.invoice_number AS num_boleto, acs.email,
                        CASE
-                           WHEN (CURRENT_DATE - aps.due_date) BETWEEN 1  AND 4  THEN '1-4'
-                           WHEN (CURRENT_DATE - aps.due_date) BETWEEN 5  AND 7  THEN '5-7'
-                           WHEN (CURRENT_DATE - aps.due_date) BETWEEN 8  AND 15 THEN '8-15'
-                           WHEN (CURRENT_DATE - aps.due_date) BETWEEN 16 AND 30 THEN '16-30'
+                           WHEN (CURRENT_DATE - ({_eff_aps_due_t})) BETWEEN 1  AND 4  THEN '1-4'
+                           WHEN (CURRENT_DATE - ({_eff_aps_due_t})) BETWEEN 5  AND 7  THEN '5-7'
+                           WHEN (CURRENT_DATE - ({_eff_aps_due_t})) BETWEEN 8  AND 15 THEN '8-15'
+                           WHEN (CURRENT_DATE - ({_eff_aps_due_t})) BETWEEN 16 AND 30 THEN '16-30'
                            ELSE '31+'
                        END AS bucket
                 FROM asaas_payments_sync aps
@@ -1826,16 +1848,17 @@ async def download_vencidos_template(
                 ) acs ON acs.cpf_cnpj = aps.customer_cpf_cnpj
                 WHERE aps.status = 'OVERDUE'
                   AND aps.due_date >= :inicio AND aps.due_date <= :lim
+                  AND CURRENT_DATE > ({_eff_aps_due_t})
             ),
             itau_venc AS (
                 SELECT ib.cpf_cnpj AS cnpj, ib.pagador AS nome,
                        'Itaú' AS banco, ib.valor_titulo AS value, ib.data_vencimento AS due_date,
                        ib.description, ib.nosso_numero AS num_boleto, acs.email,
                        CASE
-                           WHEN (CURRENT_DATE - ib.data_vencimento) BETWEEN 1  AND 4  THEN '1-4'
-                           WHEN (CURRENT_DATE - ib.data_vencimento) BETWEEN 5  AND 7  THEN '5-7'
-                           WHEN (CURRENT_DATE - ib.data_vencimento) BETWEEN 8  AND 15 THEN '8-15'
-                           WHEN (CURRENT_DATE - ib.data_vencimento) BETWEEN 16 AND 30 THEN '16-30'
+                           WHEN (CURRENT_DATE - ({_eff_ib_venc_t})) BETWEEN 1  AND 4  THEN '1-4'
+                           WHEN (CURRENT_DATE - ({_eff_ib_venc_t})) BETWEEN 5  AND 7  THEN '5-7'
+                           WHEN (CURRENT_DATE - ({_eff_ib_venc_t})) BETWEEN 8  AND 15 THEN '8-15'
+                           WHEN (CURRENT_DATE - ({_eff_ib_venc_t})) BETWEEN 16 AND 30 THEN '16-30'
                            ELSE '31+'
                        END AS bucket
                 FROM itau_boletos ib
@@ -1845,13 +1868,14 @@ async def download_vencidos_template(
                 ) acs ON acs.cpf_cnpj = REGEXP_REPLACE(ib.cpf_cnpj, '[^0-9]', '', 'g')
                 WHERE ib.status = 'vencida'
                   AND ib.data_vencimento >= :inicio AND ib.data_vencimento <= :lim
+                  AND CURRENT_DATE > ({_eff_ib_venc_t})
             ),
             combined AS (SELECT * FROM asaas_venc UNION ALL SELECT * FROM itau_venc),
             grp AS (
                 SELECT cnpj, MAX(nome) AS nome, banco,
                        SUM(value) AS valor,
                        MIN(due_date) AS vencimento_orig,
-                       (CURRENT_DATE - MIN(due_date))::int AS dias,
+                       (CURRENT_DATE - ({_eff_min_due_t}))::int AS dias,
                        MAX(email) AS email, MAX(description) AS description,
                        STRING_AGG(DISTINCT num_boleto::text, ', ') AS num_boleto
                 FROM combined

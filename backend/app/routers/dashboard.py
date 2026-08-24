@@ -8,6 +8,7 @@ from app.models import User, BillingCycle, BillingClientSummary, BillingAdjustme
 from app.models.extra import PaymentRecord
 from app.routers.auth import get_current_user
 from app.core.permissions import get_permission
+from app.utils.business_days import effective_due_date, is_overdue, is_overdue_iso
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
@@ -408,7 +409,8 @@ async def get_executive_summary(
     all_payments = asaas_payments + itau_payments
 
     recebidos = [p for p in all_payments if p.get("status") in received_statuses]
-    vencidos  = [p for p in all_payments if p.get("status") == "OVERDUE"]
+    # vencimento no fim de semana só conta como vencido depois da segunda seguinte
+    vencidos  = [p for p in all_payments if p.get("status") == "OVERDUE" and is_overdue_iso(p.get("dueDate"))]
     pendentes = [p for p in all_payments if p.get("status") == "PENDING"]
 
     # emitido: preferência pelo ciclo de faturamento; fallback = soma all_payments
@@ -460,7 +462,7 @@ async def get_executive_summary(
     top1_pct   = round(top_vencidos_sorted[0][1] / receita_em_risco * 100, 1) if (receita_em_risco and top_vencidos_sorted) else 0
 
     # Mantém compatibilidade com sinais que usam top_vencidos (lista de summaries)
-    vencidos_db_for_top = [s for s in summaries if s.boleto_status == "OVERDUE"]
+    vencidos_db_for_top = [s for s in summaries if s.boleto_status == "OVERDUE" and s.due_date and is_overdue(s.due_date)]
     top_vencidos = sorted(vencidos_db_for_top, key=lambda s: s.total_final or 0, reverse=True)
 
     confirmado_pct = round(receita_confirmada / total_emitido * 100, 1) if total_emitido else 0
@@ -471,7 +473,7 @@ async def get_executive_summary(
 
     # ── Comportamento pontual (usa dados do banco para contagem) ─
     confirmados_db2 = [s for s in summaries if s.boleto_status in ("RECEIVED", "CONFIRMED")]
-    vencidos_db2    = [s for s in summaries if s.boleto_status == "OVERDUE"]
+    vencidos_db2    = [s for s in summaries if s.boleto_status == "OVERDUE" and s.due_date and is_overdue(s.due_date)]
     total_com_boleto = len([s for s in summaries if s.boleto_status])
     pontuais = len(confirmados_db2)
     pct_pontual = round(pontuais / total_com_boleto * 100, 1) if total_com_boleto else None
