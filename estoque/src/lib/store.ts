@@ -46,3 +46,35 @@ export async function setNovaCompra(operadora: string, valor: number): Promise<A
   const novasCompras = { ...atual.novasCompras, [operadora]: valor };
   return setState({ novasCompras });
 }
+
+// IDs das planilhas do Google Sheets do Cancelamento e da Saída, configurados
+// pela tela de Configurações (antes só existiam como variável de ambiente
+// fixa — CANCELAMENTO_SHEET_ID/SAIDA_SHEET_ID — exigindo redeploy pra trocar).
+// Fora do AppState de propósito: não faz parte do "estado importado", é
+// config da aplicação, mas guardado na mesma tabela por simplicidade.
+export type ConfiguracaoSheets = {
+  cancelamentoSheetId: string | null;
+  saidaSheetId: string | null;
+};
+
+const CONFIG_SHEETS_KEY = "configuracaoSheets";
+const CONFIG_SHEETS_VAZIA: ConfiguracaoSheets = { cancelamentoSheetId: null, saidaSheetId: null };
+
+export async function getConfiguracaoSheets(): Promise<ConfiguracaoSheets> {
+  const linhas = await sql<{ value: unknown }[]>`
+    SELECT value FROM estoque_state WHERE key = ${CONFIG_SHEETS_KEY}
+  `;
+  if (linhas.length === 0) return CONFIG_SHEETS_VAZIA;
+  return { ...CONFIG_SHEETS_VAZIA, ...(linhas[0].value as Partial<ConfiguracaoSheets>) };
+}
+
+export async function setConfiguracaoSheets(partial: Partial<ConfiguracaoSheets>): Promise<ConfiguracaoSheets> {
+  const atual = await getConfiguracaoSheets();
+  const novo = { ...atual, ...partial };
+  await sql`
+    INSERT INTO estoque_state (key, value, updated_at)
+    VALUES (${CONFIG_SHEETS_KEY}, ${novo as never}::jsonb, NOW())
+    ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()
+  `;
+  return novo;
+}

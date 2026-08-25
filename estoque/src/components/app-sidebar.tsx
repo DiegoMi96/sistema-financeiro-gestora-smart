@@ -19,6 +19,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Settings,
 } from "lucide-react";
 import {
   Sidebar,
@@ -187,6 +188,17 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  render={<Link href="/configuracoes" />}
+                  isActive={pathname === "/configuracoes"}
+                  tooltip="Configurações"
+                  className={ACTIVE_CLASS}
+                >
+                  <Settings />
+                  <span>Configurações</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               <SidebarMenuItem>
                 <ThemeToggle />
               </SidebarMenuItem>

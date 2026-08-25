@@ -1,6 +1,7 @@
 import { parseCsv } from "./csv";
 import { buildCancelamentoSnapshot } from "./parseCancelamento";
 import { buildSaidaSnapshot } from "./parseSaida";
+import { getConfiguracaoSheets } from "./store";
 import type { CancelamentoSnapshot, SaidaSnapshot } from "./types";
 
 // As planilhas de backlog de cancelamento e controle de saída são públicas
@@ -8,8 +9,29 @@ import type { CancelamentoSnapshot, SaidaSnapshot } from "./types";
 // CSV do Google Sheets — sem credenciais. Se algum dia precisarem ficar
 // privadas de novo, troque por uma conta de serviço do Google (Sheets API
 // v4) sem mexer no restante do app — só a função de fetch muda.
-const CANCELAMENTO_SHEET_ID = process.env.CANCELAMENTO_SHEET_ID;
-const SAIDA_SHEET_ID = process.env.SAIDA_SHEET_ID;
+//
+// O ID de cada planilha vem, em ordem de prioridade, da tela de
+// Configurações (banco, via getConfiguracaoSheets) e, se ainda não tiver
+// sido configurado por lá, da variável de ambiente (compatibilidade com a
+// configuração antiga, que exigia redeploy pra trocar).
+async function resolverSheetId(
+  campo: keyof Awaited<ReturnType<typeof getConfiguracaoSheets>>,
+  envFallback: string | undefined
+): Promise<string | null> {
+  const config = await getConfiguracaoSheets();
+  return config[campo] || envFallback || null;
+}
+
+// Aceita tanto o ID puro quanto o link completo colado da barra de
+// endereços (".../spreadsheets/d/ESSE_TRECHO/edit?...").
+export function extrairSheetId(valor: string): string | null {
+  const texto = valor.trim();
+  if (!texto) return null;
+  const match = texto.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  if (match) return match[1];
+  if (/^[a-zA-Z0-9_-]{10,}$/.test(texto)) return texto;
+  return null;
+}
 
 async function fetchCsv(url: string): Promise<string> {
   const res = await fetch(url, { cache: "no-store" });
@@ -35,25 +57,49 @@ function gvizTabUrl(sheetId: string, sheetName: string, range?: string): string 
 }
 
 export async function fetchCancelamentoSnapshot(): Promise<CancelamentoSnapshot> {
-  if (!CANCELAMENTO_SHEET_ID) {
-    throw new Error("CANCELAMENTO_SHEET_ID não configurado (.env.local).");
+  const sheetId = await resolverSheetId("cancelamentoSheetId", process.env.CANCELAMENTO_SHEET_ID);
+  if (!sheetId) {
+    throw new Error("Planilha do Cancelamento não configurada. Configure em Configurações.");
   }
-  const csvText = await fetchCsv(csvExportUrl(CANCELAMENTO_SHEET_ID));
+  const csvText = await fetchCsv(csvExportUrl(sheetId));
   return buildCancelamentoSnapshot(parseCsv(csvText));
 }
 
 export async function fetchSaidaSnapshot(): Promise<SaidaSnapshot> {
-  if (!SAIDA_SHEET_ID) {
-    throw new Error("SAIDA_SHEET_ID não configurado (.env.local).");
+  const sheetId = await resolverSheetId("saidaSheetId", process.env.SAIDA_SHEET_ID);
+  if (!sheetId) {
+    throw new Error("Planilha da Saída não configurada. Configure em Configurações.");
   }
 
   const [movCsv, retCsv] = await Promise.all([
-    fetchCsv(gvizTabUrl(SAIDA_SHEET_ID, "Movimentação")),
+    fetchCsv(gvizTabUrl(sheetId, "Movimentação")),
     // Cabeçalho real da aba de retornos fica na linha 4 (título + instrução acima).
-    fetchCsv(gvizTabUrl(SAIDA_SHEET_ID, "Retorno e Reenviados", "A4:L")),
+    fetchCsv(gvizTabUrl(sheetId, "Retorno e Reenviados", "A4:L")),
   ]);
 
   return buildSaidaSnapshot(parseCsv(movCsv), parseCsv(retCsv));
+}
+
+// Usado pelo botão "Testar conexão" da tela de Configurações: só confirma
+// que a planilha responde com algum conteúdo, sem validar colunas.
+export async function testarConexaoSheet(
+  campo: "cancelamento" | "saida",
+  valorColado: string
+): Promise<{ ok: true } | { ok: false; erro: string }> {
+  const sheetId = extrairSheetId(valorColado);
+  if (!sheetId) {
+    return { ok: false, erro: "Link ou ID da planilha inválido." };
+  }
+  try {
+    const csvText =
+      campo === "cancelamento" ? await fetchCsv(csvExportUrl(sheetId)) : await fetchCsv(gvizTabUrl(sheetId, "Movimentação"));
+    if (!csvText.trim()) {
+      return { ok: false, erro: "A planilha respondeu vazia." };
+    }
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, erro: error instanceof Error ? error.message : "Erro desconhecido" };
+  }
 }
 
 type FetchResult<T> = { ok: true; snapshot: T } | { ok: false; erro: string };
