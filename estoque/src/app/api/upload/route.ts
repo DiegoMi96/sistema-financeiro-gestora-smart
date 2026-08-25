@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { parseEstoque, parseEstoqueCsv } from "@/lib/parseEstoque";
-import { parsePedidos } from "@/lib/parsePedidos";
+import { parsePedidos, parsePedidosCsv } from "@/lib/parsePedidos";
 import { setState } from "@/lib/store";
 import { requireMainAuth, unauthorizedResponse } from "@/lib/mainAuth";
-import type { EstoqueSnapshot, TipoEstoque } from "@/lib/types";
+import type { EstoqueSnapshot, PedidosSnapshot, TipoEstoque } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +22,15 @@ async function parseArquivoEstoque(file: File, tipo: TipoEstoque): Promise<Estoq
   }
   const buffer = await fileToBuffer(file);
   return parseEstoque(buffer, tipo);
+}
+
+async function parseArquivoPedidos(file: File): Promise<PedidosSnapshot> {
+  if (file.name.toLowerCase().endsWith(".csv")) {
+    const texto = await file.text();
+    return parsePedidosCsv(texto);
+  }
+  const buffer = await fileToBuffer(file);
+  return parsePedidos(buffer);
 }
 
 export async function POST(request: Request) {
@@ -49,8 +58,7 @@ export async function POST(request: Request) {
     }
 
     if (pedidosFile instanceof File && pedidosFile.size > 0) {
-      const buffer = await fileToBuffer(pedidosFile);
-      updates.pedidos = parsePedidos(buffer);
+      updates.pedidos = await parseArquivoPedidos(pedidosFile);
     }
 
     await setState(updates);

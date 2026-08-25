@@ -16,21 +16,23 @@ type Campo = {
   descricao: string;
 };
 
+const AVISO_ARQUIVO_GRANDE = "Se o arquivo for grande, exporte como .csv (Arquivo > Fazer download > CSV).";
+
 const CAMPOS: Campo[] = [
   {
     name: "smart",
     label: "Estoque SMART",
-    descricao: "Export com uma linha por chip (planilha 'Inventário').",
+    descricao: `Export com uma linha por chip (planilha 'Inventário'). ${AVISO_ARQUIVO_GRANDE}`,
   },
   {
     name: "smt",
     label: "Estoque SMT",
-    descricao: "Mesmo formato do Estoque SMART. Se o arquivo for grande, exporte como .csv (Arquivo > Fazer download > CSV).",
+    descricao: `Mesmo formato do Estoque SMART. ${AVISO_ARQUIVO_GRANDE}`,
   },
   {
     name: "pedidos",
     label: "Pedidos",
-    descricao: "Planilha de pedidos (aba 'Pedidos').",
+    descricao: `Planilha de pedidos (aba 'Pedidos'). ${AVISO_ARQUIVO_GRANDE}`,
   },
 ];
 
