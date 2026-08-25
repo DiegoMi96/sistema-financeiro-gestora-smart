@@ -417,9 +417,9 @@ function ResumoBanco({ resumo, insight, month, year }) {
                       {r.banco}
                     </span>
                   </td>
-                  <td className="py-3 px-3 text-right font-semibold text-gray-800">{fmt(r.faturado ?? 0)}</td>
-                  <td className="py-3 px-3 text-right text-gray-700">{fmt(r.a_vencer_30d)}</td>
-                  <td className={`py-3 px-3 text-right font-semibold ${r.vencido_ativo > 0 ? 'text-red-600' : 'text-gray-700'}`}>
+                  <td className="py-3 px-3 text-right font-semibold text-gray-800 whitespace-nowrap">{fmt(r.faturado ?? 0)}</td>
+                  <td className="py-3 px-3 text-right text-gray-700 whitespace-nowrap">{fmt(r.a_vencer_30d)}</td>
+                  <td className={`py-3 px-3 text-right font-semibold whitespace-nowrap ${r.vencido_ativo > 0 ? 'text-red-600' : 'text-gray-700'}`}>
                     {fmt(r.vencido_ativo)}
                   </td>
                   <td className={`py-3 px-3 text-right font-bold ${r.inadimplencia_pct > 0 ? 'text-red-600' : 'text-green-600'}`}>
