@@ -80,18 +80,32 @@ function lotesMapParaArray(map: Map<string, { quantidade: number; prazoDias: num
     .sort((a, b) => a.data.localeCompare(b.data));
 }
 
-export function parseEstoque(fileBuffer: ArrayBuffer, tipo: TipoEstoque): EstoqueSnapshot {
-  const workbook = XLSX.read(fileBuffer, { type: "array", cellDates: true });
-  const sheetName = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
-  const rows: RawRow[] = XLSX.utils.sheet_to_json(sheet, { defval: null });
+// Colunas realmente usadas por classificarLinha/linhaBase — ver função abaixo.
+// O parser CSV (parseEstoqueCsv) só materializa estas, pra não repetir o
+// problema de memória do XLSX.read (que monta as ~58 colunas da planilha
+// original inteiras antes de qualquer filtro ser possível).
+const COLUNAS_NECESSARIAS = [
+  "Operadora específica",
+  "Status",
+  "Status do bloqueio de rede",
+  "Data de início da suspensão",
+  "Data fim da pré-ativação",
+  "Dias de pré-ativação",
+  "MSISDN",
+  "ICCID",
+  "Nome do cliente",
+  "Apelido",
+] as const;
 
+function processarLinhas(rows: Iterable<RawRow>, tipo: TipoEstoque): EstoqueSnapshot {
   const hoje = hojeLocal();
 
   const porOperadora = new Map<string, Acumulador>();
   const linhas: LinhaEstoque[] = [];
+  let totalLinhas = 0;
 
   for (const row of rows) {
+    totalLinhas++;
     const operadora = String(row["Operadora específica"] ?? "").trim();
     if (!operadora) continue;
 
@@ -167,10 +181,91 @@ export function parseEstoque(fileBuffer: ArrayBuffer, tipo: TipoEstoque): Estoqu
   return {
     tipo,
     geradoEm: new Date().toISOString(),
-    totalLinhas: rows.length,
+    totalLinhas,
     operadoras,
     linhas,
   };
+}
+
+export function parseEstoque(fileBuffer: ArrayBuffer, tipo: TipoEstoque): EstoqueSnapshot {
+  const workbook = XLSX.read(fileBuffer, { type: "array", cellDates: true });
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+  const rows: RawRow[] = XLSX.utils.sheet_to_json(sheet, { defval: null });
+  return processarLinhas(rows, tipo);
+}
+
+// Mesmo parser RFC4180 usado em lib/csv.ts, mas em formato gerador: nunca
+// materializa a planilha inteira em memória (nem as ~58 colunas originais,
+// nem as 36 mil linhas de uma vez) — só entrega, uma linha por vez, um objeto
+// com as colunas de COLUNAS_NECESSARIAS. Existe por causa do XLSX.read, que
+// consome ~800MB+ em arquivos grandes (SMT) antes de qualquer filtro ser
+// possível: convertendo pra CSV antes do upload, evita-se esse parser pesado.
+function* linhasCsv(text: string): Generator<RawRow> {
+  let campos: string[] = [];
+  let field = "";
+  let inQuotes = false;
+  let colunaPorIndice: (string | null)[] | null = null;
+
+  function fecharCampo() {
+    campos.push(field);
+    field = "";
+  }
+
+  function fecharLinha(): RawRow | null {
+    fecharCampo();
+    const linhaAtual = campos;
+    campos = [];
+    if (linhaAtual.length === 1 && linhaAtual[0] === "") return null;
+
+    if (!colunaPorIndice) {
+      colunaPorIndice = linhaAtual.map((h) =>
+        (COLUNAS_NECESSARIAS as readonly string[]).includes(h) ? h : null
+      );
+      return null;
+    }
+
+    const row: RawRow = {};
+    for (const campo of COLUNAS_NECESSARIAS) row[campo] = "";
+    colunaPorIndice.forEach((campo, i) => {
+      if (campo) row[campo] = linhaAtual[i] ?? "";
+    });
+    return row;
+  }
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (inQuotes) {
+      if (char === '"') {
+        if (text[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        field += char;
+      }
+      continue;
+    }
+
+    if (char === '"') inQuotes = true;
+    else if (char === ",") fecharCampo();
+    else if (char === "\r") {
+      // ignorado — a quebra de linha real é tratada no \n
+    } else if (char === "\n") {
+      const linha = fecharLinha();
+      if (linha) yield linha;
+    } else field += char;
+  }
+  if (field.length > 0 || campos.length > 0) {
+    const linha = fecharLinha();
+    if (linha) yield linha;
+  }
+}
+
+export function parseEstoqueCsv(text: string, tipo: TipoEstoque): EstoqueSnapshot {
+  return processarLinhas(linhasCsv(text), tipo);
 }
 
 export function diasRestantes(lote: LoteInfo, hoje: Date = hojeLocal()): number | null {

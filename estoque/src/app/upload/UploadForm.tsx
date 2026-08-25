@@ -25,7 +25,7 @@ const CAMPOS: Campo[] = [
   {
     name: "smt",
     label: "Estoque SMT",
-    descricao: "Mesmo formato do Estoque SMART.",
+    descricao: "Mesmo formato do Estoque SMART. Se o arquivo for grande, exporte como .csv (Arquivo > Fazer download > CSV).",
   },
   {
     name: "pedidos",
@@ -56,7 +56,7 @@ function FileDropzone({
       <input
         ref={inputRef}
         type="file"
-        accept=".xlsx"
+        accept=".xlsx,.csv"
         className="hidden"
         onChange={(e) => onChange(e.target.files?.[0] ?? null)}
       />
@@ -99,7 +99,7 @@ function FileDropzone({
           )}
         >
           <UploadCloud className="size-5 text-muted-foreground" />
-          <span className="text-xs text-muted-foreground">Clique ou arraste o arquivo .xlsx aqui</span>
+          <span className="text-xs text-muted-foreground">Clique ou arraste o arquivo .xlsx ou .csv aqui</span>
         </button>
       )}
     </div>

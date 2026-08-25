@@ -1,13 +1,27 @@
 import { NextResponse } from "next/server";
-import { parseEstoque } from "@/lib/parseEstoque";
+import { parseEstoque, parseEstoqueCsv } from "@/lib/parseEstoque";
 import { parsePedidos } from "@/lib/parsePedidos";
 import { setState } from "@/lib/store";
 import { requireMainAuth, unauthorizedResponse } from "@/lib/mainAuth";
+import type { EstoqueSnapshot, TipoEstoque } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 async function fileToBuffer(file: File): Promise<ArrayBuffer> {
   return await file.arrayBuffer();
+}
+
+// Arquivos grandes (ex.: SMT com 36 mil linhas) esgotam a memória do
+// container se lidos como .xlsx — XLSX.read monta a planilha inteira antes
+// de qualquer filtro de coluna ser possível. Exportando como .csv, o
+// parser lê só as colunas necessárias, linha a linha (ver parseEstoqueCsv).
+async function parseArquivoEstoque(file: File, tipo: TipoEstoque): Promise<EstoqueSnapshot> {
+  if (file.name.toLowerCase().endsWith(".csv")) {
+    const texto = await file.text();
+    return parseEstoqueCsv(texto, tipo);
+  }
+  const buffer = await fileToBuffer(file);
+  return parseEstoque(buffer, tipo);
 }
 
 export async function POST(request: Request) {
@@ -27,13 +41,11 @@ export async function POST(request: Request) {
     const updates: Record<string, unknown> = {};
 
     if (smartFile instanceof File && smartFile.size > 0) {
-      const buffer = await fileToBuffer(smartFile);
-      updates.estoqueSmart = parseEstoque(buffer, "SMART");
+      updates.estoqueSmart = await parseArquivoEstoque(smartFile, "SMART");
     }
 
     if (smtFile instanceof File && smtFile.size > 0) {
-      const buffer = await fileToBuffer(smtFile);
-      updates.estoqueSmt = parseEstoque(buffer, "SMT");
+      updates.estoqueSmt = await parseArquivoEstoque(smtFile, "SMT");
     }
 
     if (pedidosFile instanceof File && pedidosFile.size > 0) {
