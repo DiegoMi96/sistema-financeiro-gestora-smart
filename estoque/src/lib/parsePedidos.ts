@@ -1,5 +1,6 @@
 import * as XLSX from "xlsx";
 import { parseFlexibleDate, toISODate } from "./dates";
+import { linhasCsvSeletivas } from "./csv";
 import type { PedidoAgendado, PedidosSnapshot } from "./types";
 
 // Rótulos de operadora usados dentro do pedido que na verdade se referem
@@ -81,72 +82,6 @@ export function parsePedidos(fileBuffer: ArrayBuffer): PedidosSnapshot {
   return processarLinhas(rows);
 }
 
-// Mesmo parser RFC4180 usado em lib/csv.ts e em parseEstoque.ts (linhasCsv):
-// nunca materializa a planilha inteira em memória, só entrega, uma linha
-// por vez, um objeto com as colunas de COLUNAS_NECESSARIAS.
-function* linhasCsv(text: string): Generator<RawRow> {
-  let campos: string[] = [];
-  let field = "";
-  let inQuotes = false;
-  let colunaPorIndice: (string | null)[] | null = null;
-
-  function fecharCampo() {
-    campos.push(field);
-    field = "";
-  }
-
-  function fecharLinha(): RawRow | null {
-    fecharCampo();
-    const linhaAtual = campos;
-    campos = [];
-    if (linhaAtual.length === 1 && linhaAtual[0] === "") return null;
-
-    if (!colunaPorIndice) {
-      colunaPorIndice = linhaAtual.map((h) =>
-        (COLUNAS_NECESSARIAS as readonly string[]).includes(h) ? h : null
-      );
-      return null;
-    }
-
-    const row: RawRow = {};
-    for (const campo of COLUNAS_NECESSARIAS) row[campo] = "";
-    colunaPorIndice.forEach((campo, i) => {
-      if (campo) row[campo] = linhaAtual[i] ?? "";
-    });
-    return row;
-  }
-
-  for (let i = 0; i < text.length; i++) {
-    const char = text[i];
-    if (inQuotes) {
-      if (char === '"') {
-        if (text[i + 1] === '"') {
-          field += '"';
-          i++;
-        } else {
-          inQuotes = false;
-        }
-      } else {
-        field += char;
-      }
-      continue;
-    }
-
-    if (char === '"') inQuotes = true;
-    else if (char === ",") fecharCampo();
-    else if (char === "\r") {
-      // ignorado — a quebra de linha real é tratada no \n
-    } else if (char === "\n") {
-      const linha = fecharLinha();
-      if (linha) yield linha;
-    } else field += char;
-  }
-  if (field.length > 0 || campos.length > 0) {
-    const linha = fecharLinha();
-    if (linha) yield linha;
-  }
-}
-
 export function parsePedidosCsv(text: string): PedidosSnapshot {
-  return processarLinhas(linhasCsv(text));
+  return processarLinhas(linhasCsvSeletivas(text, COLUNAS_NECESSARIAS));
 }

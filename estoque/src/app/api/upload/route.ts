@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { parseEstoque, parseEstoqueCsv } from "@/lib/parseEstoque";
 import { parsePedidos, parsePedidosCsv } from "@/lib/parsePedidos";
+import { decodificarTextoPlanilha } from "@/lib/csv";
 import { setState } from "@/lib/store";
 import { requireMainAuth, unauthorizedResponse } from "@/lib/mainAuth";
 import type { EstoqueSnapshot, PedidosSnapshot, TipoEstoque } from "@/lib/types";
@@ -11,14 +12,21 @@ async function fileToBuffer(file: File): Promise<ArrayBuffer> {
   return await file.arrayBuffer();
 }
 
+// file.text() sempre decodifica como UTF-8 — mas o Excel BR, ao "Salvar como
+// CSV" (fora da variante "CSV UTF-8"), grava em Windows-1252. Sem isso, todo
+// acento em "Operadora específica" etc. viraria "�" e nenhuma coluna bateria.
+async function textoDoArquivo(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer();
+  return decodificarTextoPlanilha(new Uint8Array(buffer));
+}
+
 // Arquivos grandes (ex.: SMT com 36 mil linhas) esgotam a memória do
 // container se lidos como .xlsx — XLSX.read monta a planilha inteira antes
 // de qualquer filtro de coluna ser possível. Exportando como .csv, o
 // parser lê só as colunas necessárias, linha a linha (ver parseEstoqueCsv).
 async function parseArquivoEstoque(file: File, tipo: TipoEstoque): Promise<EstoqueSnapshot> {
   if (file.name.toLowerCase().endsWith(".csv")) {
-    const texto = await file.text();
-    return parseEstoqueCsv(texto, tipo);
+    return parseEstoqueCsv(await textoDoArquivo(file), tipo);
   }
   const buffer = await fileToBuffer(file);
   return parseEstoque(buffer, tipo);
@@ -26,8 +34,7 @@ async function parseArquivoEstoque(file: File, tipo: TipoEstoque): Promise<Estoq
 
 async function parseArquivoPedidos(file: File): Promise<PedidosSnapshot> {
   if (file.name.toLowerCase().endsWith(".csv")) {
-    const texto = await file.text();
-    return parsePedidosCsv(texto);
+    return parsePedidosCsv(await textoDoArquivo(file));
   }
   const buffer = await fileToBuffer(file);
   return parsePedidos(buffer);

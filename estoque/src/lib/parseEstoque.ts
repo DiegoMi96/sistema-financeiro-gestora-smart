@@ -1,5 +1,6 @@
 import * as XLSX from "xlsx";
 import { parseFlexibleDate, toISODate, daysBetween, hojeLocal } from "./dates";
+import { linhasCsvSeletivas } from "./csv";
 import type { EstoqueSnapshot, OperadoraEstoque, LoteInfo, LinhaEstoque, TipoEstoque } from "./types";
 
 // Regra de classificação validada linha a linha contra o arquivo real do cliente:
@@ -195,77 +196,8 @@ export function parseEstoque(fileBuffer: ArrayBuffer, tipo: TipoEstoque): Estoqu
   return processarLinhas(rows, tipo);
 }
 
-// Mesmo parser RFC4180 usado em lib/csv.ts, mas em formato gerador: nunca
-// materializa a planilha inteira em memória (nem as ~58 colunas originais,
-// nem as 36 mil linhas de uma vez) — só entrega, uma linha por vez, um objeto
-// com as colunas de COLUNAS_NECESSARIAS. Existe por causa do XLSX.read, que
-// consome ~800MB+ em arquivos grandes (SMT) antes de qualquer filtro ser
-// possível: convertendo pra CSV antes do upload, evita-se esse parser pesado.
-function* linhasCsv(text: string): Generator<RawRow> {
-  let campos: string[] = [];
-  let field = "";
-  let inQuotes = false;
-  let colunaPorIndice: (string | null)[] | null = null;
-
-  function fecharCampo() {
-    campos.push(field);
-    field = "";
-  }
-
-  function fecharLinha(): RawRow | null {
-    fecharCampo();
-    const linhaAtual = campos;
-    campos = [];
-    if (linhaAtual.length === 1 && linhaAtual[0] === "") return null;
-
-    if (!colunaPorIndice) {
-      colunaPorIndice = linhaAtual.map((h) =>
-        (COLUNAS_NECESSARIAS as readonly string[]).includes(h) ? h : null
-      );
-      return null;
-    }
-
-    const row: RawRow = {};
-    for (const campo of COLUNAS_NECESSARIAS) row[campo] = "";
-    colunaPorIndice.forEach((campo, i) => {
-      if (campo) row[campo] = linhaAtual[i] ?? "";
-    });
-    return row;
-  }
-
-  for (let i = 0; i < text.length; i++) {
-    const char = text[i];
-    if (inQuotes) {
-      if (char === '"') {
-        if (text[i + 1] === '"') {
-          field += '"';
-          i++;
-        } else {
-          inQuotes = false;
-        }
-      } else {
-        field += char;
-      }
-      continue;
-    }
-
-    if (char === '"') inQuotes = true;
-    else if (char === ",") fecharCampo();
-    else if (char === "\r") {
-      // ignorado — a quebra de linha real é tratada no \n
-    } else if (char === "\n") {
-      const linha = fecharLinha();
-      if (linha) yield linha;
-    } else field += char;
-  }
-  if (field.length > 0 || campos.length > 0) {
-    const linha = fecharLinha();
-    if (linha) yield linha;
-  }
-}
-
 export function parseEstoqueCsv(text: string, tipo: TipoEstoque): EstoqueSnapshot {
-  return processarLinhas(linhasCsv(text), tipo);
+  return processarLinhas(linhasCsvSeletivas(text, COLUNAS_NECESSARIAS), tipo);
 }
 
 export function diasRestantes(lote: LoteInfo, hoje: Date = hojeLocal()): number | null {
