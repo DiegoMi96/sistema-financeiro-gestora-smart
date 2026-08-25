@@ -119,9 +119,11 @@ services:
   # Sistema do Thalles (controle de estoque de chips SMART/SMT). Roda em
   # /estoque no mesmo domínio do sistema principal (ver estoque/next.config.ts
   # basePath). Login unificado: reusa a MESMA SECRET_KEY do backend (nunca
-  # duplicar o valor à mão — sempre referenciar ${SECRET_KEY}). Sem banco de
-  # dados — persistência em arquivo JSON (data/state.json), por isso o volume
-  # próprio abaixo (sem ele, os dados de estoque somem a cada rebuild).
+  # duplicar o valor à mão — sempre referenciar ${SECRET_KEY}). Banco próprio
+  # adicionado em 25/08/2026 (mesmo padrão do Guardião — Postgres dedicado
+  # no mesmo droplet, ver estoque/src/lib/db.ts): ESTOQUE_DATABASE_URL.
+  # O volume `estoque_data` abaixo é o antigo data/state.json — ainda montado
+  # por segurança/rollback, mas não é mais lido depois da migração pro banco.
   estoque:
     build:
       context: ./estoque
@@ -129,6 +131,7 @@ services:
     restart: unless-stopped
     environment:
       GESTORA_JWT_SECRET: ${SECRET_KEY:-TROQUE-EM-PRODUCAO-USE-OPENSSL-RAND-HEX-32}
+      ESTOQUE_DATABASE_URL: ${ESTOQUE_DATABASE_URL:-}
       CANCELAMENTO_SHEET_ID: ${CANCELAMENTO_SHEET_ID:-}
       SAIDA_SHEET_ID: ${SAIDA_SHEET_ID:-}
     ports:

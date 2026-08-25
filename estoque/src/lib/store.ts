@@ -1,13 +1,12 @@
-import { promises as fs } from "fs";
-import path from "path";
+import { sql } from "./db";
 import type { AppState } from "./types";
 
-// Persistência simples em arquivo JSON local — placeholder de desenvolvimento.
-// Antes de ir para produção/nuvem isso deve ser trocado por Supabase (Postgres),
-// mantendo a mesma interface (getState / setState) para não precisar mexer nas telas.
+// Persistência em Postgres (banco estoque_db, ver src/lib/db.ts e schema.ts).
+// Mantém a MESMA interface (getState/setState/setNovaCompra) que a versão
+// anterior em arquivo (data/state.json) usava — nenhuma tela ou lib de
+// agregação precisou mudar por causa desta troca.
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const DATA_FILE = path.join(DATA_DIR, "state.json");
+const CHAVES: (keyof AppState)[] = ["estoqueSmart", "estoqueSmt", "pedidos", "novasCompras"];
 
 const ESTADO_VAZIO: AppState = {
   estoqueSmart: null,
@@ -16,28 +15,27 @@ const ESTADO_VAZIO: AppState = {
   novasCompras: {},
 };
 
-async function garantirArquivo(): Promise<void> {
-  await fs.mkdir(DATA_DIR, { recursive: true });
-  try {
-    await fs.access(DATA_FILE);
-  } catch {
-    await fs.writeFile(DATA_FILE, JSON.stringify(ESTADO_VAZIO, null, 2), "utf-8");
-  }
-}
-
 export async function getState(): Promise<AppState> {
-  await garantirArquivo();
-  const raw = await fs.readFile(DATA_FILE, "utf-8");
-  // O merge com ESTADO_VAZIO cobre chaves novas adicionadas depois que o
-  // arquivo em disco foi gravado pela última vez (evolução de schema).
-  return { ...ESTADO_VAZIO, ...(JSON.parse(raw) as Partial<AppState>) };
+  const linhas = await sql<{ key: string; value: unknown }[]>`
+    SELECT key, value FROM estoque_state WHERE key = ANY(${CHAVES})
+  `;
+
+  const estado = { ...ESTADO_VAZIO };
+  for (const { key, value } of linhas) {
+    (estado as Record<string, unknown>)[key] = value;
+  }
+  return estado;
 }
 
 export async function setState(partial: Partial<AppState>): Promise<AppState> {
-  const atual = await getState();
-  const novo: AppState = { ...atual, ...partial };
-  await fs.writeFile(DATA_FILE, JSON.stringify(novo, null, 2), "utf-8");
-  return novo;
+  for (const [key, value] of Object.entries(partial)) {
+    await sql`
+      INSERT INTO estoque_state (key, value, updated_at)
+      VALUES (${key}, ${JSON.stringify(value)}::jsonb, NOW())
+      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()
+    `;
+  }
+  return getState();
 }
 
 export async function setNovaCompra(operadora: string, valor: number): Promise<AppState> {

@@ -29,9 +29,11 @@ ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-# Persistência do estado (data/state.json) — ver src/lib/store.ts. Sem
-# banco de dados neste app; o volume Docker (docker-compose.yml) é montado
-# aqui e é o que garante que o estoque sobrevive a um rebuild do container.
+# Persistência migrada para Postgres em 25/08/2026 (banco próprio
+# `estoque_db`, mesmo droplet — ver src/lib/db.ts, schema.ts e
+# ESTOQUE_DATABASE_URL no docker-compose.yml). Este diretório e o volume
+# Docker correspondente (docker-compose.yml) são o antigo data/state.json —
+# mantidos por precaução/rollback, mas nada grava mais aqui.
 RUN mkdir -p data
 EXPOSE 3000
 CMD ["node", "server.js"]
