@@ -29,9 +29,12 @@ export async function getState(): Promise<AppState> {
 
 export async function setState(partial: Partial<AppState>): Promise<AppState> {
   for (const [key, value] of Object.entries(partial)) {
+    // NÃO usar JSON.stringify aqui: o postgres.js já serializa o valor
+    // automaticamente por causa do cast ::jsonb — fazer os dois causa
+    // double-encoding (grava uma string contendo JSON em vez de um objeto).
     await sql`
       INSERT INTO estoque_state (key, value, updated_at)
-      VALUES (${key}, ${JSON.stringify(value)}::jsonb, NOW())
+      VALUES (${key}, ${value as never}::jsonb, NOW())
       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()
     `;
   }
