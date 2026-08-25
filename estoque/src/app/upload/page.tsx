@@ -66,9 +66,7 @@ export default function UploadPage() {
           </div>
         )}
 
-        <div className="max-w-2xl">
-          <UploadForm onEnviado={carregar} />
-        </div>
+        <UploadForm onEnviado={carregar} />
       </div>
     </>
   );
