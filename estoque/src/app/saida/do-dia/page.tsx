@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { RefreshButton } from "@/components/refresh-button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingState } from "@/components/loading-state";
 
 function fmt(n: number): string {
   return n.toLocaleString("pt-BR");
@@ -23,7 +23,7 @@ function fmtData(iso: string): string {
 
 export default function SaidaDoDiaPage() {
   return (
-    <Suspense fallback={<Skeleton className="m-4 h-64 md:m-6" />}>
+    <Suspense fallback={<LoadingState label="Carregando..." />}>
       <SaidaDoDiaContent />
     </Suspense>
   );
@@ -59,9 +59,7 @@ function SaidaDoDiaContent() {
     return (
       <>
         <PageHeader title="Saída do dia" description="Pedidos expedidos numa data específica" />
-        <div className="p-4 md:p-6">
-          <Skeleton className="h-64 w-full" />
-        </div>
+        <LoadingState label="Carregando saída do dia..." />
       </>
     );
   }

@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { RefreshButton } from "@/components/refresh-button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingState } from "@/components/loading-state";
 import { cn } from "@/lib/utils";
 
 export const ITENS_POR_PAGINA = 25;
@@ -29,7 +29,7 @@ function fmtData(iso: string): string {
 
 export default function MultaContratualPage() {
   return (
-    <Suspense fallback={<Skeleton className="m-4 h-64 md:m-6" />}>
+    <Suspense fallback={<LoadingState label="Carregando..." />}>
       <MultaContratualContent />
     </Suspense>
   );
@@ -63,9 +63,7 @@ function MultaContratualContent() {
     return (
       <>
         <PageHeader title="Multa Contratual" description="Linhas com fidelidade no valor do contrato" />
-        <div className="p-4 md:p-6">
-          <Skeleton className="h-64 w-full" />
-        </div>
+        <LoadingState label="Carregando multa contratual..." />
       </>
     );
   }

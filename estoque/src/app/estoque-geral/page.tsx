@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingState } from "@/components/loading-state";
 import { NovaCompraCell } from "./NovaCompraCell";
 
 function fmt(n: number): string {
@@ -53,9 +53,7 @@ export default function EstoqueGeralPage() {
     return (
       <>
         <PageHeader title="Estoque Geral" />
-        <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">
-          <Skeleton className="h-64 w-full" />
-        </div>
+        <LoadingState label="Carregando estoque geral..." />
       </>
     );
   }

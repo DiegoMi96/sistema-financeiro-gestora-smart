@@ -17,7 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingState } from "@/components/loading-state";
 
 function fmt(n: number): string {
   return n.toLocaleString("pt-BR");
@@ -41,10 +41,7 @@ export default function DashboardPage() {
     return (
       <>
         <PageHeader title="Dashboard" />
-        <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">
-          <Skeleton className="h-40 w-full" />
-          <Skeleton className="h-64 w-full" />
-        </div>
+        <LoadingState label="Carregando dashboard..." />
       </>
     );
   }

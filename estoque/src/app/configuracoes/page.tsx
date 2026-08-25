@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/apiClient";
 import { PageHeader } from "@/components/page-header";
-import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingState } from "@/components/loading-state";
 import { SheetConfigCard } from "./SheetConfigCard";
 
 type ConfigResposta = {
@@ -32,10 +32,7 @@ export default function ConfiguracoesPage() {
 
       <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">
         {loading || !config ? (
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <Skeleton className="h-56 w-full" />
-            <Skeleton className="h-56 w-full" />
-          </div>
+          <LoadingState label="Carregando configurações..." />
         ) : (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <SheetConfigCard

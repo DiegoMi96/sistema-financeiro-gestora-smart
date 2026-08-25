@@ -5,7 +5,7 @@ import { apiGet } from "@/lib/apiClient";
 import type { EstoqueSnapshot } from "@/lib/types";
 import EstoqueDetalhe from "@/components/EstoqueDetalhe";
 import { PageHeader } from "@/components/page-header";
-import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingState } from "@/components/loading-state";
 
 export default function EstoqueSmtPage() {
   const [loading, setLoading] = useState(true);
@@ -21,9 +21,7 @@ export default function EstoqueSmtPage() {
     <>
       <PageHeader title="Estoque SMT" description="Ativos, pré-ativos e suspensos por operadora" />
       {loading ? (
-        <div className="p-4 md:p-6">
-          <Skeleton className="h-64 w-full" />
-        </div>
+        <LoadingState label="Carregando estoque SMT..." />
       ) : (
         <EstoqueDetalhe snapshot={snapshot} />
       )}

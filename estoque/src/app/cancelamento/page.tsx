@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { RefreshButton } from "@/components/refresh-button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingState } from "@/components/loading-state";
 import CancelamentoDetalhe from "@/components/CancelamentoDetalhe";
 
 const MESES = [
@@ -54,9 +54,7 @@ export default function CancelamentoPage() {
     return (
       <>
         <PageHeader title="Controle de Cancelamento" description="Backlog de solicitações de cancelamento" />
-        <div className="p-4 md:p-6">
-          <Skeleton className="h-64 w-full" />
-        </div>
+        <LoadingState label="Carregando cancelamentos..." />
       </>
     );
   }

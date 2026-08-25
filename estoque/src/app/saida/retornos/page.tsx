@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { RefreshButton } from "@/components/refresh-button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingState } from "@/components/loading-state";
 import { cn } from "@/lib/utils";
 
 function fmt(n: number): string {
@@ -57,9 +57,7 @@ export default function RetornosPage() {
     return (
       <>
         <PageHeader title="Retornos e Reenvios" description="Histórico de devoluções e reenvios" />
-        <div className="p-4 md:p-6">
-          <Skeleton className="h-64 w-full" />
-        </div>
+        <LoadingState label="Carregando retornos..." />
       </>
     );
   }
