@@ -456,7 +456,7 @@ const PLAN_BUCKETS = [
   { label: 'Outros',  min: 28, max: 31  },
 ]
 
-function PaymentPlanningChart({ planejadoPorDia, coberturaPct, clientesCom, clientesSem, valorMesSeguinte, clientesMesSeguinte }) {
+function PaymentPlanningChart({ planejadoPorDia, coberturaPct, clientesCom, clientesSem }) {
   const fmt2 = v => `R$ ${Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
   const itens = PLAN_BUCKETS.map(b => {
@@ -482,12 +482,6 @@ function PaymentPlanningChart({ planejadoPorDia, coberturaPct, clientesCom, clie
           <span className="text-[11px] bg-blue-50 text-blue-600 font-medium px-2 py-0.5 rounded-full border border-blue-100">Previsão</span>
         </div>
         <p className="text-xs text-gray-400 mt-0.5">Baseado nos últimos 3 meses por CNPJ/CPF</p>
-        {valorMesSeguinte > 0 && (
-          <p className="text-[11px] text-amber-600 mt-1.5 flex items-center gap-1">
-            <span className="font-semibold">{fmt2(valorMesSeguinte)}</span>
-            já saíram desta previsão — {clientesMesSeguinte} cliente(s) com atraso histórico o suficiente para cair no mês seguinte
-          </p>
-        )}
       </div>
       <div className="p-5 flex flex-col gap-3">
         {totalPrevisto === 0 ? (
@@ -826,8 +820,6 @@ export default function AnalystDashboard() {
           coberturaPct={plan?.cobertura_pct ?? 0}
           clientesCom={plan?.clientes_com_historico ?? 0}
           clientesSem={plan?.clientes_sem_historico ?? 0}
-          valorMesSeguinte={plan?.valor_previsto_mes_seguinte ?? 0}
-          clientesMesSeguinte={plan?.clientes_previsto_mes_seguinte ?? 0}
         />
       </div>
 
