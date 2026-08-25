@@ -72,12 +72,30 @@ export function AppSidebar() {
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
 
   // Logo real da empresa (mesmo padrão do Faturamento, ver Layout.jsx) —
-  // rota pública do backend principal, não precisa de token.
+  // rota pública do backend principal, não precisa de token. Com retry:
+  // uma falha/instabilidade pontual nessa chamada deixava a área da logo
+  // vazia pro resto da sessão (sem fallback em texto, pedido do Diego —
+  // ver comentário abaixo), já que a busca só rodava uma vez.
   useEffect(() => {
-    fetch("/api/settings/public")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (d?.empresa_logo) setCompanyLogo(d.empresa_logo); })
-      .catch(() => {});
+    let cancelado = false;
+
+    async function buscarLogo(tentativa: number) {
+      try {
+        const r = await fetch("/api/settings/public");
+        const d = r.ok ? await r.json() : null;
+        if (!cancelado && d?.empresa_logo) {
+          setCompanyLogo(d.empresa_logo);
+          return;
+        }
+        throw new Error("sem empresa_logo na resposta");
+      } catch {
+        if (cancelado || tentativa >= 3) return;
+        setTimeout(() => buscarLogo(tentativa + 1), 1000 * (tentativa + 1));
+      }
+    }
+
+    buscarLogo(0);
+    return () => { cancelado = true; };
   }, []);
 
   // Mesmo padrão do sistema principal (Layout.jsx): volta pra tela de
