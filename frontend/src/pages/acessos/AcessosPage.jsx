@@ -127,7 +127,19 @@ const PERM_SECTIONS = [
     ['can_view_smt', 'Acesso ao Dashboard SMT'],
   ]},
   { key: 'ESTOQUE', perms: [
-    ['can_view_estoque', 'Acesso ao módulo'],
+    ['can_view_estoque',             'Acesso ao módulo'],
+    ['can_view_est_dashboard',       'Estoque — Dashboard'],
+    ['can_view_est_geral',           'Estoque — Estoque Geral'],
+    ['can_view_est_smart',           'Estoque — Estoque SMART'],
+    ['can_view_est_smt',             'Estoque — Estoque SMT'],
+    ['can_view_est_upload',          'Estoque — Upload de planilhas'],
+    ['can_view_est_saida_dashboard', 'Controle de Saída — Dashboard'],
+    ['can_view_est_saida_resumo',    'Controle de Saída — Resumo por operadora'],
+    ['can_view_est_saida_dia',       'Controle de Saída — Saída do dia'],
+    ['can_view_est_saida_retornos',  'Controle de Saída — Retornos e Reenvios'],
+    ['can_view_est_canc_dashboard',  'Controle de Cancelamento — Dashboard'],
+    ['can_view_est_canc_multa',      'Controle de Cancelamento — Multa Contratual'],
+    ['can_view_est_config',          'Configurações'],
   ]},
 ]
 

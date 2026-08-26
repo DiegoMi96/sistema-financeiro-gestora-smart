@@ -1,5 +1,6 @@
 "use client";
 
+import { PermissionGate } from "@/components/permission-gate";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -27,7 +28,7 @@ function fmtData(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
-export default function MultaContratualPage() {
+function MultaContratualPageContent() {
   return (
     <Suspense fallback={<LoadingState label="Carregando..." />}>
       <MultaContratualContent />
@@ -243,5 +244,13 @@ function PaginaLink({
     <Link href={`/cancelamento/multa-contratual?pagina=${pagina}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
       {children}
     </Link>
+  );
+}
+
+export default function MultaContratualPage() {
+  return (
+    <PermissionGate permission="can_view_est_canc_multa" title="Multa Contratual">
+      <MultaContratualPageContent />
+    </PermissionGate>
   );
 }

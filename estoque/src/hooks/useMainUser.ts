@@ -12,6 +12,10 @@ export interface MainUser {
   email: string;
   role: string;
   role_label?: string;
+  // Vem pronto do /auth/login do sistema principal (user_to_dict), já
+  // resolvido (override individual > perfil personalizado > override de
+  // perfil > padrão do role) — ver backend/app/core/permissions.py.
+  permissions?: Record<string, boolean>;
 }
 
 export function useMainUser() {

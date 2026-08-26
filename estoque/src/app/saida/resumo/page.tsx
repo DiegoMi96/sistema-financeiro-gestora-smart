@@ -1,5 +1,6 @@
 "use client";
 
+import { PermissionGate } from "@/components/permission-gate";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { TriangleAlert } from "lucide-react";
@@ -21,7 +22,7 @@ function fmt(n: number): string {
   return n === 0 ? "" : n.toLocaleString("pt-BR");
 }
 
-export default function ResumoSaidaPage() {
+function ResumoSaidaPageContent() {
   return (
     <Suspense fallback={<LoadingState label="Carregando..." />}>
       <ResumoSaidaContent />
@@ -187,5 +188,13 @@ function ResumoSaidaContent() {
         </Card>
       </div>
     </>
+  );
+}
+
+export default function ResumoSaidaPage() {
+  return (
+    <PermissionGate permission="can_view_est_saida_resumo" title="Resumo por operadora">
+      <ResumoSaidaPageContent />
+    </PermissionGate>
   );
 }

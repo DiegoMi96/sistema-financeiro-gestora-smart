@@ -1,5 +1,6 @@
 "use client";
 
+import { PermissionGate } from "@/components/permission-gate";
 import { useEffect, useState } from "react";
 import { CheckCircle2, CircleDashed } from "lucide-react";
 import { apiGet } from "@/lib/apiClient";
@@ -19,7 +20,7 @@ function formatarData(iso: string | null | undefined): string {
   return new Date(iso).toLocaleString("pt-BR");
 }
 
-export default function UploadPage() {
+function UploadPageContent() {
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<UploadStatus | null>(null);
 
@@ -103,5 +104,13 @@ function StatusCard({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+export default function UploadPage() {
+  return (
+    <PermissionGate permission="can_view_est_upload" title="Upload de planilhas">
+      <UploadPageContent />
+    </PermissionGate>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { PermissionGate } from "@/components/permission-gate";
 import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/apiClient";
 import { PageHeader } from "@/components/page-header";
@@ -11,7 +12,7 @@ type ConfigResposta = {
   config: { cancelamentoSheetId: string | null; saidaSheetId: string | null };
 };
 
-export default function ConfiguracoesPage() {
+function ConfiguracoesPageContent() {
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState<{ cancelamentoSheetId: string | null; saidaSheetId: string | null } | null>(
     null
@@ -53,5 +54,13 @@ export default function ConfiguracoesPage() {
         )}
       </div>
     </>
+  );
+}
+
+export default function ConfiguracoesPage() {
+  return (
+    <PermissionGate permission="can_view_est_config" title="Configurações">
+      <ConfiguracoesPageContent />
+    </PermissionGate>
   );
 }

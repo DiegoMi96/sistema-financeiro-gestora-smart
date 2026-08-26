@@ -1,5 +1,6 @@
 "use client";
 
+import { PermissionGate } from "@/components/permission-gate";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Inbox } from "lucide-react";
@@ -30,7 +31,7 @@ function fmtData(iso: string | null): string {
   return `${d}/${m}/${y}`;
 }
 
-export default function EstoqueGeralPage() {
+function EstoqueGeralPageContent() {
   const [loading, setLoading] = useState(true);
   const [empty, setEmpty] = useState(false);
   const [vm, setVm] = useState<EstoqueGeralViewModel | null>(null);
@@ -192,5 +193,13 @@ export default function EstoqueGeralPage() {
         </Card>
       </div>
     </>
+  );
+}
+
+export default function EstoqueGeralPage() {
+  return (
+    <PermissionGate permission="can_view_est_geral" title="Estoque Geral">
+      <EstoqueGeralPageContent />
+    </PermissionGate>
   );
 }

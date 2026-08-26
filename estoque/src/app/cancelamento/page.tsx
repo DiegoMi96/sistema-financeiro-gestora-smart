@@ -1,5 +1,6 @@
 "use client";
 
+import { PermissionGate } from "@/components/permission-gate";
 import { useEffect, useState } from "react";
 import { TriangleAlert } from "lucide-react";
 import { apiGet } from "@/lib/apiClient";
@@ -35,7 +36,7 @@ type ApiResponse = {
   geral?: CancelamentoGeralViewModel;
 };
 
-export default function CancelamentoPage() {
+function CancelamentoPageContent() {
   const [loading, setLoading] = useState(true);
   const [dados, setDados] = useState<ApiResponse | null>(null);
 
@@ -191,5 +192,13 @@ function StatCard({
         </p>
       </CardContent>
     </Card>
+  );
+}
+
+export default function CancelamentoPage() {
+  return (
+    <PermissionGate permission="can_view_est_canc_dashboard" title="Controle de Cancelamento">
+      <CancelamentoPageContent />
+    </PermissionGate>
   );
 }

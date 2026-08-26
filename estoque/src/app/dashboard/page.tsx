@@ -1,5 +1,6 @@
 "use client";
 
+import { PermissionGate } from "@/components/permission-gate";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Inbox } from "lucide-react";
@@ -23,7 +24,7 @@ function fmt(n: number): string {
   return n.toLocaleString("pt-BR");
 }
 
-export default function DashboardPage() {
+function DashboardPageContent() {
   const [loading, setLoading] = useState(true);
   const [empty, setEmpty] = useState(false);
   const [vm, setVm] = useState<DashboardViewModel | null>(null);
@@ -223,5 +224,13 @@ function EmptyState() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <PermissionGate permission="can_view_est_dashboard" title="Dashboard">
+      <DashboardPageContent />
+    </PermissionGate>
   );
 }

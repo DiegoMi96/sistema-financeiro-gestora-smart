@@ -1,5 +1,6 @@
 "use client";
 
+import { PermissionGate } from "@/components/permission-gate";
 import { useEffect, useState } from "react";
 import { TriangleAlert } from "lucide-react";
 import { apiGet } from "@/lib/apiClient";
@@ -19,7 +20,7 @@ function fmt(n: number): string {
   return n.toLocaleString("pt-BR");
 }
 
-export default function SaidaDashboardPage() {
+function SaidaDashboardPageContent() {
   const [loading, setLoading] = useState(true);
   const [ok, setOk] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
@@ -163,5 +164,13 @@ function StatCard({ titulo, valor }: { titulo: string; valor: number }) {
         <p className="mt-1 text-2xl font-bold tabular-nums">{fmt(valor)}</p>
       </CardContent>
     </Card>
+  );
+}
+
+export default function SaidaDashboardPage() {
+  return (
+    <PermissionGate permission="can_view_est_saida_dashboard" title="Controle de Saída">
+      <SaidaDashboardPageContent />
+    </PermissionGate>
   );
 }
