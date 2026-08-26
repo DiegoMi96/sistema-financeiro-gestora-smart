@@ -491,6 +491,25 @@ section[data-page="pl"] .grid-5 .kpi-spark { margin-top: auto; }
 .page.active { display: block; animation: fade .25s ease; }
 @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
+/* Fechamento do Mês (26/08/2026) — visão de relatório: várias .page normalmente
+   exclusivas (uma ativa por vez) ficam todas visíveis empilhadas, na ordem
+   combinada com o Diego; DFC e Configurações continuam de fora; itens
+   marcados com [data-fech="hide"] somem dentro das páginas que entram
+   parcialmente (Resumo Financeiro, Vendas, RH). Não mexe no funcionamento
+   normal do dashboard — só ativa quando body.fechamento-mode está presente. */
+body.fechamento-mode .sidebar { display: none; }
+body.fechamento-mode .page[data-page="dashboard"],
+body.fechamento-mode .page[data-page="pl"],
+body.fechamento-mode .page[data-page="sales"],
+body.fechamento-mode .page[data-page="ops"],
+body.fechamento-mode .page[data-page="logistics"],
+body.fechamento-mode .page[data-page="rh"] {
+  display: block !important;
+}
+body.fechamento-mode [data-fech="hide"] { display: none !important; }
+#fechamentoHeader { display: none; }
+body.fechamento-mode #fechamentoHeader { display: block; }
+
 /* Scenario controls (cenários page) */
 .slider-row { display: grid; grid-template-columns: 180px 1fr 90px; gap: 14px; align-items: center; padding: 12px 0; border-bottom: 1px dashed var(--border); }
 .slider-row:last-child { border-bottom: 0; }
@@ -977,6 +996,11 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-5a4 4 0 11-8 0 4 4 0 018 0zm6 3a3 3 0 100-6 3 3 0 000 6z"/></svg>
       <span class="nav-label">RH</span>
     </div>
+    <div class="nav-section">Relatórios</div>
+    <div class="nav-item" data-page="fechamento" title="Fechamento do Mês">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m-8 5h10a2 2 0 002-2V7.828a2 2 0 00-.586-1.414l-3.828-3.828A2 2 0 0012.172 2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+      <span class="nav-label">Fechamento do Mês</span>
+    </div>
     <div class="nav-section">Análises</div>
     <div class="nav-item" data-page="dfc" title="DFC Gerencial">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg>
@@ -1104,6 +1128,25 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
   </header>
 
   <div class="content">
+
+    <!-- =============== FECHAMENTO DO MÊS (26/08/2026) =============== -->
+    <div id="fechamentoHeader" style="margin-bottom:22px">
+      <div class="page-head">
+        <div>
+          <h2 class="page-title">Fechamento do Mês</h2>
+          <p class="page-sub" id="fechamentoSub">Resumo consolidado do período selecionado</p>
+        </div>
+        <button onclick="sairFechamentoMode()" style="background:transparent;color:var(--text-2);border:1px solid var(--border);padding:9px 16px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit">← Voltar ao dashboard</button>
+      </div>
+      <div class="chart-card" id="fechamentoInsightsBox" style="margin-bottom:14px">
+        <div class="chart-head">
+          <div><div class="chart-title">Insights do mês</div><div class="chart-sub">Leitura gerada por IA a partir dos dados deste fechamento</div></div>
+        </div>
+        <div id="fechamentoInsightsBody" style="font-size:13.5px;line-height:1.65;color:var(--text-2)">
+          Em breve — gerado automaticamente a partir dos números deste fechamento.
+        </div>
+      </div>
+    </div>
 
     <!-- =============== DASHBOARD =============== -->
     <section class="page active" data-page="dashboard">
@@ -1346,7 +1389,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
 
       <!-- KPI cards — topo da visão financeira -->
       <div class="grid grid-5" style="margin-bottom:14px">
-        <div class="card kpi-dark" style="display:flex;flex-direction:column;gap:6px;background:linear-gradient(135deg,#1D9E5E,#16774A);border:none;box-shadow:0 8px 20px rgba(22,119,74,.32)">
+        <div class="card kpi-dark" data-fech="hide" style="display:flex;flex-direction:column;gap:6px;background:linear-gradient(135deg,#1D9E5E,#16774A);border:none;box-shadow:0 8px 20px rgba(22,119,74,.32)">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px">
             <div style="width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.18);color:#fff;display:grid;place-items:center;flex-shrink:0">
               <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 17l6-6 4 4 8-8"/><path stroke-linecap="round" stroke-linejoin="round" d="M14 7h7v7"/></svg>
@@ -1357,7 +1400,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           <div class="kpi-foot" style="color:rgba(255,255,255,.8)">Resultado do mês</div>
           <div class="kpi-spark"></div>
         </div>
-        <div class="card kpi-dark" style="display:flex;flex-direction:column;gap:6px;background:linear-gradient(135deg,#1D9E5E,#16774A);border:none;box-shadow:0 8px 20px rgba(22,119,74,.32)">
+        <div class="card kpi-dark" data-fech="hide" style="display:flex;flex-direction:column;gap:6px;background:linear-gradient(135deg,#1D9E5E,#16774A);border:none;box-shadow:0 8px 20px rgba(22,119,74,.32)">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px">
             <div style="width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.18);color:#fff;display:grid;place-items:center;flex-shrink:0;font-weight:800;font-size:14px">%</div>
             <div class="kpi-label" style="margin:0;color:rgba(255,255,255,.85)" data-kpi="Margem Líquida (mês)">Margem Líquida</div>
@@ -1366,7 +1409,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           <div class="kpi-foot" style="color:rgba(255,255,255,.8)">Resultado / Receita</div>
           <div class="kpi-spark"></div>
         </div>
-        <div class="card">
+        <div class="card" data-fech="hide">
           <div class="kpi-label">Margem de Contribuição</div>
           <div class="kpi-value">—</div>
           <div class="kpi-foot">—</div>
@@ -1391,7 +1434,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       </div>
 
       <!-- Mini gráficos Receita / Custo -->
-      <div class="grid grid-2" style="margin-bottom:14px">
+      <div class="grid grid-2" data-fech="hide" style="margin-bottom:14px">
         <div class="chart-card">
           <div class="chart-head">
             <div><div class="chart-title">Receita</div><div class="chart-sub" id="plReceitaSub">Realizado R$ 10,85M · Previsão R$ 28,58M</div></div>
@@ -1409,7 +1452,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       </div>
 
       <!-- Mini gráfico Despesas + Evolução do Lucro Líquido -->
-      <div class="grid grid-2" style="margin-bottom:14px">
+      <div class="grid grid-2" data-fech="hide" style="margin-bottom:14px">
         <div class="chart-card">
           <div class="chart-head">
             <div><div class="chart-title">Despesas</div><div class="chart-sub" id="plDespesaSub">Realizado R$ 3,35M · Previsão R$ 7,03M</div></div>
@@ -1434,7 +1477,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       </div>
 
       <!-- Saldo Acumulado -->
-      <div class="chart-card" style="margin-bottom:14px">
+      <div class="chart-card" data-fech="hide" style="margin-bottom:14px">
         <div class="chart-head">
           <div><div class="chart-title">Saldo Acumulado</div><div class="chart-sub">Análise de Liquidez · Realizado + Previsão</div></div>
           <div class="chart-legend"><span><span class="legend-dot" style="background:var(--primary)"></span>Realizado</span><span><span class="legend-dot" style="background:var(--primary-soft)"></span>Previsão</span></div>
@@ -1443,7 +1486,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       </div>
 
       <!-- Evolução do Cofre -->
-      <div class="chart-card" style="margin-bottom:14px">
+      <div class="chart-card" data-fech="hide" style="margin-bottom:14px">
         <div class="chart-head">
           <div>
             <div class="chart-title">Evolução do Cofre</div>
@@ -1455,7 +1498,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       </div>
 
       <!-- Margens -->
-      <div class="grid grid-2" style="margin-bottom:14px">
+      <div class="grid grid-2" data-fech="hide" style="margin-bottom:14px">
         <div class="chart-card">
           <div class="chart-head">
             <div><div class="chart-title">Margem de Contribuição</div><div class="chart-sub">(Receita − CMV) / Receita</div></div>
@@ -1473,7 +1516,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       </div>
 
       <!-- EBITDA -->
-      <div class="chart-card" style="margin-bottom:14px">
+      <div class="chart-card" data-fech="hide" style="margin-bottom:14px">
         <div class="chart-head">
           <div>
             <div class="chart-title">Evolução do EBITDA</div>
@@ -1636,6 +1679,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         <div class="chart-canvas-wrap" style="height:220px"><canvas id="chartVendasMedia"></canvas></div>
       </div>
 
+      <div data-fech="hide">
       <div class="section-head" style="margin:4px 0 10px"><div class="section-bar"></div><div class="section-title">Custo × Faturamento por Operadora</div></div>
 
       <div class="chart-card" style="margin-bottom:14px">
@@ -1657,6 +1701,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           </div>
         </div>
         <div class="chart-canvas-wrap"><canvas id="chartOpMedia"></canvas></div>
+      </div>
       </div>
 
     </section>
@@ -1917,6 +1962,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       </div>
 
       <!-- Headcount por área -->
+      <div data-fech="hide">
       <div class="section-head" style="margin-bottom:10px"><div class="section-bar"></div><div class="section-title">Headcount</div></div>
       <div class="grid grid-3-2" style="margin-bottom:14px">
         <div class="chart-card">
@@ -1964,6 +2010,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         </div>
         <div class="chart-canvas-wrap"><canvas id="chartRHRescisao"></canvas></div>
       </div>
+      </div>
 
       <!-- Absenteísmo -->
       <div class="section-head" style="margin-bottom:10px"><div class="section-bar"></div><div class="section-title">Absenteísmo</div></div>
@@ -1979,7 +2026,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           <div class="kpi-foot" id="rhAfastFoot">INSS / licença médica</div>
         </div>
       </div>
-      <div class="chart-card" style="margin-bottom:14px">
+      <div class="chart-card" data-fech="hide" style="margin-bottom:14px">
         <div class="chart-head">
           <div><div class="chart-title">Absenteísmo Mensal</div><div class="chart-sub">Faltas e afastamentos por mês</div></div>
           <div class="chart-legend">
@@ -2914,7 +2961,7 @@ const pageNames = {
   dashboard: 'Resumo Executivo', pl: 'Resumo Financeiro',
   sales: 'Vendas & Performance', ops: 'Operação',
   logistics: 'Logística', rh: 'RH', dfc: 'DFC Gerencial',
-  settings: 'Configurações'
+  settings: 'Configurações', fechamento: 'Fechamento do Mês'
 };
 // Páginas disponíveis para controle de acesso por usuário Leitura
 const ALL_PAGES = [
@@ -3147,6 +3194,31 @@ function navigateToPage(key) {
   if (key === 'settings') loadSheetsConfig();
 }
 
+/**
+ * Fechamento do Mês (26/08/2026) — visão de relatório que empilha várias
+ * .page normalmente exclusivas (ver CSS body.fechamento-mode). Como todo
+ * clique de navegação normal já roda rerenderAllCharts() 50ms depois pra
+ * corrigir o tamanho dos gráficos Chart.js recém-visíveis (eram desenhados
+ * com o container ainda display:none), aqui repetimos o mesmo padrão —
+ * agora com várias .page visíveis ao mesmo tempo.
+ */
+function enterFechamentoMode() {
+  document.body.classList.add('fechamento-mode');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  ['dashboard','pl','sales','ops','logistics','rh'].forEach(key => {
+    document.querySelector(`.page[data-page="${key}"]`)?.classList.add('active');
+  });
+  if (crumbPage) crumbPage.textContent = 'Fechamento do Mês';
+  window.scrollTo({ top: 0, behavior: 'instant' });
+  setTimeout(rerenderAllCharts, 50);
+  setTimeout(rerenderAllCharts, 300);
+}
+
+function sairFechamentoMode() {
+  document.body.classList.remove('fechamento-mode');
+  navigateToPage('dashboard');
+}
+
 /** Restaura a última aba visitada (salva no localStorage). */
 function restoreLastPage() {
   try {
@@ -3182,7 +3254,9 @@ function applyPageAccess(user) {
 
   document.querySelectorAll('.nav-item[data-page]').forEach(item => {
     const pg = item.dataset.page;
-    if (pg === 'settings') {
+    if (pg === 'settings' || pg === 'fechamento') {
+      // Fechamento do Mês combina várias abas — admin-only por enquanto,
+      // pra não vazar conteúdo de aba que um usuário Leitura não tem acesso.
       item.style.display = isAdm ? '' : 'none';
     } else {
       item.style.display = allowed.includes(pg) ? '' : 'none';
@@ -3208,6 +3282,13 @@ function applyPageAccess(user) {
 navItems.forEach(item => {
   item.addEventListener('click', () => {
     const target = item.dataset.page;
+    document.body.classList.remove('fechamento-mode');
+    if (target === 'fechamento') {
+      navItems.forEach(n => n.classList.remove('active'));
+      item.classList.add('active');
+      enterFechamentoMode();
+      return;
+    }
     navItems.forEach(n => n.classList.remove('active'));
     item.classList.add('active');
     pages.forEach(p => p.classList.remove('active'));
