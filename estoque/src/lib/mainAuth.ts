@@ -35,7 +35,11 @@ export function extractBearerToken(authHeader: string | null): string | null {
 // conjunto que ganha o card na tela de módulos (can_view_estoque no backend
 // principal, ver backend/app/core/permissions.py). Mantido em sincronia
 // manualmente, igual ao roleMap do Guardião.
-const ROLES_PERMITIDOS = new Set(["admin", "gestor"]);
+// "logistica" adicionado em 26/08/2026: o backend já concede can_view_estoque
+// pro perfil Logística (role_perm_logistica em system_settings), mas essa
+// lista tinha ficado sem sincronizar — Lucas (role logistica) via o card mas
+// levava 401 ao entrar. Ver [[estoque-integracao]].
+const ROLES_PERMITIDOS = new Set(["admin", "gestor", "logistica"]);
 
 /** Exige um token válido do sistema principal, com papel autorizado. Retorna o payload ou null. */
 export async function requireMainAuth(request: Request): Promise<MainTokenPayload | null> {
