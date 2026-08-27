@@ -3312,10 +3312,10 @@ function sairFechamentoMode() {
 
 /** Restaura a última aba visitada (salva no localStorage). */
 function restoreLastPage() {
-  try {
-    const last = localStorage.getItem(PAGE_KEY);
-    if (last) navigateToPage(last);
-  } catch(e) {}
+  // Desativado a pedido do Diego (27/08/2026): antes lembrava a última aba
+  // visitada e abria direto nela (ex: ficava preso em "DFC Gerencial").
+  // Agora sempre abre em Resumo Executivo, que já é a aba ativa por padrão
+  // no HTML — não precisa navegar pra lugar nenhum.
 }
 
 /** Retorna idade do cache em ms (null se não existir). */
