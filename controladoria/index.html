@@ -507,6 +507,15 @@ body.fechamento-mode .page[data-page="rh"] {
   display: block !important;
 }
 body.fechamento-mode [data-fech="hide"] { display: none !important; }
+/* Reagrupamentos pedidos pelo Diego (26/08/2026) — elementos são MOVIDOS via
+   JS (enterFechamentoMode/fechMove) pra dentro desses containers, não
+   duplicados. .fech-shell só existe/aparece em modo Fechamento; fora dele
+   fica vazio e display:none, sem afetar a tela normal. */
+.fech-shell { display: none; }
+body.fechamento-mode .fech-shell { display: grid; }
+body.fechamento-mode #resumoFinTopRow { grid-template-columns: repeat(4, 1fr); }
+body.fechamento-mode #curvaEficienciaRow { grid-template-columns: 1fr; }
+body.fechamento-mode #vendasSimcardsRow { grid-template-columns: repeat(2, 1fr); }
 #fechamentoHeader { display: none; }
 body.fechamento-mode #fechamentoHeader { display: block; }
 
@@ -1371,7 +1380,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       <!-- /dash-2col (Base SMART | Operação e Satisfação) -->
 
       <!-- ===== Alertas e Destaques (mockup 08/08/2026) — preenchido por renderAlertas() ===== -->
-      <div class="section">
+      <div class="section" data-fech="hide">
         <div class="section-head"><div class="section-bar"></div><div class="section-title">Alertas e Destaques</div></div>
         <div class="grid grid-5" id="alertasRow"></div>
       </div>
@@ -1388,7 +1397,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       </div>
 
       <!-- KPI cards — topo da visão financeira -->
-      <div class="grid grid-5" style="margin-bottom:14px">
+      <div class="grid grid-5" id="resumoFinTopRow" style="margin-bottom:14px">
         <div class="card kpi-dark" data-fech="hide" style="display:flex;flex-direction:column;gap:6px;background:linear-gradient(135deg,#1D9E5E,#16774A);border:none;box-shadow:0 8px 20px rgba(22,119,74,.32)">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px">
             <div style="width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.18);color:#fff;display:grid;place-items:center;flex-shrink:0">
@@ -1428,9 +1437,9 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       </div>
 
       <!-- Cofres -->
-      <div class="grid grid-2" style="margin-bottom:14px">
-        <div class="card"><div class="kpi-label">Cofre Principal</div><div class="kpi-value">—</div><div class="kpi-foot">—</div></div>
-        <div class="card"><div class="kpi-label">Cofre Secundário</div><div class="kpi-value">—</div><div class="kpi-foot">—</div></div>
+      <div class="grid grid-2" id="cofresRow" style="margin-bottom:14px">
+        <div class="card" id="cofrePrincipalCard"><div class="kpi-label">Cofre Principal</div><div class="kpi-value">—</div><div class="kpi-foot">—</div></div>
+        <div class="card" id="cofreSecundarioCard"><div class="kpi-label">Cofre Secundário</div><div class="kpi-value">—</div><div class="kpi-foot">—</div></div>
       </div>
 
       <!-- Mini gráficos Receita / Custo -->
@@ -1555,7 +1564,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         </div>
       </div>
 
-      <div class="grid grid-3-2" style="margin-bottom:14px">
+      <div class="grid grid-3-2" id="curvaEficienciaRow" style="margin-bottom:14px">
         <div class="chart-card">
           <div class="chart-head">
             <div><div class="chart-title">Curva de Eficiência</div></div>
@@ -1563,7 +1572,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           </div>
           <div class="chart-canvas-wrap" style="height:260px"><canvas id="chartConect"></canvas></div>
         </div>
-        <div class="insight">
+        <div class="insight" data-fech="hide">
           <h4>Margem de Contribuição</h4>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
             <div>
@@ -1596,14 +1605,14 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
 
       <div class="section-head" style="margin-bottom:10px"><div class="section-bar"></div><div class="section-title">Performance de Vendas</div></div>
 
-      <div class="grid grid-3-2" style="margin-bottom:14px">
-        <div class="chart-card">
+      <div class="grid grid-3-2" id="vendasSimcardsRow" style="margin-bottom:14px">
+        <div class="chart-card" id="vendasSimcardsCard">
           <div class="chart-head">
             <div><div class="chart-title">Vendas Simcards</div></div>
           </div>
           <div class="chart-canvas-wrap" style="height:260px"><canvas id="chartVendasMeta"></canvas></div>
         </div>
-        <div class="insight">
+        <div class="insight" data-fech="hide">
           <h4>Média Simcards</h4>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
             <div>
@@ -1635,13 +1644,13 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       </div>
 
       <div class="grid grid-3-2" style="margin-bottom:14px">
-        <div class="chart-card">
+        <div class="chart-card" id="vendasEquipCard">
           <div class="chart-head">
             <div><div class="chart-title">Vendas Equipamentos</div></div>
           </div>
           <div class="chart-canvas-wrap" style="height:260px"><canvas id="chartEquipMeta"></canvas></div>
         </div>
-        <div class="insight">
+        <div class="insight" data-fech="hide">
           <h4>Média Equipamentos</h4>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
             <div>
@@ -1672,7 +1681,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         </div>
       </div>
 
-      <div class="chart-card" style="margin-bottom:14px">
+      <div class="chart-card" data-fech="hide" style="margin-bottom:14px">
         <div class="chart-head">
           <div><div class="chart-title">Novos Clientes</div></div>
         </div>
@@ -1716,7 +1725,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       </div>
 
       <div class="section-head" style="margin:0 0 10px"><div class="section-bar"></div><div class="section-title">Cancelamento e Desistência</div></div>
-      <div class="grid grid-4" style="margin-bottom:14px">
+      <div class="grid grid-4" data-fech="hide" style="margin-bottom:14px">
         <div class="card">
           <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
             <div style="min-width:0;flex:1">
@@ -1766,7 +1775,8 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         </div>
       </div>
 
-      <div class="chart-card" style="margin-bottom:14px">
+      <div class="grid grid-2 fech-shell" id="fechRow_churn" style="margin-bottom:14px"></div>
+      <div class="chart-card" id="churnCard" style="margin-bottom:14px">
         <div class="chart-head">
           <div><div class="chart-title">Cancelamento vs. Desistência</div></div>
           <div class="chart-legend"><span><span class="legend-dot" style="background:var(--negative)"></span>Cancelamento</span><span><span class="legend-dot" style="background:var(--warning)"></span>Desistência</span></div>
@@ -1774,7 +1784,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         <div class="chart-canvas-wrap tall"><canvas id="chartChurn"></canvas></div>
       </div>
 
-      <div class="chart-card">
+      <div class="chart-card" id="churnAnualCard">
         <div class="chart-head">
           <div>
             <div class="chart-title">Churn Mensal</div>
@@ -1788,14 +1798,15 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       </div>
 
       <div class="section-head" style="margin:20px 0 10px"><div class="section-bar"></div><div class="section-title">Pool de Dados Por Operadora e Evolução do Atendimento</div></div>
-      <div class="chart-card" style="margin-bottom:14px">
+      <div class="grid grid-2 fech-shell" id="fechRow_pool" style="margin-bottom:14px"></div>
+      <div class="chart-card" id="poolCard" style="margin-bottom:14px">
         <div class="chart-head">
           <div><div class="chart-title">Pool de dados · status</div><div class="chart-sub">% do pool consumido por operadora</div></div>
         </div>
-        <div class="op-tabs" id="poolTabs"></div>
+        <div class="op-tabs" id="poolTabs" data-fech="hide"></div>
         <div id="poolBars" class="pool-grid"></div>
       </div>
-      <div class="chart-card" style="margin-bottom:14px">
+      <div class="chart-card" id="ticketsCard" style="margin-bottom:14px">
         <div class="chart-head">
           <div><div class="chart-title">Evolução de Tickets</div><div class="chart-sub">Volume mensal de atendimentos</div></div>
           <div class="chart-legend">
@@ -1816,7 +1827,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         </div>
       </div>
 
-      <div class="grid grid-4" style="margin-bottom:14px">
+      <div class="grid grid-4" data-fech="hide" style="margin-bottom:14px">
         <div class="card">
           <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
             <div style="min-width:0;flex:1">
@@ -3201,7 +3212,40 @@ function navigateToPage(key) {
  * corrigir o tamanho dos gráficos Chart.js recém-visíveis (eram desenhados
  * com o container ainda display:none), aqui repetimos o mesmo padrão —
  * agora com várias .page visíveis ao mesmo tempo.
+ *
+ * Reagrupamentos (27/08/2026): alguns cards/gráficos precisam ficar lado a
+ * lado só no Fechamento, mas moram em containers diferentes na tela normal
+ * (ex: Cofre Principal/Secundário vivem numa grid separada da linha do
+ * Tesouro Acumulado). fechMove() MOVE o elemento de verdade (não duplica —
+ * evitaria renderizar o mesmo Chart.js duas vezes) e guarda de onde ele
+ * saiu; fechRestoreAll() devolve tudo pro lugar exato ao sair, pra tela
+ * normal do Controladoria nunca ficar diferente do que sempre foi.
  */
+const FECHAMENTO_ORIGINAL = new Map();
+
+function fechMove(elId, targetParentId) {
+  const el = document.getElementById(elId);
+  const target = document.getElementById(targetParentId);
+  if (!el || !target) return;
+  if (!FECHAMENTO_ORIGINAL.has(elId)) {
+    FECHAMENTO_ORIGINAL.set(elId, { parent: el.parentElement, next: el.nextElementSibling });
+  }
+  target.appendChild(el);
+}
+
+function fechRestoreAll() {
+  FECHAMENTO_ORIGINAL.forEach((pos, elId) => {
+    const el = document.getElementById(elId);
+    if (!el || !pos.parent) return;
+    if (pos.next && pos.next.parentElement === pos.parent) {
+      pos.parent.insertBefore(el, pos.next);
+    } else {
+      pos.parent.appendChild(el);
+    }
+  });
+  FECHAMENTO_ORIGINAL.clear();
+}
+
 function enterFechamentoMode() {
   document.body.classList.add('fechamento-mode');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -3209,14 +3253,32 @@ function enterFechamentoMode() {
     document.querySelector(`.page[data-page="${key}"]`)?.classList.add('active');
   });
   if (crumbPage) crumbPage.textContent = 'Fechamento do Mês';
+
+  // Resumo Financeiro: Cofre Principal/Secundário do lado do Tesouro Acumulado
+  fechMove('cofrePrincipalCard', 'resumoFinTopRow');
+  fechMove('cofreSecundarioCard', 'resumoFinTopRow');
+  // Vendas & Performance: Vendas Simcards do lado de Vendas Equipamentos
+  fechMove('vendasEquipCard', 'vendasSimcardsRow');
+  // Suporte Técnico: Cancelamento vs. Desistência do lado de Churn Mensal
+  fechMove('churnCard', 'fechRow_churn');
+  fechMove('churnAnualCard', 'fechRow_churn');
+  // Pool de dados do lado de Evolução de Tickets
+  fechMove('poolCard', 'fechRow_pool');
+  fechMove('ticketsCard', 'fechRow_pool');
+
+  // Pool de dados trava no mês do fechamento selecionado (sem abas Jan–Dez)
+  if (typeof resetPoolToCurrentMonth === 'function') resetPoolToCurrentMonth();
+
   window.scrollTo({ top: 0, behavior: 'instant' });
   setTimeout(rerenderAllCharts, 50);
   setTimeout(rerenderAllCharts, 300);
 }
 
 function sairFechamentoMode() {
+  fechRestoreAll();
   document.body.classList.remove('fechamento-mode');
   navigateToPage('dashboard');
+  setTimeout(rerenderAllCharts, 50);
 }
 
 /** Restaura a última aba visitada (salva no localStorage). */
@@ -3282,6 +3344,9 @@ function applyPageAccess(user) {
 navItems.forEach(item => {
   item.addEventListener('click', () => {
     const target = item.dataset.page;
+    if (document.body.classList.contains('fechamento-mode') && target !== 'fechamento') {
+      fechRestoreAll();
+    }
     document.body.classList.remove('fechamento-mode');
     if (target === 'fechamento') {
       navItems.forEach(n => n.classList.remove('active'));
