@@ -2989,6 +2989,10 @@ const CACHE_VERSION  = 5;                        // incrementar ao mudar estrutu
 const PAGE_KEY       = 'gsm_last_page';
 const CACHE_STALE_MS = 4 * 60 * 60 * 1000;      // 4 horas
 const GSM_API_KEY    = 'GestoraSmart2026';       // chave da API (sync + auth)
+// restoreLastPage() (27/08/2026) e seu flag _restoreLastPageChecked precisam
+// existir ANTES da IIFE tryAutoLogin, que já chama restoreLastPage() — mesmo
+// motivo do PAGE_KEY/CACHE_KEY acima (ver comentários "C-01 TDZ" mais abaixo).
+let _restoreLastPageChecked = false;
 
 // ── Auto-login ao carregar / F5 ───────────────────────────────────────────────
 const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -3310,12 +3314,29 @@ function sairFechamentoMode() {
   setTimeout(rerenderAllCharts, 50);
 }
 
-/** Restaura a última aba visitada (salva no localStorage). */
+/** Restaura a última aba visitada (salva no localStorage).
+ *  _restoreLastPageChecked (declarado antes da IIFE tryAutoLogin, ver
+ *  acima) garante que a checagem "sessão nova ou continuando" só rode uma
+ *  vez por carga real da página — ela é chamada mais de uma vez no mesmo
+ *  load (tryAutoLogin E _completeLogin), e sem esse flag a 1ª chamada
+ *  setava o marcador e a 2ª achava (errado) que já estava numa sessão em
+ *  andamento. */
 function restoreLastPage() {
-  // Desativado a pedido do Diego (27/08/2026): antes lembrava a última aba
-  // visitada e abria direto nela (ex: ficava preso em "DFC Gerencial").
-  // Agora sempre abre em Resumo Executivo, que já é a aba ativa por padrão
-  // no HTML — não precisa navegar pra lugar nenhum.
+  // Ajustado a pedido do Diego (27/08/2026): apertar F5 mantém a aba onde a
+  // pessoa estava, mas sair da plataforma (fechar a aba/janela) e voltar
+  // sempre reseta pro Resumo Executivo. sessionStorage é a diferença certa
+  // aqui — sobrevive a um F5 na mesma aba, mas some quando ela fecha
+  // (diferente do localStorage, que é permanente e não distinguia os dois
+  // casos, causando o bug de ficar preso na última aba tipo "DFC Gerencial").
+  if (_restoreLastPageChecked) return;
+  _restoreLastPageChecked = true;
+  try {
+    if (sessionStorage.getItem('gsm_session_active')) {
+      const last = localStorage.getItem(PAGE_KEY);
+      if (last) navigateToPage(last);
+    }
+    sessionStorage.setItem('gsm_session_active', '1');
+  } catch(e) {}
 }
 
 /** Retorna idade do cache em ms (null se não existir). */
