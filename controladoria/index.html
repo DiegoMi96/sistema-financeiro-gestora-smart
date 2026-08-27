@@ -1124,7 +1124,7 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
         <option value="YTD">Acumulado</option>
       </select>
     </div>
-    <div class="tb-control" id="compareControl" title="Mês de comparação para os deltas (▲/▼)">
+    <div class="tb-control" id="compareControl" data-fech="hide" title="Mês de comparação para os deltas (▲/▼)">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4M16 17H4m0 0l4 4m-4-4l4-4"/></svg>
       <select id="compareSelect">
         <option value="">Comparar: mês anterior</option>
@@ -3222,6 +3222,7 @@ function navigateToPage(key) {
  * normal do Controladoria nunca ficar diferente do que sempre foi.
  */
 const FECHAMENTO_ORIGINAL = new Map();
+let FECHAMENTO_COMPARE_PREV = null; // valor de #compareSelect antes de entrar no Fechamento
 
 function fechMove(elId, targetParentId) {
   const el = document.getElementById(elId);
@@ -3269,13 +3270,41 @@ function enterFechamentoMode() {
   // Pool de dados trava no mês do fechamento selecionado (sem abas Jan–Dez)
   if (typeof resetPoolToCurrentMonth === 'function') resetPoolToCurrentMonth();
 
+  // "Comparar com" some da tela e trava em "mês anterior" (padrão) — guarda
+  // o que estava selecionado pra devolver ao sair, sem mudar a preferência
+  // de quem só estava usando o dashboard normal.
+  const cmpSel = document.getElementById('compareSelect');
+  if (cmpSel) {
+    FECHAMENTO_COMPARE_PREV = cmpSel.value;
+    if (cmpSel.value !== '') {
+      cmpSel.value = '';
+      window._compareIdx = null;
+      if (window._lastDm) computePeriodData(window._lastDm);
+      applyPeriod(getActivePeriod());
+    }
+  }
+
   window.scrollTo({ top: 0, behavior: 'instant' });
   setTimeout(rerenderAllCharts, 50);
   setTimeout(rerenderAllCharts, 300);
 }
 
-function sairFechamentoMode() {
+/** Desfaz tudo que o Fechamento mudou (reparents + "Comparar com" forçado).
+ *  Chamado tanto pelo botão "Voltar" quanto ao clicar direto em outra aba. */
+function fechExitCleanup() {
   fechRestoreAll();
+  const cmpSel = document.getElementById('compareSelect');
+  if (cmpSel && FECHAMENTO_COMPARE_PREV !== null && cmpSel.value !== FECHAMENTO_COMPARE_PREV) {
+    cmpSel.value = FECHAMENTO_COMPARE_PREV;
+    window._compareIdx = FECHAMENTO_COMPARE_PREV === '' ? null : parseInt(FECHAMENTO_COMPARE_PREV, 10);
+    if (window._lastDm) computePeriodData(window._lastDm);
+    applyPeriod(getActivePeriod());
+  }
+  FECHAMENTO_COMPARE_PREV = null;
+}
+
+function sairFechamentoMode() {
+  fechExitCleanup();
   document.body.classList.remove('fechamento-mode');
   navigateToPage('dashboard');
   setTimeout(rerenderAllCharts, 50);
@@ -3345,7 +3374,7 @@ navItems.forEach(item => {
   item.addEventListener('click', () => {
     const target = item.dataset.page;
     if (document.body.classList.contains('fechamento-mode') && target !== 'fechamento') {
-      fechRestoreAll();
+      fechExitCleanup();
     }
     document.body.classList.remove('fechamento-mode');
     if (target === 'fechamento') {
