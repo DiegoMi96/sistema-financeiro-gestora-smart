@@ -71,6 +71,23 @@ class OperationalDiagnosis(Base):
     created_by  = Column(Integer, ForeignKey("users.id"))
 
 
+class ControladoriaInsight(Base):
+    """
+    Cache do "Insights do mês" na visão de Fechamento da Controladoria.
+    Sem created_by (FK pra users) porque o Controladoria não tem sessão
+    JWT — autentica via x-api-key, sem usuário vinculado (ver
+    routers/controladoria_insights.py).
+    """
+    __tablename__ = "controladoria_insights"
+
+    id          = Column(Integer, primary_key=True)
+    month       = Column(Integer, nullable=False)
+    year        = Column(Integer, nullable=False)
+    content     = Column(Text, nullable=False)
+    model_used  = Column(String(50))
+    created_at  = Column(DateTime(timezone=True), server_default=func.now())
+
+
 class AsaasPaymentSync(Base):
     """Espelho local dos pagamentos do Asaas — atualizado a cada 20 minutos."""
     __tablename__ = "asaas_payments_sync"

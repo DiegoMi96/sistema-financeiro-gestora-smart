@@ -1149,10 +1149,11 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
       </div>
       <div class="chart-card" id="fechamentoInsightsBox" style="margin-bottom:14px">
         <div class="chart-head">
-          <div><div class="chart-title">Insights do mês</div><div class="chart-sub">Leitura gerada por IA a partir dos dados deste fechamento</div></div>
+          <div><div class="chart-title">Insights do mês</div><div class="chart-sub" id="fechamentoInsightsMeta">Leitura gerada por IA a partir dos dados deste fechamento</div></div>
+          <button id="btnAtualizarInsights" onclick="loadFechamentoInsights(true)" style="background:transparent;color:var(--text-2);border:1px solid var(--border);padding:7px 14px;border-radius:9px;font-weight:600;font-size:12.5px;cursor:pointer;font-family:inherit;white-space:nowrap">↻ Atualizar</button>
         </div>
         <div id="fechamentoInsightsBody" style="font-size:13.5px;line-height:1.65;color:var(--text-2)">
-          Em breve — gerado automaticamente a partir dos números deste fechamento.
+          —
         </div>
       </div>
     </div>
@@ -3291,6 +3292,89 @@ function enterFechamentoMode() {
   window.scrollTo({ top: 0, behavior: 'instant' });
   setTimeout(rerenderAllCharts, 50);
   setTimeout(rerenderAllCharts, 300);
+
+  loadFechamentoInsights(false);
+}
+
+/**
+ * Junta os KPIs que estão de fato visíveis nas páginas do Fechamento neste
+ * momento (depois dos data-fech="hide" e dos reparents) — assim a IA lê
+ * exatamente o que a pessoa está vendo na tela, sem duplicar nenhuma conta
+ * que o próprio dashboard já fez em JS.
+ */
+function gatherFechamentoKpis() {
+  const isVisible = el => el.getClientRects().length > 0;
+  const out = {};
+  ['dashboard', 'pl', 'sales', 'ops', 'logistics', 'rh'].forEach(key => {
+    const page = document.querySelector(`.page[data-page="${key}"]`);
+    if (!page) return;
+    const secao = page.querySelector('.page-title')?.textContent?.trim() || key;
+    const itens = [];
+    page.querySelectorAll('.card').forEach(card => {
+      if (!isVisible(card)) return;
+      const label = card.querySelector('.kpi-label')?.textContent?.trim();
+      const value = card.querySelector('.kpi-value')?.textContent?.trim();
+      if (!label || !value) return;
+      const foot  = card.querySelector('.kpi-foot')?.textContent?.trim();
+      const delta = card.querySelector('.kpi-delta')?.textContent?.trim();
+      const item = { valor: value };
+      if (foot)  item.contexto = foot;
+      if (delta) item.variacao = delta;
+      itens.push([label, item]);
+    });
+    // Seções com só gráfico e sem card (Vendas, Operação, Logística no
+    // Fechamento) — chart-sub geralmente já traz um resumo em texto do que
+    // o gráfico mostra (ex: "+19.026 simcards desde Janeiro · 103% vs meta"),
+    // então isso entra como contexto sem precisar ler o Chart.js.
+    page.querySelectorAll('.chart-card').forEach(card => {
+      if (!isVisible(card)) return;
+      const title = card.querySelector('.chart-title')?.textContent?.trim();
+      const sub   = card.querySelector('.chart-sub')?.textContent?.trim();
+      if (!title || !sub) return;
+      itens.push([title, { resumo: sub }]);
+    });
+    if (itens.length) out[secao] = Object.fromEntries(itens);
+  });
+  return out;
+}
+
+/**
+ * Busca (ou gera) o texto de insights do mês selecionado. force=false só
+ * lê o cache (não custa nada se já existir); force=true sempre chama a IA
+ * de novo — mesmo padrão do Diagnóstico Operacional (nunca regenera sozinho
+ * ao só abrir/reabrir a tela).
+ */
+async function loadFechamentoInsights(force) {
+  const body = document.getElementById('fechamentoInsightsBody');
+  const meta = document.getElementById('fechamentoInsightsMeta');
+  const btn  = document.getElementById('btnAtualizarInsights');
+  if (!body) return;
+
+  const [year, month] = getActivePeriod().split('-').map(Number);
+  body.textContent = force ? 'Gerando novos insights…' : 'Carregando…';
+  if (btn) btn.disabled = true;
+
+  try {
+    const kpis = gatherFechamentoKpis();
+    const resp = await fetch('/api/controladoria/insights', {
+      method: 'POST',
+      headers: { ...API_HEADERS, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ month, year, force_refresh: !!force, kpis }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.detail || `Erro ${resp.status}`);
+    body.textContent = data.content;
+    if (meta) {
+      const quando = new Date(data.created_at).toLocaleString('pt-BR');
+      meta.textContent = data.cached
+        ? `Gerado em ${quando}`
+        : `Gerado agora — ${quando}`;
+    }
+  } catch (e) {
+    body.textContent = 'Não foi possível gerar os insights: ' + e.message;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 /** Desfaz tudo que o Fechamento mudou (reparents + "Comparar com" forçado).
