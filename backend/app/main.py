@@ -21,7 +21,6 @@ from app.routers.contestation import router as contestation_router
 from app.routers.clients        import router as clients_router
 from app.routers.organograma    import router as organograma_router, public_router as organograma_public_router
 from app.routers.sheets         import router as sheets_router
-from app.routers.controladoria_insights import router as controladoria_insights_router
 
 # ── Cria enums de contestação antes do create_all (evita UniqueViolation) ──
 def _ensure_contestation_enums():
@@ -185,7 +184,6 @@ app.include_router(clients_router)
 app.include_router(organograma_router)
 app.include_router(organograma_public_router)   # fotos do organograma (público — <img src>)
 app.include_router(sheets_router)
-app.include_router(controladoria_insights_router)
 
 
 @app.get("/health")
