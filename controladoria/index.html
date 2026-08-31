@@ -519,6 +519,31 @@ body.fechamento-mode #vendasSimcardsRow { grid-template-columns: repeat(2, 1fr);
 #fechamentoHeader { display: none; }
 body.fechamento-mode #fechamentoHeader { display: block; }
 
+/* Baixar PDF (27/08/2026) — window.print() nativo do navegador, sem headless
+   server: bem mais simples e sem dependência nova no backend pra um caso de
+   uso que o "Salvar como PDF" do Chrome já resolve de forma idêntica. Só
+   ativa dentro do modo Fechamento — o resto do dashboard imprime como
+   sempre imprimiu (sem essas regras). */
+@media print {
+  body.fechamento-mode .sidebar,
+  body.fechamento-mode .topbar,
+  body.fechamento-mode #fechamentoHeader button {
+    display: none !important;
+  }
+  body.fechamento-mode .content { padding: 0 !important; max-width: 100% !important; }
+  body.fechamento-mode * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  /* Evita cortar um card/gráfico ao meio entre duas páginas do PDF. */
+  body.fechamento-mode .card,
+  body.fechamento-mode .chart-card,
+  body.fechamento-mode .grid,
+  body.fechamento-mode .section {
+    break-inside: avoid;
+  }
+}
+
 /* Scenario controls (cenários page) */
 .slider-row { display: grid; grid-template-columns: 180px 1fr 90px; gap: 14px; align-items: center; padding: 12px 0; border-bottom: 1px dashed var(--border); }
 .slider-row:last-child { border-bottom: 0; }
@@ -1145,7 +1170,10 @@ body.logged-out > .sidebar, body.logged-out > .main { display: none; }
           <h2 class="page-title">Fechamento do Mês</h2>
           <p class="page-sub" id="fechamentoSub">Resumo consolidado do período selecionado</p>
         </div>
-        <button onclick="sairFechamentoMode()" style="background:transparent;color:var(--text-2);border:1px solid var(--border);padding:9px 16px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit">← Voltar ao dashboard</button>
+        <div style="display:flex;gap:8px">
+          <button onclick="window.print()" style="background:var(--primary);color:#fff;border:0;padding:9px 16px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit">↓ Baixar PDF</button>
+          <button onclick="sairFechamentoMode()" style="background:transparent;color:var(--text-2);border:1px solid var(--border);padding:9px 16px;border-radius:9px;font-weight:600;cursor:pointer;font-family:inherit">← Voltar ao dashboard</button>
+        </div>
       </div>
       <div class="chart-card" id="fechamentoInsightsBox" style="margin-bottom:14px">
         <div class="chart-head">
@@ -3252,9 +3280,17 @@ function fechRestoreAll() {
   FECHAMENTO_ORIGINAL.clear();
 }
 
+let FECHAMENTO_TITLE_PREV = null; // document.title antes de entrar — devolvido ao sair
+
 function enterFechamentoMode() {
   document.body.classList.add('fechamento-mode');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+
+  // Navegador usa document.title como sugestão de nome de arquivo ao
+  // "Salvar como PDF" — melhor que o título genérico da aba.
+  FECHAMENTO_TITLE_PREV = document.title;
+  const [fy, fm] = getActivePeriod().split('-').map(Number);
+  document.title = `Fechamento ${MES_NOME[fm - 1]} ${fy} — Gestora Smart`;
   ['dashboard','pl','sales','ops','logistics','rh'].forEach(key => {
     document.querySelector(`.page[data-page="${key}"]`)?.classList.add('active');
   });
@@ -3389,6 +3425,10 @@ function fechExitCleanup() {
     applyPeriod(getActivePeriod());
   }
   FECHAMENTO_COMPARE_PREV = null;
+  if (FECHAMENTO_TITLE_PREV !== null) {
+    document.title = FECHAMENTO_TITLE_PREV;
+    FECHAMENTO_TITLE_PREV = null;
+  }
 }
 
 function sairFechamentoMode() {
