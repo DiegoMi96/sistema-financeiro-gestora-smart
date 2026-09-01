@@ -39,6 +39,16 @@ def _normalizar_status(s):
     return {"Cancelado": "Cancelamento"}.get(s, s)
 
 
+# ── Corte de elegibilidade do reajuste anual ──────────────────────────────────
+# Só recebe o % da planilha "Base de Reajuste" quem tem "Data de ativação"
+# ATÉ dezembro do ano abaixo (ou sem data de ativação); clientes ativados
+# depois ficam com reajuste 0% neste ciclo. Confirmado com o Diego
+# (01/09/2026): reajuste 2025 considerou até dez/2024 (REAJUSTE_ANO_CORTE=2025,
+# já rodado); reajuste 2026 passa a considerar até dez/2026 — precisa mudar
+# este número de novo antes do reajuste de 2027.
+REAJUSTE_ANO_CORTE = 2027  # exclusivo: ano de ativação < este valor recebe reajuste
+
+
 # ── IDs/CPFs excluídos do faturamento — fallback hardcoded ────────────────────
 # Usado quando o banco não tem configuração salva ainda.
 CNPJ_EXCLUIDOS_DEFAULT = {
@@ -637,10 +647,11 @@ class BillingEngineService:
         mask_ap = (da.dt.year == mr.year) & (da.dt.month == mr.month) & df["ID_CPF/CNPJ"].isin(ativ_prop)
         dias[mask_ap] = (td - da[mask_ap].dt.day + 1).astype(float)
 
-        # Reajuste: aplica apenas para linhas com data de ativação até dez/2024 (ou sem data)
+        # Reajuste: aplica apenas para linhas com data de ativação até o corte
+        # vigente (REAJUSTE_ANO_CORTE, ver topo do arquivo) — ou sem data.
         per_client = df["ID_CPF/CNPJ"].map(reajuste_map).fillna(0)
-        mask_pre2025 = da.isna() | (da.dt.year < 2025)
-        df["_reajuste_pct"] = per_client.where(mask_pre2025, 0.0)
+        mask_elegivel_reajuste = da.isna() | (da.dt.year < REAJUSTE_ANO_CORTE)
+        df["_reajuste_pct"] = per_client.where(mask_elegivel_reajuste, 0.0)
         df["_dias"]              = dias.astype(int)
         df["_mensalidade_reaj"]  = df["Mensalidade"] * (1 + df["_reajuste_pct"])
         raw = df["_mensalidade_reaj"] / td * df["_dias"]
@@ -728,7 +739,7 @@ class BillingEngineService:
                 else:
                     iccid_str = str(r.get("ICCID", "")).strip()
                     da = da_map.get(iccid_str) if da_map else None
-                applies_reaj = da is not None and not pd.isna(da) and da.year < 2025
+                applies_reaj = da is not None and not pd.isna(da) and da.year < REAJUSTE_ANO_CORTE
                 reaj = reajuste_map.get(id_cli, 0) if applies_reaj else 0.0
                 mr_  = float(r["Mensalidade"]) * (1 + reaj)
                 mc   = _roundup2(mr_ / td * dias) if td > 0 else 0
