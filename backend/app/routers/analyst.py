@@ -921,15 +921,18 @@ async def get_operational_summary(
         taxa_conversao_historica = {"pct": 0, "base": 0, "pagaram": 0}
 
     # ── Taxa de conversão da régua ────────────────────────────
-    # Dos clientes com OVERDUE no mês anterior (M-1), quantos %
-    # pagaram (credit_date) a partir do 1º dia de M-1 até hoje.
+    # Dos clientes com boleto vencido no mês anterior (M-1) — Asaas E Itaú —
+    # quantos % pagaram (credit_date/data_pagamento) a partir do 1º dia de
+    # M-1 até hoje. Cada cliente é cobrado por só um dos dois bancos, sem
+    # sobreposição (confirmado com o Diego em 01/09/2026 — card antes só
+    # somava o Asaas e ficava bem menor que o vencido real), então os totais
+    # de cada fonte só se somam — sem necessidade de dedup por CPF/CNPJ.
     try:
         from app.database import SessionLocal as _SL2
         import calendar as _cal2
         _pm = sel_month - 1 if sel_month > 1 else 12
         _py = sel_year if sel_month > 1 else sel_year - 1
         _prev_first = date(_py, _pm, 1)
-        from app.database import SessionLocal as _SL2
         _db4 = _SL2()
         regua = _db4.execute(text("""
             WITH overdue_prev AS (
@@ -960,13 +963,59 @@ async def get_operational_summary(
                   AND EXTRACT(YEAR  FROM aps.due_date) = :py
                   AND EXTRACT(MONTH FROM aps.due_date) = :pm
         """), {"py": _py, "pm": _pm, "from_date": _prev_first}).fetchone()
+
+        asaas_total = (regua.total_overdue or 0) if regua else 0
+        asaas_reg   = (regua.regularizados or 0) if regua else 0
+        asaas_valor = float(regua.valor_total_overdue or 0) if regua else 0
+
+        # Itaú (itau_boletos) — mesma lógica, chave por cpf_cnpj em vez de customer_id.
+        itau_total, itau_reg, itau_valor = 0, 0, 0.0
+        try:
+            regua_itau = _db4.execute(text("""
+                WITH overdue_prev AS (
+                    SELECT DISTINCT cpf_cnpj
+                    FROM itau_boletos
+                    WHERE status = 'vencida'
+                      AND cpf_cnpj IS NOT NULL
+                      AND EXTRACT(YEAR  FROM data_vencimento) = :py
+                      AND EXTRACT(MONTH FROM data_vencimento) = :pm
+                ),
+                regularizados AS (
+                    SELECT DISTINCT b.cpf_cnpj
+                    FROM itau_boletos b
+                    JOIN overdue_prev o ON o.cpf_cnpj = b.cpf_cnpj
+                    WHERE b.status = 'paga'
+                      AND b.data_pagamento IS NOT NULL
+                      AND b.data_pagamento >= :from_date
+                )
+                SELECT
+                    COUNT(DISTINCT o.cpf_cnpj) AS total_overdue,
+                    COUNT(DISTINCT r.cpf_cnpj) AS regularizados,
+                    COALESCE(SUM(ib.valor_titulo), 0) AS valor_total_overdue
+                FROM overdue_prev o
+                LEFT JOIN regularizados r ON r.cpf_cnpj = o.cpf_cnpj
+                LEFT JOIN itau_boletos ib
+                       ON ib.cpf_cnpj = o.cpf_cnpj
+                      AND ib.status = 'vencida'
+                      AND EXTRACT(YEAR  FROM ib.data_vencimento) = :py
+                      AND EXTRACT(MONTH FROM ib.data_vencimento) = :pm
+            """), {"py": _py, "pm": _pm, "from_date": _prev_first}).fetchone()
+            itau_total = (regua_itau.total_overdue or 0) if regua_itau else 0
+            itau_reg   = (regua_itau.regularizados or 0) if regua_itau else 0
+            itau_valor = float(regua_itau.valor_total_overdue or 0) if regua_itau else 0
+        except Exception:
+            pass
         _db4.close()
-        pct_regua = round(regua.regularizados / regua.total_overdue * 100, 1) if (regua and regua.total_overdue) else 0
+
+        total_overdue   = asaas_total + itau_total
+        regularizados_n = asaas_reg + itau_reg
+        valor_total     = asaas_valor + itau_valor
+        pct_regua = round(regularizados_n / total_overdue * 100, 1) if total_overdue else 0
         taxa_conversao_regua = {
             "pct":                pct_regua,
-            "total_overdue":      regua.total_overdue or 0 if regua else 0,
-            "regularizados":      regua.regularizados or 0 if regua else 0,
-            "valor_total_overdue": round(float(regua.valor_total_overdue or 0), 2) if regua else 0,
+            "total_overdue":      total_overdue,
+            "regularizados":      regularizados_n,
+            "valor_total_overdue": round(valor_total, 2),
             "mes_ref":            f"{_pm:02d}/{_py}",
         }
     except Exception:
@@ -1674,12 +1723,40 @@ def regua_clientes(
                 CASE WHEN r.customer_id IS NOT NULL THEN true ELSE false END AS pagou
             FROM overdue_prev o
             LEFT JOIN regularizados r ON r.customer_id = o.customer_id
-            ORDER BY pagou DESC, o.valor_vencido DESC
         """), {"py": py, "pm": pm, "from_date": prev_first}).fetchall()
-        db2.close()
     except Exception:
-        db2.close()
-        return {"mes_ref": f"{pm:02d}/{py}", "clientes": []}
+        rows = []
+
+    # Itaú (itau_boletos) — mesmos clientes vencidos do mês anterior, chave
+    # por cpf_cnpj (banco separado do Asaas, sem sobreposição de clientes).
+    try:
+        rows_itau = db2.execute(text("""
+            WITH overdue_prev AS (
+                SELECT cpf_cnpj, MAX(pagador) AS pagador, SUM(valor_titulo) AS valor_vencido
+                FROM itau_boletos
+                WHERE status = 'vencida'
+                  AND cpf_cnpj IS NOT NULL
+                  AND EXTRACT(YEAR  FROM data_vencimento) = :py
+                  AND EXTRACT(MONTH FROM data_vencimento) = :pm
+                GROUP BY cpf_cnpj
+            ),
+            regularizados AS (
+                SELECT DISTINCT b.cpf_cnpj
+                FROM itau_boletos b
+                JOIN overdue_prev o ON o.cpf_cnpj = b.cpf_cnpj
+                WHERE b.status = 'paga'
+                  AND b.data_pagamento IS NOT NULL
+                  AND b.data_pagamento >= :from_date
+            )
+            SELECT
+                o.cpf_cnpj AS cnpj, o.pagador AS nome, o.valor_vencido,
+                CASE WHEN r.cpf_cnpj IS NOT NULL THEN true ELSE false END AS pagou
+            FROM overdue_prev o
+            LEFT JOIN regularizados r ON r.cpf_cnpj = o.cpf_cnpj
+        """), {"py": py, "pm": pm, "from_date": prev_first}).fetchall()
+    except Exception:
+        rows_itau = []
+    db2.close()
 
     def _fmt(raw):
         d = (raw or "").replace(".", "").replace("/", "").replace("-", "").strip()
@@ -1689,18 +1766,18 @@ def regua_clientes(
             return f"{d[:3]}.{d[3:6]}.{d[6:9]}-{d[9:]}"
         return raw or ""
 
-    return {
-        "mes_ref": f"{pm:02d}/{py}",
-        "clientes": [
-            {
-                "nome":         r.nome or "Não identificado",
-                "cnpj":         _fmt(r.cnpj),
-                "valor_vencido": round(float(r.valor_vencido or 0), 2),
-                "pagou":        bool(r.pagou),
-            }
-            for r in rows
-        ],
-    }
+    def _row(r):
+        return {
+            "nome":         r.nome or "Não identificado",
+            "cnpj":         _fmt(r.cnpj),
+            "valor_vencido": round(float(r.valor_vencido or 0), 2),
+            "pagou":        bool(r.pagou),
+        }
+
+    clientes = [_row(r) for r in rows] + [_row(r) for r in rows_itau]
+    clientes.sort(key=lambda c: (not c["pagou"], -c["valor_vencido"]))
+
+    return {"mes_ref": f"{pm:02d}/{py}", "clientes": clientes}
 
 
 @router.get("/sync-status")
