@@ -39,14 +39,22 @@ def _normalizar_status(s):
     return {"Cancelado": "Cancelamento"}.get(s, s)
 
 
-# ── Corte de elegibilidade do reajuste anual ──────────────────────────────────
-# Só recebe o % da planilha "Base de Reajuste" quem tem "Data de ativação"
-# ATÉ dezembro do ano abaixo (ou sem data de ativação); clientes ativados
-# depois ficam com reajuste 0% neste ciclo. Confirmado com o Diego
-# (01/09/2026): reajuste 2025 considerou até dez/2024 (REAJUSTE_ANO_CORTE=2025,
-# já rodado); reajuste 2026 passa a considerar até dez/2026 — precisa mudar
-# este número de novo antes do reajuste de 2027.
-REAJUSTE_ANO_CORTE = 2027  # exclusivo: ano de ativação < este valor recebe reajuste
+# ── Rodadas de reajuste anual (cumulativas, compostas) ─────────────────────
+# Cada entrada é {ano_da_rodada: ano_corte_elegibilidade}. Um cliente com
+# "Data de ativação" com ano < ano_corte (ou sem data) recebe o % daquela
+# rodada, lido da coluna "Reajuste <ano_da_rodada>" da planilha "Base de
+# Reajuste". Rodadas cujo cliente é elegível se COMPÕEM (multiplicativo):
+# Mensalidade × (1+pct_2025) × (1+pct_2026) × ...
+# NUNCA remova ou substitua uma entrada existente — isso apagaria o reajuste
+# daquele ano pra todo mundo. Ao abrir uma rodada nova, só ACRESCENTE uma
+# linha. Confirmado com o Diego (01/09/2026):
+#   • Reajuste 2025: ativação até dez/2024 → corte 2025 (já rodado)
+#   • Reajuste 2026: ativação até dez/2026 → corte 2027 (só no ciclo de
+#     setembro/2026 em diante — NÃO afeta o ciclo de agosto/2026)
+REAJUSTE_RODADAS = {
+    2025: 2025,   # ano de ativação < 2025 recebe o reajuste 2025
+    2026: 2027,   # ano de ativação < 2027 recebe o reajuste 2026
+}
 
 
 # ── IDs/CPFs excluídos do faturamento — fallback hardcoded ────────────────────
@@ -432,6 +440,13 @@ class BillingEngineService:
         return df
 
     def _load_reajuste(self, data: bytes) -> dict:
+        """Lê a planilha "Base de Reajuste" e retorna {id_cliente: {ano_rodada: pct}}.
+        Cada coluna cujo cabeçalho contenha "reajuste" + um ano de 4 dígitos
+        (ex.: "Reajuste 2025", "Reajuste 2026") é uma rodada independente —
+        o mesmo cliente pode ter mais de uma rodada preenchida na mesma
+        planilha (reajustes cumulativos, ver REAJUSTE_RODADAS no topo do
+        arquivo). Planilha antiga com uma única coluna "Reajuste" sem ano no
+        cabeçalho continua funcionando: cai na rodada mais recente."""
         try:
             xl = pd.ExcelFile(io.BytesIO(data), engine="openpyxl")
             # Tenta encontrar a aba certa por nome (flexível)
@@ -442,14 +457,25 @@ class BillingEngineService:
             df = xl.parse(sheet)
             # Coluna ID: primeira coluna que contenha ss_ ou seja a primeira
             col_id = df.columns[0]
-            # Coluna Reajuste: busca por nome
-            col_reaj = next((c for c in df.columns if "reajuste" in str(c).lower()), None)
-            if col_reaj is None:
-                return {}
-            df = df[[col_id, col_reaj]].dropna(subset=[col_id])
-            df[col_id]   = df[col_id].astype(str).str.strip()
-            df[col_reaj] = pd.to_numeric(df[col_reaj], errors="coerce").fillna(0)
-            return dict(zip(df[col_id], df[col_reaj]))
+
+            cols_reaj = [
+                (int(m.group(1)), c) for c in df.columns
+                if "reajuste" in str(c).lower() and (m := re.search(r"(20\d{2})", str(c)))
+            ]
+            if not cols_reaj:
+                col_reaj_legado = next((c for c in df.columns if "reajuste" in str(c).lower()), None)
+                if col_reaj_legado is None:
+                    return {}
+                cols_reaj = [(max(REAJUSTE_RODADAS), col_reaj_legado)]
+
+            df[col_id] = df[col_id].astype(str).str.strip()
+            result: dict = {}
+            for ano, col in cols_reaj:
+                sub = df[[col_id, col]].dropna(subset=[col_id])
+                pct = pd.to_numeric(sub[col], errors="coerce").fillna(0)
+                for cid, p in zip(sub[col_id], pct):
+                    result.setdefault(cid, {})[ano] = float(p)
+            return result
         except Exception:
             return {}
 
@@ -647,13 +673,19 @@ class BillingEngineService:
         mask_ap = (da.dt.year == mr.year) & (da.dt.month == mr.month) & df["ID_CPF/CNPJ"].isin(ativ_prop)
         dias[mask_ap] = (td - da[mask_ap].dt.day + 1).astype(float)
 
-        # Reajuste: aplica apenas para linhas com data de ativação até o corte
-        # vigente (REAJUSTE_ANO_CORTE, ver topo do arquivo) — ou sem data.
-        per_client = df["ID_CPF/CNPJ"].map(reajuste_map).fillna(0)
-        mask_elegivel_reajuste = da.isna() | (da.dt.year < REAJUSTE_ANO_CORTE)
-        df["_reajuste_pct"] = per_client.where(mask_elegivel_reajuste, 0.0)
+        # Reajuste: cada rodada de REAJUSTE_RODADAS (ver topo do arquivo) aplica
+        # seu próprio % — lido da coluna daquele ano na planilha — só pra quem é
+        # elegível por data de ativação NAQUELA rodada. Rodadas aplicáveis se
+        # compõem (multiplicativo), então um cliente pode levar 2025 e 2026 juntos.
+        fator_reaj = pd.Series(1.0, index=df.index)
+        for ano_rodada, ano_corte in REAJUSTE_RODADAS.items():
+            pct_map_rodada = {cid: pcts.get(ano_rodada, 0) for cid, pcts in reajuste_map.items() if ano_rodada in pcts}
+            pct_rodada = df["ID_CPF/CNPJ"].map(pct_map_rodada).fillna(0).astype(float)
+            mask_elegivel = da.isna() | (da.dt.year < ano_corte)
+            fator_reaj *= (1 + pct_rodada.where(mask_elegivel, 0.0))
+        df["_reajuste_pct"] = fator_reaj - 1
         df["_dias"]              = dias.astype(int)
-        df["_mensalidade_reaj"]  = df["Mensalidade"] * (1 + df["_reajuste_pct"])
+        df["_mensalidade_reaj"]  = df["Mensalidade"] * fator_reaj
         raw = df["_mensalidade_reaj"] / td * df["_dias"]
         df["_mensalidade_cobr"]  = raw.apply(_roundup2)
         # Exceção configurável: alguns clientes cobram com arredondamento
@@ -739,9 +771,14 @@ class BillingEngineService:
                 else:
                     iccid_str = str(r.get("ICCID", "")).strip()
                     da = da_map.get(iccid_str) if da_map else None
-                applies_reaj = da is not None and not pd.isna(da) and da.year < REAJUSTE_ANO_CORTE
-                reaj = reajuste_map.get(id_cli, 0) if applies_reaj else 0.0
-                mr_  = float(r["Mensalidade"]) * (1 + reaj)
+                ano_ativ = da.year if (da is not None and not pd.isna(da)) else None
+                pcts_cli = reajuste_map.get(id_cli, {})
+                fator = 1.0
+                for ano_rodada, ano_corte in REAJUSTE_RODADAS.items():
+                    if ano_ativ is None or ano_ativ < ano_corte:
+                        fator *= (1 + pcts_cli.get(ano_rodada, 0))
+                reaj = fator - 1
+                mr_  = float(r["Mensalidade"]) * fator
                 mc   = _roundup2(mr_ / td * dias) if td > 0 else 0
 
             multa  = float(r["VALOR DA MULTA"])
