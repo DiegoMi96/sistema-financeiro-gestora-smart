@@ -163,7 +163,14 @@ class BillingEngineService:
             if c not in df.columns:
                 df[c] = None
         for c in _date_cols:
-            df[c] = pd.to_datetime(df[c], errors="coerce", dayfirst=True)
+            # As datas chegam aqui vindas do CSV gerado por _excel_to_csv, que grava
+            # objetos datetime do Excel via str() — sempre "AAAA-MM-DD HH:MM:SS"
+            # (ISO), nunca ambíguo. "dayfirst=True" nessa string já-ISO trocava dia
+            # e mês sempre que o dia era <= 12 (ex.: 2026-08-01 virava 2026-01-08),
+            # zerando silenciosamente ativação/proporcionalidade de ~40% dos casos
+            # do mês (achado com o Diego, 02/09/2026). format="ISO8601" respeita o
+            # formato real e não erra a troca.
+            df[c] = pd.to_datetime(df[c], errors="coerce", format="ISO8601")
         for c in _num_cols:
             df[c] = pd.to_numeric(df[c], errors="coerce").fillna(0)
 
@@ -209,17 +216,39 @@ class BillingEngineService:
         source    = base_bytes if base_bytes is not None else base_path
         self._excel_to_csv(source, csv_path)
 
-        # Scan rápido para ICCIDs de Cancelamento (deduplicação entre chunks)
+        # Scan rápido para ICCIDs de Cancelamento (deduplicação entre chunks) — e,
+        # junto, quanto de ativação as linhas "Ativo" duplicadas (mesmo ICCID
+        # também em Cancelamento) carregavam, pra repassar essa taxa pra linha
+        # Cancelamento sobrevivente em process_chunk/_calcular. Feito num scan só
+        # porque o ICCID pode aparecer como Ativo num chunk e só ser confirmado
+        # como duplicado (Cancelamento) num chunk mais adiante no arquivo —
+        # por isso a decisão final (`ativ_dup_por_iccid`) só é tomada depois de
+        # ler o arquivo inteiro, não linha a linha.
         cancel_iccids_base: set = set()
+        ativo_ativacao_por_iccid: dict = {}
         try:
-            for sc in pd.read_csv(csv_path, usecols=["ICCID", "Status"],
+            for sc in pd.read_csv(csv_path, usecols=["ICCID", "Status", "Data de ativação", "Preço de ativação"],
                                   chunksize=50_000, dtype=str, low_memory=False):
                 sc["Status"] = sc["Status"].fillna("").apply(_normalizar_status)
-                icc = sc.loc[sc["Status"] == "Cancelamento", "ICCID"].astype(str).str.strip()
+                icc_all = sc["ICCID"].astype(str).str.strip()
+                icc = icc_all[sc["Status"] == "Cancelamento"]
                 cancel_iccids_base.update(v for v in icc if v and v not in ("", "nan"))
+
+                mask_ativo = sc["Status"] == "Ativo"
+                da_sc   = pd.to_datetime(sc["Data de ativação"], errors="coerce")
+                elig_sc = mask_ativo & (da_sc.dt.year == self.year) & (da_sc.dt.month == self.month)
+                preco_sc = pd.to_numeric(sc["Preço de ativação"], errors="coerce").fillna(0)
+                for iccid_v, preco_v in zip(icc_all[elig_sc], preco_sc[elig_sc]):
+                    if iccid_v and iccid_v != "nan" and preco_v:
+                        ativo_ativacao_por_iccid[iccid_v] = ativo_ativacao_por_iccid.get(iccid_v, 0.0) + float(preco_v)
         except Exception as exc:
             print(f"⚠️ Scan dedup falhou (ignorado): {exc}", flush=True)
         print(f"📂 ICCIDs Cancelamento para dedup: {len(cancel_iccids_base)}", flush=True)
+
+        ativ_dup_map = {icc: v for icc, v in ativo_ativacao_por_iccid.items() if icc in cancel_iccids_base}
+        if ativ_dup_map:
+            print(f"📂 Ativação preservada de SIM duplicado (Ativo+Cancelamento): "
+                  f"{len(ativ_dup_map)} ICCID(s), R$ {sum(ativ_dup_map.values()):,.2f}", flush=True)
 
         return {
             "csv_path":           csv_path,
@@ -233,6 +262,7 @@ class BillingEngineService:
             "sms_map":            sms_map,
             "multa_map":          multa_map,
             "cancel_iccids_base": cancel_iccids_base,
+            "ativ_dup_map":       ativ_dup_map,
         }
 
     def process_chunk(self, df_raw: pd.DataFrame, ref: dict) -> pd.DataFrame:
@@ -242,7 +272,10 @@ class BillingEngineService:
         """
         df = self._prepare_base_chunk(df_raw)
 
-        # Dedup: remove Ativo se o mesmo ICCID aparece como Cancelamento em qualquer chunk
+        # Dedup: remove Ativo se o mesmo ICCID aparece como Cancelamento em qualquer chunk.
+        # A taxa de ativação que essas linhas removidas carregavam já foi
+        # calculada globalmente em setup() (ativ_dup_map) e é reaplicada na
+        # linha Cancelamento sobrevivente dentro de _calcular.
         cancel_iccids_base = ref.get("cancel_iccids_base", set())
         if cancel_iccids_base and "ICCID" in df.columns:
             icc_str  = df["ICCID"].astype(str).str.strip()
@@ -267,6 +300,7 @@ class BillingEngineService:
             df_principal,
             ref["reajuste_map"], ref["cancel_prop"], ref["ativ_prop"],
             ref["df_cancel"],    ref["sms_map"],
+            ativ_dup_map=ref.get("ativ_dup_map"),
         )
         del df_principal
         return df_p
@@ -497,6 +531,13 @@ class BillingEngineService:
         for sheet in ["Cancelamento", "Desistência"]:
             try:
                 d = pd.read_excel(io.BytesIO(data), sheet_name=sheet, engine="openpyxl", dtype={"ICCID": str})
+                # Uma das abas já veio com cabeçalho com espaço a mais (" Mensalidade",
+                # " Valor da multa "), o que criava DUAS colunas "Mensalidade" após o
+                # concat (uma por aba) — o rename por nome mais abaixo então colidia
+                # com a coluna já existente e gerava coluna duplicada, quebrando o
+                # pd.to_numeric() com TypeError. Normaliza espaço nas duas abas ANTES
+                # de concatenar, pra virar uma coluna só desde o início.
+                d.columns = [str(c).strip() for c in d.columns]
                 d["_tipo"] = sheet
                 dfs.append(d)
             except Exception:
@@ -628,7 +669,7 @@ class BillingEngineService:
 
     # ── Cálculos ──────────────────────────────────────────────
 
-    def _calcular(self, df, reajuste_map, cancel_prop, ativ_prop, df_cancel, sms_map):
+    def _calcular(self, df, reajuste_map, cancel_prop, ativ_prop, df_cancel, sms_map, ativ_dup_map=None):
         if df.empty: return df
 
         # Sem .copy() — o chamador já passou uma cópia; modifica in-place para economizar RAM
@@ -697,6 +738,15 @@ class BillingEngineService:
 
         mask_ativ_mes = (da.dt.year == mr.year) & (da.dt.month == mr.month)
         df["_ativacao"] = np.where(mask_ativ_mes, df.get("Preço de ativação", 0), 0.0)
+
+        # Repassa a ativação de linhas "Ativo" removidas por duplicidade (mesmo
+        # ICCID também em Cancelamento, ver process_chunk) pra linha Cancelamento
+        # sobrevivente do mesmo ICCID — o SIM foi ativado, a taxa é devida mesmo
+        # tendo sido cancelado no mesmo mês (confirmado com o Diego, 02/09/2026).
+        if ativ_dup_map and "ICCID" in df.columns:
+            extra_ativ = df["ICCID"].astype(str).str.strip().map(ativ_dup_map).fillna(0)
+            if extra_ativ.any():
+                df["_ativacao"] = df["_ativacao"] + extra_ativ
 
         credito = pd.to_numeric(df.get("Crédito adicionado no Simcard", 0), errors="coerce").fillna(0)
         # Preço do MB Excedente tem piso de R$2,00 — qualquer valor abaixo disso

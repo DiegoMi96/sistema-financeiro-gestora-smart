@@ -566,7 +566,9 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
             # Extrai da_map ANTES de process_chunk (precisa de colunas ainda strings)
             if "ICCID" in raw_chunk.columns and "Data de ativação" in raw_chunk.columns:
                 _icc = raw_chunk["ICCID"].astype(str).str.strip()
-                _da  = pd.to_datetime(raw_chunk["Data de ativação"], errors="coerce", dayfirst=True)
+                # Mesmo caso do _prepare_base_chunk: string já vem em ISO do CSV,
+                # "dayfirst=True" trocava dia/mês quando dia<=12. Ver comentário lá.
+                _da  = pd.to_datetime(raw_chunk["Data de ativação"], errors="coerce", format="ISO8601")
                 for icc, da in zip(_icc, _da):
                     if icc and icc not in ("", "nan") and pd.notna(da):
                         da_map[icc] = da
