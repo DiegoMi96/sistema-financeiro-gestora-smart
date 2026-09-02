@@ -1491,9 +1491,25 @@ async def export_remessa(
                     except ValueError:
                         continue
 
+    # Remessa Asaas não pode incluir cliente cadastrado com outro banco (ex.: Itaú)
+    # na aba de Clientes — esse é cobrado via boleto próprio daquele banco, não pelo
+    # Asaas. Cliente sem banco cadastrado entra normalmente (Asaas é o padrão).
+    # Achado com o Diego (02/09/2026): a remessa incluía todo mundo com saldo, sem
+    # olhar o banco — 58 clientes Itaú (R$960 mil no ciclo de julho) apareciam aqui.
+    from app.models import ClientProfile, Bank
+    ids_outro_banco = (
+        db.query(ClientProfile.id_smart)
+        .join(Bank, Bank.id == ClientProfile.banco_id)
+        .filter(Bank.nome != "Asaas")
+    )
+
     summaries = (
         db.query(BillingClientSummary)
-        .filter(BillingClientSummary.cycle_id == cycle_id, BillingClientSummary.total_final > 0)
+        .filter(
+            BillingClientSummary.cycle_id == cycle_id,
+            BillingClientSummary.total_final > 0,
+            ~BillingClientSummary.id_smart.in_(ids_outro_banco),
+        )
         .order_by(BillingClientSummary.total_final.desc())
         .all()
     )
