@@ -44,24 +44,29 @@ const ACTIVE_CLASS =
 // (frontend/src/components/layout/Layout.jsx: const GRN).
 const GRN = "#3CB54A";
 
+// `permission` liga cada item à chave granular do sistema principal (ver
+// backend/app/core/permissions.py e AcessosPage.jsx) — item só aparece no
+// menu se o usuário logado tiver essa permissão (26/08/2026). As páginas
+// também se protegem sozinhas (PermissionGate), então digitar a URL direto
+// sem o item aparecer no menu continua bloqueado.
 const ESTOQUE_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/estoque-geral", label: "Estoque Geral", icon: Boxes },
-  { href: "/estoque-smart", label: "Estoque SMART", icon: Smartphone },
-  { href: "/estoque-smt", label: "Estoque SMT", icon: Router },
-  { href: "/upload", label: "Upload de planilhas", icon: UploadCloud },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, permission: "can_view_est_dashboard" },
+  { href: "/estoque-geral", label: "Estoque Geral", icon: Boxes, permission: "can_view_est_geral" },
+  { href: "/estoque-smart", label: "Estoque SMART", icon: Smartphone, permission: "can_view_est_smart" },
+  { href: "/estoque-smt", label: "Estoque SMT", icon: Router, permission: "can_view_est_smt" },
+  { href: "/upload", label: "Upload de planilhas", icon: UploadCloud, permission: "can_view_est_upload" },
 ];
 
 const SAIDA_ITEMS = [
-  { href: "/saida", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/saida/resumo", label: "Resumo por operadora", icon: CalendarDays },
-  { href: "/saida/do-dia", label: "Saída do dia", icon: PackageOpen },
-  { href: "/saida/retornos", label: "Retornos e Reenvios", icon: Undo2 },
+  { href: "/saida", label: "Dashboard", icon: LayoutDashboard, permission: "can_view_est_saida_dashboard" },
+  { href: "/saida/resumo", label: "Resumo por operadora", icon: CalendarDays, permission: "can_view_est_saida_resumo" },
+  { href: "/saida/do-dia", label: "Saída do dia", icon: PackageOpen, permission: "can_view_est_saida_dia" },
+  { href: "/saida/retornos", label: "Retornos e Reenvios", icon: Undo2, permission: "can_view_est_saida_retornos" },
 ];
 
 const CANCELAMENTO_ITEMS = [
-  { href: "/cancelamento", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/cancelamento/multa-contratual", label: "Multa Contratual", icon: Banknote },
+  { href: "/cancelamento", label: "Dashboard", icon: LayoutDashboard, permission: "can_view_est_canc_dashboard" },
+  { href: "/cancelamento/multa-contratual", label: "Multa Contratual", icon: Banknote, permission: "can_view_est_canc_multa" },
 ];
 
 export function AppSidebar() {
@@ -70,6 +75,12 @@ export function AppSidebar() {
   const { user, logout } = useMainUser();
   const collapsed = state === "collapsed";
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
+
+  const podeVer = (permission: string) => user?.permissions?.[permission] ?? false;
+  const estoqueItems = ESTOQUE_ITEMS.filter((item) => podeVer(item.permission));
+  const saidaItems = SAIDA_ITEMS.filter((item) => podeVer(item.permission));
+  const cancelamentoItems = CANCELAMENTO_ITEMS.filter((item) => podeVer(item.permission));
+  const podeVerConfig = podeVer("can_view_est_config");
 
   // Logo real da empresa (mesmo padrão do Faturamento, ver Layout.jsx) —
   // rota pública do backend principal, não precisa de token. Com retry:
@@ -134,11 +145,12 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="gap-1 px-2 pt-2">
+        {estoqueItems.length > 0 && (
         <SidebarGroup>
           <SidebarGroupLabel>Estoque</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {ESTOQUE_ITEMS.map((item) => (
+              {estoqueItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     render={<Link href={item.href} />}
@@ -154,7 +166,9 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        )}
 
+        {saidaItems.length > 0 && (
         <SidebarGroup>
           <SidebarGroupLabel>
             <Truck className="mr-1 size-3.5" />
@@ -162,7 +176,7 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {SAIDA_ITEMS.map((item) => (
+              {saidaItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     render={<Link href={item.href} />}
@@ -178,7 +192,9 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        )}
 
+        {cancelamentoItems.length > 0 && (
         <SidebarGroup>
           <SidebarGroupLabel>
             <Ban className="mr-1 size-3.5" />
@@ -186,7 +202,7 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {CANCELAMENTO_ITEMS.map((item) => (
+              {cancelamentoItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     render={<Link href={item.href} />}
@@ -202,10 +218,12 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        )}
 
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
+              {podeVerConfig && (
               <SidebarMenuItem>
                 <SidebarMenuButton
                   render={<Link href="/configuracoes" />}
@@ -217,6 +235,7 @@ export function AppSidebar() {
                   <span>Configurações</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              )}
               <SidebarMenuItem>
                 <ThemeToggle />
               </SidebarMenuItem>

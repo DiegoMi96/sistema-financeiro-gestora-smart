@@ -1,5 +1,6 @@
 "use client";
 
+import { PermissionGate } from "@/components/permission-gate";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { TriangleAlert } from "lucide-react";
@@ -21,7 +22,7 @@ function fmtData(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
-export default function SaidaDoDiaPage() {
+function SaidaDoDiaPageContent() {
   return (
     <Suspense fallback={<LoadingState label="Carregando..." />}>
       <SaidaDoDiaContent />
@@ -147,5 +148,13 @@ function SaidaDoDiaContent() {
         </Card>
       </div>
     </>
+  );
+}
+
+export default function SaidaDoDiaPage() {
+  return (
+    <PermissionGate permission="can_view_est_saida_dia" title="Saída do dia">
+      <SaidaDoDiaPageContent />
+    </PermissionGate>
   );
 }

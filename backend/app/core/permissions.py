@@ -62,6 +62,18 @@ ALL_PERMISSIONS = [
     "can_view_guardiao",
     # Controle de Estoque — chips SMART/SMT (integrado 20/08/2026)
     "can_view_estoque",
+    "can_view_est_dashboard",  # Estoque > Dashboard
+    "can_view_est_geral",  # Estoque > Estoque Geral
+    "can_view_est_smart",  # Estoque > Estoque SMART
+    "can_view_est_smt",  # Estoque > Estoque SMT
+    "can_view_est_upload",  # Estoque > Upload de planilhas
+    "can_view_est_saida_dashboard",  # Controle de Saída > Dashboard
+    "can_view_est_saida_resumo",  # Controle de Saída > Resumo por operadora
+    "can_view_est_saida_dia",  # Controle de Saída > Saída do dia
+    "can_view_est_saida_retornos",  # Controle de Saída > Retornos e Reenvios
+    "can_view_est_canc_dashboard",  # Controle de Cancelamento > Dashboard
+    "can_view_est_canc_multa",  # Controle de Cancelamento > Multa Contratual
+    "can_view_est_config",  # Configurações
     # Guardião — páginas visíveis (granular, 31/07/2026)
     "can_view_grd_dashboard",        # Dashboard
     "can_view_grd_importacoes",      # Monitoramento > Histórico de Importes
@@ -120,6 +132,18 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_smt":              True,
         "can_view_guardiao":         True,
         "can_view_estoque":          True,
+        "can_view_est_dashboard": True,  # Estoque > Dashboard
+        "can_view_est_geral": True,  # Estoque > Estoque Geral
+        "can_view_est_smart": True,  # Estoque > Estoque SMART
+        "can_view_est_smt": True,  # Estoque > Estoque SMT
+        "can_view_est_upload": True,  # Estoque > Upload de planilhas
+        "can_view_est_saida_dashboard": True,  # Controle de Saída > Dashboard
+        "can_view_est_saida_resumo": True,  # Controle de Saída > Resumo por operadora
+        "can_view_est_saida_dia": True,  # Controle de Saída > Saída do dia
+        "can_view_est_saida_retornos": True,  # Controle de Saída > Retornos e Reenvios
+        "can_view_est_canc_dashboard": True,  # Controle de Cancelamento > Dashboard
+        "can_view_est_canc_multa": True,  # Controle de Cancelamento > Multa Contratual
+        "can_view_est_config": True,  # Configurações
         "can_view_grd_dashboard":        True,
         "can_view_grd_importacoes":      True,
         "can_view_grd_timeline":         True,
@@ -172,6 +196,18 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_smt":              True,
         "can_view_guardiao":         True,
         "can_view_estoque":          True,
+        "can_view_est_dashboard": True,  # Estoque > Dashboard
+        "can_view_est_geral": True,  # Estoque > Estoque Geral
+        "can_view_est_smart": True,  # Estoque > Estoque SMART
+        "can_view_est_smt": True,  # Estoque > Estoque SMT
+        "can_view_est_upload": True,  # Estoque > Upload de planilhas
+        "can_view_est_saida_dashboard": True,  # Controle de Saída > Dashboard
+        "can_view_est_saida_resumo": True,  # Controle de Saída > Resumo por operadora
+        "can_view_est_saida_dia": True,  # Controle de Saída > Saída do dia
+        "can_view_est_saida_retornos": True,  # Controle de Saída > Retornos e Reenvios
+        "can_view_est_canc_dashboard": True,  # Controle de Cancelamento > Dashboard
+        "can_view_est_canc_multa": True,  # Controle de Cancelamento > Multa Contratual
+        "can_view_est_config": True,  # Configurações
         "can_view_grd_dashboard":        True,
         "can_view_grd_importacoes":      True,
         "can_view_grd_timeline":         True,
@@ -224,6 +260,18 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_smt":              False,
         "can_view_guardiao":         False,
         "can_view_estoque":          False,
+        "can_view_est_dashboard": False,  # Estoque > Dashboard
+        "can_view_est_geral": False,  # Estoque > Estoque Geral
+        "can_view_est_smart": False,  # Estoque > Estoque SMART
+        "can_view_est_smt": False,  # Estoque > Estoque SMT
+        "can_view_est_upload": False,  # Estoque > Upload de planilhas
+        "can_view_est_saida_dashboard": False,  # Controle de Saída > Dashboard
+        "can_view_est_saida_resumo": False,  # Controle de Saída > Resumo por operadora
+        "can_view_est_saida_dia": False,  # Controle de Saída > Saída do dia
+        "can_view_est_saida_retornos": False,  # Controle de Saída > Retornos e Reenvios
+        "can_view_est_canc_dashboard": False,  # Controle de Cancelamento > Dashboard
+        "can_view_est_canc_multa": False,  # Controle de Cancelamento > Multa Contratual
+        "can_view_est_config": False,  # Configurações
         "can_view_grd_dashboard":        False,
         "can_view_grd_importacoes":      False,
         "can_view_grd_timeline":         False,
@@ -276,6 +324,18 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_smt":              False,
         "can_view_guardiao":         False,
         "can_view_estoque":          False,
+        "can_view_est_dashboard": False,  # Estoque > Dashboard
+        "can_view_est_geral": False,  # Estoque > Estoque Geral
+        "can_view_est_smart": False,  # Estoque > Estoque SMART
+        "can_view_est_smt": False,  # Estoque > Estoque SMT
+        "can_view_est_upload": False,  # Estoque > Upload de planilhas
+        "can_view_est_saida_dashboard": False,  # Controle de Saída > Dashboard
+        "can_view_est_saida_resumo": False,  # Controle de Saída > Resumo por operadora
+        "can_view_est_saida_dia": False,  # Controle de Saída > Saída do dia
+        "can_view_est_saida_retornos": False,  # Controle de Saída > Retornos e Reenvios
+        "can_view_est_canc_dashboard": False,  # Controle de Cancelamento > Dashboard
+        "can_view_est_canc_multa": False,  # Controle de Cancelamento > Multa Contratual
+        "can_view_est_config": False,  # Configurações
         "can_view_grd_dashboard":        False,
         "can_view_grd_importacoes":      False,
         "can_view_grd_timeline":         False,
@@ -328,6 +388,18 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_smt":              False,
         "can_view_guardiao":         False,
         "can_view_estoque":          False,
+        "can_view_est_dashboard": False,  # Estoque > Dashboard
+        "can_view_est_geral": False,  # Estoque > Estoque Geral
+        "can_view_est_smart": False,  # Estoque > Estoque SMART
+        "can_view_est_smt": False,  # Estoque > Estoque SMT
+        "can_view_est_upload": False,  # Estoque > Upload de planilhas
+        "can_view_est_saida_dashboard": False,  # Controle de Saída > Dashboard
+        "can_view_est_saida_resumo": False,  # Controle de Saída > Resumo por operadora
+        "can_view_est_saida_dia": False,  # Controle de Saída > Saída do dia
+        "can_view_est_saida_retornos": False,  # Controle de Saída > Retornos e Reenvios
+        "can_view_est_canc_dashboard": False,  # Controle de Cancelamento > Dashboard
+        "can_view_est_canc_multa": False,  # Controle de Cancelamento > Multa Contratual
+        "can_view_est_config": False,  # Configurações
         "can_view_grd_dashboard":        False,
         "can_view_grd_importacoes":      False,
         "can_view_grd_timeline":         False,
@@ -380,6 +452,18 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_smt":              False,
         "can_view_guardiao":         False,
         "can_view_estoque":          False,
+        "can_view_est_dashboard": False,  # Estoque > Dashboard
+        "can_view_est_geral": False,  # Estoque > Estoque Geral
+        "can_view_est_smart": False,  # Estoque > Estoque SMART
+        "can_view_est_smt": False,  # Estoque > Estoque SMT
+        "can_view_est_upload": False,  # Estoque > Upload de planilhas
+        "can_view_est_saida_dashboard": False,  # Controle de Saída > Dashboard
+        "can_view_est_saida_resumo": False,  # Controle de Saída > Resumo por operadora
+        "can_view_est_saida_dia": False,  # Controle de Saída > Saída do dia
+        "can_view_est_saida_retornos": False,  # Controle de Saída > Retornos e Reenvios
+        "can_view_est_canc_dashboard": False,  # Controle de Cancelamento > Dashboard
+        "can_view_est_canc_multa": False,  # Controle de Cancelamento > Multa Contratual
+        "can_view_est_config": False,  # Configurações
         "can_view_grd_dashboard":        False,
         "can_view_grd_importacoes":      False,
         "can_view_grd_timeline":         False,
@@ -432,6 +516,18 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_smt":              False,
         "can_view_guardiao":         False,
         "can_view_estoque":          False,
+        "can_view_est_dashboard": False,  # Estoque > Dashboard
+        "can_view_est_geral": False,  # Estoque > Estoque Geral
+        "can_view_est_smart": False,  # Estoque > Estoque SMART
+        "can_view_est_smt": False,  # Estoque > Estoque SMT
+        "can_view_est_upload": False,  # Estoque > Upload de planilhas
+        "can_view_est_saida_dashboard": False,  # Controle de Saída > Dashboard
+        "can_view_est_saida_resumo": False,  # Controle de Saída > Resumo por operadora
+        "can_view_est_saida_dia": False,  # Controle de Saída > Saída do dia
+        "can_view_est_saida_retornos": False,  # Controle de Saída > Retornos e Reenvios
+        "can_view_est_canc_dashboard": False,  # Controle de Cancelamento > Dashboard
+        "can_view_est_canc_multa": False,  # Controle de Cancelamento > Multa Contratual
+        "can_view_est_config": False,  # Configurações
         "can_view_grd_dashboard":        False,
         "can_view_grd_importacoes":      False,
         "can_view_grd_timeline":         False,
@@ -536,7 +632,7 @@ MODULE_PERMISSIONS = {
     "LOGÍSTICA": ["can_view_logistica"],
     "ORGANOGRAMA": ["can_view_organograma", "can_edit_organograma"],
     "SMT": ["can_view_smt"],
-    "ESTOQUE": ["can_view_estoque"],
+    "ESTOQUE": ["can_view_estoque", "can_view_est_dashboard", "can_view_est_geral", "can_view_est_smart", "can_view_est_smt", "can_view_est_upload", "can_view_est_saida_dashboard", "can_view_est_saida_resumo", "can_view_est_saida_dia", "can_view_est_saida_retornos", "can_view_est_canc_dashboard", "can_view_est_canc_multa", "can_view_est_config"],
     # GERAL (can_view_dashboard/can_manage_users/can_view_configuracoes) fica
     # DE FORA de propósito — nenhuma área dá a um gestor restrito o poder de
     # conceder can_manage_users pra um analista dele (viraria um "gestor

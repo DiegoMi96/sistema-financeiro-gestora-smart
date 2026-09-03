@@ -1,5 +1,6 @@
 "use client";
 
+import { PermissionGate } from "@/components/permission-gate";
 import { useEffect, useState } from "react";
 import { TriangleAlert } from "lucide-react";
 import { apiGet } from "@/lib/apiClient";
@@ -32,7 +33,7 @@ function statusClasses(status: string): string {
   return "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/20";
 }
 
-export default function RetornosPage() {
+function RetornosPageContent() {
   const [loading, setLoading] = useState(true);
   const [ok, setOk] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
@@ -147,5 +148,13 @@ export default function RetornosPage() {
         </Card>
       </div>
     </>
+  );
+}
+
+export default function RetornosPage() {
+  return (
+    <PermissionGate permission="can_view_est_saida_retornos" title="Retornos e Reenvios">
+      <RetornosPageContent />
+    </PermissionGate>
   );
 }

@@ -566,7 +566,9 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
             # Extrai da_map ANTES de process_chunk (precisa de colunas ainda strings)
             if "ICCID" in raw_chunk.columns and "Data de ativação" in raw_chunk.columns:
                 _icc = raw_chunk["ICCID"].astype(str).str.strip()
-                _da  = pd.to_datetime(raw_chunk["Data de ativação"], errors="coerce", dayfirst=True)
+                # Mesmo caso do _prepare_base_chunk: string já vem em ISO do CSV,
+                # "dayfirst=True" trocava dia/mês quando dia<=12. Ver comentário lá.
+                _da  = pd.to_datetime(raw_chunk["Data de ativação"], errors="coerce", format="ISO8601")
                 for icc, da in zip(_icc, _da):
                     if icc and icc not in ("", "nan") and pd.notna(da):
                         da_map[icc] = da
@@ -1489,9 +1491,25 @@ async def export_remessa(
                     except ValueError:
                         continue
 
+    # Remessa Asaas não pode incluir cliente cadastrado com outro banco (ex.: Itaú)
+    # na aba de Clientes — esse é cobrado via boleto próprio daquele banco, não pelo
+    # Asaas. Cliente sem banco cadastrado entra normalmente (Asaas é o padrão).
+    # Achado com o Diego (02/09/2026): a remessa incluía todo mundo com saldo, sem
+    # olhar o banco — 58 clientes Itaú (R$960 mil no ciclo de julho) apareciam aqui.
+    from app.models import ClientProfile, Bank
+    ids_outro_banco = (
+        db.query(ClientProfile.id_smart)
+        .join(Bank, Bank.id == ClientProfile.banco_id)
+        .filter(Bank.nome != "Asaas")
+    )
+
     summaries = (
         db.query(BillingClientSummary)
-        .filter(BillingClientSummary.cycle_id == cycle_id, BillingClientSummary.total_final > 0)
+        .filter(
+            BillingClientSummary.cycle_id == cycle_id,
+            BillingClientSummary.total_final > 0,
+            ~BillingClientSummary.id_smart.in_(ids_outro_banco),
+        )
         .order_by(BillingClientSummary.total_final.desc())
         .all()
     )

@@ -1,5 +1,6 @@
 "use client";
 
+import { PermissionGate } from "@/components/permission-gate";
 import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/apiClient";
 import type { EstoqueSnapshot } from "@/lib/types";
@@ -7,7 +8,7 @@ import EstoqueDetalhe from "@/components/EstoqueDetalhe";
 import { PageHeader } from "@/components/page-header";
 import { LoadingState } from "@/components/loading-state";
 
-export default function EstoqueSmtPage() {
+function EstoqueSmtPageContent() {
   const [loading, setLoading] = useState(true);
   const [snapshot, setSnapshot] = useState<EstoqueSnapshot | null>(null);
 
@@ -26,5 +27,13 @@ export default function EstoqueSmtPage() {
         <EstoqueDetalhe snapshot={snapshot} />
       )}
     </>
+  );
+}
+
+export default function EstoqueSmtPage() {
+  return (
+    <PermissionGate permission="can_view_est_smt" title="Estoque SMT">
+      <EstoqueSmtPageContent />
+    </PermissionGate>
   );
 }

@@ -39,6 +39,26 @@ def _normalizar_status(s):
     return {"Cancelado": "Cancelamento"}.get(s, s)
 
 
+# ── Rodadas de reajuste anual (cumulativas, compostas) ─────────────────────
+# Cada entrada é {ano_da_rodada: ano_corte_elegibilidade}. Um cliente com
+# "Data de ativação" com ano < ano_corte (ou sem data) recebe o % daquela
+# rodada, lido da coluna "Reajuste <ano_da_rodada>" da planilha "Base de
+# Reajuste". Rodadas cujo cliente é elegível se COMPÕEM (multiplicativo):
+# Mensalidade × (1+pct_2025) × (1+pct_2026) × ...
+# NUNCA remova ou substitua uma entrada existente — isso apagaria o reajuste
+# daquele ano pra todo mundo. Ao abrir uma rodada nova, só ACRESCENTE uma
+# linha. Padrão: reajuste do ano X considera ativação até dezembro de X-1
+# (corte = X). Corrigido com o Diego (02/09/2026) — a versão anterior deste
+# arquivo tinha o corte de 2026 errado (2027 em vez de 2026), o que deu
+# reajuste indevido pra quem ativou em 2026 no ciclo de agosto/2026:
+#   • Reajuste 2025: ativação até dez/2024 → corte 2025
+#   • Reajuste 2026: ativação até dez/2025 → corte 2026
+REAJUSTE_RODADAS = {
+    2025: 2025,   # ano de ativação < 2025 recebe o reajuste 2025
+    2026: 2026,   # ano de ativação < 2026 recebe o reajuste 2026
+}
+
+
 # ── IDs/CPFs excluídos do faturamento — fallback hardcoded ────────────────────
 # Usado quando o banco não tem configuração salva ainda.
 CNPJ_EXCLUIDOS_DEFAULT = {
@@ -145,7 +165,14 @@ class BillingEngineService:
             if c not in df.columns:
                 df[c] = None
         for c in _date_cols:
-            df[c] = pd.to_datetime(df[c], errors="coerce", dayfirst=True)
+            # As datas chegam aqui vindas do CSV gerado por _excel_to_csv, que grava
+            # objetos datetime do Excel via str() — sempre "AAAA-MM-DD HH:MM:SS"
+            # (ISO), nunca ambíguo. "dayfirst=True" nessa string já-ISO trocava dia
+            # e mês sempre que o dia era <= 12 (ex.: 2026-08-01 virava 2026-01-08),
+            # zerando silenciosamente ativação/proporcionalidade de ~40% dos casos
+            # do mês (achado com o Diego, 02/09/2026). format="ISO8601" respeita o
+            # formato real e não erra a troca.
+            df[c] = pd.to_datetime(df[c], errors="coerce", format="ISO8601")
         for c in _num_cols:
             df[c] = pd.to_numeric(df[c], errors="coerce").fillna(0)
 
@@ -191,17 +218,39 @@ class BillingEngineService:
         source    = base_bytes if base_bytes is not None else base_path
         self._excel_to_csv(source, csv_path)
 
-        # Scan rápido para ICCIDs de Cancelamento (deduplicação entre chunks)
+        # Scan rápido para ICCIDs de Cancelamento (deduplicação entre chunks) — e,
+        # junto, quanto de ativação as linhas "Ativo" duplicadas (mesmo ICCID
+        # também em Cancelamento) carregavam, pra repassar essa taxa pra linha
+        # Cancelamento sobrevivente em process_chunk/_calcular. Feito num scan só
+        # porque o ICCID pode aparecer como Ativo num chunk e só ser confirmado
+        # como duplicado (Cancelamento) num chunk mais adiante no arquivo —
+        # por isso a decisão final (`ativ_dup_por_iccid`) só é tomada depois de
+        # ler o arquivo inteiro, não linha a linha.
         cancel_iccids_base: set = set()
+        ativo_ativacao_por_iccid: dict = {}
         try:
-            for sc in pd.read_csv(csv_path, usecols=["ICCID", "Status"],
+            for sc in pd.read_csv(csv_path, usecols=["ICCID", "Status", "Data de ativação", "Preço de ativação"],
                                   chunksize=50_000, dtype=str, low_memory=False):
                 sc["Status"] = sc["Status"].fillna("").apply(_normalizar_status)
-                icc = sc.loc[sc["Status"] == "Cancelamento", "ICCID"].astype(str).str.strip()
+                icc_all = sc["ICCID"].astype(str).str.strip()
+                icc = icc_all[sc["Status"] == "Cancelamento"]
                 cancel_iccids_base.update(v for v in icc if v and v not in ("", "nan"))
+
+                mask_ativo = sc["Status"] == "Ativo"
+                da_sc   = pd.to_datetime(sc["Data de ativação"], errors="coerce")
+                elig_sc = mask_ativo & (da_sc.dt.year == self.year) & (da_sc.dt.month == self.month)
+                preco_sc = pd.to_numeric(sc["Preço de ativação"], errors="coerce").fillna(0)
+                for iccid_v, preco_v in zip(icc_all[elig_sc], preco_sc[elig_sc]):
+                    if iccid_v and iccid_v != "nan" and preco_v:
+                        ativo_ativacao_por_iccid[iccid_v] = ativo_ativacao_por_iccid.get(iccid_v, 0.0) + float(preco_v)
         except Exception as exc:
             print(f"⚠️ Scan dedup falhou (ignorado): {exc}", flush=True)
         print(f"📂 ICCIDs Cancelamento para dedup: {len(cancel_iccids_base)}", flush=True)
+
+        ativ_dup_map = {icc: v for icc, v in ativo_ativacao_por_iccid.items() if icc in cancel_iccids_base}
+        if ativ_dup_map:
+            print(f"📂 Ativação preservada de SIM duplicado (Ativo+Cancelamento): "
+                  f"{len(ativ_dup_map)} ICCID(s), R$ {sum(ativ_dup_map.values()):,.2f}", flush=True)
 
         return {
             "csv_path":           csv_path,
@@ -215,6 +264,7 @@ class BillingEngineService:
             "sms_map":            sms_map,
             "multa_map":          multa_map,
             "cancel_iccids_base": cancel_iccids_base,
+            "ativ_dup_map":       ativ_dup_map,
         }
 
     def process_chunk(self, df_raw: pd.DataFrame, ref: dict) -> pd.DataFrame:
@@ -224,7 +274,10 @@ class BillingEngineService:
         """
         df = self._prepare_base_chunk(df_raw)
 
-        # Dedup: remove Ativo se o mesmo ICCID aparece como Cancelamento em qualquer chunk
+        # Dedup: remove Ativo se o mesmo ICCID aparece como Cancelamento em qualquer chunk.
+        # A taxa de ativação que essas linhas removidas carregavam já foi
+        # calculada globalmente em setup() (ativ_dup_map) e é reaplicada na
+        # linha Cancelamento sobrevivente dentro de _calcular.
         cancel_iccids_base = ref.get("cancel_iccids_base", set())
         if cancel_iccids_base and "ICCID" in df.columns:
             icc_str  = df["ICCID"].astype(str).str.strip()
@@ -249,6 +302,7 @@ class BillingEngineService:
             df_principal,
             ref["reajuste_map"], ref["cancel_prop"], ref["ativ_prop"],
             ref["df_cancel"],    ref["sms_map"],
+            ativ_dup_map=ref.get("ativ_dup_map"),
         )
         del df_principal
         return df_p
@@ -422,6 +476,13 @@ class BillingEngineService:
         return df
 
     def _load_reajuste(self, data: bytes) -> dict:
+        """Lê a planilha "Base de Reajuste" e retorna {id_cliente: {ano_rodada: pct}}.
+        Cada coluna cujo cabeçalho contenha "reajuste" + um ano de 4 dígitos
+        (ex.: "Reajuste 2025", "Reajuste 2026") é uma rodada independente —
+        o mesmo cliente pode ter mais de uma rodada preenchida na mesma
+        planilha (reajustes cumulativos, ver REAJUSTE_RODADAS no topo do
+        arquivo). Planilha antiga com uma única coluna "Reajuste" sem ano no
+        cabeçalho continua funcionando: cai na rodada mais recente."""
         try:
             xl = pd.ExcelFile(io.BytesIO(data), engine="openpyxl")
             # Tenta encontrar a aba certa por nome (flexível)
@@ -432,14 +493,25 @@ class BillingEngineService:
             df = xl.parse(sheet)
             # Coluna ID: primeira coluna que contenha ss_ ou seja a primeira
             col_id = df.columns[0]
-            # Coluna Reajuste: busca por nome
-            col_reaj = next((c for c in df.columns if "reajuste" in str(c).lower()), None)
-            if col_reaj is None:
-                return {}
-            df = df[[col_id, col_reaj]].dropna(subset=[col_id])
-            df[col_id]   = df[col_id].astype(str).str.strip()
-            df[col_reaj] = pd.to_numeric(df[col_reaj], errors="coerce").fillna(0)
-            return dict(zip(df[col_id], df[col_reaj]))
+
+            cols_reaj = [
+                (int(m.group(1)), c) for c in df.columns
+                if "reajuste" in str(c).lower() and (m := re.search(r"(20\d{2})", str(c)))
+            ]
+            if not cols_reaj:
+                col_reaj_legado = next((c for c in df.columns if "reajuste" in str(c).lower()), None)
+                if col_reaj_legado is None:
+                    return {}
+                cols_reaj = [(max(REAJUSTE_RODADAS), col_reaj_legado)]
+
+            df[col_id] = df[col_id].astype(str).str.strip()
+            result: dict = {}
+            for ano, col in cols_reaj:
+                sub = df[[col_id, col]].dropna(subset=[col_id])
+                pct = pd.to_numeric(sub[col], errors="coerce").fillna(0)
+                for cid, p in zip(sub[col_id], pct):
+                    result.setdefault(cid, {})[ano] = float(p)
+            return result
         except Exception:
             return {}
 
@@ -461,6 +533,13 @@ class BillingEngineService:
         for sheet in ["Cancelamento", "Desistência"]:
             try:
                 d = pd.read_excel(io.BytesIO(data), sheet_name=sheet, engine="openpyxl", dtype={"ICCID": str})
+                # Uma das abas já veio com cabeçalho com espaço a mais (" Mensalidade",
+                # " Valor da multa "), o que criava DUAS colunas "Mensalidade" após o
+                # concat (uma por aba) — o rename por nome mais abaixo então colidia
+                # com a coluna já existente e gerava coluna duplicada, quebrando o
+                # pd.to_numeric() com TypeError. Normaliza espaço nas duas abas ANTES
+                # de concatenar, pra virar uma coluna só desde o início.
+                d.columns = [str(c).strip() for c in d.columns]
                 d["_tipo"] = sheet
                 dfs.append(d)
             except Exception:
@@ -592,7 +671,7 @@ class BillingEngineService:
 
     # ── Cálculos ──────────────────────────────────────────────
 
-    def _calcular(self, df, reajuste_map, cancel_prop, ativ_prop, df_cancel, sms_map):
+    def _calcular(self, df, reajuste_map, cancel_prop, ativ_prop, df_cancel, sms_map, ativ_dup_map=None):
         if df.empty: return df
 
         # Sem .copy() — o chamador já passou uma cópia; modifica in-place para economizar RAM
@@ -637,12 +716,19 @@ class BillingEngineService:
         mask_ap = (da.dt.year == mr.year) & (da.dt.month == mr.month) & df["ID_CPF/CNPJ"].isin(ativ_prop)
         dias[mask_ap] = (td - da[mask_ap].dt.day + 1).astype(float)
 
-        # Reajuste: aplica apenas para linhas com data de ativação até dez/2024 (ou sem data)
-        per_client = df["ID_CPF/CNPJ"].map(reajuste_map).fillna(0)
-        mask_pre2025 = da.isna() | (da.dt.year < 2025)
-        df["_reajuste_pct"] = per_client.where(mask_pre2025, 0.0)
+        # Reajuste: cada rodada de REAJUSTE_RODADAS (ver topo do arquivo) aplica
+        # seu próprio % — lido da coluna daquele ano na planilha — só pra quem é
+        # elegível por data de ativação NAQUELA rodada. Rodadas aplicáveis se
+        # compõem (multiplicativo), então um cliente pode levar 2025 e 2026 juntos.
+        fator_reaj = pd.Series(1.0, index=df.index)
+        for ano_rodada, ano_corte in REAJUSTE_RODADAS.items():
+            pct_map_rodada = {cid: pcts.get(ano_rodada, 0) for cid, pcts in reajuste_map.items() if ano_rodada in pcts}
+            pct_rodada = df["ID_CPF/CNPJ"].map(pct_map_rodada).fillna(0).astype(float)
+            mask_elegivel = da.isna() | (da.dt.year < ano_corte)
+            fator_reaj *= (1 + pct_rodada.where(mask_elegivel, 0.0))
+        df["_reajuste_pct"] = fator_reaj - 1
         df["_dias"]              = dias.astype(int)
-        df["_mensalidade_reaj"]  = df["Mensalidade"] * (1 + df["_reajuste_pct"])
+        df["_mensalidade_reaj"]  = df["Mensalidade"] * fator_reaj
         raw = df["_mensalidade_reaj"] / td * df["_dias"]
         df["_mensalidade_cobr"]  = raw.apply(_roundup2)
         # Exceção configurável: alguns clientes cobram com arredondamento
@@ -654,6 +740,15 @@ class BillingEngineService:
 
         mask_ativ_mes = (da.dt.year == mr.year) & (da.dt.month == mr.month)
         df["_ativacao"] = np.where(mask_ativ_mes, df.get("Preço de ativação", 0), 0.0)
+
+        # Repassa a ativação de linhas "Ativo" removidas por duplicidade (mesmo
+        # ICCID também em Cancelamento, ver process_chunk) pra linha Cancelamento
+        # sobrevivente do mesmo ICCID — o SIM foi ativado, a taxa é devida mesmo
+        # tendo sido cancelado no mesmo mês (confirmado com o Diego, 02/09/2026).
+        if ativ_dup_map and "ICCID" in df.columns:
+            extra_ativ = df["ICCID"].astype(str).str.strip().map(ativ_dup_map).fillna(0)
+            if extra_ativ.any():
+                df["_ativacao"] = df["_ativacao"] + extra_ativ
 
         credito = pd.to_numeric(df.get("Crédito adicionado no Simcard", 0), errors="coerce").fillna(0)
         # Preço do MB Excedente tem piso de R$2,00 — qualquer valor abaixo disso
@@ -728,9 +823,14 @@ class BillingEngineService:
                 else:
                     iccid_str = str(r.get("ICCID", "")).strip()
                     da = da_map.get(iccid_str) if da_map else None
-                applies_reaj = da is not None and not pd.isna(da) and da.year < 2025
-                reaj = reajuste_map.get(id_cli, 0) if applies_reaj else 0.0
-                mr_  = float(r["Mensalidade"]) * (1 + reaj)
+                ano_ativ = da.year if (da is not None and not pd.isna(da)) else None
+                pcts_cli = reajuste_map.get(id_cli, {})
+                fator = 1.0
+                for ano_rodada, ano_corte in REAJUSTE_RODADAS.items():
+                    if ano_ativ is None or ano_ativ < ano_corte:
+                        fator *= (1 + pcts_cli.get(ano_rodada, 0))
+                reaj = fator - 1
+                mr_  = float(r["Mensalidade"]) * fator
                 mc   = _roundup2(mr_ / td * dias) if td > 0 else 0
 
             multa  = float(r["VALOR DA MULTA"])
