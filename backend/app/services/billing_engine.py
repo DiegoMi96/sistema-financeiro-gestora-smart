@@ -47,13 +47,15 @@ def _normalizar_status(s):
 # Mensalidade × (1+pct_2025) × (1+pct_2026) × ...
 # NUNCA remova ou substitua uma entrada existente — isso apagaria o reajuste
 # daquele ano pra todo mundo. Ao abrir uma rodada nova, só ACRESCENTE uma
-# linha. Confirmado com o Diego (01/09/2026):
-#   • Reajuste 2025: ativação até dez/2024 → corte 2025 (já rodado)
-#   • Reajuste 2026: ativação até dez/2026 → corte 2027 (só no ciclo de
-#     setembro/2026 em diante — NÃO afeta o ciclo de agosto/2026)
+# linha. Padrão: reajuste do ano X considera ativação até dezembro de X-1
+# (corte = X). Corrigido com o Diego (02/09/2026) — a versão anterior deste
+# arquivo tinha o corte de 2026 errado (2027 em vez de 2026), o que deu
+# reajuste indevido pra quem ativou em 2026 no ciclo de agosto/2026:
+#   • Reajuste 2025: ativação até dez/2024 → corte 2025
+#   • Reajuste 2026: ativação até dez/2025 → corte 2026
 REAJUSTE_RODADAS = {
     2025: 2025,   # ano de ativação < 2025 recebe o reajuste 2025
-    2026: 2027,   # ano de ativação < 2027 recebe o reajuste 2026
+    2026: 2026,   # ano de ativação < 2026 recebe o reajuste 2026
 }
 
 
