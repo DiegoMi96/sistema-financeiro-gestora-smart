@@ -588,7 +588,11 @@ async def get_operational_summary(
         payments = []
 
     # ── Carrega boletos Itaú do mês selecionado ───────────────
-    upload_ref_itau = f"{sel_year}-{sel_month:02d}"
+    # Filtra só por data_vencimento — upload_ref NÃO serve pra isso: é a chave
+    # do upsert por "Nosso Número", e um boleto de agosto ainda vencido quando
+    # a planilha de setembro é importada tem seu upload_ref sobrescrito pra
+    # "2026-09", sumindo do resumo de agosto se upload_ref também fosse
+    # filtrado aqui (achado com o Diego, 03/09/2026).
     try:
         _dbi0 = SessionLocal()
         try:
@@ -596,11 +600,10 @@ async def get_operational_summary(
                 SELECT nosso_numero, pagador, cpf_cnpj, valor_titulo, valor_pago,
                        data_vencimento, data_pagamento, status
                 FROM itau_boletos
-                WHERE upload_ref = :ref
-                  AND status != 'cancelada'
+                WHERE status != 'cancelada'
                   AND EXTRACT(MONTH FROM data_vencimento) = :m
                   AND EXTRACT(YEAR  FROM data_vencimento) = :y
-            """), {"ref": upload_ref_itau, "m": sel_month, "y": sel_year}).fetchall()
+            """), {"m": sel_month, "y": sel_year}).fetchall()
         finally:
             _dbi0.close()
     except Exception:
@@ -1052,8 +1055,10 @@ async def get_operational_summary(
         asaas_tot = asaas_av + asaas_vv
         asaas_inadimp = round(asaas_vv / asaas_tot * 100, 1) if asaas_tot else 0
 
-        # Itaú — da planilha importada (itau_boletos)
-        upload_ref = f"{sel_year}-{sel_month:02d}"
+        # Itaú — da planilha importada (itau_boletos). Filtra só por
+        # data_vencimento, não por upload_ref (ver comentário em
+        # operational-summary sobre o upload_ref ser sobrescrito quando um
+        # boleto ainda vencido reaparece na planilha do mês seguinte).
         _eff_venc_b = effective_due_date_sql("data_vencimento")
         _dbi = SessionLocal()
         itau_row = _dbi.execute(text(f"""
@@ -1068,11 +1073,10 @@ async def get_operational_summary(
                            THEN 1 END)                        AS qtd_vencido,
                 MAX(uploaded_at)                                             AS ultima_importacao
             FROM itau_boletos
-            WHERE upload_ref = :ref
-              AND status != 'cancelada'
+            WHERE status != 'cancelada'
               AND EXTRACT(MONTH FROM data_vencimento) = :m
               AND EXTRACT(YEAR  FROM data_vencimento) = :y
-        """), {"ref": upload_ref, "m": sel_month, "y": sel_year}).fetchone()
+        """), {"m": sel_month, "y": sel_year}).fetchone()
         _dbi.close()
 
         itau_fat = round(itau_row.faturado or 0, 2)
@@ -1536,16 +1540,17 @@ async def payment_planning(
         print(f"⚠️  payment-planning Asaas realizado: {_e}")
 
     # Itaú — planejado (data_vencimento do mês) + realizado (data_pagamento no mês)
+    # Filtra só por data_vencimento (não upload_ref — ver comentário em
+    # operational-summary).
     try:
         _db_itau = SessionLocal()
         _itau_plan = _db_itau.execute(text("""
             SELECT valor_titulo, data_vencimento, cpf_cnpj
             FROM itau_boletos
-            WHERE upload_ref = :ref
-              AND status != 'cancelada'
+            WHERE status != 'cancelada'
               AND EXTRACT(MONTH FROM data_vencimento) = :m
               AND EXTRACT(YEAR  FROM data_vencimento) = :y
-        """), {"ref": f"{year}-{month:02d}", "m": month, "y": year}).fetchall()
+        """), {"m": month, "y": year}).fetchall()
         for r in _itau_plan:
             if r.data_vencimento:
                 cnpj_key = _digits(r.cpf_cnpj)
