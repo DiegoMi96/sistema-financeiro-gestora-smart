@@ -5,13 +5,21 @@ import type { EstoqueSnapshot, OperadoraEstoque, LoteInfo, LinhaEstoque, TipoEst
 
 // Regra de classificação validada linha a linha contra o arquivo real do cliente:
 //
-// 1. `Status do bloqueio de rede` = "Suspenso" E `Data de início da suspensão` <= hoje
+// 1. `Status do bloqueio de rede` = "Suspenso" E `Data de início do bloqueio de rede` <= hoje
 //      -> SUSPENSO
 // 2. `Status do bloqueio de rede` = "Suspenso" MAS a data de início é futura
 //      -> ATIVO (sub-contado como "aguardando suspensão" — ainda não foi de fato suspenso)
 // 3. `Status` = "Suspenso" mas o bloqueio de rede não é "Suspenso" (linha órfã / desatualizada)
 //      -> ATIVO
 // 4. Nenhum dos casos acima -> usa `Status` diretamente (Ativo / Pré-ativo)
+//
+// Atenção: a planilha tem DOIS grupos de colunas parecidos — "bloqueio de
+// rede" (Status/Início/Término) e "suspensão" (Elegível/Início/Término) — e
+// não são a mesma coisa. A data usada aqui tem que ser a do MESMO grupo do
+// campo de status ("do bloqueio de rede"), não a de "da suspensão", que na
+// prática fica vazia mesmo em linhas já suspensas (bug corrigido em 03/09/2026:
+// a data vinha do grupo errado, fazendo linha suspensa cair sempre em
+// "aguardando suspensão").
 
 type RawRow = Record<string, unknown>;
 
@@ -28,9 +36,9 @@ function classificarLinha(row: RawRow, hoje: Date): ClassificacaoLinha | null {
   const status = String(row["Status"] ?? "").trim();
 
   if (bloqueio === "Suspenso") {
-    const inicioSuspensao = parseFlexibleDate(row["Data de início da suspensão"]);
-    if (inicioSuspensao && inicioSuspensao <= hoje) {
-      return { bucket: "SUSPENSO", loteData: inicioSuspensao, prazoDias: 120 };
+    const inicioBloqueio = parseFlexibleDate(row["Data de início do bloqueio de rede"]);
+    if (inicioBloqueio && inicioBloqueio <= hoje) {
+      return { bucket: "SUSPENSO", loteData: inicioBloqueio, prazoDias: 120 };
     }
     return { bucket: "ATIVO", aguardandoSuspensao: true };
   }
@@ -89,7 +97,7 @@ const COLUNAS_NECESSARIAS = [
   "Operadora específica",
   "Status",
   "Status do bloqueio de rede",
-  "Data de início da suspensão",
+  "Data de início do bloqueio de rede",
   "Data fim da pré-ativação",
   "Dias de pré-ativação",
   "MSISDN",
