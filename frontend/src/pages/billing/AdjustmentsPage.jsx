@@ -1,4 +1,4 @@
-import { useState, Fragment } from 'react'
+import { useState, useEffect, useRef, Fragment } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { billingApi } from '../../services/api'
 import { useAuth } from '../../contexts/AuthContext'
@@ -47,6 +47,26 @@ export default function AdjustmentsPage() {
   const [approving, setApproving] = useState(null)
   const [sortBy,  setSortBy]  = useState(null)
   const [sortDir, setSortDir] = useState('asc')
+
+  // Filtro de mês/ano começa vazio (= todos os meses) e só é preenchido uma
+  // vez, com o ciclo mais recente, assim que a lista de ciclos carrega — pra
+  // tela sempre abrir já filtrada no mês em questão em vez de misturar tudo
+  // (pedido do Diego, 03/09/2026). defaultAppliedRef evita sobrescrever o
+  // filtro se o usuário já tiver escolhido outro mês manualmente.
+  const defaultAppliedRef = useRef(false)
+  const { data: cycles = [] } = useQuery({
+    queryKey: ['billing-cycles'],
+    queryFn: () => billingApi.cycles().then(r => r.data),
+  })
+  useEffect(() => {
+    if (defaultAppliedRef.current || cycles.length === 0) return
+    defaultAppliedRef.current = true
+    const latest = cycles[0]
+    if (latest) {
+      setMonth(latest.month)
+      setYear(latest.year)
+    }
+  }, [cycles])
 
   const toggleSort = (col) => {
     if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
