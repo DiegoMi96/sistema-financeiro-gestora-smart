@@ -11,7 +11,6 @@ const ICONS = { FileText, AlertCircle, TrendingUp, Truck, BarChart2, Globe2, Shi
 const MODULE_HOME = {
   faturamento:     '/dashboard',
   contestacao:     '/contestacao',
-  comissionamento: '/comissionamento',
   logistica:       '/logistica',
   // Controladoria tem casa própria (dashboard em iframe), nunca o /dashboard
   // do Faturamento — separação total dos cards (08/08/2026).

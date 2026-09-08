@@ -21,9 +21,6 @@ const ContestationCyclePage    = lazy(() => import('./pages/contestation/Contest
 const AllcomPage               = lazy(() => import('./pages/contestation/AllcomPage'))
 const UsersPage                = lazy(() => import('./pages/auth/UsersPage'))
 const SettingsPage             = lazy(() => import('./pages/settings/SettingsPage'))
-const ComissionamentoPage      = lazy(() => import('./pages/comissionamento/ComissionamentoPage'))
-const ParceirosRegionaisPage   = lazy(() => import('./pages/comissionamento/ParceirosRegionaisPage'))
-const ComissionamentoInternoPage = lazy(() => import('./pages/comissionamento/ComissionamentoInternoPage'))
 const ClientsPage              = lazy(() => import('./pages/clients/ClientsPage'))
 const OrganoPage               = lazy(() => import('./pages/organograma/OrganoPage'))
 const IndicadoresPage          = lazy(() => import('./pages/controladoria/IndicadoresPage'))
@@ -113,11 +110,6 @@ function AppRoutes() {
             </PrivateRoute>
           }
         />
-
-        {/* Comissionamento — sem ModuleRoute para não bloquear por activeModule */}
-        <Route path="/comissionamento"           element={<PrivateRoute permission="can_view_com_painel"><ComissionamentoPage /></PrivateRoute>} />
-        <Route path="/comissionamento/parceiros" element={<PrivateRoute permission="can_view_com_parceiros"><ParceirosRegionaisPage /></PrivateRoute>} />
-        <Route path="/comissionamento/interno"   element={<PrivateRoute permission="can_view_com_interno"><ComissionamentoInternoPage /></PrivateRoute>} />
 
         {/* Controladoria — dashboard externo em iframe, sem sidebar */}
         <Route path="/controladoria/dash" element={<PrivateRoute permission="can_view_controladoria"><ControladoriaDashboard /></PrivateRoute>} />

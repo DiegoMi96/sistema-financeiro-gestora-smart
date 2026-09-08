@@ -652,7 +652,6 @@ const PERMS = [
   ['can_view_dashboard',     'Ver dashboard'],
   ['can_manage_users',       'Gerenciar usuários'],
   ['can_view_contestacao',   'Ver contestação'],
-  ['can_view_comissao',      'Ver comissionamento'],
   ['can_approve_adjustment', 'Aprovar ajustes'],
 ]
 
@@ -757,7 +756,7 @@ function Acesso() {
               ['Gestor',          'gestor',          'Acesso gerencial — aprovação de faturamento, relatórios e ajustes.'],
               ['Contas a Receber','contas_receber',  'Operações de faturamento, ajustes e exportações.'],
               ['Backoffice',      'backoffice',      'Operações internas — faturamento, ajustes e relatórios.'],
-              ['Comercial',       'comercial',       'Painel comercial — comissionamento e visão de resultados.'],
+              ['Comercial',       'comercial',       'Painel comercial — visão de resultados.'],
               ['Logística',       'logistica',       'Gestão de logística e upload de planilhas.'],
               ['Suporte Técnico', 'suporte_tecnico', 'Acesso somente à contestação e logística.'],
             ].map(([label, , desc]) => (
@@ -907,7 +906,6 @@ const PERM_SECTIONS = [
     ['can_view_faturamento',   'Faturamento'],
     ['can_edit_billing',       'Editar faturamento'],
     ['can_view_contestacao',   'Contestação'],
-    ['can_view_comissao',      'Comissionamento'],
     ['can_view_logistica',     'Logística'],
     ['can_view_controladoria', 'Controladoria'],
     ['can_manage_users',       'Usuários'],

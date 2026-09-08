@@ -74,7 +74,6 @@ class User(Base):
     can_view_dashboard    = Column(Boolean, default=None)
     can_manage_users      = Column(Boolean, default=None)
     can_view_contestacao  = Column(Boolean, default=None)
-    can_view_comissao     = Column(Boolean, default=None)
     can_view_smt          = Column(Boolean, default=None)
 
     # Relacionamentos

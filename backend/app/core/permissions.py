@@ -17,7 +17,6 @@ ALL_PERMISSIONS = [
     "can_view_faturamento",
     "can_edit_billing",
     "can_view_contestacao",
-    "can_view_comissao",
     "can_view_logistica",
     "can_view_organograma",
     "can_edit_organograma",
@@ -48,10 +47,6 @@ ALL_PERMISSIONS = [
     "can_view_fat_ciclo_detalhe",    # Detalhe do ciclo
     "can_view_fat_cliente_detalhe",  # Detalhe do cliente
     "can_view_fat_diagnostico_ia",   # Diagnóstico IA
-    # Comissionamento — páginas visíveis (granular, 01/08/2026)
-    "can_view_com_painel",           # Painel de comissionamento
-    "can_view_com_parceiros",        # Parceiros regionais
-    "can_view_com_interno",          # Comissionamento interno
     # Contestação — páginas visíveis (granular, 01/08/2026)
     "can_view_cont_ciclos",          # Lista de ciclos de contestação
     "can_view_cont_ciclo_detalhe",   # Detalhe do ciclo de contestação
@@ -98,7 +93,6 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_faturamento":     True,
         "can_edit_billing":         True,
         "can_view_contestacao":     True,
-        "can_view_comissao":        True,
         "can_view_logistica":       True,
         "can_view_organograma":     True,
         "can_edit_organograma":     True,
@@ -123,9 +117,6 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_fat_ciclos":           True,
         "can_view_fat_ciclo_detalhe":    True,
         "can_view_fat_cliente_detalhe":  True,"can_view_fat_diagnostico_ia":   True,
-        "can_view_com_painel":           True,
-        "can_view_com_parceiros":        True,
-        "can_view_com_interno":          True,
         "can_view_cont_ciclos":          True,
         "can_view_cont_ciclo_detalhe":   True,
         "can_view_cont_allcom":          True,
@@ -162,7 +153,6 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_faturamento":     True,
         "can_edit_billing":         True,
         "can_view_contestacao":     True,
-        "can_view_comissao":        True,
         "can_view_logistica":       True,
         "can_view_organograma":     True,
         "can_edit_organograma":     True,
@@ -187,9 +177,6 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_fat_ciclos":           True,
         "can_view_fat_ciclo_detalhe":    True,
         "can_view_fat_cliente_detalhe":  True,"can_view_fat_diagnostico_ia":   True,
-        "can_view_com_painel":           True,
-        "can_view_com_parceiros":        True,
-        "can_view_com_interno":          True,
         "can_view_cont_ciclos":          True,
         "can_view_cont_ciclo_detalhe":   True,
         "can_view_cont_allcom":          True,
@@ -226,7 +213,6 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_faturamento":     True,
         "can_edit_billing":         True,
         "can_view_contestacao":     False,
-        "can_view_comissao":        False,
         "can_view_logistica":       False,
         "can_view_organograma":     True,
         "can_edit_organograma":     False,
@@ -251,9 +237,6 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_fat_ciclos":           True,
         "can_view_fat_ciclo_detalhe":    True,
         "can_view_fat_cliente_detalhe":  True,"can_view_fat_diagnostico_ia":   True,
-        "can_view_com_painel":           False,
-        "can_view_com_parceiros":        False,
-        "can_view_com_interno":          False,
         "can_view_cont_ciclos":          False,
         "can_view_cont_ciclo_detalhe":   False,
         "can_view_cont_allcom":          False,
@@ -290,7 +273,6 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_faturamento":     False,
         "can_edit_billing":         False,
         "can_view_contestacao":     True,
-        "can_view_comissao":        False,
         "can_view_logistica":       True,
         "can_view_organograma":     True,
         "can_edit_organograma":     False,
@@ -315,9 +297,6 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_fat_ciclos":           False,
         "can_view_fat_ciclo_detalhe":    False,
         "can_view_fat_cliente_detalhe":  False,"can_view_fat_diagnostico_ia":   False,
-        "can_view_com_painel":           False,
-        "can_view_com_parceiros":        False,
-        "can_view_com_interno":          False,
         "can_view_cont_ciclos":          True,
         "can_view_cont_ciclo_detalhe":   True,
         "can_view_cont_allcom":          True,
@@ -354,7 +333,6 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_faturamento":     True,
         "can_edit_billing":         False,
         "can_view_contestacao":     False,
-        "can_view_comissao":        False,
         "can_view_logistica":       True,
         "can_view_organograma":     True,
         "can_edit_organograma":     False,
@@ -379,9 +357,6 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_fat_ciclos":           True,
         "can_view_fat_ciclo_detalhe":    True,
         "can_view_fat_cliente_detalhe":  True,"can_view_fat_diagnostico_ia":   True,
-        "can_view_com_painel":           False,
-        "can_view_com_parceiros":        False,
-        "can_view_com_interno":          False,
         "can_view_cont_ciclos":          False,
         "can_view_cont_ciclo_detalhe":   False,
         "can_view_cont_allcom":          False,
@@ -418,7 +393,6 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_faturamento":     True,
         "can_edit_billing":         True,
         "can_view_contestacao":     False,
-        "can_view_comissao":        False,
         "can_view_logistica":       False,
         "can_view_organograma":     True,
         "can_edit_organograma":     False,
@@ -443,9 +417,6 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_fat_ciclos":           True,
         "can_view_fat_ciclo_detalhe":    True,
         "can_view_fat_cliente_detalhe":  True,"can_view_fat_diagnostico_ia":   True,
-        "can_view_com_painel":           False,
-        "can_view_com_parceiros":        False,
-        "can_view_com_interno":          False,
         "can_view_cont_ciclos":          False,
         "can_view_cont_ciclo_detalhe":   False,
         "can_view_cont_allcom":          False,
@@ -482,7 +453,6 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_faturamento":     True,
         "can_edit_billing":         False,
         "can_view_contestacao":     False,
-        "can_view_comissao":        True,
         "can_view_logistica":       False,
         "can_view_organograma":     True,
         "can_edit_organograma":     False,
@@ -507,9 +477,6 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_fat_ciclos":           True,
         "can_view_fat_ciclo_detalhe":    True,
         "can_view_fat_cliente_detalhe":  True,"can_view_fat_diagnostico_ia":   True,
-        "can_view_com_painel":           True,
-        "can_view_com_parceiros":        True,
-        "can_view_com_interno":          True,
         "can_view_cont_ciclos":          False,
         "can_view_cont_ciclo_detalhe":   False,
         "can_view_cont_allcom":          False,
@@ -561,7 +528,7 @@ ROLE_DESCRIPTIONS = {
     "suporte_tecnico": "Suporte Técnico — acesso somente à contestação e logística.",
     "logistica":       "Logística — gestão de fretes e upload de planilhas.",
     "backoffice":      "Backoffice — operações internas, faturamento e ajustes.",
-    "comercial":       "Comercial — comissionamento e painel de resultados.",
+    "comercial":       "Comercial — painel de resultados.",
 }
 
 # ─────────────────────────────────────────────
@@ -611,9 +578,6 @@ MODULE_PERMISSIONS = {
         "can_upload_files", "can_sync_asaas", "can_view_financial_values",
         "can_export_excel", "can_export_pdf",
     ],
-    "COMISSIONAMENTO": [
-        "can_view_comissao", "can_view_com_painel", "can_view_com_parceiros", "can_view_com_interno",
-    ],
     "CONTESTAÇÃO": [
         "can_view_contestacao", "can_view_cont_ciclos", "can_view_cont_ciclo_detalhe", "can_view_cont_allcom",
     ],
@@ -641,7 +605,7 @@ MODULE_PERMISSIONS = {
 
 AREA_MODULES = {
     "operacoes":      ["LOGÍSTICA", "ORGANOGRAMA", "GUARDIÃO", "ESTOQUE"],
-    "comercial":      ["COMISSIONAMENTO"],
+    "comercial":      [],
     "administrativo": ["FATURAMENTO"],
 }
 

@@ -4,7 +4,7 @@ import { useAuth } from './AuthContext'
 const ModuleContext = createContext(null)
 
 // Definição dos módulos — nomes e permissões necessárias
-// Linha 1 (4): Faturamento · Comissionamento · Controladoria · SMT
+// Linha 1 (3): Faturamento · Controladoria · SMT
 // Linha 2 (4): Guardião · Controle de Estoque · Organograma · Gestão de Acessos
 // Guardião ocupa o antigo lugar do SMT no array; SMT passou para o lado da
 // Controladoria (pedido do Diego em 31/07/2026, integração do Guardião).
@@ -50,18 +50,6 @@ export const MODULES = [
     ],
   },
   */
-  {
-    id:          'comissionamento',
-    label:       'Comissionamento',
-    description: 'Comissões de vendas e metas por vendedor',
-    icon:        'TrendingUp',
-    color:       'green',
-    status:      'coming',
-    permission:  'can_view_comissao',
-    nav: [
-      { to: '/configuracoes', label: 'Configurações', permission: 'can_manage_users' },
-    ],
-  },
   {
     id:          'controladoria',
     label:       'Controladoria',

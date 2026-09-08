@@ -16,7 +16,6 @@ const NAV_ICONS = {
   '/clientes':        Contact,
   '/ajustes':         SlidersHorizontal,
   '/contestacao':     AlertCircle,
-  '/comissionamento': TrendingUp,
   '/logistica':       Truck,
   '/controladoria':   BarChart2,
   '/dashboard':       LayoutDashboard,
@@ -35,7 +34,6 @@ const NAV_SECTIONS = {
   '/ajustes':                     'MÓDULOS',
   '/diagnostico-ia':              'MÓDULOS',
   '/contestacao':                 'MÓDULOS',
-  '/comissionamento':             'MÓDULOS',
   '/logistica':                   'MÓDULOS',
   '/controladoria':               'MÓDULOS',
   '/usuarios':                    'CONFIGURAÇÕES',
@@ -50,7 +48,6 @@ const PAGE_TITLES = {
   '/usuarios':        'Usuários',
   '/configuracoes':   'Configurações',
   '/contestacao':     'Contestação',
-  '/comissionamento': 'Comissionamento',
 }
 
 const BG  = '#FFFFFF'
