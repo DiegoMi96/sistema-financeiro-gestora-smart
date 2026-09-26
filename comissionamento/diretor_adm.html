@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Comissão Diretor Administrativo · Gestora Smart</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#f5f4f0;color:#1a2332;font-size:13px;line-height:1.5}
+.page{max-width:1080px;margin:0 auto;padding:40px 28px 80px}
+:root{--navy:#0f2340;--gold:#b8863f;--gold-bg:#fdf6ec;--gold-border:#e8d5b5}
+
+/* HEADER */
+.header{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:18px;border-bottom:3px solid var(--navy);margin-bottom:26px}
+.header-left .eyebrow{font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+.header-left h1{font-size:24px;font-weight:800;color:var(--navy)}
+.header-right{text-align:right}
+.hbadge{background:var(--navy);color:#fff;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:5px 14px;border-radius:3px}
+.ciclo-label{font-size:11px;color:#55617a;margin-top:6px}
+
+/* TABS */
+.tab-nav{display:flex;border-bottom:1px solid #e2e5ea;margin-bottom:28px}
+.tab-btn{background:none;border:none;border-bottom:2.5px solid transparent;margin-bottom:-1px;padding:9px 18px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#99a3b4;cursor:pointer;font-family:'Inter',sans-serif;transition:color .15s}
+.tab-btn.active{color:var(--navy);border-bottom-color:var(--navy)}
+.tab-btn:hover:not(.active){color:#333}
+.tab-panel{display:none}.tab-panel.active{display:block}
+
+/* CARDS */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.card{background:#fff;border:1px solid #e2e5ea;border-top:3px solid var(--navy);border-radius:4px;padding:20px 22px;margin-bottom:14px}
+.card.gold{border-top-color:var(--gold)}
+.card-title{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#55617a;margin-bottom:14px}
+label.lbl{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#55617a;margin-bottom:4px;display:block}
+.irow{display:flex;align-items:center;gap:6px}.irow input{flex:1}
+.ipfx{font-size:12px;color:#99a3b4;white-space:nowrap}
+input[type=number],input[type=text],input[type=month],select,textarea{background:#f6f7f9;border:1px solid #e2e5ea;border-radius:4px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:#1a2332;width:100%;outline:none}
+input:focus,select:focus{border-color:var(--navy);background:#fff}
+textarea{resize:vertical}
+.btn{background:var(--navy);color:#fff;border:none;border-radius:4px;padding:9px 18px;font-size:12px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer}
+.btn:hover{background:#1e3a5f}
+.btn-sm{padding:5px 12px;font-size:11px}
+.btn-ghost{background:transparent;color:var(--navy);border:1px solid #d1d7e0;border-radius:4px;padding:8px 14px;font-size:12px;font-weight:500;font-family:'Inter',sans-serif;cursor:pointer}
+.btn-ghost:hover{background:#f0f2f5}
+.btn-gold{background:var(--gold);color:#fff;border:none;border-radius:4px;padding:9px 18px;font-size:12px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer}
+.btn-del{background:#fceaea;color:#b83232;border:1px solid #f5c6c6;border-radius:3px;padding:4px 8px;font-size:11px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer}
+table{width:100%;border-collapse:collapse}
+th{background:var(--navy);color:#fff;text-align:center;padding:10px 12px;font-size:11px;font-weight:600;letter-spacing:.04em;white-space:nowrap}
+th.left{text-align:left}
+td{padding:9px 12px;border-bottom:1px solid #eef0f4;font-size:12px;color:#1a2332;text-align:center;white-space:nowrap}
+td.left{text-align:left}
+tr:last-child td{border-bottom:none}
+tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;border-bottom:none}
+.c-gold{color:var(--gold);font-weight:600}
+.c-navy{color:var(--navy);font-weight:600}
+.c-green{color:#2e7d5b;font-weight:600}
+.rule-input{background:#f6f7f9;border:1px solid #e2e5ea;border-radius:3px;padding:5px 7px;font-size:12px;font-family:'Inter',sans-serif;color:#1a2332;text-align:right;outline:none}
+.rule-input:focus{border-color:var(--navy);background:#fff}
+
+/* KPI CARDS */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:22px}
+.kpi{background:#fff;border:1px solid #e2e5ea;border-top:3px solid var(--navy);border-radius:4px;padding:14px 16px}
+.kpi.gold{border-top-color:var(--gold)}
+.kpi.green{border-top-color:#2e7d5b}
+.kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#55617a;margin-bottom:5px;font-weight:600}
+.kpi-val{font-size:22px;font-weight:800;color:var(--navy);line-height:1.1}
+.kpi.gold .kpi-val{color:var(--gold)}
+.kpi.green .kpi-val{color:#2e7d5b}
+.kpi-sub{font-size:10px;color:#99a3b4;margin-top:3px}
+
+/* FAIXAS PREVIEW */
+.faixas-visual{display:flex;gap:0;margin:12px 0;border-radius:4px;overflow:hidden;border:1px solid #e2e5ea}
+.fx-item{flex:1;padding:8px 6px;text-align:center;background:#f6f7f9;border-right:1px solid #e2e5ea;transition:background .2s}
+.fx-item:last-child{border-right:none}
+.fx-item.ativa{background:var(--navy)}
+.fx-lbl{font-size:8px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#99a3b4;margin-bottom:3px}
+.fx-val{font-size:12px;font-weight:700;color:#55617a}
+.fx-item.ativa .fx-lbl{color:rgba(255,255,255,.55)}
+.fx-item.ativa .fx-val{color:#fff}
+
+/* PROGRESS BAR */
+.pbar-wrap{background:#eef0f4;border-radius:3px;height:8px;overflow:hidden;margin:6px 0}
+.pbar-fill{height:100%;border-radius:3px;transition:width .4s ease;background:var(--navy)}
+.pbar-fill.gold{background:var(--gold)}
+.pbar-fill.green{background:#2e7d5b}
+
+/* COFRE MILESTONES */
+.marco-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:6px;margin-bottom:8px;border:1px solid #e2e5ea;background:#fff}
+.marco-row.pago{background:#f0fdf6;border-color:#86efb0}
+.marco-icon{font-size:20px;flex-shrink:0}
+.marco-info{flex:1}
+.marco-nome{font-size:12px;font-weight:600;color:var(--navy)}
+.marco-pago{font-size:11px;color:#2e7d5b;font-weight:600}
+.marco-pendente{font-size:11px;color:#99a3b4}
+.marco-val{font-size:16px;font-weight:800;color:var(--gold)}
+
+/* SISTEMAS LOG */
+.sis-item{background:#fff;border:1px solid #e2e5ea;border-radius:4px;padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.sis-nome{font-size:12px;font-weight:600;color:var(--navy)}
+.sis-data{font-size:10px;color:#99a3b4;margin-top:2px}
+.sis-val{font-size:16px;font-weight:800;color:var(--gold)}
+
+/* LIVE PREVIEW */
+.calc-preview{background:var(--navy);border-radius:6px;padding:18px 22px;margin-top:14px}
+.cp-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.cp-item label{font-size:9px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px}
+.cp-item span{font-size:13px;font-weight:600;color:#fff}
+.cp-sep{font-size:15px;color:rgba(255,255,255,.25)}
+.cp-total{display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,.12);padding-top:12px;margin-top:4px}
+.cp-total-lbl{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.1em}
+.cp-total-val{font-size:28px;font-weight:800;color:#fbbf24}
+
+.toast{position:fixed;bottom:24px;right:24px;background:var(--navy);color:#fff;font-size:12px;font-weight:600;padding:10px 18px;border-radius:4px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:99}
+.toast.show{opacity:1}
+
+.nivel-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-radius:4px;margin-bottom:6px;background:#f6f7f9;border:1px solid #e2e5ea}
+.nivel-row.atual{background:var(--gold-bg);border-color:var(--gold-border)}
+.nivel-nome{font-size:12px;font-weight:700;color:var(--navy)}
+.nivel-periodo{font-size:10px;color:#99a3b4}
+.nivel-val{font-size:13px;font-weight:700;color:var(--gold);text-align:right}
+
+/* ─── Responsivo (tablet/celular) ─── */
+@media (max-width:860px){
+  .page{padding:24px 16px 60px}
+  .g2{grid-template-columns:1fr}
+  .tab-nav{flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="header">
+  <div class="header-left">
+    <div class="eyebrow">Gestora Smart · Confidencial</div>
+    <h1>Diretor Administrativo</h1>
+  </div>
+  <div class="header-right">
+    <span class="hbadge">Diretor Administrativo</span>
+    <div class="ciclo-label">Ciclo Ago/2026 – Dez/2027 · 17 meses</div>
+  </div>
+</div>
+
+<div class="tab-nav">
+  <button class="tab-btn active" data-tab="calc">Calculadora Mensal</button>
+  <button class="tab-btn" data-tab="ciclo">Ciclo &amp; Bonificações</button>
+  <button class="tab-btn" data-tab="config">Configurações</button>
+</div>
+
+<!-- ═══ CALCULADORA MENSAL ═══ -->
+<div id="tab-calc" class="tab-panel active">
+
+  <div class="card gold">
+    <p class="card-title">Remuneração fixa do nível atual <span style="font-weight:400;text-transform:none;color:#99a3b4">— referência, não entra no total variável abaixo</span></p>
+    <div id="nivel_atual_box"></div>
+  </div>
+
+  <div class="kpi-grid" id="kpiGrid">
+    <div class="kpi gold"><div class="kpi-label">Bônus B (dividendo)</div><div class="kpi-val" id="k_bonusB">R$ 0</div><div class="kpi-sub" id="k_bonusB_sub">—</div></div>
+    <div class="kpi green"><div class="kpi-label">Bônus A (resultado)</div><div class="kpi-val" id="k_bonusA">R$ 0</div><div class="kpi-sub" id="k_bonusA_sub">—</div></div>
+    <div class="kpi" style="border-top-color:#2563eb"><div class="kpi-label">Total do mês</div><div class="kpi-val" id="k_total" style="color:#2563eb">R$ 0</div><div class="kpi-sub" id="k_mes_label"></div></div>
+  </div>
+
+  <div class="g2">
+    <div>
+      <div class="card">
+        <p class="card-title">Resultado do mês</p>
+        <div style="margin-bottom:12px">
+          <label class="lbl">Mês do Comissionamento</label>
+          <input type="month" id="mesInput" onchange="updateCalc()">
+        </div>
+        <div style="margin-bottom:12px">
+          <label class="lbl">Resultado líquido realizado</label>
+          <div class="irow"><span class="ipfx">R$</span><input type="text" id="i_resultado" placeholder="0"
+            oninput="updateCalc()"
+            onblur="this.value=this.value?brFmt(parseNum(this.value)):'';updateCalc()"
+            onfocus="this.value=this.value?String(parseNum(this.value)):''"></div>
+        </div>
+        <div>
+          <label class="lbl">Meta do mês <span style="font-weight:400;text-transform:none;color:#99a3b4">— puxada de Configurações</span></label>
+          <div class="irow">
+            <span class="ipfx">R$</span>
+            <input type="text" id="i_meta" readonly style="background:#eef1f6;color:#55617a;cursor:default;border-color:#dde0e6" placeholder="—">
+          </div>
+          <div style="font-size:10px;color:#99a3b4;margin-top:4px">Para alterar: Configurações → Metas mensais do ciclo</div>
+        </div>
+      </div>
+      <div class="card gold" style="margin-top:0">
+        <p class="card-title">Dividendo distribuído</p>
+        <div style="font-size:11px;color:#55617a;margin-bottom:10px">40% do resultado líquido → base para o Bônus B</div>
+        <div style="font-size:26px;font-weight:800;color:var(--gold)" id="dividendo_val">R$ 0,00</div>
+        <div id="faixas_visual" class="faixas-visual" style="margin-top:14px">
+          <!-- populated by JS -->
+        </div>
+        <div style="margin-top:6px;font-size:10px;color:#99a3b4" id="faixa_label">Faixa atingida: —</div>
+      </div>
+    </div>
+    <div>
+      <div class="calc-preview">
+        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px">Cálculo detalhado</div>
+        <div class="cp-row">
+          <div class="cp-item"><label>Bônus B</label><span id="cp_bonusB">R$ 0</span></div>
+          <span class="cp-sep">+</span>
+          <div class="cp-item"><label>Bônus A</label><span id="cp_bonusA">R$ 0</span></div>
+        </div>
+        <div class="cp-total">
+          <span class="cp-total-lbl">Total do mês</span>
+          <span class="cp-total-val" id="cp_total">R$ 0,00</span>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <p class="card-title">Bônus A — Resultado Líquido</p>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+          <span style="font-size:12px;color:#55617a">Gatilho: resultado ≥ <span id="gatilhoA_label">95%</span> da meta</span>
+          <span id="bonusA_status" style="font-size:12px;font-weight:600;color:#99a3b4">—</span>
+        </div>
+        <div class="pbar-wrap"><div class="pbar-fill green" id="pbar_meta" style="width:0%"></div></div>
+        <div style="font-size:10px;color:#99a3b4;margin-top:3px" id="meta_pct_bar">0% da meta</div>
+        <div style="margin-top:10px;padding:8px 12px;background:#f0fdf6;border-radius:4px;font-size:11px;color:#2e7d5b;font-weight:600" id="bonusA_note">
+          Informe o resultado e a meta para calcular.
+        </div>
+      </div>
+
+      <button class="btn" onclick="saveMes()" style="width:100%;margin-top:4px">Salvar lançamento</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CICLO & BONIFICAÇÕES ═══ -->
+<div id="tab-ciclo" class="tab-panel">
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi gold"><div class="kpi-label">Bônus B total</div><div class="kpi-val" id="ck_bonusB">R$ 0</div></div>
+    <div class="kpi green"><div class="kpi-label">Bônus A total</div><div class="kpi-val" id="ck_bonusA">R$ 0</div></div>
+    <div class="kpi" style="border-top-color:#2563eb"><div class="kpi-label">Ganho total do ciclo</div><div class="kpi-val" id="ck_total" style="color:#2563eb">R$ 0</div></div>
+  </div>
+
+  <!-- Export/Import bar -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding:12px 16px;background:#fff;border:1px solid #e2e5ea;border-radius:4px">
+    <div>
+      <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:2px">Ciclo Ago/2026 – Dez/2027 · 17 meses</div>
+      <div style="font-size:11px;color:#55617a">Exporte para editar no Excel. Ao importar, os resultados realizados e projeções são atualizados automaticamente.</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-shrink:0">
+      <button class="btn-ghost btn-sm" onclick="exportCiclo()">↓ Exportar ciclo</button>
+      <button class="btn btn-sm" onclick="document.getElementById('f_ciclo').click()">↑ Importar ciclo</button>
+      <input type="file" id="f_ciclo" accept=".xlsx,.xls,.csv" style="display:none" onchange="importCiclo(event)">
+    </div>
+  </div>
+
+  <!-- Ciclo table -->
+  <div style="overflow-x:auto;margin-bottom:32px">
+    <table style="min-width:840px">
+      <thead>
+        <tr>
+          <th class="left">Mês</th>
+          <th>Resultado proj.</th>
+          <th>Resultado real.</th>
+          <th>% Meta</th>
+          <th>Dividendo (40%)</th>
+          <th>Faixa</th>
+          <th>Bônus B</th>
+          <th>Bônus A</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody id="cicloBody"></tbody>
+    </table>
+  </div>
+
+  <!-- Divisor -->
+  <div style="border-top:2px solid var(--navy);margin-bottom:24px;padding-top:20px">
+    <div style="font-size:13px;font-weight:700;color:var(--navy);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px">Bonificações Extras</div>
+    <div style="font-size:11px;color:#55617a">Marcos do cofre, auditoria contábil e sistemas implantados — fora do ciclo mensal</div>
+  </div>
+
+  <!-- COFRE -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <p class="card-title" style="margin-bottom:0">🎯 Bônus por Alcance de Cofre</p>
+      <div style="display:flex;align-items:center;gap:10px">
+        <label class="lbl" style="margin-bottom:0;white-space:nowrap">Saldo atual:</label>
+        <div class="irow" style="width:180px"><span class="ipfx">R$</span>
+          <input type="text" id="cofre_saldo" placeholder="0"
+            onblur="this.value=this.value?brFmt(parseNum(this.value)):'';updateCofre()"
+            onfocus="this.value=this.value?String(parseNum(this.value)):''">
+        </div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:#55617a;margin-bottom:14px">Pagamento único por marco. Formado pela retenção automática de 60% do resultado líquido — não conta aporte dos sócios.</div>
+    <div id="cofre_marcos"></div>
+    <div class="pbar-wrap" style="height:12px;margin-top:8px"><div class="pbar-fill gold" id="cofre_pbar" style="width:0%"></div></div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:#99a3b4;margin-top:4px">
+      <span>R$ 0</span><span>R$ 300K</span><span>R$ 700K</span><span>R$ 1M</span><span>R$ 1,5M</span>
+    </div>
+  </div>
+
+  <!-- AUDITORIA -->
+  <div class="card gold">
+    <p class="card-title">🔍 Êxito em Auditoria Contábil</p>
+    <div style="font-size:11px;color:#55617a;margin-bottom:14px">Gratificação anual de até R$ 3.000 · avaliação do Dr. Fábio</div>
+    <div class="g2">
+      <div><label class="lbl">Ano de referência</label><input type="number" id="aud_ano" min="2026" max="2030" value="2026" style="max-width:100px"></div>
+      <div><label class="lbl">Valor concedido</label><div class="irow"><span class="ipfx">R$</span><input type="text" id="aud_val" placeholder="0"
+        onblur="this.value=this.value?brFmt(parseNum(this.value)):''"></div></div>
+    </div>
+    <div style="margin-top:10px"><label class="lbl">Observação</label><input type="text" id="aud_obs" placeholder="Ex: 98% de acerto — aprovado pelo Dr. Fábio" style="margin-top:4px"></div>
+    <button class="btn-gold" onclick="saveAuditoria()" style="margin-top:10px">Registrar auditoria</button>
+    <div id="aud_historico" style="margin-top:14px"></div>
+  </div>
+
+  <!-- SISTEMAS -->
+  <div class="card">
+    <p class="card-title">⚡ Sistemas e Automações Implantadas</p>
+    <div style="font-size:11px;color:#55617a;margin-bottom:14px">Até R$ 3.000 por entrega em uso efetivo · a critério do CEO</div>
+    <div class="g3">
+      <div><label class="lbl">Nome do sistema</label><input type="text" id="sis_nome" placeholder="Ex: Conciliação bancária automatizada"></div>
+      <div><label class="lbl">Data de entrega</label><input type="month" id="sis_data"></div>
+      <div><label class="lbl">Valor concedido</label><div class="irow"><span class="ipfx">R$</span><input type="text" id="sis_val" placeholder="0"
+        onblur="this.value=this.value?brFmt(parseNum(this.value)):''"></div></div>
+    </div>
+    <button class="btn" onclick="addSistema()" style="margin-top:10px">+ Registrar sistema</button>
+    <div id="sis_lista" style="margin-top:14px"></div>
+    <div id="sis_total" style="margin-top:8px;font-size:12px;color:#55617a"></div>
+  </div>
+
+</div>
+
+<!-- ═══ CONFIGURAÇÕES ═══ -->
+<div id="tab-config" class="tab-panel">
+  <div class="g2">
+    <div>
+      <div class="card">
+        <p class="card-title">Parâmetros gerais</p>
+        <div style="margin-bottom:12px">
+          <label class="lbl">Taxa de dividendo distribuído</label>
+          <div class="irow"><input type="number" id="r_divTaxa" min="0" max="100" step="1" style="max-width:70px" oninput="saveConfig()"><span class="ipfx">% do resultado líquido</span></div>
+        </div>
+        <div>
+          <label class="lbl">Gatilho Bônus A — % mínimo de meta</label>
+          <div class="irow"><input type="number" id="r_gatilhoA" min="0" max="100" step="1" style="max-width:70px" oninput="saveConfig()"><span class="ipfx">% da meta</span></div>
+        </div>
+        <div style="margin-top:12px">
+          <label class="lbl">Valor do Bônus A</label>
+          <div class="irow"><span class="ipfx">R$</span>
+            <input type="text" id="r_valorA"
+              onblur="config.valorA=parseNum(this.value);this.value=brFmt(config.valorA);LS.set('da1_cfg',config);updateCalc()"
+              onfocus="this.value=String(config.valorA)">
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <p class="card-title">Faixas do Bônus B (editáveis)</p>
+        <div style="font-size:11px;color:#55617a;margin-bottom:12px">Faixas cumulativas sobre o dividendo distribuído do mês.</div>
+        <table id="faixasConfig" style="min-width:0">
+          <thead><tr><th class="left">Faixa</th><th>Dividendo mín. (R$)</th><th>Cota (R$)</th><th style="width:36px"></th></tr></thead>
+          <tbody id="faixasBody"></tbody>
+        </table>
+        <button class="btn-ghost btn-sm" onclick="addFaixa()" style="margin-top:10px;width:100%">+ Faixa</button>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <p class="card-title">Metas mensais do ciclo</p>
+        <div style="font-size:11px;color:#55617a;margin-bottom:12px">O resultado projetado de cada mês é a própria meta para cálculo do Bônus A. Edite diretamente se necessário.</div>
+        <table style="min-width:0">
+          <thead><tr><th class="left">Mês</th><th>Meta / Resultado projetado (R$)</th></tr></thead>
+          <tbody id="metasBody"></tbody>
+        </table>
+      </div>
+      <button class="btn" onclick="saveConfig()" style="width:100%;margin-top:4px">Salvar configurações</button>
+    </div>
+  </div>
+</div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── DEFAULTS ────────────────────────────────────────
+// Honorário fixo por nível — só referência informativa (não entra no total
+// variável), igual regra já aplicada nos outros perfis.
+const NIVEIS=[
+  {nivel:'I',inicio:'2026-08',fixo:8400},
+  {nivel:'II',inicio:'2027-10',fixo:10500},
+];
+const CICLO_MESES=[
+  {id:'2026-08',lbl:'Ago/26',proj:0},
+  {id:'2026-09',lbl:'Set/26',proj:12216},
+  {id:'2026-10',lbl:'Out/26',proj:40320},
+  {id:'2026-11',lbl:'Nov/26',proj:56822},
+  {id:'2026-12',lbl:'Dez/26',proj:45351},
+  {id:'2027-01',lbl:'Jan/27',proj:34549},
+  {id:'2027-02',lbl:'Fev/27',proj:39088},
+  {id:'2027-03',lbl:'Mar/27',proj:41058},
+  {id:'2027-04',lbl:'Abr/27',proj:45560},
+  {id:'2027-05',lbl:'Mai/27',proj:40820},
+  {id:'2027-06',lbl:'Jun/27',proj:45218},
+  {id:'2027-07',lbl:'Jul/27',proj:37747},
+  {id:'2027-08',lbl:'Ago/27',proj:75002},
+  {id:'2027-09',lbl:'Set/27',proj:66066},
+  {id:'2027-10',lbl:'Out/27',proj:161168},
+  {id:'2027-11',lbl:'Nov/27',proj:150271},
+  {id:'2027-12',lbl:'Dez/27',proj:140648},
+];
+const DEF_CONFIG={
+  divTaxa:40,
+  gatilhoA:95,
+  valorA:1200,
+  metaPadrao:50000,
+  faixas:[
+    {min:1,cota:400,lbl:'Faixa 1',range:'R$0–R$10K'},
+    {min:10000,cota:500,lbl:'Faixa 2',range:'R$10K–R$20K'},
+    {min:20000,cota:600,lbl:'Faixa 3',range:'R$20K–R$30K'},
+    {min:30000,cota:700,lbl:'Faixa 4',range:'R$30K–R$40K'},
+    {min:40000,cota:800,lbl:'Faixa 5',range:'> R$40K'},
+  ],
+  cofreMetas:[
+    {marco:300000,bonus:2000,pago:false,dataPag:''},
+    {marco:700000,bonus:3000,pago:false,dataPag:''},
+    {marco:1000000,bonus:4000,pago:false,dataPag:''},
+    {marco:1500000,bonus:5000,pago:false,dataPag:''},
+  ],
+  metas:{}, // { '2026-09': 15000, ... }
+};
+const DEF_EXTRAS={auditorias:[],sistemas:[]};
+
+const LS={
+  get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+};
+// Mês aprovado (Visão Consolidada) fica travado — nem lançamento manual
+// sobrescreve. Só desaprovando (ação administrativa) ou excluindo os dados.
+function mesAprovado(mes){try{const a=JSON.parse(localStorage.getItem('aprovacoes_mes')||'{}');return !!(a[mes]&&a[mes].aprovado);}catch{return false;}}
+let config=LS.get('da1_cfg',DEF_CONFIG);
+let mdata=LS.get('da1_m',{});
+let extras=LS.get('da1_ext',DEF_EXTRAS);
+
+// ─── INIT ─────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  const now=new Date();
+  const mv=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('mesInput').value=mv;
+  renderNivelAtual();
+  loadConfig();buildMetasTable();buildFaixasConfig();
+  renderCofre();renderAuditorias();renderSistemas();
+  updateCalc();renderCiclo();
+});
+
+// ─── NÍVEL ATUAL (informativo) ─────────────────────────
+function nivelNaData(mes){
+  let atual=NIVEIS[0];
+  NIVEIS.forEach(n=>{if(mes>=n.inicio)atual=n;});
+  return atual;
+}
+function renderNivelAtual(){
+  const mes=document.getElementById('mesInput').value||new Date().toISOString().slice(0,7);
+  const atual=nivelNaData(mes);
+  document.getElementById('nivel_atual_box').innerHTML=NIVEIS.map(n=>`
+    <div class="nivel-row ${n.nivel===atual.nivel?'atual':''}">
+      <div><span class="nivel-nome">Nível ${n.nivel}</span><span class="nivel-periodo"> · a partir de ${fmtMes(n.inicio)}</span></div>
+      <div class="nivel-val">R$ ${brFmt(n.fixo)}/mês</div>
+    </div>`).join('');
+}
+document.querySelectorAll('.tab-btn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById('tab-'+b.dataset.tab).classList.add('active');
+  if(b.dataset.tab==='ciclo')renderCiclo();
+  });
+});
+
+// ─── HELPERS ──────────────────────────────────────────
+const br2=v=>(typeof v==='number'?v:0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const brFmt=v=>(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const parseNum=s=>+String(s).replace(/\./g,'').replace(',','.')||0;
+const fmtMes=s=>{if(!s)return'';const[y,m]=s.split('-');const ms=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];return ms[+m-1]+'/'+y;};
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+
+function calcMonth(resultado, meta){
+  const divTaxa=config.divTaxa/100;
+  const dividendo=resultado*divTaxa;
+  let bonusB=0;
+  let faixaAtingida=-1;
+  config.faixas.forEach((f,i)=>{if(dividendo>=f.min){bonusB+=f.cota;faixaAtingida=i;}});
+  const pctMeta=meta>0?(resultado/meta*100):(resultado>0?100:0);
+  const bonusA=pctMeta>=config.gatilhoA?config.valorA:0;
+  const total=bonusA+bonusB;
+  return{resultado,meta,pctMeta,dividendo,bonusB,bonusA,faixaAtingida,total};
+}
+
+// ─── CALCULADORA ──────────────────────────────────────
+function updateCalc(){
+  renderNivelAtual();
+  const mes=document.getElementById('mesInput').value;
+  const meta=getMeta(mes);
+
+  // populate locked meta field
+  document.getElementById('i_meta').value=meta!==null&&meta!==undefined?brFmt(meta):'—';
+
+  const res=parseNum(document.getElementById('i_resultado').value)||0;
+  const c=calcMonth(res,meta);
+
+  // KPIs
+  document.getElementById('k_bonusB').textContent='R$ '+br2(c.bonusB);
+  document.getElementById('k_bonusB_sub').textContent=c.faixaAtingida>=0?config.faixas[c.faixaAtingida].lbl:'sem dividendo';
+  document.getElementById('k_bonusA').textContent='R$ '+br2(c.bonusA);
+  document.getElementById('k_bonusA_sub').textContent=c.pctMeta>0?c.pctMeta.toFixed(0)+'% da meta':'—';
+  document.getElementById('k_total').textContent='R$ '+br2(c.total);
+  document.getElementById('k_mes_label').textContent=fmtMes(mes)||'—';
+
+  // Dividendo
+  document.getElementById('dividendo_val').textContent='R$ '+br2(c.dividendo);
+
+  // Faixas visual
+  const fv=document.getElementById('faixas_visual');
+  fv.innerHTML=config.faixas.map((f,i)=>`
+    <div class="fx-item ${i<=c.faixaAtingida?'ativa':''}">
+      <div class="fx-lbl">${f.lbl}</div>
+      <div class="fx-val">+R$${f.cota}</div>
+    </div>`).join('');
+  document.getElementById('faixa_label').textContent=
+    c.faixaAtingida>=0?`Faixa ${c.faixaAtingida+1} atingida · Bônus B: R$ ${br2(c.bonusB)}`:'Dividendo insuficiente para ativar Faixa 1';
+
+  // Bônus A
+  const pct=Math.min(c.pctMeta,100);
+  document.getElementById('pbar_meta').style.width=pct+'%';
+  document.getElementById('meta_pct_bar').textContent=c.pctMeta.toFixed(0)+'% da meta (gatilho: '+config.gatilhoA+'%)';
+  const statusEl=document.getElementById('bonusA_status');
+  const noteEl=document.getElementById('bonusA_note');
+  if(res===0){
+    statusEl.textContent='—';statusEl.style.color='#99a3b4';
+    noteEl.textContent='Informe o resultado realizado.';noteEl.style.color='#55617a';noteEl.style.background='#f6f7f9';
+  } else if(c.bonusA>0){
+    statusEl.textContent='✓ Atingido';statusEl.style.color='#2e7d5b';
+    noteEl.textContent=`✓ Resultado (${c.pctMeta.toFixed(0)}% da meta) ≥ ${config.gatilhoA}% — Bônus A de R$ ${br2(config.valorA)} liberado.`;
+    noteEl.style.color='#2e7d5b';noteEl.style.background='#f0fdf6';
+  } else {
+    statusEl.textContent='✗ Não atingido';statusEl.style.color='#b83232';
+    noteEl.textContent=`✗ Resultado (${c.pctMeta.toFixed(0)}% da meta) < ${config.gatilhoA}% — Bônus A não liberado.`;
+    noteEl.style.color='#b83232';noteEl.style.background='#fceaea';
+  }
+
+  // Preview strip
+  document.getElementById('cp_bonusB').textContent='R$ '+br2(c.bonusB);
+  document.getElementById('cp_bonusA').textContent='R$ '+br2(c.bonusA);
+  document.getElementById('cp_total').textContent='R$ '+br2(c.total);
+}
+
+function getMeta(mes){
+  if(config.metasCustom&&config.metasCustom[mes]!==undefined)return config.metasCustom[mes];
+  const m=CICLO_MESES.find(c=>c.id===mes);
+  return m?m.proj:0;
+}
+
+function saveMes(){
+  const mes=document.getElementById('mesInput').value;
+  if(mesAprovado(mes)){showToast('Mês aprovado — desaprove na Visão Consolidada pra editar.');return;}
+  mdata[mes]={
+    resultado:parseNum(document.getElementById('i_resultado').value)||0,
+    meta:getMeta(mes)
+  };
+  LS.set('da1_m',mdata);renderCiclo();showToast('Lançamento salvo ✓');
+}
+
+// ─── CICLO COMPLETO ───────────────────────────────────
+function renderCiclo(){
+  let totB=0,totA=0,totTotal=0;
+  const rows=CICLO_MESES.map(mes=>{
+    const d=mdata[mes.id]||{};
+    const res=d.resultado!==undefined?d.resultado:null;
+    const calcRes=res!==null?res:mes.proj;
+    const meta=getMeta(mes.id);
+    const c=calcMonth(calcRes,meta);
+    const isReal=res!==null;
+    totB+=c.bonusB;totA+=c.bonusA;totTotal+=c.total;
+    const fxLabel=c.faixaAtingida>=0?`F${c.faixaAtingida+1}`:'—';
+    return`<tr>
+      <td class="left"><strong>${mes.lbl}</strong></td>
+      <td style="color:#b0b8c5">R$ ${br2(mes.proj)}</td>
+      <td style="color:${isReal?'#1a2332':'#b0b8c5'};font-weight:${isReal?700:400}">${isReal?'R$ '+br2(res):'<span style="font-size:10px">proj.</span>'}</td>
+      <td style="color:${c.pctMeta>=config.gatilhoA?'#2e7d5b':'#b83232'}">${calcRes>0?c.pctMeta.toFixed(0)+'%':'—'}</td>
+      <td>R$ ${br2(c.dividendo)}</td>
+      <td><span style="background:${c.faixaAtingida>=0?'#fff3dc':'#f6f7f9'};color:${c.faixaAtingida>=0?'#8a5a1a':'#b0b8c5'};font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px">${fxLabel}</span></td>
+      <td class="c-gold">R$ ${br2(c.bonusB)}</td>
+      <td style="color:${c.bonusA>0?'#2e7d5b':'#b0b8c5'}">${c.bonusA>0?'R$ '+br2(c.bonusA):'—'}</td>
+      <td class="c-navy"><strong>R$ ${br2(c.total)}</strong></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('cicloBody').innerHTML=rows+
+    `<tr class="total-row">
+      <td class="left">Total</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>
+      <td class="c-gold">R$ ${br2(totB)}</td>
+      <td class="c-green">R$ ${br2(totA)}</td>
+      <td class="c-navy">R$ ${br2(totTotal)}</td>
+    </tr>`;
+  document.getElementById('ck_bonusB').textContent='R$ '+br2(totB);
+  document.getElementById('ck_bonusA').textContent='R$ '+br2(totA);
+  document.getElementById('ck_total').textContent='R$ '+br2(totTotal);
+}
+
+function exportCiclo(){
+  const rows=[['Mês','Resultado Projetado','Resultado Realizado','Meta','% Meta','Dividendo (40%)','Faixa','Bônus B','Bônus A','Total']];
+  CICLO_MESES.forEach(mes=>{
+    const d=mdata[mes.id]||{};
+    const res=d.resultado!==undefined?d.resultado:'';
+    const meta=getMeta(mes.id);
+    const calcRes=res!==''?res:mes.proj;
+    const c=calcMonth(calcRes,meta);
+    const fxLabel=c.faixaAtingida>=0?`Faixa ${c.faixaAtingida+1}`:'—';
+    rows.push([mes.lbl,mes.proj,res,meta,c.pctMeta.toFixed(0)+'%',Math.round(c.dividendo),fxLabel,c.bonusB,c.bonusA,c.total]);
+  });
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:8},{wch:20},{wch:20},{wch:14},{wch:8},{wch:16},{wch:8},{wch:10},{wch:10},{wch:12}];
+  XLSX.utils.book_append_sheet(wb,ws,'CICLO');
+  XLSX.writeFile(wb,'Ciclo_Diego_Miranda_'+new Date().getFullYear()+'.xlsx');
+  showToast('↓ Ciclo exportado');
+}
+
+async function importCiclo(event){
+  const file=event.target.files[0];if(!file)return;
+  try{
+    const buf=await file.arrayBuffer();
+    const wb=XLSX.read(buf,{type:'array'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+    if(!rows.length){showToast('Arquivo vazio');return;}
+    const hdr=rows[0].map(h=>String(h).toLowerCase().trim());
+    const mesCol=hdr.findIndex(h=>h.includes('mês')||h.includes('mes'));
+    const realCol=hdr.findIndex(h=>h.includes('realizado'));
+    const projCol=hdr.findIndex(h=>h.includes('projetado'));
+    if(mesCol===-1||realCol===-1){showToast('Colunas Mês e Resultado Realizado são obrigatórias','#b83232');return;}
+    let updated=0;
+    rows.slice(1).forEach(row=>{
+      const mesLbl=String(row[mesCol]||'').trim();
+      const mes=CICLO_MESES.find(m=>m.lbl===mesLbl);
+      if(!mes)return;
+      const real=row[realCol]!==''?+String(row[realCol]).replace(/\./g,'').replace(',','.')||null:null;
+      const proj=projCol>=0&&row[projCol]!==''?+String(row[projCol]).replace(/\./g,'').replace(',','.')||null:null;
+      if(real!==null){if(!mdata[mes.id])mdata[mes.id]={};mdata[mes.id].resultado=real;updated++;}
+      if(proj!==null){mes.proj=proj;}
+    });
+    LS.set('da1_m',mdata);renderCiclo();
+    showToast(`↑ ${updated} mês(es) atualizado(s)`);
+    event.target.value='';
+  }catch(err){showToast('Erro ao importar: '+err.message,'#b83232');}
+}
+
+// ─── COFRE ────────────────────────────────────────────
+function updateCofre(){
+  const saldo=parseNum(document.getElementById('cofre_saldo').value)||0;
+  renderCofre(saldo);
+}
+function renderCofre(saldo){
+  saldo=saldo||parseNum(document.getElementById('cofre_saldo').value)||0;
+  const marcos=config.cofreMetas;
+  const maxMarco=1500000;
+  const pct=Math.min(saldo/maxMarco*100,100);
+  document.getElementById('cofre_pbar').style.width=pct+'%';
+
+  let html='';
+  marcos.forEach((m,i)=>{
+    const atingido=saldo>=m.marco;
+    html+=`<div class="marco-row ${m.pago?'pago':''}">
+      <div class="marco-icon">${m.pago?'✅':'🏆'}</div>
+      <div class="marco-info">
+        <div class="marco-nome">Marco ${i+1}: R$${br2(m.marco)}</div>
+        ${m.pago?`<div class="marco-pago">Pago em ${m.dataPag}</div>`:atingido?`<div style="color:#b8863f;font-size:11px;font-weight:600">⭐ Marco atingido — registrar pagamento</div>`:`<div class="marco-pendente">Faltam R$${br2(Math.max(0,m.marco-saldo))}</div>`}
+      </div>
+      <div class="marco-val" style="${m.pago?'color:#2e7d5b':''}">R$ ${m.bonus.toLocaleString('pt-BR')}</div>
+      ${atingido&&!m.pago?`<button class="btn-gold btn-sm" onclick="pagarMarco(${i})">Registrar pagamento</button>`:''}
+    </div>`;
+  });
+  document.getElementById('cofre_marcos').innerHTML=html;
+}
+function pagarMarco(i){
+  const hoje=new Date().toLocaleDateString('pt-BR');
+  config.cofreMetas[i].pago=true;
+  config.cofreMetas[i].dataPag=hoje;
+  LS.set('da1_cfg',config);
+  renderCofre();
+  showToast(`Marco ${i+1} do cofre registrado ✓`);
+}
+
+// ─── AUDITORIAS ───────────────────────────────────────
+function saveAuditoria(){
+  const ano=document.getElementById('aud_ano').value;
+  const val=parseNum(document.getElementById('aud_val').value)||0;
+  const obs=document.getElementById('aud_obs').value;
+  if(!val)return;
+  extras.auditorias.push({ano,val,obs,data:new Date().toLocaleDateString('pt-BR')});
+  LS.set('da1_ext',extras);
+  document.getElementById('aud_val').value='';
+  document.getElementById('aud_obs').value='';
+  renderAuditorias();showToast('Auditoria registrada ✓');
+}
+function renderAuditorias(){
+  const list=extras.auditorias||[];
+  if(!list.length){document.getElementById('aud_historico').innerHTML='<p style="font-size:11px;color:#99a3b4">Nenhuma auditoria registrada.</p>';return;}
+  document.getElementById('aud_historico').innerHTML=list.map((a,i)=>`
+    <div class="sis-item">
+      <div>
+        <div class="sis-nome">Auditoria ${a.ano}</div>
+        <div class="sis-data">${a.data}${a.obs?' · '+a.obs:''}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="sis-val">R$ ${br2(a.val)}</div>
+        <button class="btn-del" onclick="rmAuditoria(${i})">×</button>
+      </div>
+    </div>`).join('');
+}
+function rmAuditoria(i){extras.auditorias.splice(i,1);LS.set('da1_ext',extras);renderAuditorias();}
+
+// ─── SISTEMAS ─────────────────────────────────────────
+function addSistema(){
+  const nome=document.getElementById('sis_nome').value.trim();
+  const data=document.getElementById('sis_data').value;
+  const val=parseNum(document.getElementById('sis_val').value)||0;
+  if(!nome||!val)return;
+  extras.sistemas.push({nome,data,val});
+  LS.set('da1_ext',extras);
+  document.getElementById('sis_nome').value='';document.getElementById('sis_val').value='';
+  renderSistemas();showToast('Sistema registrado ✓');
+}
+function renderSistemas(){
+  const list=extras.sistemas||[];
+  const tot=list.reduce((a,b)=>a+b.val,0);
+  if(!list.length){document.getElementById('sis_lista').innerHTML='<p style="font-size:11px;color:#99a3b4">Nenhum sistema registrado.</p>';}
+  else{
+    document.getElementById('sis_lista').innerHTML=list.map((s,i)=>`
+      <div class="sis-item">
+        <div>
+          <div class="sis-nome">⚡ ${s.nome}</div>
+          <div class="sis-data">${fmtMes(s.data)||s.data}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="sis-val">R$ ${br2(s.val)}</div>
+          <button class="btn-del" onclick="rmSistema(${i})">×</button>
+        </div>
+      </div>`).join('');
+    document.getElementById('sis_total').innerHTML=`Total em sistemas: <strong>R$ ${br2(tot)}</strong>`;
+  }
+}
+function rmSistema(i){extras.sistemas.splice(i,1);LS.set('da1_ext',extras);renderSistemas();}
+
+// ─── CONFIG ───────────────────────────────────────────
+function loadConfig(){
+  document.getElementById('r_divTaxa').value=config.divTaxa;
+  document.getElementById('r_gatilhoA').value=config.gatilhoA;
+  document.getElementById('r_valorA').value=brFmt(config.valorA);
+  document.getElementById('gatilhoA_label').textContent=config.gatilhoA+'%';
+}
+function saveConfig(){
+  config.divTaxa=+document.getElementById('r_divTaxa').value||40;
+  config.gatilhoA=+document.getElementById('r_gatilhoA').value||95;
+  config.valorA=parseNum(document.getElementById('r_valorA').value)||1200;
+  document.getElementById('gatilhoA_label').textContent=config.gatilhoA+'%';
+  LS.set('da1_cfg',config);updateCalc();showToast('Configurações salvas ✓');
+}
+function buildFaixasConfig(){
+  document.getElementById('faixasBody').innerHTML=config.faixas.map((f,i)=>`
+    <tr>
+      <td class="left" style="color:#55617a;font-size:11px">${f.lbl}</td>
+      <td><div class="irow" style="justify-content:center"><span class="ipfx">R$</span>
+        <input type="text" class="rule-input" value="${brFmt(f.min)}" style="width:90px"
+          onblur="config.faixas[${i}].min=parseNum(this.value);this.value=brFmt(parseNum(this.value));LS.set('da1_cfg',config)"
+          onfocus="this.value=String(config.faixas[${i}].min)">
+      </div></td>
+      <td><div class="irow" style="justify-content:center"><span class="ipfx">R$</span>
+        <input type="text" class="rule-input" value="${brFmt(f.cota)}" style="width:80px"
+          onblur="config.faixas[${i}].cota=parseNum(this.value);this.value=brFmt(parseNum(this.value));LS.set('da1_cfg',config)"
+          onfocus="this.value=String(config.faixas[${i}].cota)">
+      </div></td>
+      <td><button class="btn-del" onclick="config.faixas.splice(${i},1);buildFaixasConfig()">×</button></td>
+    </tr>`).join('');
+}
+function addFaixa(){
+  const last=config.faixas[config.faixas.length-1];
+  config.faixas.push({min:(last?.min||0)+10000,cota:900,lbl:`Faixa ${config.faixas.length+1}`,range:'nova'});
+  buildFaixasConfig();
+}
+function buildMetasTable(){
+  document.getElementById('metasBody').innerHTML=CICLO_MESES.map((m,i)=>{
+    const custom=config.metasCustom&&config.metasCustom[m.id]!==undefined?config.metasCustom[m.id]:m.proj;
+    return`<tr>
+      <td class="left">${m.lbl}</td>
+      <td><div class="irow"><span class="ipfx">R$</span>
+        <input type="text" class="rule-input" value="${brFmt(custom)}" style="width:110px"
+          onblur="if(!config.metasCustom)config.metasCustom={};config.metasCustom['${m.id}']=parseNum(this.value);this.value=brFmt(parseNum(this.value));LS.set('da1_cfg',config);renderCiclo()"
+          onfocus="this.value=String(config.metasCustom&&config.metasCustom['${m.id}']!==undefined?config.metasCustom['${m.id}']:${m.proj})">
+      </div></td>
+    </tr>`;}).join('');
+}
+</script>
+</body>
+</html>

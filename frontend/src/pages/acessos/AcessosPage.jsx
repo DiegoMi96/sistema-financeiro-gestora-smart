@@ -27,7 +27,7 @@ const AREA_LABEL = Object.fromEntries(AREAS.map(a => [a.value, a.label]))
 // — mudou aqui, muda lá também.
 const AREA_MODULE_SECTIONS = {
   operacoes:      ['LOGÍSTICA', 'ORGANOGRAMA', 'GUARDIÃO', 'ESTOQUE'],
-  comercial:      [],
+  comercial:      ['COMISSIONAMENTO'],
   administrativo: ['FATURAMENTO'],
 }
 
@@ -84,6 +84,9 @@ const PERM_SECTIONS = [
     ['can_view_cont_ciclos',        'Ciclos de contestação'],
     ['can_view_cont_ciclo_detalhe', 'Detalhe do ciclo'],
     ['can_view_cont_allcom',        'Allcom'],
+  ]},
+  { key: 'COMISSIONAMENTO', perms: [
+    ['can_view_comissao', 'Acesso ao módulo'],
   ]},
   { key: 'GUARDIÃO', perms: [
     ['can_view_guardiao',             'Acesso ao módulo'],

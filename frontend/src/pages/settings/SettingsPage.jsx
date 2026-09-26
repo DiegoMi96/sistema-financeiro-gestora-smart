@@ -652,6 +652,7 @@ const PERMS = [
   ['can_view_dashboard',     'Ver dashboard'],
   ['can_manage_users',       'Gerenciar usuários'],
   ['can_view_contestacao',   'Ver contestação'],
+  ['can_view_comissao',      'Ver comissionamento'],
   ['can_approve_adjustment', 'Aprovar ajustes'],
 ]
 
@@ -906,6 +907,7 @@ const PERM_SECTIONS = [
     ['can_view_faturamento',   'Faturamento'],
     ['can_edit_billing',       'Editar faturamento'],
     ['can_view_contestacao',   'Contestação'],
+    ['can_view_comissao',      'Comissionamento'],
     ['can_view_logistica',     'Logística'],
     ['can_view_controladoria', 'Controladoria'],
     ['can_manage_users',       'Usuários'],

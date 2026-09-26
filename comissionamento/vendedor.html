@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Comissionamento Vendedor · Gestora Smart</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#f5f4f0;color:#1a1a18;font-size:13px;line-height:1.5}
+.page{max-width:1100px;margin:0 auto;padding:40px 24px 80px}
+.header{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:18px;border-bottom:2px solid #1a1a18;margin-bottom:24px}
+.header-left p{font-size:11px;color:#888;font-weight:500;margin-bottom:4px}
+.header-left h1{font-size:26px;font-weight:800;color:#1a1a18;line-height:1}
+.hbadge{background:#0b3d2a;color:#fff;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:5px 14px;border-radius:20px}
+.tab-nav{display:flex;border-bottom:1px solid #d4d3ce;margin-bottom:28px}
+.tab-btn{background:none;border:none;border-bottom:2.5px solid transparent;margin-bottom:-1px;padding:9px 20px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#bbb;cursor:pointer;font-family:'Inter',sans-serif;transition:color .15s}
+.tab-btn.active{color:#166B4A;border-bottom-color:#166B4A}
+.tab-btn:hover:not(.active){color:#555}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.card{background:#fff;border:.5px solid #d4d3ce;border-radius:10px;padding:20px 22px;margin-bottom:14px}
+.card-title{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#888;margin-bottom:14px}
+label.lbl{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#888;margin-bottom:4px;display:block}
+.irow{display:flex;align-items:center;gap:6px}
+.irow input{flex:1}
+.ipfx{font-size:12px;color:#888;white-space:nowrap;min-width:16px}
+input[type=number],input[type=text],input[type=month],select,textarea{background:#f5f4f0;border:.5px solid #d4d3ce;border-radius:6px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:#1a1a18;width:100%;outline:none}
+input:focus,select:focus{border-color:#1E9B6B;background:#fff}
+textarea{resize:vertical}
+.btn{background:#166B4A;color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:12px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer}
+.btn:hover{background:#0d5233}
+.btn-sm{padding:5px 12px;font-size:11px}
+.btn-ghost{background:transparent;color:#1a1a18;border:.5px solid #d4d3ce;border-radius:6px;padding:8px 14px;font-size:12px;font-weight:500;font-family:'Inter',sans-serif;cursor:pointer}
+.btn-ghost:hover{background:#f5f4f0}
+.btn-del{background:#fceaea;color:#b83232;border:.5px solid #f5c6c6;border-radius:4px;padding:4px 8px;font-size:11px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer}
+.btn-edit{background:#f5f4f0;color:#166B4A;border:.5px solid #d4d3ce;border-radius:6px;padding:5px 9px;font-size:11px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap}
+.btn-edit:hover,.btn-edit.active{background:#eaf5f0;border-color:#1E9B6B}
+.btn-export{background:#fff;color:#1d4ed8;border:.5px solid #93c5fd;border-radius:6px;padding:5px 9px;font-size:11px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap}
+.btn-export:hover{background:#eff6ff;border-color:#1d4ed8}
+.btn-export.disabled{background:#f5f4f0;color:#bbb;border-color:#e0dfdb;cursor:default}
+table{width:100%;border-collapse:collapse}
+th{font-size:10px;font-weight:600;color:#888;text-align:left;padding:8px 10px;border-bottom:.5px solid #d4d3ce;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+th.r{text-align:right}
+td{padding:9px 10px;border-bottom:.5px solid #eeede8;font-size:12px;color:#1a1a18;vertical-align:middle}
+td.r{text-align:right;font-variant-numeric:tabular-nums}
+.c-verde{color:#166B4A;font-weight:600}.c-red{color:#b83232}.c-dim{color:#bbb}
+.fp{display:inline-flex;align-items:center;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;white-space:nowrap}
+.f1{background:#fde8e8;color:#b91c1c}.f2{background:#fef3c7;color:#b45309}
+.f3{background:#dcfce7;color:#166B4A}.f4{background:#bbf7d0;color:#065f46}
+.f5{background:#6ee7b7;color:#064e3b}.f6{background:#34d399;color:#022c22}
+#resumoTable th.r,#resumoTable td.r{text-align:center}
+#tab-regras table th,#tab-regras table td{text-align:center}
+.rule-input{background:#f5f4f0;border:.5px solid #d4d3ce;border-radius:5px;padding:5px 7px;font-size:12px;font-family:'Inter',sans-serif;color:#1a1a18;text-align:right;outline:none}
+.rule-input:focus{border-color:#1E9B6B;background:#fff}
+.toast{position:fixed;bottom:24px;right:24px;background:#166B4A;color:#fff;font-size:12px;font-weight:600;padding:10px 18px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:99}
+.toast.show{opacity:1}
+/* EDIT PANEL */
+.edit-panel{background:#f9fffe;border-top:2px solid #1E9B6B;padding:18px 20px}
+.edit-panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.edit-panel-title{font-size:11px;font-weight:700;color:#166B4A;text-transform:uppercase;letter-spacing:.08em}
+.edit-fields{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:12px}
+.edit-obs{margin-bottom:12px}
+.edit-preview{background:#fff;border:.5px solid #d4d3ce;border-radius:8px;padding:14px 16px;margin-bottom:14px}
+.ep-faixa-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.ep-des{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
+.epd{border-radius:6px;padding:8px 10px;text-align:center;border:.5px solid transparent}
+.epd-hit{background:#eaf5f0;border-color:#1E9B6B}.epd-miss{background:#f5f4f0;border-color:#e0dfdb}
+.epd .dl{font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
+.epd-hit .dl{color:#166B4A}.epd-miss .dl{color:#bbb}
+.epd .dv{font-size:13px;font-weight:800}
+.epd-hit .dv{color:#166B4A}.epd-miss .dv{color:#ccc}
+.epd .ds{font-size:8px;margin-top:2px;opacity:.6}
+.edit-actions{display:flex;gap:8px;justify-content:flex-end}
+.ep-nums{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:.5px solid #e0dfdb}
+.ep-item label{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px}
+.ep-item span{font-size:14px;font-weight:700;color:#1a1a18}
+.ep-item span.big{font-size:20px;color:#166B4A}
+.ep-sep{font-size:16px;color:#d4d3ce}
+tr.row-editing td{background:#f9fffe !important}
+
+/* ─── Responsivo (tablet/celular) ─── */
+@media (max-width:860px){
+  .page{padding:24px 16px 60px}
+  .g2{grid-template-columns:1fr}
+  .tab-nav{flex-wrap:wrap}
+  .edit-fields{grid-template-columns:repeat(3,1fr)}
+  .ep-des{grid-template-columns:1fr 1fr}
+}
+@media (max-width:480px){
+  .edit-fields{grid-template-columns:1fr 1fr}
+  .ep-des{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="header">
+  <div class="header-left">
+    <p>Gestora Smart · Sistema de Comissionamento</p>
+    <h1>Vendedor</h1>
+  </div>
+  <span class="hbadge">1 – Vendedor</span>
+</div>
+
+<div class="tab-nav">
+  <button class="tab-btn active" data-tab="calc">Resumo do time</button>
+  <button class="tab-btn" data-tab="metas">Metas</button>
+  <button class="tab-btn" data-tab="regras">Regras &amp; Config.</button>
+</div>
+
+<!-- ═══ RESUMO DO TIME ═══ -->
+<div id="tab-calc" class="tab-panel active">
+  <div style="margin-bottom:18px">
+    <label class="lbl">Mês do Comissionamento</label>
+    <input type="month" id="mesInput" style="max-width:160px" onchange="renderResumo();buildCelulas()">
+  </div>
+
+  <!-- raw data notice -->
+  <div id="rawNotice" style="display:none;margin-bottom:12px;padding:10px 14px;background:#eff6ff;border:.5px solid #93c5fd;border-radius:8px;font-size:11px;color:#1d4ed8">
+    <strong>↓ Extrair disponível</strong> — dados brutos carregados nesta sessão. Os extratos individuais podem ser gerados. Se recarregar a página, importe novamente para habilitar os extratos.
+  </div>
+
+  <div style="background:#fff;border:.5px solid #d4d3ce;border-radius:10px;overflow:hidden">
+    <div style="overflow-x:auto">
+      <table id="resumoTable" style="min-width:1020px">
+        <thead>
+          <tr>
+            <th style="padding-left:20px">Vendedor</th>
+            <th class="r">Linhas</th>
+            <th class="r">Alcance</th>
+            <th class="r">Faixa</th>
+            <th class="r">Volume</th>
+            <th class="r">Ativação</th>
+            <th class="r">Desafio</th>
+            <th class="r">Equipamento</th>
+            <th class="r">Smart GPS</th>
+            <th class="r">Bônus Célula</th>
+            <th class="r">−Frete</th>
+            <th class="r">Total</th>
+            <th style="width:130px;text-align:center">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="resumoBody"></tbody>
+        <tfoot id="resumoFoot"></tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ METAS ═══ -->
+<!-- ═══ VISÃO DO EXECUTIVO ═══ -->
+<div id="tab-metas" class="tab-panel">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <p class="card-title" style="margin-bottom:0">Painel de metas · atualização trimestral</p>
+      <div style="display:flex;gap:8px"><button class="btn-ghost" onclick="addVend()">+ Vendedor</button><button class="btn" onclick="saveMetas()">Salvar metas</button></div>
+    </div>
+    <table><thead><tr><th>Vendedor</th><th class="r">Salário Fixo</th><th class="r">Objetivo</th><th class="r">Meta 1</th><th class="r">Meta 2</th><th class="r">Super Meta</th><th style="width:40px"></th></tr></thead>
+    <tbody id="metasBody"></tbody></table>
+  </div>
+  <hr style="border:none;border-top:1px solid #d4d3ce;margin:22px 0">
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <p class="card-title" style="margin-bottom:0">Alíquotas do Bônus de Célula</p>
+    </div>
+    <p style="font-size:11px;color:#888;margin-bottom:14px">Percentual sobre o Salário Fixo de cada vendedor da célula — vale só a faixa mais alta batida (não acumula), aplicada sobre o volume combinado da célula (vendedores + parceiros vinculados a eles) contra a soma das metas individuais de cada vendedor da célula.</p>
+    <div class="g4" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+      <div><label class="lbl">Objetivo</label><div class="irow"><input type="number" id="ca_objetivo" min="0" max="100" step="0.1" oninput="saveCelulaAliquotas()"><span class="ipfx">%</span></div></div>
+      <div><label class="lbl">Meta 1</label><div class="irow"><input type="number" id="ca_meta1" min="0" max="100" step="0.1" oninput="saveCelulaAliquotas()"><span class="ipfx">%</span></div></div>
+      <div><label class="lbl">Meta 2</label><div class="irow"><input type="number" id="ca_meta2" min="0" max="100" step="0.1" oninput="saveCelulaAliquotas()"><span class="ipfx">%</span></div></div>
+      <div><label class="lbl">Super Meta</label><div class="irow"><input type="number" id="ca_supermeta" min="0" max="100" step="0.1" oninput="saveCelulaAliquotas()"><span class="ipfx">%</span></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <p class="card-title" style="margin-bottom:0">Células</p>
+      <button class="btn-ghost" onclick="addCelula()">+ Célula</button>
+    </div>
+    <div id="celulasBody"></div>
+  </div>
+</div>
+
+<!-- ═══ REGRAS ═══ -->
+<div id="tab-regras" class="tab-panel">
+  <div class="g2">
+    <div>
+      <div class="card">
+        <p class="card-title">Faixas de comissão · M2M / IoT</p>
+        <table><thead><tr><th>Faixa</th><th>Alcance</th><th class="r">R$/linha</th><th class="r">% Ativação</th></tr></thead>
+        <tbody id="faixaBody"></tbody></table>
+        <p style="font-size:10px;color:#aaa;margin-top:10px;font-style:italic">Metas definidas trimestralmente pelo gestor</p>
+      </div>
+      <div class="card">
+        <p class="card-title">Desafio · Bateu Levou</p>
+        <table><thead><tr><th>Gatilho</th><th class="r">Bonificação</th></tr></thead>
+        <tbody id="desafioBody"></tbody></table>
+        <div style="margin-top:10px;padding:8px 10px;background:#f5f4f0;border-radius:6px;font-size:11px;color:#888">Acumulativa — cada nível soma os anteriores.</div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <p class="card-title">Equipamentos</p>
+        <div style="margin-bottom:10px"><label class="lbl">Taxa atual</label><div class="irow"><input type="number" id="r_eq" min="0" max="100" step="0.1" style="max-width:70px" oninput="saveRules()"><span class="ipfx">% do valor da venda</span></div></div>
+        <label class="lbl">Estratégia / observação</label>
+        <textarea id="r_eq_obs" rows="3" placeholder="Ex: 2% fixo agora. Estratégia nova em andamento…" oninput="saveRules()"></textarea>
+      </div>
+      <div class="card">
+        <p class="card-title">Smart GPS · Placas</p>
+        <p style="font-size:11px;color:#888;margin-bottom:10px">Comissão importada já calculada. Multiplicador: 100 = valor direto.</p>
+        <div class="irow"><input type="number" id="r_gps" min="0" max="200" step="1" style="max-width:70px" oninput="saveRules()"><span class="ipfx">%</span></div>
+      </div>
+      <div class="card">
+        <p class="card-title">Frete</p>
+        <label class="lbl">Limite subsidiado / vendedor / mês</label>
+        <div class="irow"><span class="ipfx">R$</span><input type="number" id="r_frete" min="0" step="1" style="max-width:90px" oninput="saveRules()"><span class="ipfx">/mês</span></div>
+        <p style="font-size:11px;color:#888;margin-top:7px">Excedente é descontado da comissão.</p>
+      </div>
+      <button class="btn" onclick="saveRules()" style="width:100%">Salvar configurações</button>
+    </div>
+  </div>
+</div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// ─── DEFAULTS ─────────────────────────────────────
+// salarioFixo: começa em 0 (não informado) — o Diego preenche o valor real
+// de cada um no Painel de Metas. Usado só pro Bônus de Célula (ver DEF_CELULAS).
+const DEF_V=[
+  {id:'v1',nome:'Henrique Alves',   g:{obj:750, m1:1000,m2:1250,sm:1750},salarioFixo:0},
+  {id:'v2',nome:'Patrick Rodrigues',g:{obj:750, m1:1000,m2:1250,sm:1750},salarioFixo:0},
+  {id:'v3',nome:'Décio Moraes',     g:{obj:2500,m1:2750,m2:3000,sm:3500},salarioFixo:0},
+  {id:'v4',nome:'Julia Borsato',    g:{obj:2000,m1:2250,m2:2500,sm:3000},salarioFixo:0},
+  {id:'v5',nome:'Vitória Karoline', g:{obj:2500,m1:2750,m2:3000,sm:3500},salarioFixo:0},
+  {id:'v6',nome:'Gabriela Geraud',  g:{obj:2000,m1:2250,m2:2500,sm:3000},salarioFixo:0},
+  {id:'v7',nome:'Claudia Longano',  g:{obj:4750,m1:5000,m2:5250,sm:5750},salarioFixo:0},
+  {id:'v8',nome:'Daiane Oliveira',  g:{obj:1800,m1:2050,m2:2300,sm:2800},salarioFixo:0},
+  {id:'v9',nome:'Renato Araujo',    g:{obj:4250,m1:4500,m2:4750,sm:5250},salarioFixo:0},
+];
+// Células (2026-09-24, confirmado com o Diego): grupos de vendedores cujo
+// volume combinado (já incluindo os parceiros vinculados de cada um, via
+// campo "Comercial") é comparado contra a soma das metas individuais deles.
+// Renato Araujo tinha 2 vendedoras novas na célula dele (Andrea Karoline e
+// Jassyanna) que ainda precisam ser cadastradas como Vendedoras de verdade
+// (com meta e salário próprios) — célula 3 fica só com o Renato até lá.
+const DEF_CELULAS=[
+  {id:'c1',nome:'Décio + Julia',vendedorIds:['v3','v4']},
+  {id:'c2',nome:'Vitória + Gabriela',vendedorIds:['v5','v6']},
+  {id:'c3',nome:'Renato + Andrea + Jassyanna',vendedorIds:['v9']},
+  {id:'c4',nome:'Claudia + Daiane',vendedorIds:['v7','v8']},
+  {id:'c5',nome:'Patrick + Henrique',vendedorIds:['v2','v1']},
+];
+// Alíquotas sobre o Salário Fixo — só a faixa mais alta batida (não acumula),
+// confirmado com o Diego.
+const DEF_CELULA_ALIQUOTAS={objetivo:0.07,meta1:0.13,meta2:0.25,superMeta:0.33};
+const DEF_F=[
+  {n:1,range:'0–70%',    min:0,  max:70, vol:0.10,atv:0.10},
+  {n:2,range:'71–90%',   min:71, max:90, vol:0.15,atv:0.15},
+  {n:3,range:'91–120%',  min:91, max:120,vol:0.25,atv:0.25},
+  {n:4,range:'121–150%', min:121,max:150,vol:0.30,atv:0.30},
+  {n:5,range:'151–200%', min:151,max:200,vol:0.40,atv:0.40},
+  {n:6,range:'>200%',    min:201,max:9999,vol:0.50,atv:0.50},
+];
+const DEF_D=[{lbl:'Objetivo',val:200},{lbl:'Meta 1',val:300},{lbl:'Meta 2',val:400},{lbl:'Super Meta',val:500}];
+const DEF_R={eqRate:2,eqObs:'',gpsRate:100,freteLimit:250};
+
+const LS={
+  get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+};
+// Mês aprovado (Visão Consolidada) fica travado — nem edição manual sobrescreve,
+// mesmo que a regra de alguém mude depois. Só desaprovando ou excluindo os dados.
+function mesAprovado(mes){try{const a=JSON.parse(localStorage.getItem('aprovacoes_mes')||'{}');return !!(a[mes]&&a[mes].aprovado);}catch{return false;}}
+
+let vendedores=LS.get('gs5_v',DEF_V);
+let celulas=LS.get('gs5_celulas',DEF_CELULAS);
+let celulaAliquotas=LS.get('gs5_celula_aliquotas',DEF_CELULA_ALIQUOTAS);
+let faixas=LS.get('gs5_f',DEF_F);
+let desafio=LS.get('gs5_d',DEF_D);
+let rules=LS.get('gs5_r',DEF_R);
+let mdata=LS.get('gs5_m',{});
+let editingId=null;
+
+// O Importar (shell, index.html) grava direto em localStorage['gs5_m'], mas
+// como `mdata` é uma variável carregada só uma vez quando este iframe abriu,
+// escrever no localStorage de fora não atualiza sozinho o que já está na
+// memória aqui — sem isso, o Importar mostra o resultado certo mas essa aba
+// continua com o dado antigo até dar F5 na página inteira. Exposta pro shell
+// chamar assim que terminar de processar uma planilha.
+function resyncMdata(){mdata=LS.get('gs5_m',{});renderResumo();buildCelulas();}
+
+// ─── RAW DATA STORE (in-memory, session only) ─────
+// rawStore[`${vid}_${mes}`] = {
+//   simcard: { headers:[...], rows:[[...],[...]] },
+//   equip:   { headers:[...], rows:[[...]] },
+//   gps:     { headers:[...], rows:[[...]] }
+// }
+let rawStore={};
+// Chamado pela tela Importar (index.html) depois de processar Pedidos/Inventário/
+// Cobranças — alimenta o mesmo rawStore que a antiga aba Importar preenchia,
+// pra o botão "↓ Extrair" continuar funcionando mesmo sem a aba local.
+// categoria: 'simcard' (Pedidos/Volume) · 'equip' (Cobranças/Equipamento) · 'gps' (Cobranças/Placas)
+window.impSetRaw=function(vid,mes,categoria,headers,rows){
+  const key=`${vid}_${mes}`;
+  rawStore[key]={...(rawStore[key]||{}),[categoria]:{headers,rows}};
+  renderResumo();
+};
+
+// importStage[cat] = { agg: {execName: {linhas,atv,eq,gps}}, raw: {execName: rows[]}, headers: [] }
+
+
+// ─── INIT ─────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  const now=new Date();
+  const mv=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('mesInput').value=mv;
+  buildMetas();buildFaixaTable();buildDesafioTable();loadRules();buildCelulas();loadCelulaAliquotas();renderResumo();
+});
+document.querySelectorAll('.tab-btn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById('tab-'+b.dataset.tab).classList.add('active');
+  });
+});
+function switchTab(t){
+  document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));
+  document.querySelector(`[data-tab="${t}"]`).classList.add('active');
+  document.getElementById('tab-'+t).classList.add('active');
+}
+
+// ─── HELPERS ──────────────────────────────────────
+const br2=v=>v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const brInt=v=>Math.round(v||0).toLocaleString('pt-BR');
+const parseNum=s=>+String(s).replace(/\./g,'').replace(',','.')||0;
+const fmtMes=s=>{if(!s)return'';const[y,m]=s.split('-');const ms=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];return ms[+m-1]+'/'+y;};
+const norm=(s='')=>String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,' ').trim();
+// As faixas são definidas em pontos percentuais inteiros com um "buraco" entre
+// uma e outra (ex: 0–70 / 71–90) — sem arredondar pra baixo antes de comparar,
+// um alcance como 70,04% caía fora da faixa 1 (só vai até 70) e fora da faixa 2
+// (só começa em 71), sendo empurrado pra faixa 2 por engano. Confirmado batendo
+// com a planilha real da Claudia (Jul/26): 70,04% = Faixa 1 (10%), não Faixa 2 (15%).
+function getFaixa(alc){return faixas.find(f=>Math.floor(alc)<=f.max)||faixas[faixas.length-1];}
+function getDesafio(linhas,g){
+  const ths=[g.obj,g.m1,g.m2,g.sm];let total=0,hits=[];
+  desafio.forEach((d,i)=>{if(linhas>=ths[i]){total+=d.val;hits.push(i);}});
+  return{total,hits};
+}
+// ─── BÔNUS DE CÉLULA ───────────────────────────────
+// Volume combinado da célula (cada vendedor.linhas já inclui os parceiros
+// vinculados a ele, via campo "Comercial" — ver index.html/impProcessarPedidos)
+// contra a soma das metas individuais dos vendedores da célula. Só a faixa
+// mais alta batida vale (não acumula); a alíquota correspondente é aplicada
+// sobre o Salário Fixo de CADA vendedor da célula (mesma % pra todos, mas o
+// R$ final pode diferir se os salários forem diferentes).
+function celulaDoVendedor(vid){
+  return celulas.find(c=>c.vendedorIds.includes(vid));
+}
+function celulaDesempenho(celula,mes){
+  let volume=0,obj=0,m1=0,m2=0,sm=0;
+  celula.vendedorIds.forEach(vid=>{
+    const v=vendedores.find(x=>x.id===vid);if(!v)return;
+    const d=mdata[`${vid}_${mes}`]||{};
+    volume+=d.linhas||0;
+    obj+=v.g.obj||0;m1+=v.g.m1||0;m2+=v.g.m2||0;sm+=v.g.sm||0;
+  });
+  let aliquota=0;
+  if(sm>0&&volume>=sm)aliquota=celulaAliquotas.superMeta;
+  else if(m2>0&&volume>=m2)aliquota=celulaAliquotas.meta2;
+  else if(m1>0&&volume>=m1)aliquota=celulaAliquotas.meta1;
+  else if(obj>0&&volume>=obj)aliquota=celulaAliquotas.objetivo;
+  return{volume,obj,m1,m2,sm,aliquota};
+}
+function bonusCelulaDe(vid,mes){
+  const celula=celulaDoVendedor(vid);
+  if(!celula)return 0;
+  const{aliquota}=celulaDesempenho(celula,mes);
+  const v=vendedores.find(x=>x.id===vid);
+  return +(aliquota*(v?.salarioFixo||0)).toFixed(2);
+}
+function calcVend(d,g,bonusCelula=0){
+  const linhas=d.linhas||0,atv=d.atv||0,eq=d.eq||0,gps=d.gps||0,frete=d.frete||0,bonus=d.bonus||0;
+  const alc=g.obj>0?(linhas/g.obj*100):0;
+  const fx=getFaixa(alc);const des=getDesafio(linhas,g);
+  const volC=linhas*fx.vol,atvC=atv*fx.atv,desC=des.total;
+  const eqC=eq*(rules.eqRate/100),gpsC=gps*(rules.gpsRate/100);
+  const frDsc=Math.max(0,frete-rules.freteLimit);
+  const total=volC+atvC+desC+eqC+gpsC+bonus+bonusCelula-frDsc;
+  return{linhas,atv,eq,gps,frete,bonus,bonusCelula,alc,fx,des,volC,atvC,desC,eqC,gpsC,frDsc,total};
+}
+function showToast(msg,color='#166B4A'){
+  const t=document.getElementById('toast');t.textContent=msg;t.style.background=color;
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);
+}
+function matchVend(name){
+  const nn=norm(name);let best=null,bestScore=0;
+  vendedores.forEach(v=>{
+    const vn=norm(v.nome);
+    if(nn===vn){best=v;bestScore=3;return;}
+    if(nn.includes(vn)||vn.includes(nn)){if(bestScore<2){best=v;bestScore=2;}}
+    else{const fw=vn.split(' ')[0];if(fw.length>3&&nn.includes(fw)&&bestScore<1){best=v;bestScore=1;}}
+  });
+  return{vend:best,score:bestScore};
+}
+function hasRaw(vid,mes){
+  const r=rawStore[`${vid}_${mes}`];
+  return r&&((r.simcard&&r.simcard.rows.length)||(r.equip&&r.equip.rows.length)||(r.gps&&r.gps.rows.length));
+}
+
+// ─── RESUMO DO TIME ───────────────────────────────
+function renderResumo(){
+  const mes=document.getElementById('mesInput').value;
+  const bloqueado=mesAprovado(mes);
+  const fpCls=['f1','f2','f3','f4','f5','f6'];
+  let grand=0;let rows='';
+  let anyRaw=false;
+  let sumVol=0,sumAtv=0,sumDes=0,sumEq=0,sumGps=0,sumBC=0,sumFrete=0;
+
+  vendedores.forEach(vend=>{
+    const d=mdata[`${vend.id}_${mes}`]||{};
+    const c=calcVend(d,vend.g,bonusCelulaDe(vend.id,mes));
+    grand+=c.total;
+    sumVol+=c.volC;sumAtv+=c.atvC;sumDes+=c.desC;sumEq+=c.eqC;sumGps+=c.gpsC;sumBC+=c.bonusCelula;sumFrete+=c.frDsc;
+    const isEmpty=!c.linhas&&!c.atv&&!c.eq&&!c.gps&&!c.bonus&&!c.bonusCelula;
+    const isEditing=editingId===vend.id;
+    const canExport=hasRaw(vend.id,mes);
+    if(canExport)anyRaw=true;
+
+    rows+=`<tr id="row_${vend.id}" ${isEditing?'class="row-editing"':''}>
+      <td style="padding-left:20px;font-weight:${isEditing?700:500}">${vend.nome}</td>
+      <td class="r">${isEmpty?'<span class="c-dim">—</span>':c.linhas.toLocaleString('pt-BR')}</td>
+      <td class="r">${isEmpty?'<span class="c-dim">—</span>':c.alc.toFixed(0)+'%'}</td>
+      <td class="r">${isEmpty?'<span class="c-dim">—</span>':`<span class="fp ${fpCls[c.fx.n-1]}" style="font-size:9px;padding:1px 6px">F${c.fx.n}</span>`}</td>
+      <td class="r">${isEmpty?'<span class="c-dim">—</span>':'R$'+br2(c.volC)}</td>
+      <td class="r">${isEmpty?'<span class="c-dim">—</span>':'R$'+br2(c.atvC)}</td>
+      <td class="r">${c.desC>0?'R$'+br2(c.desC):'<span class="c-dim">—</span>'}</td>
+      <td class="r">${c.eqC>0?'R$'+br2(c.eqC):'<span class="c-dim">—</span>'}</td>
+      <td class="r">${c.gpsC>0?'R$'+br2(c.gpsC):'<span class="c-dim">—</span>'}</td>
+      <td class="r">${c.bonusCelula>0?'<span class="c-verde">+R$'+br2(c.bonusCelula)+'</span>':'<span class="c-dim">—</span>'}</td>
+      <td class="r">${c.frDsc>0?'<span class="c-red">-R$'+br2(c.frDsc)+'</span>':'<span class="c-dim">—</span>'}</td>
+      <td class="r" style="font-weight:700;color:${isEmpty?'#bbb':'#166B4A'}">${isEmpty?'—':'R$'+br2(c.total)}</td>
+      <td style="text-align:center;white-space:nowrap">
+        <button class="btn-edit ${isEditing?'active':''}" onclick="toggleEdit('${vend.id}','${mes}')" style="margin-right:4px" title="${bloqueado?'Mês aprovado — travado':''}">${isEditing?'✕':(bloqueado?'🔒':'✏')}</button>
+        <button class="${canExport?'btn-export':'btn-export disabled'}" onclick="${canExport?`exportVendedor('${vend.id}','${mes}')`:''}" title="${canExport?'Baixar extrato Excel':'Importe os dados para habilitar'}">↓ Extrair</button>
+      </td>
+    </tr>
+    <tr id="editrow_${vend.id}" style="display:${isEditing?'table-row':'none'}">
+      <td colspan="12" style="padding:0;background:#f9fffe">
+        <div class="edit-panel" id="panel_${vend.id}"></div>
+      </td>
+    </tr>`;
+  });
+
+  document.getElementById('resumoBody').innerHTML=rows;
+  document.getElementById('resumoFoot').innerHTML=`<tr style="font-weight:700;background:#eaf5f0">
+    <td style="padding-left:20px;color:#166B4A" colspan="4">Total do time</td>
+    <td class="r">R$${br2(sumVol)}</td>
+    <td class="r">R$${br2(sumAtv)}</td>
+    <td class="r">${sumDes>0?'R$'+br2(sumDes):'<span class="c-dim">—</span>'}</td>
+    <td class="r">${sumEq>0?'R$'+br2(sumEq):'<span class="c-dim">—</span>'}</td>
+    <td class="r">${sumGps>0?'R$'+br2(sumGps):'<span class="c-dim">—</span>'}</td>
+    <td class="r">${sumBC>0?'R$'+br2(sumBC):'<span class="c-dim">—</span>'}</td>
+    <td class="r">${sumFrete>0?'-R$'+br2(sumFrete):'<span class="c-dim">—</span>'}</td>
+    <td class="r" style="color:#166B4A;font-size:15px">R$${br2(grand)}</td>
+    <td></td>
+  </tr>`;
+  document.getElementById('rawNotice').style.display=anyRaw?'block':'none';
+
+  if(editingId)renderEditPanel(editingId,mes);
+}
+
+// ─── EDIT PANEL ───────────────────────────────────
+function toggleEdit(vid,mes){
+  if(mesAprovado(mes)){showToast('Mês aprovado — desaprove na Visão Consolidada pra editar.','#b83232');return;}
+  editingId=(editingId===vid)?null:vid;
+  renderResumo();
+  if(editingId)setTimeout(()=>{const r=document.getElementById('editrow_'+vid);if(r)r.scrollIntoView({behavior:'smooth',block:'nearest'});},50);
+}
+function renderEditPanel(vid,mes){
+  const vend=vendedores.find(v=>v.id===vid);
+  const d=mdata[`${vid}_${mes}`]||{};
+  const panel=document.getElementById('panel_'+vid);if(!panel)return;
+  panel.innerHTML=`
+    <div class="edit-panel-header">
+      <span class="edit-panel-title">✏ ${vend.nome} · ${fmtMes(mes)}</span>
+      <span style="font-size:10px;color:#888">Obj: ${vend.g.obj.toLocaleString('pt-BR')} | M1: ${vend.g.m1.toLocaleString('pt-BR')} | M2: ${vend.g.m2.toLocaleString('pt-BR')} | SM: ${vend.g.sm.toLocaleString('pt-BR')}</span>
+    </div>
+    <div class="edit-fields">
+      <div><label class="lbl">Novas linhas</label><input type="number" id="e_l_${vid}" value="${d.linhas||0}" min="0" oninput="liveCalc('${vid}')"></div>
+      <div><label class="lbl">Valor ativações</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="e_a_${vid}" value="${d.atv||0}" min="0" step="0.01" oninput="liveCalc('${vid}')"></div></div>
+      <div><label class="lbl">Equipamentos</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="e_q_${vid}" value="${d.eq||0}" min="0" step="0.01" oninput="liveCalc('${vid}')"></div></div>
+      <div><label class="lbl">Smart GPS</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="e_g_${vid}" value="${d.gps||0}" min="0" step="0.01" oninput="liveCalc('${vid}')"></div></div>
+      <div><label class="lbl">Frete</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="e_f_${vid}" value="${d.frete||0}" min="0" step="0.01" oninput="liveCalc('${vid}')"></div></div>
+      <div><label class="lbl" style="color:#166B4A">Bônus extra</label><div class="irow"><span class="ipfx" style="color:#166B4A">R$</span><input type="number" id="e_b_${vid}" value="${d.bonus||0}" min="0" step="0.01" oninput="liveCalc('${vid}')" style="border-color:#1E9B6B"></div></div>
+    </div>
+    <div class="edit-obs"><label class="lbl">Observação</label><input type="text" id="e_o_${vid}" value="${d.obs||''}" placeholder="Ex: bônus campanha Q3, correção de volume…"></div>
+    <div class="edit-preview" id="prev_${vid}"></div>
+    <div class="edit-actions">
+      <button class="btn-ghost btn-sm" onclick="toggleEdit('${vid}','${document.getElementById('mesInput').value}')">Cancelar</button>
+      <button class="btn btn-sm" onclick="saveEdit('${vid}')">✓ Salvar</button>
+    </div>`;
+  liveCalc(vid);
+}
+function liveCalc(vid){
+  const vend=vendedores.find(v=>v.id===vid);
+  const mes=document.getElementById('mesInput').value;
+  const d={linhas:+document.getElementById(`e_l_${vid}`).value||0,atv:+document.getElementById(`e_a_${vid}`).value||0,eq:+document.getElementById(`e_q_${vid}`).value||0,gps:+document.getElementById(`e_g_${vid}`).value||0,frete:+document.getElementById(`e_f_${vid}`).value||0,bonus:+document.getElementById(`e_b_${vid}`).value||0};
+  const c=calcVend(d,vend.g,bonusCelulaDe(vid,mes));
+  const fpCls=['f1','f2','f3','f4','f5','f6'];
+  const ths=[vend.g.obj,vend.g.m1,vend.g.m2,vend.g.sm];
+  const prev=document.getElementById(`prev_${vid}`);if(!prev)return;
+  prev.innerHTML=`
+    <div class="ep-faixa-row"><span class="fp ${fpCls[c.fx.n-1]}">Faixa ${c.fx.n}</span><span style="font-size:11px;color:#888">${c.alc.toFixed(0)}% do objetivo · R$${c.fx.vol.toFixed(2).replace('.',',')}/linha · ${(c.fx.atv*100).toFixed(0)}% ativação</span></div>
+    <div class="ep-des">${desafio.map((d2,i)=>{const hit=c.linhas>=ths[i];return`<div class="epd ${hit?'epd-hit':'epd-miss'}"><div class="dl">${d2.lbl}${hit?' ✓':''}</div><div class="dv">${hit?'+':''}R$${d2.val}</div><div class="ds">≥${ths[i].toLocaleString('pt-BR')}</div></div>`;}).join('')}</div>
+    <div class="ep-nums">
+      <div class="ep-item"><label>Volume</label><span>R$${br2(c.volC)}</span></div><span class="ep-sep">+</span>
+      <div class="ep-item"><label>Ativação</label><span>R$${br2(c.atvC)}</span></div><span class="ep-sep">+</span>
+      <div class="ep-item"><label>Desafio</label><span>R$${br2(c.desC)}</span></div>
+      ${(c.eqC+c.gpsC)>0?`<span class="ep-sep">+</span><div class="ep-item"><label>Equip+GPS</label><span>R$${br2(c.eqC+c.gpsC)}</span></div>`:''}
+      ${c.bonus>0?`<span class="ep-sep">+</span><div class="ep-item"><label style="color:#166B4A">Bônus</label><span>R$${br2(c.bonus)}</span></div>`:''}
+      ${c.bonusCelula>0?`<span class="ep-sep">+</span><div class="ep-item"><label style="color:#166B4A">Bônus Célula</label><span>R$${br2(c.bonusCelula)}</span></div>`:''}
+      ${c.frDsc>0?`<span class="ep-sep">−</span><div class="ep-item"><label style="color:#b83232">Frete</label><span style="color:#b83232">R$${br2(c.frDsc)}</span></div>`:''}
+      <div style="margin-left:auto"><div class="ep-item"><label>Total</label><span class="big">R$ ${br2(c.total)}</span></div></div>
+    </div>`;
+}
+function saveEdit(vid){
+  const mes=document.getElementById('mesInput').value;
+  if(mesAprovado(mes)){showToast('Mês aprovado — desaprove na Visão Consolidada pra editar.','#b83232');return;}
+  mdata[`${vid}_${mes}`]={linhas:+document.getElementById(`e_l_${vid}`).value||0,atv:+document.getElementById(`e_a_${vid}`).value||0,eq:+document.getElementById(`e_q_${vid}`).value||0,gps:+document.getElementById(`e_g_${vid}`).value||0,frete:+document.getElementById(`e_f_${vid}`).value||0,bonus:+document.getElementById(`e_b_${vid}`).value||0,obs:document.getElementById(`e_o_${vid}`).value||''};
+  LS.set('gs5_m',mdata);editingId=null;renderResumo();
+  showToast(`${vendedores.find(v=>v.id===vid).nome} atualizado ✓`);
+}
+
+// ─── EXPORT INDIVIDUAL ────────────────────────────
+function exportVendedor(vid,mes){
+  const vend=vendedores.find(v=>v.id===vid);
+  const d=mdata[`${vid}_${mes}`]||{};
+  const raw=rawStore[`${vid}_${mes}`]||{};
+  const c=calcVend(d,vend.g,bonusCelulaDe(vid,mes));
+  const ths=[vend.g.obj,vend.g.m1,vend.g.m2,vend.g.sm];
+
+  const wb=XLSX.utils.book_new();
+
+  // ── ABA RESUMO (formato idêntico ao modelo) ──
+  const resumo=[
+    ['VOLUME','','ATIVAÇÃO','','BATEU / LEVOU','','COMISSÃO TOTAL',''],
+    ['OBJETIVO',vend.g.obj,'OBJETIVO',desafio[0].val,null,null,'VOLUME',c.volC],
+    ['VOLUME',c.linhas,'VOLUME',c.atv,'META 1',desafio[1].val,'ATIVAÇÃO',c.atvC],
+    ['ALCANCE',c.alc/100,null,null,'META 2',desafio[2].val,'DESAFIO',c.desC],
+    ['FAIXA',c.fx.vol,'FAIXA',c.fx.atv,'SUPER META',desafio[3].val,'Bonificação Time',c.bonusCelula],
+    ['COMISSÃO VOLUME',c.volC,'COMISSÃO ATIVAÇÃO',c.atvC,'DESAFIO MENSAL',c.desC,'EQUIPAMENTO',c.eqC],
+    [null,null,null,null,null,null,'SMART GPS',c.gpsC],
+    [null,null,null,null,null,null,'Bônus extra',d.bonus||0],
+    [null,null,null,null,null,null,'Desconto Frete',c.frDsc>0?-c.frDsc:0],
+  ];
+  if(d.obs){resumo.push([null,null,null,null,null,null,'Observação',d.obs]);}
+  const wsRes=XLSX.utils.aoa_to_sheet(resumo);
+  // format percentages
+  wsRes['B4']={v:c.alc/100,t:'n',z:'0.0%'};
+  wsRes['D5']={v:c.fx.atv,t:'n',z:'0.0%'};
+  XLSX.utils.book_append_sheet(wb,wsRes,'RESUMO');
+
+  // ── ABA SIMCARD ──
+  if(raw.simcard&&raw.simcard.rows&&raw.simcard.rows.length){
+    const simData=[raw.simcard.headers,...raw.simcard.rows];
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(simData),'SIMCARD');
+  }
+
+  // ── ABA EQUIPAMENTO ──
+  if(raw.equip&&raw.equip.rows&&raw.equip.rows.length){
+    const eqData=[raw.equip.headers,...raw.equip.rows];
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(eqData),'EQUIPAMENTO');
+  }
+
+  // ── ABA PLACAS ──
+  if(raw.gps&&raw.gps.rows&&raw.gps.rows.length){
+    const gpsData=[raw.gps.headers,...raw.gps.rows];
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(gpsData),'PLACAS');
+  }
+
+  // filename: Nome_Vendedor_Mês_Ano.xlsx
+  const [y,m]=mes.split('-');
+  const meses=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const nomeLimpo=vend.nome.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'_');
+  XLSX.writeFile(wb,`${nomeLimpo}_${meses[+m-1]}_${y}.xlsx`);
+  showToast(`↓ ${vend.nome} · extrato gerado`,'#1d4ed8');
+}
+
+// ─── ACESSO CROSS-FRAME (Visão do Executivo, agora no shell) ──────────
+// A "Visão do Executivo" saiu daqui e virou item próprio no menu (abaixo da
+// Visão Consolidada, em index.html) — mas os dados brutos (rawStore) só
+// existem na memória deste iframe, então o shell precisa desse getter pra
+// acessá-los. `mdata`/`vendedores`/`rawStore` são `let`, não viram
+// propriedade de window sozinhos — por isso o wrapper como função.
+function getRawFor(vid,mes){return rawStore[`${vid}_${mes}`]||{};}
+
+// ─── METAS ────────────────────────────────────────
+function buildMetas(){
+  document.getElementById('metasBody').innerHTML=vendedores.map((v,i)=>`
+    <tr>
+      <td><input type="text" value="${v.nome}" style="max-width:200px" onchange="vendedores[${i}].nome=this.value"></td>
+      <td class="r"><div class="irow" style="justify-content:flex-end"><span class="ipfx">R$</span><input type="text" class="rule-input" value="${br2(v.salarioFixo||0)}"
+        onblur="vendedores[${i}].salarioFixo=parseNum(this.value);this.value=br2(vendedores[${i}].salarioFixo)"
+        onfocus="this.value=String(vendedores[${i}].salarioFixo||0)"></div></td>
+      <td class="r"><input type="text" class="rule-input" value="${brInt(v.g.obj)}"
+        onblur="vendedores[${i}].g.obj=parseNum(this.value);this.value=brInt(vendedores[${i}].g.obj)"
+        onfocus="this.value=String(vendedores[${i}].g.obj)"></td>
+      <td class="r"><input type="text" class="rule-input" value="${brInt(v.g.m1)}"
+        onblur="vendedores[${i}].g.m1=parseNum(this.value);this.value=brInt(vendedores[${i}].g.m1)"
+        onfocus="this.value=String(vendedores[${i}].g.m1)"></td>
+      <td class="r"><input type="text" class="rule-input" value="${brInt(v.g.m2)}"
+        onblur="vendedores[${i}].g.m2=parseNum(this.value);this.value=brInt(vendedores[${i}].g.m2)"
+        onfocus="this.value=String(vendedores[${i}].g.m2)"></td>
+      <td class="r"><input type="text" class="rule-input" value="${brInt(v.g.sm)}"
+        onblur="vendedores[${i}].g.sm=parseNum(this.value);this.value=brInt(vendedores[${i}].g.sm)"
+        onfocus="this.value=String(vendedores[${i}].g.sm)"></td>
+      <td><button class="btn-del" onclick="removeVend(${i})">×</button></td>
+    </tr>`).join('');
+}
+function addVend(){vendedores.push({id:'v'+Date.now(),nome:'Novo Vendedor',g:{obj:1000,m1:1200,m2:1500,sm:2000},salarioFixo:0});buildMetas();}
+function removeVend(i){if(vendedores.length<=1)return;const vid=vendedores[i].id;vendedores.splice(i,1);celulas.forEach(c=>{c.vendedorIds=c.vendedorIds.filter(x=>x!==vid);});LS.set('gs5_celulas',celulas);buildMetas();buildCelulas();}
+function saveMetas(){LS.set('gs5_v',vendedores);renderResumo();showToast('Metas salvas ✓');}
+
+// ─── CÉLULAS ───────────────────────────────────────
+function loadCelulaAliquotas(){
+  document.getElementById('ca_objetivo').value=(celulaAliquotas.objetivo*100).toFixed(0);
+  document.getElementById('ca_meta1').value=(celulaAliquotas.meta1*100).toFixed(0);
+  document.getElementById('ca_meta2').value=(celulaAliquotas.meta2*100).toFixed(0);
+  document.getElementById('ca_supermeta').value=(celulaAliquotas.superMeta*100).toFixed(0);
+}
+function saveCelulaAliquotas(){
+  celulaAliquotas={
+    objetivo:(+document.getElementById('ca_objetivo').value||0)/100,
+    meta1:(+document.getElementById('ca_meta1').value||0)/100,
+    meta2:(+document.getElementById('ca_meta2').value||0)/100,
+    superMeta:(+document.getElementById('ca_supermeta').value||0)/100,
+  };
+  LS.set('gs5_celula_aliquotas',celulaAliquotas);
+  renderResumo();
+}
+function buildCelulas(){
+  const mes=document.getElementById('mesInput')?.value;
+  document.getElementById('celulasBody').innerHTML=celulas.map((c,ci)=>{
+    const desemp=mes?celulaDesempenho(c,mes):null;
+    return `<div style="background:#f5f4f0;border:.5px solid #d4d3ce;border-radius:8px;padding:12px 14px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <input type="text" value="${c.nome}" style="font-weight:700;font-size:12px;background:transparent;border:none;border-bottom:.5px solid #e0dfdb;border-radius:0;padding:2px 4px;max-width:280px" onchange="celulas[${ci}].nome=this.value;LS.set('gs5_celulas',celulas)">
+        <button class="btn-del" onclick="removeCelula(${ci})">Remover célula</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+        ${vendedores.map(v=>{
+          const marcado=c.vendedorIds.includes(v.id);
+          return `<label style="display:flex;align-items:center;gap:5px;font-size:11px;background:${marcado?'#eaf5f0':'#fff'};border:.5px solid ${marcado?'#1E9B6B':'#d4d3ce'};border-radius:6px;padding:4px 8px;cursor:pointer">
+            <input type="checkbox" style="width:auto" ${marcado?'checked':''} onchange="toggleVendedorCelula(${ci},'${v.id}',this.checked)">${v.nome}
+          </label>`;
+        }).join('')}
+      </div>
+      ${desemp?`<div style="font-size:10px;color:#888">Volume combinado: ${desemp.volume.toLocaleString('pt-BR')} · Metas: ${desemp.obj.toLocaleString('pt-BR')}/${desemp.m1.toLocaleString('pt-BR')}/${desemp.m2.toLocaleString('pt-BR')}/${desemp.sm.toLocaleString('pt-BR')} · Alíquota batida: ${(desemp.aliquota*100).toFixed(0)}%</div>`:''}
+    </div>`;
+  }).join('');
+}
+function addCelula(){
+  celulas.push({id:'cel'+Date.now(),nome:'Nova célula',vendedorIds:[]});
+  LS.set('gs5_celulas',celulas);
+  buildCelulas();
+}
+function removeCelula(ci){
+  celulas.splice(ci,1);
+  LS.set('gs5_celulas',celulas);
+  buildCelulas();
+  renderResumo();
+}
+function toggleVendedorCelula(ci,vid,marcado){
+  const c=celulas[ci];
+  if(marcado){ if(!c.vendedorIds.includes(vid))c.vendedorIds.push(vid); }
+  else{ c.vendedorIds=c.vendedorIds.filter(x=>x!==vid); }
+  LS.set('gs5_celulas',celulas);
+  buildCelulas();
+  renderResumo();
+}
+
+// ─── FAIXAS + DESAFIO + RULES ─────────────────────
+function buildFaixaTable(){
+  const fpCls=['f1','f2','f3','f4','f5','f6'];
+  document.getElementById('faixaBody').innerHTML=faixas.map((f,i)=>`
+    <tr><td><span class="fp ${fpCls[i]}">Faixa ${f.n}</span></td><td>${f.range}</td>
+    <td class="r"><div style="display:flex;align-items:center;justify-content:flex-end;gap:4px"><span class="ipfx">R$</span><input type="number" class="rule-input" value="${f.vol.toFixed(2)}" step="0.01" style="width:60px" onchange="faixas[${i}].vol=+this.value;LS.set('gs5_f',faixas)"></div></td>
+    <td class="r"><div style="display:flex;align-items:center;justify-content:flex-end;gap:4px"><input type="number" class="rule-input" value="${(f.atv*100).toFixed(0)}" style="width:50px" onchange="faixas[${i}].atv=+this.value/100;LS.set('gs5_f',faixas)"><span class="ipfx">%</span></div></td></tr>`).join('');
+}
+function buildDesafioTable(){
+  document.getElementById('desafioBody').innerHTML=desafio.map((d,i)=>`
+    <tr><td><strong>${d.lbl}</strong></td>
+    <td class="r"><div style="display:flex;align-items:center;justify-content:flex-end;gap:4px"><span class="ipfx">R$</span><input type="number" class="rule-input" value="${d.val}" style="width:70px" onchange="desafio[${i}].val=+this.value;LS.set('gs5_d',desafio)"></div></td></tr>`).join('');
+}
+function loadRules(){
+  document.getElementById('r_eq').value=rules.eqRate;
+  document.getElementById('r_eq_obs').value=rules.eqObs||'';
+  document.getElementById('r_gps').value=rules.gpsRate;
+  document.getElementById('r_frete').value=rules.freteLimit;
+}
+function saveRules(){
+  rules.eqRate=+document.getElementById('r_eq').value||0;
+  rules.eqObs=document.getElementById('r_eq_obs').value;
+  rules.gpsRate=+document.getElementById('r_gps').value||100;
+  rules.freteLimit=+document.getElementById('r_frete').value||250;
+  LS.set('gs5_r',rules);showToast('Configurações salvas ✓');
+}
+</script>
+</body>
+</html>

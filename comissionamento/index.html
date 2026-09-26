@@ -1,0 +1,2972 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Comissionamento · Gestora Smart</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+
+:root{
+  --gs-bg:#eceae4; --gs-surface:#fff; --gs-border:#d4d3ce;
+  --gs-text:#1a1a18; --gs-text-muted:#888;
+  --gs-accent:#e8b923;
+  --gs-good:#166B4A; --gs-good-soft:#eaf5f0;
+  --gs-warn:#b8863f; --gs-warn-soft:#fbf3e6;
+  --gs-bad:#b83232; --gs-bad-soft:#fceaea;
+  --gs-c-vendedor:#166B4A; --gs-c-dealer:#0d8f63; --gs-c-indicador:#b45309;
+  --gs-c-projeto:#1d4ed8; --gs-c-gestor:#0d6e5f; --gs-c-diretor:#b8863f; --gs-c-diretor-comercial:#0f2340;
+}
+
+body{font-family:'Inter',sans-serif;background:var(--gs-bg);color:var(--gs-text);display:flex}
+/* Select/input[type=month]/[type=number] não herdam a fonte da página por padrão
+   no Chrome (caem na fonte do sistema) — sem isso, qualquer campo novo que a gente
+   esquecer de estilizar individualmente sai com fonte errada (achado numa auditoria
+   célula-por-célula: exec_vid/exec_mes/imp_ref_mes e os campos de lançamento manual
+   estavam assim). Regra de base cobre isso pra qualquer campo, atual ou futuro. */
+input,select,textarea,button{font-family:inherit}
+
+.sidebar{
+  width:230px;flex-shrink:0;
+  background:#1a1a18;color:#fff;
+  display:flex;flex-direction:column;
+  height:100vh;overflow-y:auto;
+}
+.sidebar-header{padding:22px 20px 18px;border-bottom:1px solid #333230}
+.sidebar-header .eyebrow{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#9a9a95;margin-bottom:5px}
+.sidebar-header h1{font-size:16px;font-weight:800;line-height:1.25}
+
+.sidebar-nav{padding:14px 10px;flex:1}
+.profile-btn{
+  width:100%;background:none;border:none;
+  padding:10px 14px;margin-bottom:1px;
+  font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;
+  color:#9a9a95;cursor:pointer;
+  border-radius:7px;
+  text-align:left;
+  display:flex;align-items:center;
+  transition:background .15s,color .15s,border-color .15s;
+  border-left:2px solid transparent;
+}
+.profile-btn:hover:not(.active){background:#232320;color:#e5e4df}
+.profile-btn.active{background:#232320;color:#fff;border-left-color:#1E9B6B}
+.profile-btn.disabled{opacity:.4;cursor:default}
+.profile-btn.disabled:hover{background:none;color:#9a9a95}
+.cad-chevron{font-size:11px;opacity:.75}
+.cad-dropdown-menu{position:fixed;background:#fff;border:1px solid #e5e4df;border-radius:12px;box-shadow:0 16px 40px rgba(0,0,0,.2);padding:6px;min-width:200px;z-index:150;display:none}
+.cad-dropdown-menu.open{display:block}
+.cad-dropdown-item{display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:#1a1a18;cursor:pointer}
+.cad-dropdown-item:hover{background:#eef4ff;color:#1d4ed8}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(20,20,18,.5);display:none;align-items:center;justify-content:center;z-index:200;padding:24px}
+.modal-overlay.open{display:flex}
+.modal-card{background:#faf9f6;border-radius:14px;max-width:680px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.3)}
+.modal-card-hdr{display:flex;justify-content:space-between;align-items:center;padding:20px 26px;border-bottom:2px solid #1a1a18;background:#faf9f6;position:sticky;top:0}
+.modal-card-hdr h2{font-size:18px;font-weight:800;color:#1a1a18}
+.modal-close{background:none;border:none;font-size:15px;color:#888;cursor:pointer;width:30px;height:30px;border-radius:7px;line-height:1}
+.modal-close:hover{background:#eeede8;color:#1a1a18}
+.modal-card-body{padding:22px 26px 28px}
+
+.nav-sep{height:1px;background:#333230;margin:10px 4px}
+.nav-label{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6f6e69;padding:8px 12px 6px}
+
+.sidebar-note{padding:14px 20px;border-top:1px solid #333230;font-size:10.5px;color:#7a7972;line-height:1.5}
+
+.main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.frame-area{flex:1;position:relative;overflow:hidden}
+iframe{
+  position:absolute;top:0;left:0;width:100%;height:100%;
+  border:none;background:#f5f4f0;
+  display:none;
+}
+iframe.active{display:block}
+.panel{position:absolute;top:0;left:0;width:100%;height:100%;overflow:auto;display:none;background:#f5f4f0}
+.panel.active{display:block}
+
+/* ─── Visão Consolidada ─── */
+.cons-wrap{max-width:1040px;margin:0 auto;padding:36px 28px 80px}
+.cons-header{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:18px;border-bottom:2px solid #1a1a18;margin-bottom:22px}
+.cons-header .eyebrow{font-size:11px;color:#888;font-weight:500;margin-bottom:4px}
+.cons-header h1{font-size:24px;font-weight:800;color:#1a1a18;line-height:1}
+.cons-controls{display:flex;align-items:center;gap:12px}
+.cons-controls label{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#888;display:block;margin-bottom:4px}
+.cons-controls input[type=month]{background:#fff;border:1px solid #d4d3ce;border-radius:6px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:#1a1a18}
+.cons-grand{background:#1a1a18;border-radius:10px;padding:22px 26px;margin-bottom:22px;display:flex;justify-content:space-between;align-items:center}
+.cons-grand-lbl{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9a9a95}
+.cons-grand-val{font-size:34px;font-weight:800;color:var(--gs-accent);font-variant-numeric:tabular-nums}
+.cons-grand-sub{font-size:11px;color:#9a9a95;margin-top:4px}
+
+
+.cons-chart-card{background:var(--gs-surface);border:1px solid var(--gs-border);border-radius:10px;padding:18px 20px;margin-bottom:22px}
+.cons-chart-title{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gs-text-muted);margin-bottom:16px}
+.cons-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.cons-bar-row:last-child{margin-bottom:0}
+.cons-bar-lbl{width:150px;flex-shrink:0;font-size:11.5px;color:var(--gs-text);font-weight:600}
+.cons-bar-track{flex:1;background:#f2f1ec;border-radius:4px;height:15px;position:relative;overflow:hidden}
+.cons-bar-fill{display:block;height:100%;border-radius:4px;transition:width .4s ease}
+.cons-bar-val{width:100px;text-align:right;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;flex-shrink:0}
+
+.cons-gen-ts{font-size:10.5px;color:#999;margin-top:3px}
+
+.cons-table-wrap{overflow-x:auto}
+.cons-table-wrap table{width:100%;border-collapse:collapse;min-width:860px}
+.cons-table-wrap th{font-size:9.5px;font-weight:700;color:var(--gs-text-muted);text-align:right;padding:8px 10px;border-bottom:2px solid var(--gs-text);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.cons-table-wrap th:nth-child(-n+3){text-align:left}
+.cons-table-wrap td{padding:7px 10px;border-bottom:1px solid #eeede8;font-size:12px;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cons-table-wrap td:nth-child(-n+3){text-align:left}
+.cons-table-wrap tr.cons-row-empty td{color:#ccc}
+.cons-table-wrap tr.cons-row-total td{font-weight:700;font-size:12px;padding:9px 10px;background:#eaf5f0;color:#166B4A;border-top:2px solid #1E9B6B}
+.cons-table-wrap tr.cons-row-total td:last-child{font-size:15px}
+.cons-table-wrap tr.cons-row-total td:not(:first-child){text-align:right}
+.cons-table-wrap th:nth-child(n+4){text-align:center}
+.cons-table-wrap td:nth-child(n+4){text-align:center}
+.cons-table-wrap tr.cons-row-total td:nth-child(n+4){text-align:center}
+
+/* ─── Visão do Executivo ─── */
+.exec-hero{border-bottom:1px solid #d4d3ce;padding-bottom:16px;margin-bottom:18px}
+.exec-hero-periodo{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.exec-hero-nome{font-size:20px;font-weight:800;color:#1a1a18}
+.exec-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px}
+.exec-cards .cad-card{display:flex;flex-direction:column}
+.exec-cards .cad-card>div{display:flex;flex-direction:column;flex:1}
+.exec-cards .exec-sum-footer{margin-top:auto}
+.exec-cards table,#exec_composicao table{width:100%;border-collapse:collapse}
+.exec-cards td,#exec_composicao td{padding:6px 0;font-size:12px;border-bottom:1px solid #eeede8}
+.exec-cards td.r,#exec_composicao td.r{text-align:right;font-variant-numeric:tabular-nums}
+.exec-sum-footer{background:#eaf5f0;border:.5px solid #1E9B6B;border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+.exec-sum-footer span:first-child{font-size:10px;font-weight:700;color:#166B4A;text-transform:uppercase;letter-spacing:.04em}
+.exec-sum-footer span:last-child{font-weight:800;color:#166B4A}
+.exec-fp{display:inline-flex;align-items:center;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;white-space:nowrap}
+.exec-f1{background:#fde8e8;color:#b91c1c}.exec-f2{background:#fef3c7;color:#b45309}
+.exec-f3{background:#dcfce7;color:#166B4A}.exec-f4{background:#bbf7d0;color:#065f46}
+.exec-f5{background:#6ee7b7;color:#064e3b}.exec-f6{background:#34d399;color:#022c22}
+.exec-des{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.exec-epd{border-radius:6px;padding:8px 10px;text-align:center;border:.5px solid transparent}
+.exec-epd-hit{background:#eaf5f0;border-color:#1E9B6B}.exec-epd-miss{background:#f5f4f0;border-color:#e0dfdb}
+.exec-epd .dl{font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
+.exec-epd-hit .dl{color:#166B4A}.exec-epd-miss .dl{color:#bbb}
+.exec-epd .dv{font-size:13px;font-weight:800}
+.exec-epd-hit .dv{color:#166B4A}.exec-epd-miss .dv{color:#ccc}
+.exec-epd .ds{font-size:8px;margin-top:2px;opacity:.6}
+.exec-det-table{overflow-x:auto;max-height:260px;overflow-y:auto;margin-bottom:18px}
+.exec-det-table table{width:100%;border-collapse:collapse;font-size:11px}
+.exec-det-table th{padding:6px 8px;text-align:left;border-bottom:1px solid #d4d3ce;white-space:nowrap;color:#888;text-transform:uppercase;font-size:9px}
+.exec-det-table td{padding:6px 8px;border-bottom:1px solid #eeede8;white-space:nowrap}
+.cons-cat-pill{font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap;color:#fff}
+.cons-hist-chart{display:flex;align-items:flex-end;gap:10px;height:180px;padding:10px 4px 0}
+.cons-hist-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end}
+.cons-hist-bar{width:100%;max-width:38px;display:flex;flex-direction:column-reverse;border-radius:3px 3px 0 0;overflow:hidden}
+.cons-hist-lbl{font-size:9.5px;color:var(--gs-text-muted);margin-top:6px;text-transform:uppercase}
+.cons-hist-legend{display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:16px;padding-top:14px;border-top:1px solid var(--gs-border)}
+.cons-hist-legend-item{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--gs-text-muted)}
+.cons-hist-legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.cons-panel-table{width:100%;border-collapse:collapse}
+.cons-panel-table th{font-size:10px;font-weight:600;color:var(--gs-text-muted);text-align:left;padding:8px 18px;border-bottom:1px solid var(--gs-border);text-transform:uppercase;letter-spacing:.05em}
+.cons-panel-table th.r{text-align:right}
+.cons-panel-table td{padding:8px 18px;border-bottom:1px solid #f5f4f0;font-size:12.5px;color:var(--gs-text)}
+.cons-panel-table td.r{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.cons-panel-table tr:last-child td{border-bottom:none}
+.cons-panel-empty{padding:16px 18px;font-size:11.5px;color:#aaa;text-align:center;font-style:italic}
+.cons-footnote{font-size:11px;color:#999;margin-top:18px;line-height:1.6;background:#fff;border-left:3px solid #e8b923;border-radius:0 6px 6px 0;padding:12px 16px}
+
+/* ─── Cadastro de Parceiros ─── */
+.cad-page-wrap{max-width:1040px;margin:0 auto;padding:36px 28px 80px}
+.cad-page-hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:18px;border-bottom:2px solid #1a1a18;margin-bottom:24px}
+.cad-page-hdr .eyebrow{font-size:11px;color:#888;font-weight:500;margin-bottom:4px}
+.cad-page-hdr h1{font-size:24px;font-weight:800;color:#1a1a18;line-height:1}
+.cad-page-hdr .cad-btn{display:flex;align-items:center;gap:8px}
+.cad-card{background:#fff;border:1px solid #d4d3ce;border-radius:10px;padding:22px 24px;margin-bottom:20px}
+.cad-card-title{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#888;margin-bottom:16px}
+.cad-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.cad-grid .full{grid-column:1/-1}
+.cad-lbl{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#888;margin-bottom:5px;display:block}
+.cad-lbl .req{color:#b83232}
+.cad-card input[type=text],.cad-card select,.cad-card textarea{background:#f5f4f0;border:1px solid #d4d3ce;border-radius:6px;padding:9px 11px;font-size:13px;font-family:'Inter',sans-serif;color:#1a1a18;width:100%;outline:none}
+.cad-card input:focus,.cad-card select:focus,.cad-card textarea:focus{border-color:#1a1a18;background:#fff}
+.cad-card textarea{resize:vertical;min-height:64px}
+.cad-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:6px}
+.cad-btn{background:#1a1a18;color:#fff;border:none;border-radius:6px;padding:10px 22px;font-size:12.5px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer}
+.cad-btn:hover{background:#333230}
+.cad-invite-hint{font-size:12px;color:#666;line-height:1.6;margin-bottom:14px}
+.cad-invite-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.cad-invite-row input{min-width:160px}
+.cad-invite-row:last-child{margin-bottom:0}
+.cad-invite-row input{flex:1;background:#f5f4f0;border:.5px solid #d4d3ce;border-radius:6px;padding:9px 11px;font-size:12.5px;font-family:'Inter',sans-serif;color:#1a1a18;outline:none}
+.cad-invite-row input:focus{border-color:#1a1a18;background:#fff}
+.cad-btn-outline{background:#fff;color:#1a1a18;border:1.5px solid #1a1a18;border-radius:6px;padding:9px 16px;font-size:12px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap}
+.cad-btn-outline:hover{background:#f5f4f0}
+.cad-list-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.cad-list-hdr h2{font-size:13px;font-weight:700;color:#1a1a18}
+.cad-table-wrap{background:#fff;border:1px solid #d4d3ce;border-radius:10px;overflow-x:auto}
+.cad-table-wrap table{width:100%;border-collapse:collapse;min-width:1300px}
+.cad-table-wrap th{font-size:10px;font-weight:600;color:#888;text-align:left;padding:9px 14px;border-bottom:1px solid #d4d3ce;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.cad-table-wrap td{padding:11px 14px;border-bottom:1px solid #eeede8;font-size:12.5px;color:#1a1a18;vertical-align:middle}
+.cad-table-wrap tr:last-child td{border-bottom:none}
+.cad-tipo-pill{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:3px 9px;border-radius:12px;white-space:nowrap}
+.cad-tipo-pill.indicador{background:#fef3e2;color:#b45309}
+.cad-tipo-pill.indicador_n2{background:#fde3c2;color:#92400e}
+.cad-tipo-pill.dealer{background:#eaf5f0;color:#166B4A}
+.cad-tipo-pill.projeto{background:#eff6ff;color:#1d4ed8}
+.cad-empty{padding:28px;text-align:center;color:#bbb;font-size:12.5px}
+.cad-del-btn{background:#fceaea;color:#b83232;border:1px solid #f5c6c6;border-radius:4px;padding:4px 9px;font-size:11px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer}
+
+/* ─── Importar ─── */
+.imp-wrap{max-width:1040px;margin:0 auto;padding:36px 28px 80px}
+.imp-header{padding-bottom:18px;border-bottom:2px solid #1a1a18;margin-bottom:24px}
+.imp-header .eyebrow{font-size:11px;color:#888;font-weight:500;margin-bottom:4px}
+.imp-header h1{font-size:24px;font-weight:800;color:#1a1a18;line-height:1}
+.imp-dropzone{border:1.5px dashed #d4d3ce;border-radius:8px;padding:18px;text-align:center;cursor:pointer;background:#f5f4f0;margin-bottom:12px;transition:border-color .15s,background .15s}
+.imp-dropzone:hover{border-color:#1E9B6B;background:#eaf5f0}
+.imp-dz-icon{font-size:22px;display:block;margin-bottom:4px}
+.imp-dz-label{font-size:12px;color:#888;font-weight:500}
+.imp-dz-sub{font-size:10.5px;color:#bbb;margin-top:3px}
+.imp-status{font-size:11px;padding:8px 12px;border-radius:6px;margin-bottom:12px}
+.imp-status.st-idle{background:#f5f4f0;color:#888}
+.imp-status.st-ok{background:#eaf5f0;color:#166B4A}
+.imp-status.st-err{background:#fceaea;color:#b83232}
+.imp-result{margin-top:14px}
+.imp-result-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888;margin:14px 0 6px}
+.imp-result-title:first-child{margin-top:0}
+.imp-row2{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:stretch;margin-bottom:20px}
+.imp-row2 .cad-card{margin-bottom:0;display:flex;flex-direction:column}
+.imp-hist-divider{border-top:1px solid #d4d3ce;margin:8px 0 22px}
+.imp-hist-hdr{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.imp-hist-hdr select{background:#f5f4f0;border:1px solid #d4d3ce;border-radius:6px;padding:6px 9px;font-size:12.5px;color:#1a1a18}
+.imp-hist-row{display:flex;align-items:center;gap:14px;padding:10px 4px;border-bottom:1px solid #eeede8}
+.imp-hist-row:last-child{border-bottom:none}
+.imp-hist-mes{width:150px;flex-shrink:0;font-weight:600;font-size:12.5px}
+.imp-hist-badge{font-size:10px;font-weight:700;letter-spacing:.04em;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.imp-hist-badge.aprovado{color:#166B4A;background:#e7f2ec}
+.imp-hist-badge.aberto{color:#b45309;background:#fbf1de}
+.imp-hist-badge.vazio{color:#aaa;background:#f5f4f0}
+.imp-hist-total{flex:1;text-align:right;font-size:12.5px;font-variant-numeric:tabular-nums;color:#1a1a18;padding-right:10px}
+.imp-hist-actions{display:flex;gap:6px;flex-shrink:0}
+.imp-hist-actions button{font-size:11px;padding:5px 10px}
+.imp-card-hdr{display:flex;gap:12px;align-items:flex-start;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #eeede8}
+.imp-card-icon{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.imp-card-heading{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.imp-card-heading h3{font-size:13px;font-weight:700;color:#1a1a18;margin:0}
+.imp-card-badge{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:2px 8px;border-radius:4px;white-space:nowrap}
+.imp-card-sub{font-size:11px;color:#888;line-height:1.5}
+
+/* ─── Responsivo (tablet/celular) ───────────────────
+   Sidebar vira um menu retrátil (fixed, fora do fluxo) abaixo de 860px, com
+   um botão "☰" numa barra superior nova e um backdrop escurecido por trás.
+   Grids de 2 colunas empilham; tabelas já tinham overflow-x:auto (mantido);
+   modais ganham margem lateral menor. */
+.mobile-topbar{display:none}
+@media (max-width:860px){
+  body{flex-direction:column}
+  .mobile-topbar{
+    display:flex;align-items:center;gap:12px;
+    background:#1a1a18;color:#fff;padding:12px 16px;flex-shrink:0;
+  }
+  .mobile-topbar button{background:none;border:none;color:#fff;font-size:20px;padding:4px 8px;cursor:pointer;line-height:1}
+  .mobile-topbar h1{font-size:14px;font-weight:800}
+  .sidebar{
+    position:fixed;top:0;left:0;height:100vh;z-index:300;
+    transform:translateX(-100%);transition:transform .25s ease;
+    width:260px;max-width:82vw;
+  }
+  .sidebar.open{transform:translateX(0)}
+  .sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:290}
+  .sidebar-backdrop.open{display:block}
+  .main{height:calc(100vh - 47px)}
+  .imp-row2{grid-template-columns:1fr}
+  .modal-card{max-width:94vw}
+  .cons-bar-lbl{width:100px;font-size:10.5px}
+  .cons-bar-val{width:80px}
+}
+@media (max-width:480px){
+  .cons-header{flex-direction:column;align-items:flex-start;gap:10px}
+  .cons-grand{flex-direction:column;align-items:flex-start;gap:6px}
+  .cad-grid{grid-template-columns:1fr !important}
+}
+</style>
+</head>
+<body>
+
+<div class="mobile-topbar">
+  <button onclick="toggleSidebar()" aria-label="Abrir menu">☰</button>
+  <h1>Comissionamento</h1>
+</div>
+<div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar(false)"></div>
+
+<div class="sidebar" id="sidebarEl">
+  <div class="sidebar-header">
+    <div class="eyebrow">Gestora Smart · Protótipo</div>
+    <h1>Comissionamento</h1>
+  </div>
+
+  <div class="sidebar-nav" id="profileNav">
+    <div class="nav-label">Visão geral</div>
+    <button class="profile-btn active" data-p="consolidado">Visão Consolidada</button>
+    <button class="profile-btn" data-p="executivo">Visão do Executivo</button>
+    <div class="nav-sep"></div>
+    <div class="nav-label">Perfis</div>
+    <button class="profile-btn" data-p="vendedor">Vendedor</button>
+    <button class="profile-btn" data-p="dealer">Dealer</button>
+    <button class="profile-btn" data-p="indicadores">Indicador</button>
+    <button class="profile-btn" data-p="projeto_especial">Projeto Especial</button>
+    <button class="profile-btn" data-p="gestor_operacoes">Gestor de Operações</button>
+    <button class="profile-btn" data-p="diretor_comercial">Diretor Comercial</button>
+    <button class="profile-btn" data-p="diretor_adm">Diretor Administrativo</button>
+    <div class="nav-sep"></div>
+    <div class="nav-label">Cadastros</div>
+    <button class="profile-btn" data-p="cadastro">Cadastro de Parceiros</button>
+    <button class="profile-btn" data-p="importar">Importar</button>
+  </div>
+
+  <div style="padding:10px 20px">
+    <button onclick="trocarModulo()" title="Trocar módulo" style="width:100%;display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;font-size:12px;font-weight:500;color:#9a9a95;border:1px dashed #333230;background:transparent;cursor:pointer;transition:background .15s;font-family:'Inter',sans-serif" onmouseover="this.style.background='#232320'" onmouseout="this.style.background='transparent'">← Trocar módulo</button>
+  </div>
+  <div class="sidebar-note">Cada perfil é um módulo independente (ainda local, sem banco de dados) — dados de um não afetam os demais. Serve para validar as regras antes da integração definitiva no sistema.</div>
+</div>
+
+<div class="main">
+  <div class="frame-area" id="frameArea">
+    <div class="panel active" id="frame-consolidado">
+      <div class="cons-wrap">
+        <div class="cons-header">
+          <div>
+            <div class="eyebrow">Gestora Smart · Comissionamento</div>
+            <h1>Visão Consolidada</h1>
+            <div class="cons-gen-ts" id="cons_gen_ts"></div>
+          </div>
+          <div class="cons-controls">
+            <div>
+              <label>Mês do Comissionamento</label>
+              <input type="month" id="cons_mes">
+            </div>
+          </div>
+        </div>
+
+        <div class="cad-card" id="cons_aprov_box" style="margin-bottom:18px">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+            <div>
+              <p class="cad-card-title" style="margin-bottom:6px">Aprovação do comissionamento do mês</p>
+              <div id="cons_aprov_status" style="font-size:12.5px;color:#444;line-height:1.5"></div>
+            </div>
+            <div id="cons_aprov_actions" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+          </div>
+        </div>
+
+        <div class="cons-grand">
+          <div>
+            <div class="cons-grand-lbl">Total geral do mês — todos os perfis</div>
+            <div class="cons-grand-sub" id="cons_grand_sub">—</div>
+          </div>
+          <div class="cons-grand-val" id="cons_grand_total">R$ 0,00</div>
+        </div>
+
+        <div class="cons-chart-card">
+          <div class="cons-chart-title">Comparativo por perfil · do maior para o menor</div>
+          <div id="cons_chart"></div>
+        </div>
+
+        <div class="cons-chart-card">
+          <div class="cons-chart-title">Detalhamento consolidado do mês</div>
+          <div class="cons-table-wrap" id="cons_tabela_wrap"></div>
+        </div>
+
+        <div class="cons-chart-card">
+          <div class="cons-chart-title">Detalhamento consolidado do mês · Diretoria e Gestores</div>
+          <div class="cons-table-wrap" id="cons_tabela_diretoria_wrap"></div>
+        </div>
+
+        <div class="cons-chart-card">
+          <div class="cons-chart-title">Comissionamento por mês · Janeiro a <span id="cons_hist_mes_label"></span> (empilhado por perfil)</div>
+          <div id="cons_hist_chart"></div>
+        </div>
+
+        <div class="cons-footnote">Esta visão lê os lançamentos já salvos em cada perfil (Vendedor, Dealer, Indicador, Projeto Especial, Gestor de Operações, Diretor Administrativo) para o mês selecionado — não recalcula nem altera nada, só consolida para apresentação e aprovação do board. Para editar um valor, use a aba do perfil correspondente.</div>
+      </div>
+    </div>
+
+    <div class="panel" id="frame-executivo">
+      <div class="cad-page-wrap">
+        <div class="cad-page-hdr">
+          <div>
+            <div class="eyebrow">Gestora Smart · Comissionamento</div>
+            <h1>Visão do Executivo</h1>
+          </div>
+        </div>
+        <p style="font-size:12px;color:#666;margin-bottom:18px;line-height:1.6;max-width:640px">Mesmo formato da planilha individual que hoje é montada e enviada por fora (Volume/Ativação/Bateu-Levou/Composição do Total, com o detalhamento linha a linha) — só que direto no sistema. Como o protótipo ainda não tem login por pessoa, o seletor abaixo simula "entrar como" aquele executivo.</p>
+
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:18px">
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <div>
+              <label class="cad-lbl">Executivo</label>
+              <select id="exec_vid" style="min-width:200px" onchange="renderExecutivo()"></select>
+            </div>
+            <div>
+              <label class="cad-lbl">Mês do Comissionamento</label>
+              <input type="month" id="exec_mes" style="max-width:160px" onchange="renderExecutivo()">
+            </div>
+          </div>
+          <button class="cad-btn-outline" onclick="exportExecAtual()">↓ Baixar meu extrato</button>
+        </div>
+
+        <div id="exec_lock_note"></div>
+
+        <div class="exec-hero">
+          <div class="exec-hero-periodo" id="exec_periodo"></div>
+          <div class="exec-hero-nome" id="exec_nome"></div>
+        </div>
+
+        <p class="cad-card-title" id="exec_cards_titulo" style="margin-bottom:10px">Como o total foi calculado</p>
+        <div class="exec-cards" id="exec_cards_row">
+          <div class="cad-card" style="margin-bottom:0">
+            <p class="cad-card-title">Volume</p>
+            <div id="exec_volume"></div>
+          </div>
+          <div class="cad-card" style="margin-bottom:0">
+            <p class="cad-card-title">Ativação</p>
+            <div id="exec_ativacao"></div>
+          </div>
+          <div class="cad-card" style="margin-bottom:0">
+            <p class="cad-card-title">Desafio · Bateu Levou</p>
+            <div id="exec_desafio"></div>
+          </div>
+        </div>
+
+        <div class="cad-card">
+          <p class="cad-card-title">Composição do total</p>
+          <div id="exec_composicao"></div>
+        </div>
+
+        <details class="cad-card">
+          <summary style="cursor:pointer;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888">🔎 Ver detalhamento linha a linha (Simcard, Equipamento, Frete)</summary>
+          <div id="exec_detalhe" style="margin-top:14px"></div>
+        </details>
+      </div>
+    </div>
+
+    <div class="panel" id="frame-cadastro">
+      <div class="cad-page-wrap">
+        <div class="cad-page-hdr">
+          <div>
+            <div class="eyebrow">Gestora Smart · Comissionamento</div>
+            <h1>Cadastro de Parceiros</h1>
+          </div>
+          <button class="cad-btn" id="cadTriggerBtn" onclick="cadToggleMenu(event)">+ Cadastrar<span class="cad-chevron">⌄</span></button>
+        </div>
+
+        <div class="cad-dropdown-menu" id="cadDropdownMenu">
+          <button class="cad-dropdown-item" onclick="cadAbrirModal('novo')">Novo Cadastro</button>
+          <button class="cad-dropdown-item" onclick="cadAbrirModal('link')">Enviar Link</button>
+          <button class="cad-dropdown-item" onclick="cadAbrirModal('vendedor')">Novo Vendedor</button>
+        </div>
+
+        <div class="cad-list-hdr">
+          <h2>Todos os parceiros cadastrados</h2>
+        </div>
+        <div class="cad-table-wrap" id="cad_table_wrap_pagina"></div>
+      </div>
+    </div>
+
+    <div class="panel" id="frame-importar">
+      <div class="imp-wrap">
+        <div class="imp-header">
+          <div class="eyebrow">Gestora Smart · Comissionamento</div>
+          <h1>Importar</h1>
+        </div>
+
+        <div class="cad-card">
+          <label class="cad-lbl">Mês do Comissionamento</label>
+          <input type="month" id="imp_ref_mes" onchange="renderImportar()" style="max-width:180px">
+          <p style="font-size:11px;color:#888;margin-top:10px;line-height:1.6">Sempre o mês do <strong>pagamento/ciclo que está fechando</strong> (ex.: se é o comissionamento de Setembro, selecione Setembro aqui) — nunca o mês da planilha em si. O sistema já desconta os meses de defasagem sozinho pra achar a "Data de ativação" certa (ex.: ativação considera 2 meses antes deste campo); selecionar um mês adiantado "pra compensar" faz o desconto dobrar e erra a conta.</p>
+        </div>
+
+        <details class="cad-card" id="cons_manual_wrap" style="margin-bottom:22px">
+          <summary style="cursor:pointer;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888">✎ Lançamento manual do mês (histórico anterior ao Importar)</summary>
+          <p style="font-size:11px;color:#888;margin:10px 0 14px">Preencha só quando este mês não tiver dado processado pelo Importar — o total aqui substitui o cálculo detalhado (sem quebrar por vendedor/dealer/etc, só o total do perfil).</p>
+          <div id="cons_manual_lock" style="display:none;font-size:11.5px;color:#b8863f;background:#fbf1de;border-radius:6px;padding:8px 12px;margin-bottom:14px">🔒 Este mês já foi aprovado — desaprove na Visão Consolidada antes de alterar o lançamento manual.</div>
+          <div class="cad-grid" style="grid-template-columns:repeat(3,1fr)">
+            <div><label class="cad-lbl">Vendedor</label><input type="number" id="cons_manual_vendedor" step="0.01" placeholder="0,00"></div>
+            <div><label class="cad-lbl">Dealer</label><input type="number" id="cons_manual_dealer" step="0.01" placeholder="0,00"></div>
+            <div><label class="cad-lbl">Indicador</label><input type="number" id="cons_manual_indicador" step="0.01" placeholder="0,00"></div>
+            <div><label class="cad-lbl">Projeto Especial</label><input type="number" id="cons_manual_projeto" step="0.01" placeholder="0,00"></div>
+            <div><label class="cad-lbl">Gestor de Operações</label><input type="number" id="cons_manual_gestor" step="0.01" placeholder="0,00"></div>
+            <div><label class="cad-lbl">Diretor Administrativo</label><input type="number" id="cons_manual_diretor" step="0.01" placeholder="0,00"></div>
+            <div><label class="cad-lbl">Diretor Comercial</label><input type="number" id="cons_manual_diretorComercial" step="0.01" placeholder="0,00"></div>
+          </div>
+          <div class="cad-actions">
+            <button class="cad-btn" style="background:#fceaea;color:#b83232" onclick="consManualRemover()">Remover lançamento manual</button>
+            <button class="cad-btn" onclick="consManualSalvar()">Salvar lançamento manual</button>
+          </div>
+        </details>
+
+        <div class="imp-row2">
+          <div class="cad-card">
+            <div class="imp-card-hdr">
+              <div class="imp-card-icon" style="background:#ecfeff">📦</div>
+              <div>
+                <div class="imp-card-heading"><h3>Vendas do mês</h3><span class="imp-card-badge" style="background:#ecfeff;color:#0e7490">Volume</span></div>
+                <p class="imp-card-sub">Soma Quantidade por Vendedor · só Tipo=simcard, ignora Cancelado</p>
+              </div>
+            </div>
+            <div class="imp-dropzone" onclick="document.getElementById('imp_f_pedidos').click()">
+              <span class="imp-dz-icon">📁</span>
+              <div class="imp-dz-label">Clique ou arraste a planilha de Pedidos</div>
+              <div class="imp-dz-sub">Colunas: Vendedor, Tipo, Quantidade, Status</div>
+            </div>
+            <input type="file" id="imp_f_pedidos" accept=".xlsx,.xls,.csv" style="display:none" onchange="impHandleFile(event,'pedidos')">
+            <div id="imp_pedidos_status" class="imp-status st-idle">Aguardando arquivo…</div>
+            <button class="cad-btn" onclick="impProcessarPedidos()">Processar volume</button>
+            <div id="imp_pedidos_result" class="imp-result"></div>
+          </div>
+
+          <div class="cad-card">
+            <div class="imp-card-hdr">
+              <div class="imp-card-icon" style="background:#eff6ff">🗂️</div>
+              <div>
+                <div class="imp-card-heading"><h3>Clientes atualizado</h3><span class="imp-card-badge" style="background:#eff6ff;color:#1d4ed8">Vínculo</span></div>
+                <p class="imp-card-sub">Gera Cliente → Vendedor/Dealer/Indicador/Projeto Especial · importe antes do Inventário e das Cobranças</p>
+              </div>
+            </div>
+            <div class="imp-dropzone" onclick="document.getElementById('imp_f_clientes').click()">
+              <span class="imp-dz-icon">📁</span>
+              <div class="imp-dz-label">Clique ou arraste a planilha de Clientes</div>
+              <div class="imp-dz-sub">Colunas: CPF, CNPJ, Vendedor</div>
+            </div>
+            <input type="file" id="imp_f_clientes" accept=".xlsx,.xls,.csv" style="display:none" onchange="impHandleFile(event,'clientes')">
+            <div id="imp_clientes_status" class="imp-status st-idle">Aguardando arquivo…</div>
+            <button class="cad-btn" onclick="impProcessarClientes()">Carregar clientes</button>
+            <div id="imp_clientes_result" class="imp-result"></div>
+          </div>
+        </div>
+
+        <div class="imp-row2">
+          <div class="cad-card">
+            <div class="imp-card-hdr">
+              <div class="imp-card-icon" style="background:#eaf5f0">📊</div>
+              <div>
+                <div class="imp-card-heading"><h3>Inventário</h3><span class="imp-card-badge" style="background:#eaf5f0;color:#166B4A">Margem / Ativação</span></div>
+                <p class="imp-card-sub">Vendedor (ativação) · Dealer e Projeto Especial (margem) · Indicador (ativações do mês)</p>
+              </div>
+            </div>
+            <div class="imp-dropzone" onclick="document.getElementById('imp_f_inventario').click()">
+              <span class="imp-dz-icon">📁</span>
+              <div class="imp-dz-label">Clique ou arraste o Inventário</div>
+              <div class="imp-dz-sub">Arquivo grande · pode levar alguns segundos</div>
+            </div>
+            <input type="file" id="imp_f_inventario" accept=".xlsx,.xls,.csv" style="display:none" onchange="impHandleFile(event,'inventario')">
+            <div id="imp_inventario_status" class="imp-status st-idle">Aguardando arquivo…</div>
+            <button class="cad-btn" onclick="impProcessarInventario()">Processar inventário</button>
+            <div id="imp_inventario_result" class="imp-result"></div>
+          </div>
+
+          <div class="cad-card">
+            <div class="imp-card-hdr">
+              <div class="imp-card-icon" style="background:#fceaea">🚫</div>
+              <div>
+                <div class="imp-card-heading"><h3>Cancelamentos</h3><span class="imp-card-badge" style="background:#fceaea;color:#b83232">Desconto</span></div>
+                <p class="imp-card-sub">Planilha completa (sem separar por perfil) · classifica Dealer/Projeto Especial sozinho</p>
+              </div>
+            </div>
+            <div class="imp-dropzone" onclick="document.getElementById('imp_f_cancel').click()">
+              <span class="imp-dz-icon">📁</span>
+              <div class="imp-dz-label">Clique ou arraste a planilha de cancelamentos</div>
+              <div class="imp-dz-sub">Colunas: Vendedor/Executivo — 1 linha por cancelamento</div>
+            </div>
+            <input type="file" id="imp_f_cancel" accept=".xlsx,.xls,.csv" style="display:none" onchange="impHandleFile(event,'cancel')">
+            <div id="imp_cancel_status" class="imp-status st-idle">Aguardando arquivo…</div>
+            <button class="cad-btn" onclick="impProcessarCancelamentos()">Processar cancelamentos</button>
+            <div id="imp_cancel_result" class="imp-result"></div>
+          </div>
+        </div>
+
+        <div class="imp-row2">
+          <div class="cad-card">
+            <div class="imp-card-hdr">
+              <div class="imp-card-icon" style="background:#fdf3e0">🔧</div>
+              <div>
+                <div class="imp-card-heading"><h3>Equipamentos</h3><span class="imp-card-badge" style="background:#fdf3e0;color:#b8863f">Comissão</span></div>
+                <p class="imp-card-sub">Planilha de recebíveis (Asaas) · filtra Descrição por "equipamento" · comissão = 2% do valor recebido, sem filtro de mês</p>
+              </div>
+            </div>
+            <div class="imp-dropzone" onclick="document.getElementById('imp_f_equipamentos').click()">
+              <span class="imp-dz-icon">📁</span>
+              <div class="imp-dz-label">Clique ou arraste a planilha de Equipamentos</div>
+              <div class="imp-dz-sub">Export do Asaas · colunas: Nome, CPF ou CNPJ, Data de Pagamento, Valor, Situação, Descrição</div>
+            </div>
+            <input type="file" id="imp_f_equipamentos" accept=".xlsx,.xls,.csv" style="display:none" onchange="impHandleFile(event,'equipamentos')">
+            <div id="imp_equipamentos_status" class="imp-status st-idle">Aguardando arquivo…</div>
+            <button class="cad-btn" onclick="impProcessarEquipamentos()">Processar equipamentos</button>
+            <div id="imp_equipamentos_result" class="imp-result"></div>
+          </div>
+
+          <div class="cad-card">
+            <div class="imp-card-hdr">
+              <div class="imp-card-icon" style="background:#fdf3e0">📡</div>
+              <div>
+                <div class="imp-card-heading"><h3>Smart GPS</h3><span class="imp-card-badge" style="background:#fdf3e0;color:#b8863f">Comissão</span></div>
+                <p class="imp-card-sub">Planilha própria de Smart GPS (comissão já calculada por fora) · cruza por CPF/CNPJ · soma direto o valor da coluna P</p>
+              </div>
+            </div>
+            <div class="imp-dropzone" onclick="document.getElementById('imp_f_smartgps').click()">
+              <span class="imp-dz-icon">📁</span>
+              <div class="imp-dz-label">Clique ou arraste a planilha de Smart GPS</div>
+              <div class="imp-dz-sub">Colunas: CPF ou CNPJ, Situação ("Recebida") · a comissão já calculada precisa estar na coluna P</div>
+            </div>
+            <input type="file" id="imp_f_smartgps" accept=".xlsx,.xls,.csv" style="display:none" onchange="impHandleFile(event,'smartgps')">
+            <div id="imp_smartgps_status" class="imp-status st-idle">Aguardando arquivo…</div>
+            <button class="cad-btn" onclick="impProcessarSmartGPS()">Processar Smart GPS</button>
+            <div id="imp_smartgps_result" class="imp-result"></div>
+          </div>
+        </div>
+
+        <div class="imp-hist-divider"></div>
+
+        <div class="cad-card">
+          <div class="imp-hist-hdr">
+            <p class="cad-card-title" style="margin-bottom:0">Histórico de importações</p>
+            <div>
+              <label class="cad-lbl" style="display:inline;margin-right:6px">Ano</label>
+              <select id="imp_hist_ano" onchange="renderImportHistorico()" style="width:auto;display:inline-block"></select>
+            </div>
+          </div>
+          <p style="font-size:11px;color:#888;margin:8px 0 14px">Todo mês que já teve algum lançamento (Importar ou manual). Aprovar/desaprovar/excluir aqui tem o mesmo efeito que na Visão Consolidada — é só um atalho pra não precisar trocar de tela toda vez.</p>
+          <div id="imp_hist_lista"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ?b=N é só cache-busting: o navegador guarda esses arquivos em cache
+         agressivamente, e sem isso uma edição no perfil não aparece nem com F5
+         normal. Suba o número sempre que mexer em algum desses arquivos. -->
+    <iframe id="frame-vendedor" src="vendedor.html?b=22" title="Vendedor"></iframe>
+    <iframe id="frame-dealer" src="dealer.html?b=20" title="Dealer"></iframe>
+    <iframe id="frame-indicadores" src="indicadores.html?b=15" title="Indicador"></iframe>
+    <iframe id="frame-projeto_especial" src="projeto_especial.html?b=29" title="Projeto Especial"></iframe>
+    <iframe id="frame-gestor_operacoes" src="gestor_operacoes.html?b=10" title="Gestor de Operações"></iframe>
+    <iframe id="frame-diretor_adm" src="diretor_adm.html?b=8" title="Diretor Administrativo"></iframe>
+    <iframe id="frame-diretor_comercial" src="diretor_comercial.html?b=8" title="Diretor Comercial"></iframe>
+  </div>
+</div>
+
+<div class="modal-overlay" id="cadModalNovo" onclick="if(event.target===this) cadFecharModal('novo')">
+  <div class="modal-card">
+    <div class="modal-card-hdr">
+      <h2 id="cadModalNovoTitulo">Novo Cadastro</h2>
+      <button class="modal-close" onclick="cadFecharModal('novo')">✕</button>
+    </div>
+    <div class="modal-card-body">
+      <div class="cad-card">
+        <p class="cad-card-title" id="cadModalNovoSubtitulo">Novo cadastro</p>
+        <div class="cad-grid">
+          <div>
+            <label class="cad-lbl">Categoria <span class="req">*</span></label>
+            <select id="cad_categoria" onchange="cadCategoriaChanged()">
+              <option value="indicador">Indicador</option>
+              <option value="indicador_n2">Indicador N2</option>
+              <option value="dealer">Dealer</option>
+              <option value="projeto">Projeto Especial</option>
+            </select>
+          </div>
+          <div>
+            <label class="cad-lbl">Nome completo <span class="req">*</span></label>
+            <input type="text" id="cad_nome" placeholder="Ex: João da Silva">
+          </div>
+          <div>
+            <label class="cad-lbl">Nome da empresa</label>
+            <input type="text" id="cad_empresa" placeholder="Ex: JS Rastreamentos LTDA">
+          </div>
+          <div>
+            <label class="cad-lbl">CPF <span class="req" title="Sem isso o cadastro fica marcado como pendente">(recomendado)</span></label>
+            <input type="text" id="cad_cpf" placeholder="000.000.000-00">
+          </div>
+          <div>
+            <label class="cad-lbl">CNPJ</label>
+            <input type="text" id="cad_cnpj" placeholder="00.000.000/0001-00">
+          </div>
+          <div>
+            <label class="cad-lbl">Vinculado a qual executivo <span class="req">*</span></label>
+            <select id="cad_comercial"></select>
+          </div>
+          <div>
+            <label class="cad-lbl">Celular <span class="req" title="Sem isso o cadastro fica marcado como pendente">(recomendado)</span></label>
+            <input type="text" id="cad_celular" placeholder="(41) 99999-9999">
+          </div>
+          <div>
+            <label class="cad-lbl">Telefone</label>
+            <input type="text" id="cad_telefone" placeholder="(41) 3333-3333">
+          </div>
+          <div>
+            <label class="cad-lbl">E-mail <span class="req" title="Sem isso o cadastro fica marcado como pendente">(recomendado)</span></label>
+            <input type="text" id="cad_email" placeholder="nome@exemplo.com">
+          </div>
+          <div>
+            <label class="cad-lbl">E-mail secundário</label>
+            <input type="text" id="cad_email2" placeholder="opcional">
+          </div>
+          <div>
+            <label class="cad-lbl">Bairro</label>
+            <input type="text" id="cad_bairro" placeholder="Ex: Centro">
+          </div>
+          <div>
+            <label class="cad-lbl">Cidade <span class="req" title="Sem isso o cadastro fica marcado como pendente">(recomendado)</span></label>
+            <input type="text" id="cad_cidade" placeholder="Ex: Curitiba">
+          </div>
+          <div id="cad_ajudacusto_wrap" style="display:none">
+            <label class="cad-lbl">Ajuda de custo (R$/mês)</label>
+            <input type="number" id="cad_ajudacusto" min="0" step="0.01" placeholder="0,00">
+          </div>
+          <div>
+            <label class="cad-lbl">Apelido / ID no CRM <span class="req" title="Recomendado quando o nome na planilha de Importar é diferente do nome de exibição">(recomendado)</span></label>
+            <input type="text" id="cad_apelido" placeholder="Ex: carneiro.junior">
+          </div>
+          <div class="full">
+            <label class="cad-lbl">Dados da conta (com o PIX) <span class="req" title="Sem isso o cadastro fica marcado como pendente">(recomendado)</span></label>
+            <textarea id="cad_conta" placeholder="Ex: Banco Sicredi, Ag. 0818, Conta 20974-7, Chave PIX: 12345678900"></textarea>
+          </div>
+        </div>
+        <div class="cad-actions">
+          <button class="cad-btn" id="cadModalNovoBtnSalvar" onclick="cadSalvar()">✓ Cadastrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="cadModalLink" onclick="if(event.target===this) cadFecharModal('link')">
+  <div class="modal-card">
+    <div class="modal-card-hdr">
+      <h2>Enviar Link de Cadastro</h2>
+      <button class="modal-close" onclick="cadFecharModal('link')">✕</button>
+    </div>
+    <div class="modal-card-body">
+      <div class="cad-card">
+        <p class="cad-card-title">Enviar para quem vai ingressar</p>
+        <p class="cad-invite-hint">Escolha a categoria e o comercial responsável, gere o link e envie para a pessoa preencher os próprios dados. Assim que ela salvar, o cadastro já aparece direto em "Novo Cadastro" — sem precisar de código nenhum.</p>
+        <div class="cad-grid" style="margin-bottom:18px">
+          <div>
+            <label class="cad-lbl">Categoria</label>
+            <select id="cad_link_categoria">
+              <option value="indicador">Indicador</option>
+              <option value="indicador_n2">Indicador N2</option>
+              <option value="dealer">Dealer</option>
+              <option value="projeto">Projeto Especial</option>
+            </select>
+          </div>
+          <div>
+            <label class="cad-lbl">Vinculado a qual executivo</label>
+            <select id="cad_link_comercial"></select>
+          </div>
+        </div>
+        <div class="cad-invite-row">
+          <button class="cad-btn-outline" onclick="cadGerarLink()">🔗 Gerar link de cadastro</button>
+          <input type="text" id="cad_invite_link" readonly placeholder="Clique em “Gerar link” para criar o link do parceiro…">
+          <button class="cad-btn-outline" onclick="cadCopiarLink()">Copiar link</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="cadModalVendedor" onclick="if(event.target===this) cadFecharModal('vendedor')">
+  <div class="modal-card">
+    <div class="modal-card-hdr">
+      <h2>Novo Vendedor</h2>
+      <button class="modal-close" onclick="cadFecharModal('vendedor')">✕</button>
+    </div>
+    <div class="modal-card-body">
+      <div class="cad-card">
+        <p class="cad-card-title">Dados do vendedor</p>
+        <p class="cad-invite-hint">Cria o vendedor com metas trimestrais padrão — ajuste os valores reais depois em <strong>Vendedor → aba Metas</strong>. É a esse vendedor que Indicadores, Dealers e Projetos Especiais são vinculados no campo "Comercial".</p>
+        <div class="cad-grid" style="margin-bottom:4px">
+          <div class="full">
+            <label class="cad-lbl">Nome completo <span class="req">*</span></label>
+            <input type="text" id="cadv_nome" placeholder="Ex: Maria Fernandes">
+          </div>
+          <div>
+            <label class="cad-lbl">Objetivo (metas trimestrais)</label>
+            <input type="number" id="cadv_obj" placeholder="1000">
+          </div>
+          <div>
+            <label class="cad-lbl">Meta 1</label>
+            <input type="number" id="cadv_m1" placeholder="1200">
+          </div>
+          <div>
+            <label class="cad-lbl">Meta 2</label>
+            <input type="number" id="cadv_m2" placeholder="1500">
+          </div>
+          <div>
+            <label class="cad-lbl">Super Meta</label>
+            <input type="number" id="cadv_sm" placeholder="2000">
+          </div>
+        </div>
+        <div class="cad-actions">
+          <button class="cad-btn" onclick="cadSalvarVendedor()">✓ Criar vendedor</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// Cada perfil roda no seu próprio documento (iframe) — variáveis, funções e
+// ids de cada arquivo original ficam isolados entre si. Só carrega o iframe
+// de verdade (src) na primeira vez que a aba é clicada, pra abrir mais rápido.
+const PROFILES = ['vendedor', 'dealer', 'indicadores', 'projeto_especial', 'gestor_operacoes', 'diretor_adm', 'diretor_comercial'];
+const ALL_PANELS = ['consolidado', 'executivo', 'cadastro', 'importar', ...PROFILES];
+
+// Guarda o último painel aberto pra sobreviver ao F5 — sem isso, a página
+// sempre voltava pra Visão Consolidada mesmo que o usuário estivesse em
+// outro perfil no momento de atualizar.
+const PAINEL_KEY = 'gs5_ultimo_painel';
+
+// Sidebar retrátil só existe visualmente abaixo de 860px (ver CSS); em telas
+// maiores essas classes não têm efeito nenhum, então é seguro sempre chamar.
+function toggleSidebar(forcar) {
+  const abrir = forcar !== undefined ? forcar : !document.getElementById('sidebarEl').classList.contains('open');
+  document.getElementById('sidebarEl').classList.toggle('open', abrir);
+  document.getElementById('sidebarBackdrop').classList.toggle('open', abrir);
+}
+// ── Trocar módulo ────────────────────────────────────────────────
+// Roda dentro de um <iframe> no sistema principal (ComissionamentoDashboard.jsx,
+// mesmo padrão da Controladoria), que já escuta esse postMessage e volta pra
+// tela de seleção de módulo. Sem window.parent (acesso direto pela URL), não
+// faz nada — comportamento seguro.
+function trocarModulo() {
+  if (window.parent && window.parent !== window) {
+    window.parent.postMessage({ type: 'TROCAR_MODULO' }, '*');
+  }
+}
+function ativarPainel(p) {
+  toggleSidebar(false);
+  document.querySelectorAll('.profile-btn').forEach(b => b.classList.toggle('active', b.dataset.p === p));
+  ALL_PANELS.forEach(name => {
+    document.getElementById('frame-' + name).classList.toggle('active', name === p);
+  });
+
+  if (p === 'consolidado') renderConsolidado();
+  if (p === 'executivo') renderExecutivo();
+  if (p === 'cadastro') renderCadastro();
+  if (p === 'importar') renderImportar();
+
+  try { localStorage.setItem(PAINEL_KEY, p); } catch {}
+}
+
+document.getElementById('profileNav').addEventListener('click', (e) => {
+  const btn = e.target.closest('.profile-btn');
+  if (!btn || !btn.dataset.p) return;
+  ativarPainel(btn.dataset.p);
+});
+
+// ─── CADASTRO — menu flutuante + modais ────────────────
+// "Cadastro" não é mais um painel próprio: é um botão de ação rápida que
+// abre um menuzinho flutuante (Novo Cadastro / Enviar Link), e cada opção
+// abre um pop-up por cima da tela atual — sem trocar o que está aberto.
+function cadToggleMenu(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('cadDropdownMenu');
+  if (menu.classList.contains('open')) { menu.classList.remove('open'); return; }
+  const r = document.getElementById('cadTriggerBtn').getBoundingClientRect();
+  menu.style.top = (r.bottom + 6) + 'px';
+  menu.style.left = (r.right - 200) + 'px';
+  menu.classList.add('open');
+}
+
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('cadDropdownMenu');
+  const trigger = document.getElementById('cadTriggerBtn');
+  if (menu.classList.contains('open') && !menu.contains(e.target) && !trigger.contains(e.target)) {
+    menu.classList.remove('open');
+  }
+});
+
+const CAD_MODAL_ID = { novo: 'cadModalNovo', link: 'cadModalLink', vendedor: 'cadModalVendedor' };
+
+function cadAbrirModal(qual) {
+  document.getElementById('cadDropdownMenu').classList.remove('open');
+  document.getElementById(CAD_MODAL_ID[qual]).classList.add('open');
+  if (qual === 'novo') { cadEditando = null; cadModalModoNovo(); renderCadastro(); cadClearForm(); cadCategoriaChanged(); }
+  if (qual === 'link') renderCadastroLink();
+  if (qual === 'vendedor') { document.getElementById('cadv_nome').value = ''; ['cadv_obj', 'cadv_m1', 'cadv_m2', 'cadv_sm'].forEach(id => document.getElementById(id).value = ''); }
+}
+
+function cadFecharModal(qual) {
+  document.getElementById(CAD_MODAL_ID[qual]).classList.remove('open');
+  if (qual === 'novo') { cadEditando = null; cadModalModoNovo(); cadClearForm(); }
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  cadFecharModal('novo');
+  cadFecharModal('link');
+  cadFecharModal('vendedor');
+});
+
+// Vendedor não é um "parceiro" (é quem tem parceiros vinculados a ele), mas
+// criar um vendedor novo é a ação mais básica do sistema — sem isso, não dá
+// pra vincular Indicador/Dealer/Projeto Especial nenhum. Fica junto do botão
+// "+ Cadastrar" pra não obrigar o Diego a lembrar que isso mora dentro da
+// aba Metas do perfil Vendedor.
+function cadSalvarVendedor() {
+  const nome = document.getElementById('cadv_nome').value.trim();
+  if (!nome) { alert('Digite o nome do vendedor.'); return; }
+  const obj = +document.getElementById('cadv_obj').value || 1000;
+  const m1 = +document.getElementById('cadv_m1').value || 1200;
+  const m2 = +document.getElementById('cadv_m2').value || 1500;
+  const sm = +document.getElementById('cadv_sm').value || 2000;
+
+  const vendedores = CLS.get('gs5_v', CONS_DEFAULTS.vendedores);
+  vendedores.push({ id: 'v' + Date.now(), nome, g: { obj, m1, m2, sm } });
+  LS_set('gs5_v', vendedores);
+
+  // O iframe do Vendedor já carregou a lista antiga na memória dele (variável
+  // local, não repassada por referência) — recarrega ele pra pegar o novo
+  // vendedor sem precisar dar F5 na página inteira.
+  const vendFrame = document.getElementById('frame-vendedor');
+  if (vendFrame) vendFrame.contentWindow.location.reload();
+
+  cadFecharModal('vendedor');
+  cadPopulateComercial();
+  renderCadastroLink();
+  showCadToast(`Vendedor ${nome} criado ✓ — ajuste as metas dele na aba "Metas" do perfil Vendedor.`);
+}
+
+// ─── VISÃO CONSOLIDADA ─────────────────────────────────
+// Lê o localStorage (mesma origem que todos os iframes, então os dados já
+// salvos por cada perfil ficam visíveis aqui) e replica a mesma fórmula de
+// cálculo de cada arquivo — sem alterar nada, só somando pra apresentação.
+const CLS = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } }
+};
+// Mesmos valores-padrão de cada perfil (usados por eles até a 1a vez que
+// alguém salva Metas/Configurações — sem isso, os nomes ainda não existem
+// no localStorage e a Visão Consolidada apareceria vazia por engano).
+const CONS_DEFAULTS = {
+  vendedores: [
+    { id: 'v1', nome: 'Henrique Alves', g: { obj: 750, m1: 1000, m2: 1250, sm: 1750 } },
+    { id: 'v2', nome: 'Patrick Rodrigues', g: { obj: 750, m1: 1000, m2: 1250, sm: 1750 } },
+    { id: 'v3', nome: 'Décio Moraes', g: { obj: 2500, m1: 2750, m2: 3000, sm: 3500 } },
+    { id: 'v4', nome: 'Julia Borsato', g: { obj: 2000, m1: 2250, m2: 2500, sm: 3000 } },
+    { id: 'v5', nome: 'Vitória Karoline', g: { obj: 2500, m1: 2750, m2: 3000, sm: 3500 } },
+    { id: 'v6', nome: 'Gabriela Geraud', g: { obj: 2000, m1: 2250, m2: 2500, sm: 3000 } },
+    { id: 'v7', nome: 'Claudia Longano', g: { obj: 4750, m1: 5000, m2: 5250, sm: 5750 } },
+    { id: 'v8', nome: 'Daiane Oliveira', g: { obj: 1800, m1: 2050, m2: 2300, sm: 2800 } },
+    { id: 'v9', nome: 'Renato Araujo', g: { obj: 4250, m1: 4500, m2: 4750, sm: 5250 } },
+  ],
+  faixas: [
+    { n: 1, min: 0, max: 70, vol: 0.10, atv: 0.10 }, { n: 2, min: 71, max: 90, vol: 0.15, atv: 0.15 },
+    { n: 3, min: 91, max: 120, vol: 0.25, atv: 0.25 }, { n: 4, min: 121, max: 150, vol: 0.30, atv: 0.30 },
+    { n: 5, min: 151, max: 200, vol: 0.40, atv: 0.40 }, { n: 6, min: 201, max: 9999, vol: 0.50, atv: 0.50 },
+  ],
+  desafio: [{ lbl: 'Objetivo', val: 200 }, { lbl: 'Meta 1', val: 300 }, { lbl: 'Meta 2', val: 400 }, { lbl: 'Super Meta', val: 500 }],
+  vendedorRules: { eqRate: 2, gpsRate: 100, freteLimit: 250 },
+  // Ione Rastrek passou a ser tratada como Dealer (não mais Projeto Especial) —
+  // usa o Motor de Regras de Comissão (regraDealer/REGRAS_SEED), não a margem
+  // por mensalidade normal do Dealer.
+  dealers: [{ id: 'd1', nome: 'HTL Hilario' }, { id: 'd2', nome: 'Ione Rastrek' }],
+  // "carneiro.junior" e "indicador.helamin" são os nomes/login que aparecem no
+  // CRM pra Imperio Dos Rastreadores e Loja do Rastreador — não são parceiros
+  // à parte (eram cadastrados 2x por engano antes de esclarecer isso).
+  projetos: [
+    // taxaAtivacao: percentual (fração, ex 0.7 = 70%) sobre a soma do "Preço
+    // de ativação" das linhas ativadas no mês de referência (mesma defasagem
+    // de 2 meses da ativação dos outros perfis) — próprio de cada projeto,
+    // editável em Configurações.
+    // taxaMargem: percentual sobre máx(0, Mensalidade − Valor Base) — também
+    // próprio de cada projeto. Confirmado com o Diego a partir da planilha
+    // real "Loja do rastreador Setembro Ref. a Julho": Comissão Mensalidade =
+    // máx(0, Mensalidade−Valor Base) × 70% (bateu exato, R$8.858,42 em 9.833
+    // linhas) — Ativação sem redução (100%), bateu R$1.848,00.
+    // cancelRate: agora próprio de cada projeto (deixou de usar a taxa
+    // genérica compartilhada em dp1_rules) — pedido do Diego: "cada parceiro
+    // pode ter uma configuração separada".
+    { id: 'p1', nome: 'Imperio Dos Rastreadores', apelido: 'carneiro.junior', taxaAtivacao: 1, taxaMargem: 0.5, cancelRate: 2 },
+    { id: 'p3', nome: 'Loja do Rastreador', apelido: 'indicador.helamin', taxaAtivacao: 1, taxaMargem: 0.7, cancelRate: 2 },
+  ],
+  blTiers: [{ threshold: 1000, bonus: 1000 }],
+  dealerRules: { cancelRate: 2 },
+  indicadores: [{ id: 'i1', nome: 'Acácio Souza' }, { id: 'i2', nome: 'Indicador 2' }],
+  indicadorRules: { taxa: 2.00 },
+  gestorOpsCfg: {
+    satFaixas: [{ min: 85, max: 90, bonus: 100 }, { min: 91, max: 93, bonus: 210 }, { min: 94, max: 97, bonus: 310 }, { min: 98, max: 100, bonus: 420 }],
+    eficFaixas: [{ max: 1250, bonus: 420 }, { max: 2500, bonus: 310 }, { max: 3750, bonus: 210 }, { max: 5000, bonus: 100 }],
+    eficTol: 5000,
+    audFaixas: [{ max: 750, bonus: 420 }, { max: 1500, bonus: 310 }, { max: 2250, bonus: 210 }, { max: 3000, bonus: 100 }],
+    audTol: 3000, treiVal: 500,
+  },
+  diretorCfg: {
+    divTaxa: 40, gatilhoA: 95, valorA: 1200,
+    faixas: [{ min: 1, cota: 400 }, { min: 10000, cota: 500 }, { min: 20000, cota: 600 }, { min: 30000, cota: 700 }, { min: 40000, cota: 800 }],
+  },
+};
+// Preços por operadora usados só pelo motor de Importar (passo 3) pra calcular
+// margem — mesmos defaults que dealer.html/projeto_especial.html usam antes
+// da 1a vez que alguém salva a config de preços.
+const DEF_PRECOS_DEALER = [
+  { op: 'ALGAR', base: 5.30 }, { op: 'ALGAR TELECOM', base: 5.20 }, { op: 'ALGAR MULTI', base: 5.20 },
+  { op: 'ALGAR ONE TIM', base: 3.80 }, { op: 'ARQIA', base: 5.00 }, { op: 'ARQIA 2OP', base: 5.00 },
+  { op: 'ARQIA INTERNACIONAL', base: 7.90 }, { op: 'CLARO', base: 4.00 }, { op: 'CLARO 5GB', base: 17.00 },
+  { op: 'CLARO 3GB', base: 39.00 }, { op: 'CLARO CATM1', base: 4.00 }, { op: 'SIERRA', base: 11.90 },
+  { op: 'TIM', base: 3.00 }, { op: 'TIM 5GB', base: 18.00 }, { op: 'VIVO', base: 4.10 },
+  { op: 'VIVO CATM1', base: 4.20 }, { op: 'VIVO 1GB', base: 10.00 }, { op: 'VIVO 2GB', base: 20.00 },
+  { op: 'VIVO 5GB', base: 33.00 }, { op: 'VIVO 5GB - Voz', base: 52.90 }, { op: 'VIVO 3GB', base: 30.00 },
+  { op: 'VIVO 40GB', base: 78.00 }, { op: 'VIVO 10GB', base: 60.00 },
+];
+// Cada operadora agora é uma LISTA de vigências ({desde, valor}) em vez de um
+// valor fixo — o preço muda de vez em quando (não necessariamente 1x por ano),
+// e o motor de Importar usa sempre a vigência ativa na Data de ativação da
+// linha. Pra achar o preço de uma linha: pega, entre as vigências com
+// desde <= data da linha, a de "desde" mais recente.
+const DEF_PP_PROJETO = {
+  p1: { // Imperio Dos Rastreadores / carneiro.junior — 2 regimes conhecidos
+    ALGAR: [{ desde: '2024-01-01', valor: 5.90 }, { desde: '2025-01-01', valor: 4.80 }],
+    'ALGAR MULTI': [{ desde: '2024-01-01', valor: 5.90 }, { desde: '2025-01-01', valor: 4.80 }],
+    ARQIA: [{ desde: '2024-01-01', valor: 4.95 }, { desde: '2025-01-01', valor: 4.95 }],
+    'ARQIA 2OP': [{ desde: '2024-01-01', valor: 5.90 }, { desde: '2025-01-01', valor: 4.80 }],
+    VIVO: [{ desde: '2024-01-01', valor: 4.00 }, { desde: '2025-01-01', valor: 3.80 }],
+    CLARO: [{ desde: '2024-01-01', valor: 3.70 }, { desde: '2025-01-01', valor: 3.70 }],
+    TIM: [{ desde: '2024-01-01', valor: 3.30 }, { desde: '2025-01-01', valor: 2.90 }],
+  },
+  // p2 (Ione Rastrek) removido — ela virou Dealer, usa o Motor de Regras de
+  // Comissão (regraDealer/REGRAS_SEED), não a margem por mensalidade/operadora.
+  p3: { // Loja do Rastreador / indicador.helamin — sem ARQIA (plano) informado ainda
+    ALGAR: [{ desde: '2020-01-01', valor: 4.80 }], 'ALGAR MULTI': [{ desde: '2020-01-01', valor: 4.80 }],
+    'ARQIA 2OP': [{ desde: '2020-01-01', valor: 4.90 }],
+    VIVO: [{ desde: '2020-01-01', valor: 3.70 }], CLARO: [{ desde: '2020-01-01', valor: 3.90 }], TIM: [{ desde: '2020-01-01', valor: 3.00 }],
+  },
+};
+function impPrecoVigente(historico, dataAtivacao) {
+  if (!historico || !historico.length) return null;
+  const d = dataAtivacao instanceof Date ? dataAtivacao : new Date(dataAtivacao);
+  if (isNaN(d)) return historico[historico.length - 1].valor;
+  let melhor = null;
+  historico.forEach(h => {
+    const hd = new Date(h.desde + 'T00:00:00');
+    if (hd <= d && (!melhor || hd > new Date(melhor.desde + 'T00:00:00'))) melhor = h;
+  });
+  return melhor ? melhor.valor : historico[0].valor;
+}
+const br2c = v => (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtMesC = s => { if (!s) return ''; const [y, m] = s.split('-'); const ms = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']; return ms[+m - 1] + '/' + y; };
+const brDateToMonthC = s => { if (!s) return null; const p = s.split('/'); return p.length === 3 ? `${p[2]}-${p[1].padStart(2, '0')}` : null; };
+
+// Mesma semente de Células/alíquotas do vendedor.html (duplicada aqui, mesmo
+// padrão do DEF_PP no Dealer/Projeto Especial) — pro shell conseguir somar o
+// Bônus de Célula na Visão Consolidada e na Visão do Executivo sem depender
+// do iframe do Vendedor estar aberto.
+const CONS_DEF_CELULAS = [
+  { id: 'c1', nome: 'Décio + Julia', vendedorIds: ['v3', 'v4'] },
+  { id: 'c2', nome: 'Vitória + Gabriela', vendedorIds: ['v5', 'v6'] },
+  { id: 'c3', nome: 'Renato + Andrea + Jassyanna', vendedorIds: ['v9'] },
+  { id: 'c4', nome: 'Claudia + Daiane', vendedorIds: ['v7', 'v8'] },
+  { id: 'c5', nome: 'Patrick + Henrique', vendedorIds: ['v2', 'v1'] },
+];
+const CONS_DEF_CELULA_ALIQUOTAS = { objetivo: 0.07, meta1: 0.13, meta2: 0.25, superMeta: 0.33 };
+function consBonusCelulaDe(vid, mes) {
+  const vendedores = CLS.get('gs5_v', CONS_DEFAULTS.vendedores);
+  const celulas = CLS.get('gs5_celulas', CONS_DEF_CELULAS);
+  const aliquotas = CLS.get('gs5_celula_aliquotas', CONS_DEF_CELULA_ALIQUOTAS);
+  const mdata = CLS.get('gs5_m', {});
+  const celula = celulas.find(c => c.vendedorIds.includes(vid));
+  if (!celula) return 0;
+  let volume = 0, obj = 0, m1 = 0, m2 = 0, sm = 0;
+  celula.vendedorIds.forEach(id => {
+    const v = vendedores.find(x => x.id === id); if (!v) return;
+    const d = mdata[`${id}_${mes}`] || {};
+    volume += d.linhas || 0;
+    obj += v.g.obj || 0; m1 += v.g.m1 || 0; m2 += v.g.m2 || 0; sm += v.g.sm || 0;
+  });
+  let aliquota = 0;
+  if (sm > 0 && volume >= sm) aliquota = aliquotas.superMeta;
+  else if (m2 > 0 && volume >= m2) aliquota = aliquotas.meta2;
+  else if (m1 > 0 && volume >= m1) aliquota = aliquotas.meta1;
+  else if (obj > 0 && volume >= obj) aliquota = aliquotas.objetivo;
+  const v = vendedores.find(x => x.id === vid);
+  return +(aliquota * (v?.salarioFixo || 0)).toFixed(2);
+}
+function consVendedorTotais(mes) {
+  const vendedores = CLS.get('gs5_v', CONS_DEFAULTS.vendedores);
+  const mdata = CLS.get('gs5_m', {});
+  const faixas = CLS.get('gs5_f', CONS_DEFAULTS.faixas);
+  const desafio = CLS.get('gs5_d', CONS_DEFAULTS.desafio);
+  const rules = CLS.get('gs5_r', CONS_DEFAULTS.vendedorRules);
+  return vendedores.map(v => {
+    const d = mdata[`${v.id}_${mes}`] || {};
+    const linhas = d.linhas || 0, atv = d.atv || 0, eq = d.eq || 0, gps = d.gps || 0, frete = d.frete || 0, bonus = d.bonus || 0;
+    const bonusCelula = consBonusCelulaDe(v.id, mes);
+    const alc = v.g.obj > 0 ? (linhas / v.g.obj * 100) : 0;
+    // As faixas são definidas em pontos percentuais inteiros com um "buraco"
+    // entre uma e outra (ex: 0–70 / 71–90) — sem arredondar pra baixo antes de
+    // comparar, um alcance como 70,04% caía fora da faixa 1 (que vai só até 70)
+    // e também fora da faixa 2 (que só começa em 71), sendo empurrado pra faixa
+    // 2 por engano. Confirmado batendo com a planilha real da Claudia (Jul/26):
+    // 70,04% de alcance = Faixa 1 (10%), não Faixa 2 (15%).
+    const fx = faixas.find(f => Math.floor(alc) <= f.max) || faixas[faixas.length - 1] || { vol: 0, atv: 0 };
+    const ths = [v.g.obj, v.g.m1, v.g.m2, v.g.sm];
+    let desC = 0; desafio.forEach((dd, i) => { if (linhas >= ths[i]) desC += dd.val; });
+    const volC = linhas * fx.vol, atvC = atv * fx.atv;
+    const eqC = eq * ((rules.eqRate || 0) / 100), gpsC = gps * ((rules.gpsRate || 0) / 100);
+    const frDsc = Math.max(0, frete - (rules.freteLimit || 0));
+    const total = volC + atvC + desC + eqC + gpsC + bonus + bonusCelula - frDsc;
+    return {
+      nome: v.nome, total, hasData: !!(linhas || atv || eq || gps || bonus || bonusCelula),
+      simcard: volC + atvC + desC, bonificacao: bonus + bonusCelula, equipamento: eqC, gps: gpsC, descCanc: 0, descFrete: frDsc,
+    };
+  });
+}
+
+// ─── VISÃO DO EXECUTIVO ────────────────────────────────────────────────
+// Mesmo modelo da planilha individual (RESUMO + SIMCARD + Equipamento +
+// Placas) que hoje é montada e enviada por fora — vive no shell (não mais
+// dentro do perfil Vendedor) porque é uma visão de pessoa, não de perfil,
+// e fica junto da Visão Consolidada por serem as duas telas de "olhar o
+// mês", uma pro board e outra pro próprio executivo. Cálculo mirror de
+// calcVend/getFaixa do vendedor.html, incluindo o floor() na faixa (ver
+// nota em consVendedorTotais). Como o protótipo não tem login por pessoa,
+// o seletor "Executivo" simula entrar como aquela pessoa.
+function calcVendExec(v, mes) {
+  const mdata = CLS.get('gs5_m', {});
+  const faixas = CLS.get('gs5_f', CONS_DEFAULTS.faixas);
+  const desafio = CLS.get('gs5_d', CONS_DEFAULTS.desafio);
+  const rules = CLS.get('gs5_r', CONS_DEFAULTS.vendedorRules);
+  const d = mdata[`${v.id}_${mes}`] || {};
+  const linhas = d.linhas || 0, atv = d.atv || 0, eq = d.eq || 0, gps = d.gps || 0, frete = d.frete || 0, bonus = d.bonus || 0;
+  const bonusCelula = consBonusCelulaDe(v.id, mes);
+  const alc = v.g.obj > 0 ? (linhas / v.g.obj * 100) : 0;
+  const fx = faixas.find(f => Math.floor(alc) <= f.max) || faixas[faixas.length - 1] || { n: 1, vol: 0, atv: 0 };
+  const ths = [v.g.obj, v.g.m1, v.g.m2, v.g.sm];
+  let desC = 0; desafio.forEach((dd, i) => { if (linhas >= ths[i]) desC += dd.val; });
+  const volC = linhas * fx.vol, atvC = atv * fx.atv;
+  const eqC = eq * ((rules.eqRate || 0) / 100), gpsC = gps * ((rules.gpsRate || 0) / 100);
+  const frDsc = Math.max(0, frete - (rules.freteLimit || 0));
+  const total = volC + atvC + desC + eqC + gpsC + bonus + bonusCelula - frDsc;
+  return { linhas, atv, eq, gps, frete, bonus, bonusCelula, alc, fx, volC, atvC, desC, eqC, gpsC, frDsc, total, desafio, ths };
+}
+
+// Todos os parceiros cadastrados (Indicador/Indicador N2/Dealer/Projeto
+// Especial), lidos do mesmo jeito que a tela de Cadastro lê — pra aparecer
+// no seletor da Visão do Executivo junto com os Vendedores. "Encontrei ela,
+// está dentro do vendedor, quero que ela fique abaixo da Visão Consolidada"
+// e "ficou faltando a visão dos parceiros, só incluir o nome deles lá e já
+// vem puxar as informações" — pedidos do Diego que motivaram isso.
+function getTodosParceiros() {
+  const chavesUnicas = [...new Set(Object.values(CAD_KEY))];
+  return chavesUnicas.flatMap(key => {
+    const tipoPadrao = Object.keys(CAD_KEY).find(t => CAD_KEY[t] === key && t !== 'indicador_n2');
+    return CLS.get(key, cadDefaults(tipoPadrao)).map(e => ({ tipo: e.categoria || tipoPadrao, id: e.id, nome: e.nome }));
+  });
+}
+
+function populateExecSelect() {
+  const vendedores = CLS.get('gs5_v', CONS_DEFAULTS.vendedores);
+  const parceiros = getTodosParceiros();
+  const sel = document.getElementById('exec_vid');
+  const atual = sel.value;
+  const grupos = [
+    { label: 'Vendedores', tipo: 'vendedor', itens: vendedores.map(v => ({ id: v.id, nome: v.nome })) },
+    { label: 'Indicador', tipo: 'indicador', itens: parceiros.filter(p => p.tipo === 'indicador') },
+    { label: 'Indicador N2', tipo: 'indicador_n2', itens: parceiros.filter(p => p.tipo === 'indicador_n2') },
+    { label: 'Dealer', tipo: 'dealer', itens: parceiros.filter(p => p.tipo === 'dealer') },
+    { label: 'Projeto Especial', tipo: 'projeto', itens: parceiros.filter(p => p.tipo === 'projeto') },
+  ].filter(g => g.itens.length);
+  sel.innerHTML = grupos.map(g => `<optgroup label="${g.label}">${g.itens.map(it => `<option value="${g.tipo}:${it.id}">${it.nome}</option>`).join('')}</optgroup>`).join('');
+  if (atual && [...sel.options].some(o => o.value === atual)) sel.value = atual;
+}
+
+function execTabela(rows) {
+  return `<table><tbody>${rows.map(([lbl, val, bold]) => `<tr><td>${lbl}</td><td class="r"${bold ? ' style="font-weight:700"' : ''}>${val}</td></tr>`).join('')}</tbody></table>`;
+}
+
+// Dealer/Indicador/Indicador N2/Projeto Especial não têm Volume/Ativação/
+// Desafio como o Vendedor — cada um usa a fórmula real do próprio perfil
+// (incluindo a Regra de Comissão customizada, quando o dealer tiver uma).
+function calcParceiroExec(tipo, id, mes) {
+  if (tipo === 'dealer') {
+    const mdata = CLS.get('dp1_m', {});
+    const rules = CLS.get('dp1_rules', CONS_DEFAULTS.dealerRules);
+    const blTiers = CLS.get('dp1_bl', CONS_DEFAULTS.blTiers);
+    const d = mdata['d_' + id + '_' + mes] || {};
+    const novas = d.novas || 0, bonus = d.bonus || 0, margin = d.margin || 0;
+    const regra = regraDealer(id);
+    let blTotal = 0;
+    const cancelRate = regra ? (regra.cancelamento ? regra.cancelamento.taxa : (rules.cancelRate || 0)) : (rules.cancelRate || 0);
+    if (!regra) [...blTiers].sort((a, b) => a.threshold - b.threshold).forEach(t => { if (novas >= t.threshold) blTotal += t.bonus; });
+    const cancelDesc = (d.cancel || 0) * cancelRate;
+    const total = margin + blTotal + bonus - cancelDesc;
+    return {
+      total, composicao: [
+        [regra ? 'Comissão da regra' : 'Margem', 'R$' + br2c(margin)],
+        ...(blTotal > 0 ? [['Bateu-Levou', 'R$' + br2c(blTotal)]] : []),
+        ...(bonus > 0 ? [['Bônus', '<span style="color:#166B4A">+R$' + br2c(bonus) + '</span>']] : []),
+        ...(cancelDesc > 0 ? [['Desconto Cancelamento', '<span style="color:#b83232">-R$' + br2c(cancelDesc) + '</span>']] : []),
+      ]
+    };
+  }
+  if (tipo === 'indicador' || tipo === 'indicador_n2') {
+    const mdata = CLS.get('ind1_m', {});
+    const rules = CLS.get('ind1_rules', CONS_DEFAULTS.indicadorRules);
+    const d = mdata[id + '_' + mes] || {};
+    const atv = d.atv || 0, bonus = d.bonus || 0;
+    const taxa = rules.taxa || 0;
+    const comissao = atv * taxa;
+    const total = comissao + bonus;
+    return {
+      total, composicao: [
+        ['Ativações no mês', atv.toLocaleString('pt-BR')],
+        ['Comissão (R$' + taxa.toFixed(2).replace('.', ',') + '/ativação)', 'R$' + br2c(comissao)],
+        ...(bonus > 0 ? [['Bônus', '<span style="color:#166B4A">+R$' + br2c(bonus) + '</span>']] : []),
+      ]
+    };
+  }
+  // projeto
+  const mdata = CLS.get('dp1_m', {});
+  const projetosCfgExec = CLS.get('dp1_projetos', CONS_DEFAULTS.projetos);
+  const projCfg = projetosCfgExec.find(p => p.id === id) || {};
+  const d = mdata['p_' + id + '_' + mes] || {};
+  const margin = d.margin || 0, ativacao = d.ativacao || 0, bonus = d.bonus || 0;
+  const cancelDesc = (d.cancel || 0) * (projCfg.cancelRate || 0);
+  const total = margin + ativacao + bonus - cancelDesc;
+  return {
+    total, composicao: [
+      ['Margem', 'R$' + br2c(margin)],
+      ...(ativacao > 0 ? [['Ativação', 'R$' + br2c(ativacao)]] : []),
+      ...(bonus > 0 ? [['Bônus', '<span style="color:#166B4A">+R$' + br2c(bonus) + '</span>']] : []),
+      ...(cancelDesc > 0 ? [['Desconto Cancelamento', '<span style="color:#b83232">-R$' + br2c(cancelDesc) + '</span>']] : []),
+    ]
+  };
+}
+
+// Cada perfil guarda o próprio nome/frame-id/função de raw diferente —
+// esse mapa evita repetir esse de-para em cada função abaixo.
+const EXEC_PERFIL_MAP = {
+  dealer: { frame: 'frame-dealer', exportFn: 'exportEntity' },
+  indicador: { frame: 'frame-indicadores', exportFn: 'exportInd' },
+  indicador_n2: { frame: 'frame-indicadores', exportFn: 'exportInd' },
+  projeto: { frame: 'frame-projeto_especial', exportFn: 'exportEntity' },
+};
+
+function renderExecutivo() {
+  const sel = document.getElementById('exec_vid');
+  if (!sel.options.length) populateExecSelect();
+  if (!sel.value) return;
+  const [tipo, id] = sel.value.split(':');
+  const mes = document.getElementById('exec_mes').value || (() => {
+    const now = new Date();
+    const mv = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    document.getElementById('exec_mes').value = mv;
+    return mv;
+  })();
+  const bloqueado = mesAprovado(mes);
+
+  document.getElementById('exec_lock_note').innerHTML = bloqueado
+    ? `<div class="note" style="margin-top:0;margin-bottom:14px">🔒 Este mês já foi <strong>aprovado</strong> — os valores abaixo estão fechados e não vão mudar, mesmo se a regra de comissão for revisada depois.</div>`
+    : '';
+  document.getElementById('exec_periodo').textContent = fmtMesC(mes) + (bloqueado ? ' · 🔒 Aprovado' : ' · aberto');
+
+  if (tipo === 'vendedor') {
+    const vendedores = CLS.get('gs5_v', CONS_DEFAULTS.vendedores);
+    const v = vendedores.find(x => x.id === id);
+    if (!v) return;
+    const c = calcVendExec(v, mes);
+    const FP = ['exec-f1', 'exec-f2', 'exec-f3', 'exec-f4', 'exec-f5', 'exec-f6'];
+
+    document.getElementById('exec_nome').textContent = v.nome;
+    document.getElementById('exec_cards_titulo').style.display = '';
+    document.getElementById('exec_cards_row').style.display = '';
+
+    document.getElementById('exec_volume').innerHTML = execTabela([
+      ['Objetivo', v.g.obj.toLocaleString('pt-BR')],
+      ['Volume realizado', c.linhas.toLocaleString('pt-BR'), true],
+      ['Alcance', c.alc.toFixed(0) + '%'],
+      ['Faixa aplicada', `<span class="exec-fp ${FP[c.fx.n - 1]}">Faixa ${c.fx.n}</span>`],
+      ['R$ por linha', 'R$' + c.fx.vol.toFixed(2).replace('.', ',')],
+    ]) + `<div class="exec-sum-footer"><span>Comissão Volume</span><span>R$${br2c(c.volC)}</span></div>`;
+
+    document.getElementById('exec_ativacao').innerHTML = execTabela([
+      ['Volume ativado', 'R$' + br2c(c.atv), true],
+      ['% Ativação (faixa)', (c.fx.atv * 100).toFixed(0) + '%'],
+    ]) + `<div class="exec-sum-footer"><span>Comissão Ativação</span><span>R$${br2c(c.atvC)}</span></div>`;
+
+    document.getElementById('exec_desafio').innerHTML =
+      `<div class="exec-des">${c.desafio.map((dd, i) => {
+        const hit = c.linhas >= c.ths[i];
+        return `<div class="exec-epd ${hit ? 'exec-epd-hit' : 'exec-epd-miss'}"><div class="dl">${dd.lbl}${hit ? ' ✓' : ''}</div><div class="dv">${hit ? '+' : ''}R$${dd.val}</div><div class="ds">≥${c.ths[i].toLocaleString('pt-BR')}</div></div>`;
+      }).join('')}</div>` +
+      `<div class="exec-sum-footer"><span>Desafio Mensal</span><span>R$${br2c(c.desC)}</span></div>`;
+
+    document.getElementById('exec_composicao').innerHTML = execTabela([
+      ['Volume', 'R$' + br2c(c.volC)],
+      ['Ativação', 'R$' + br2c(c.atvC)],
+      ['Desafio', c.desC > 0 ? 'R$' + br2c(c.desC) : '<span style="color:#ccc">—</span>'],
+      ['Bonificação Time', c.bonusCelula > 0 ? '<span style="color:#166B4A">+R$' + br2c(c.bonusCelula) + '</span>' : '<span style="color:#ccc">—</span>'],
+      ['Bônus extra', c.bonus > 0 ? '<span style="color:#166B4A">+R$' + br2c(c.bonus) + '</span>' : '<span style="color:#ccc">—</span>'],
+      ['Equipamento', c.eqC > 0 ? 'R$' + br2c(c.eqC) : '<span style="color:#ccc">—</span>'],
+      ['Smart GPS', c.gpsC > 0 ? 'R$' + br2c(c.gpsC) : '<span style="color:#ccc">—</span>'],
+      ['Desconto Frete', c.frDsc > 0 ? '<span style="color:#b83232">-R$' + br2c(c.frDsc) + '</span>' : '<span style="color:#ccc">—</span>'],
+    ]) + `<div class="exec-sum-footer" style="padding:12px 14px"><span style="font-size:11px">Total</span><span style="font-size:17px">R$${br2c(c.total)}</span></div>`;
+
+    // Dados brutos (Simcard/Equipamento/Placas) só existem na memória do
+    // iframe do Vendedor — acessa via função exposta (getRawFor), já que
+    // `let` não vira propriedade de window.
+    const vendFrame = document.getElementById('frame-vendedor').contentWindow;
+    const raw = vendFrame?.getRawFor?.(id, mes) || {};
+    document.getElementById('exec_detalhe').innerHTML =
+      execDetTable('Linhas Simcard (Volume/Ativação)', raw.simcard) +
+      execDetTable('Cobranças de Equipamento', raw.equip) +
+      execDetTable('Cobranças de Frete/Placas', raw.gps);
+    return;
+  }
+
+  // Indicador / Indicador N2 / Dealer / Projeto Especial
+  const parceiros = getTodosParceiros();
+  const p = parceiros.find(x => x.tipo === tipo && x.id === id);
+  if (!p) return;
+  const c = calcParceiroExec(tipo, id, mes);
+
+  document.getElementById('exec_nome').textContent = p.nome;
+  document.getElementById('exec_cards_titulo').style.display = 'none';
+  document.getElementById('exec_cards_row').style.display = 'none';
+
+  document.getElementById('exec_composicao').innerHTML = execTabela(
+    c.composicao.length ? c.composicao : [['Sem lançamento neste mês', '<span style="color:#ccc">—</span>']]
+  ) + `<div class="exec-sum-footer" style="padding:12px 14px"><span style="font-size:11px">Total</span><span style="font-size:17px">R$${br2c(c.total)}</span></div>`;
+
+  const info = EXEC_PERFIL_MAP[tipo];
+  const frame = document.getElementById(info.frame).contentWindow;
+  const raw = frame?.getRawFor?.(id, mes) || {};
+  document.getElementById('exec_detalhe').innerHTML = tipo === 'dealer' || tipo === 'projeto'
+    ? execDetTable('Linhas do mês', raw) + execDetTable('Cancelamentos do mês', raw.cancelRows ? { headers: raw.cancelHeaders, rows: raw.cancelRows } : null)
+    : execDetTable('Linhas ativadas no mês', raw);
+}
+
+function execDetTable(label, dataset) {
+  if (!dataset || !dataset.rows || !dataset.rows.length)
+    return `<p style="font-size:11px;color:#aaa;font-style:italic;margin-bottom:16px">${label}: sem dado carregado nesta sessão — reimporte o mês pelo Importar pra ver aqui (o valor calculado acima continua correto, isso é só o detalhe linha a linha).</p>`;
+  const rows = dataset.rows.slice(0, 200);
+  return `<p class="cad-card-title" style="margin-bottom:8px">${label} — ${dataset.rows.length} linha${dataset.rows.length > 1 ? 's' : ''}</p>
+    <div class="exec-det-table"><table><thead><tr>${dataset.headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(r => `<tr>${r.map(v2 => `<td>${v2 == null ? '' : v2}</td>`).join('')}</tr>`).join('')}</tbody></table>
+    ${dataset.rows.length > 200 ? `<p style="font-size:10px;color:#aaa;margin-top:6px">Mostrando as 200 primeiras — baixe o extrato completo pra ver tudo.</p>` : ''}</div>`;
+}
+
+function exportExecAtual() {
+  const sel = document.getElementById('exec_vid');
+  if (!sel.value) return;
+  const [tipo, id] = sel.value.split(':');
+  const mes = document.getElementById('exec_mes').value;
+  if (tipo === 'vendedor') {
+    document.getElementById('frame-vendedor').contentWindow?.exportVendedor?.(id, mes);
+    return;
+  }
+  const info = EXEC_PERFIL_MAP[tipo];
+  document.getElementById(info.frame).contentWindow?.[info.exportFn]?.(id, mes);
+}
+
+function consDealerProjetoTotais(mes) {
+  const dealers = CLS.get('dp1_dealers', CONS_DEFAULTS.dealers);
+  const projetos = CLS.get('dp1_projetos', CONS_DEFAULTS.projetos);
+  const mdata = CLS.get('dp1_m', {});
+  const blTiers = CLS.get('dp1_bl', CONS_DEFAULTS.blTiers);
+  const rules = CLS.get('dp1_rules', CONS_DEFAULTS.dealerRules);
+  const getBL = novas => { let t = 0; [...blTiers].sort((a, b) => a.threshold - b.threshold).forEach(tt => { if (novas >= tt.threshold) t += tt.bonus; }); return t; };
+  const dealerRows = dealers.map(dl => {
+    const d = mdata[`d_${dl.id}_${mes}`] || {};
+    const margin = d.margin || 0, novas = d.novas || 0, bonus = d.bonus || 0;
+    const cancelDesc = (d.cancel || 0) * (rules.cancelRate || 0);
+    const total = margin + getBL(novas) + bonus - cancelDesc;
+    return {
+      nome: dl.nome, total, hasData: !!(margin || novas || bonus || d.cancel),
+      simcard: margin + getBL(novas), bonificacao: bonus, equipamento: 0, gps: 0, descCanc: cancelDesc, descFrete: 0,
+    };
+  });
+  const projetoRows = projetos.map(pj => {
+    const d = mdata[`p_${pj.id}_${mes}`] || {};
+    const margin = d.margin || 0, ativacao = d.ativacao || 0, bonus = d.bonus || 0;
+    // Cancelamento do Projeto Especial é próprio de cada projeto (pj.cancelRate),
+    // não mais a taxa genérica de dp1_rules — cada parceiro tem sua regra.
+    const cancelDesc = (d.cancel || 0) * (pj.cancelRate || 0);
+    const total = margin + ativacao + bonus - cancelDesc;
+    return {
+      nome: pj.nome, total, hasData: !!(margin || ativacao || bonus || d.cancel),
+      simcard: margin + ativacao, bonificacao: bonus, equipamento: 0, gps: 0, descCanc: cancelDesc, descFrete: 0,
+    };
+  });
+  return { dealerRows, projetoRows };
+}
+
+function consGestorOpsTotal(mes) {
+  const cfg = CLS.get('go1_cfg', CONS_DEFAULTS.gestorOpsCfg);
+  const mdata = CLS.get('go1_m', {});
+  const extras = CLS.get('go1_ext', { inov: [], sgp: [], ian: [], iac: [] });
+  const d = mdata[mes] || {};
+  const sat = d.sat !== undefined ? d.sat : null;
+  const efic = d.efic !== undefined ? d.efic : null;
+  const aud = d.aud !== undefined ? d.aud : null;
+  const trei = d.trei || 0;
+  const calcSat = pct => {
+    if (!pct || !cfg.satFaixas) return 0;
+    for (let i = cfg.satFaixas.length - 1; i >= 0; i--) {
+      const f = cfg.satFaixas[i];
+      if (pct >= f.min && pct <= f.max) return f.bonus;
+      if (pct > f.max && i === cfg.satFaixas.length - 1) return f.bonus;
+    }
+    return 0;
+  };
+  const calcDesp = (desp, faixasD, tol) => {
+    if (desp === null || desp === undefined || desp === '' || !faixasD) return 0;
+    if (desp > tol) return 0;
+    for (const f of faixasD) { if (desp <= f.max) return f.bonus; }
+    return 0;
+  };
+  const satB = sat !== null ? calcSat(sat) : 0;
+  const eficB = efic !== null ? calcDesp(efic, cfg.eficFaixas, cfg.eficTol) : 0;
+  const audB = aud !== null ? calcDesp(aud, cfg.audFaixas, cfg.audTol) : 0;
+  const treiB = trei * (cfg.treiVal || 0);
+  let extrasTotal = 0;
+  ['inov', 'sgp', 'ian', 'iac'].forEach(k => { (extras[k] || []).forEach(e => { if (e.data === mes) extrasTotal += e.val; }); });
+  const hasData = sat !== null || efic !== null || aud !== null || !!trei || extrasTotal > 0;
+  const total = satB + eficB + audB + treiB + extrasTotal;
+  // Sem categoria própria pra métricas do Gestor (satisfação/eficiência/auditoria/
+  // treinamento) — o total inteiro cai em "simcard" na visão consolidada.
+  return { total, hasData, simcard: total, bonificacao: 0, equipamento: 0, gps: 0, descCanc: 0, descFrete: 0 };
+}
+
+function consDiretorAdmTotal(mes) {
+  const cfg = CLS.get('da1_cfg', CONS_DEFAULTS.diretorCfg);
+  const mdata = CLS.get('da1_m', {});
+  const extras = CLS.get('da1_ext', { auditorias: [], sistemas: [] });
+  const d = mdata[mes] || {};
+  const resultado = d.resultado || 0;
+  const meta = d.meta || 0;
+  const divTaxa = (cfg.divTaxa || 0) / 100;
+  const dividendo = resultado * divTaxa;
+  let bonusB = 0;
+  (cfg.faixas || []).forEach(f => { if (dividendo >= f.min) bonusB += f.cota; });
+  const pctMeta = meta > 0 ? (resultado / meta * 100) : (resultado > 0 ? 100 : 0);
+  const bonusA = pctMeta >= (cfg.gatilhoA || 0) ? (cfg.valorA || 0) : 0;
+  let extrasTotal = 0;
+  (extras.sistemas || []).forEach(s => { if (s.data === mes) extrasTotal += s.val; });
+  (extras.auditorias || []).forEach(a => { if (brDateToMonthC(a.data) === mes) extrasTotal += a.val; });
+  const total = bonusA + bonusB + extrasTotal;
+  // Sem categoria própria pra métricas do Diretor (dividendo/resultado) — o
+  // total inteiro cai em "simcard" na visão consolidada.
+  return { total, hasData: d.resultado !== undefined || extrasTotal > 0, simcard: total, bonificacao: 0, equipamento: 0, gps: 0, descCanc: 0, descFrete: 0 };
+}
+
+// Mesmos defaults do diretor_comercial.html — só usados se ele ainda não
+// tiver salvo nenhuma config própria no localStorage.
+const CONS_DC_DEFAULTS = {
+  faixasVolume: [{ min: 23000, bonus: 450 }, { min: 24600, bonus: 960 }, { min: 26200, bonus: 1530 }, { min: 27800, bonus: 2160 }, { min: 29400, bonus: 2850 }, { min: 31000, bonus: 3600 }, { min: 32600, bonus: 4410 }],
+  faixasCresc: [{ min: 6700, bonus: 630 }, { min: 7900, bonus: 1160 }, { min: 9100, bonus: 1750 }, { min: 10300, bonus: 2400 }, { min: 11500, bonus: 3110 }, { min: 12700, bonus: 3900 }, { min: 13900, bonus: 4760 }],
+  faixasHw: [{ min: 1, tipo: 'unidade', valor: 1.20 }, { min: 200, tipo: 'fixo', valor: 500 }, { min: 350, tipo: 'fixo', valor: 700 }, { min: 500, tipo: 'fixo', valor: 900 }, { min: 750, tipo: 'fixo', valor: 1100 }, { min: 1000, tipo: 'fixo', valor: 1300 }, { min: 1001, tipo: 'fixo', valor: 1500 }],
+  faixasSat: [{ min: 75, bonus: 100 }, { min: 80, bonus: 180 }, { min: 85, bonus: 260 }, { min: 91, bonus: 340 }, { min: 94, bonus: 420 }, { min: 98, bonus: 500 }],
+  newsKickoff: 800, newsManutencao: 200,
+};
+function consDCFaixaMaior(faixas, valor) {
+  let melhor = null;
+  (faixas || []).forEach(f => { if (valor >= f.min && (!melhor || f.min > melhor.min)) melhor = f; });
+  return melhor ? melhor.bonus : 0;
+}
+function consDCHardware(cfg, qtd) {
+  if (!qtd) return 0;
+  const f1 = cfg.faixasHw.find(f => f.tipo === 'unidade');
+  const fixos = cfg.faixasHw.filter(f => f.tipo === 'fixo');
+  if (qtd < (fixos[0]?.min || 200)) return qtd * (f1?.valor || 0);
+  let melhor = null;
+  fixos.forEach(f => { if (qtd >= f.min && (!melhor || f.min > melhor.min)) melhor = f; });
+  return melhor ? melhor.valor : qtd * (f1?.valor || 0);
+}
+function consDiretorComercialTotal(mes) {
+  const cfg = CLS.get('dc1_cfg', CONS_DC_DEFAULTS);
+  const mdata = CLS.get('dc1_m', {});
+  const extras = CLS.get('dc1_ext', { canais: [], reajustes: [], produtos: [], newsKickoffPago: false, newsKickoffData: '' });
+  const d = mdata[mes] || {};
+  const volumeBonus = consDCFaixaMaior(cfg.faixasVolume, d.volume || 0);
+  const crescBonus = consDCFaixaMaior(cfg.faixasCresc, d.cresc || 0);
+  const hwBonus = consDCHardware(cfg, d.hw || 0);
+  const satBonus = (d.sat !== null && d.sat !== undefined) ? consDCFaixaMaior(cfg.faixasSat, d.sat) : 0;
+  const newsBonus = d.news ? (cfg.newsManutencao || 0) : 0;
+
+  let extrasTotal = 0;
+  (extras.canais || []).forEach(c => Object.keys(c.marcosPagos || {}).forEach(k => {
+    if (c.marcosPagos[k] === mes) { const m = (cfg.marcosCanais || []).find(mm => mm.marco === k); if (m) extrasTotal += m.valor; }
+  }));
+  (extras.reajustes || []).forEach(r => { if (r.mes === mes) extrasTotal += r.bonus; });
+  (extras.produtos || []).forEach(p => { if (p.data === mes) extrasTotal += p.val; });
+  if (extras.newsKickoffPago && extras.newsKickoffData === mes) extrasTotal += (cfg.newsKickoff || 0);
+  (cfg.marcosBase || []).forEach(m => { if (m.pago && m.dataPagMes === mes) extrasTotal += m.bonus; });
+
+  const total = volumeBonus + crescBonus + hwBonus + satBonus + newsBonus + extrasTotal;
+  const hasData = mdata[mes] !== undefined || extrasTotal > 0;
+  // Sem categoria própria pra esse mix de bônus — tudo cai em "simcard".
+  return { total, hasData, simcard: total, bonificacao: 0, equipamento: 0, gps: 0, descCanc: 0, descFrete: 0 };
+}
+
+function consIndicadoresTotais(mes) {
+  const inds = CLS.get('ind1_list', CONS_DEFAULTS.indicadores);
+  const mdata = CLS.get('ind1_m', {});
+  const rules = CLS.get('ind1_rules', CONS_DEFAULTS.indicadorRules);
+  return inds.map(ind => {
+    const d = mdata[`${ind.id}_${mes}`] || {};
+    const atv = d.atv || 0, bonus = d.bonus || 0;
+    const simcard = atv * (rules.taxa || 0);
+    return {
+      nome: ind.nome, total: simcard + bonus, hasData: !!(atv || bonus),
+      simcard, bonificacao: bonus, equipamento: 0, gps: 0, descCanc: 0, descFrete: 0,
+    };
+  });
+}
+
+// ─── Lançamento manual (meses anteriores ao Importar) ──
+// Guarda só o total por perfil pro mês — sem detalhar por vendedor/dealer/etc,
+// já que não temos como recalcular retroativamente. Quando existe lançamento
+// manual pro mês selecionado, ele substitui o cálculo detalhado por completo.
+function consManualGet(mes) { return CLS.get('cons_hist_manual', {})[mes] || null; }
+function consManualRow(nome, total) {
+  return { nome, total, hasData: !!total, simcard: total, bonificacao: 0, equipamento: 0, gps: 0, descCanc: 0, descFrete: 0 };
+}
+function consManualPreencherForm(mes) {
+  const m = consManualGet(mes) || {};
+  ['vendedor', 'dealer', 'indicador', 'projeto', 'gestor', 'diretor', 'diretorComercial'].forEach(k => {
+    document.getElementById('cons_manual_' + k).value = m[k] || '';
+  });
+}
+function consManualSalvar() {
+  const mes = document.getElementById('imp_ref_mes').value;
+  if (!mes) { alert('Selecione o mês de referência primeiro.'); return; }
+  if (mesAprovado(mes)) { alert('Este mês já foi aprovado — não é possível alterar. Desaprove antes, se precisar.'); return; }
+  const all = CLS.get('cons_hist_manual', {});
+  all[mes] = {};
+  ['vendedor', 'dealer', 'indicador', 'projeto', 'gestor', 'diretor', 'diretorComercial'].forEach(k => {
+    all[mes][k] = +document.getElementById('cons_manual_' + k).value || 0;
+  });
+  LS_set('cons_hist_manual', all);
+  showCadToast('Lançamento manual salvo para ' + fmtMesC(mes));
+}
+function consManualRemover() {
+  const mes = document.getElementById('imp_ref_mes').value;
+  if (mesAprovado(mes)) { alert('Este mês já foi aprovado — não é possível alterar. Desaprove antes, se precisar.'); return; }
+  const all = CLS.get('cons_hist_manual', {});
+  delete all[mes];
+  LS_set('cons_hist_manual', all);
+  showCadToast('Lançamento manual removido de ' + fmtMesC(mes));
+}
+
+// ─── APROVAÇÃO DO COMISSIONAMENTO ──────────────────────────────────────
+// Depois que o mês é aprovado, os valores calculados ficam travados — nem
+// edição manual em nenhum perfil, nem reprocessamento pelo Importar, nem o
+// Motor de Regras conseguem sobrescrever — mesmo que a regra de alguém mude
+// depois (o modelo de comissionamento é revisado a cada ~3 meses, mas o que
+// trava é a aprovação, não o prazo). Mesma lógica do Faturamento: aprovado
+// só pode ser desaprovado (ação administrativa) ou excluído — nunca editado.
+// Cada perfil HTML lê essa mesma chave direto do localStorage (mesAprovado
+// duplicada em cada arquivo, mesmo padrão dos outros DEF_*/helpers locais).
+const APROV_KEY = 'aprovacoes_mes';
+function aprovacoesGet() { return CLS.get(APROV_KEY, {}); }
+function mesAprovado(mes) { const a = aprovacoesGet()[mes]; return !!(a && a.aprovado); }
+
+function renderConsAprovacao(mes) {
+  const a = aprovacoesGet()[mes];
+  const statusEl = document.getElementById('cons_aprov_status');
+  const actionsEl = document.getElementById('cons_aprov_actions');
+  if (a && a.aprovado) {
+    statusEl.innerHTML = `<span style="color:#166B4A;font-weight:700">🔒 Aprovado</span> em ${a.aprovadoEm} — os valores deste mês ficam travados em todos os perfis, mesmo que a regra de alguém mude depois.`;
+    actionsEl.innerHTML = `
+      <button class="cad-btn-outline" onclick="consDesaprovarMes()">Desaprovar (ação administrativa)</button>
+      <button class="cad-del-btn" onclick="consExcluirMes()">Excluir dados do mês</button>`;
+  } else {
+    statusEl.innerHTML = `<span style="color:#b45309;font-weight:700">Aberto</span> — ainda pode editar valores e reprocessar pelo Importar normalmente.`;
+    actionsEl.innerHTML = `<button class="cad-btn" onclick="consAprovarMes()">✓ Aprovar comissionamento do mês</button>`;
+  }
+}
+
+// Cada perfil trava/destrava a edição sozinho (mesAprovado local), mas o
+// estado visual (botão ✏ virando 🔒, etc.) só atualiza se o iframe re-renderizar
+// — como aprovar/desaprovar/excluir acontece na Visão Consolidada, força esse
+// refresh direto nos outros iframes.
+function consRefreshAllFrames() {
+  const map = { vendedor: 'renderResumo', dealer: 'renderDealer', indicadores: 'renderInd', projeto_especial: 'renderProjetos', gestor_operacoes: 'renderCiclo', diretor_adm: 'renderCiclo', diretor_comercial: 'renderCiclo' };
+  Object.keys(map).forEach(p => {
+    const win = document.getElementById('frame-' + p)?.contentWindow;
+    // resyncMdata (Vendedor/Dealer/Indicador/Projeto Especial) relê o
+    // localStorage antes de renderizar — sem isso, aprovar/desaprovar/excluir
+    // reaplicava o render em cima do dado antigo que já estava na memória do
+    // iframe. Gestor de Operações/Diretor Adm/Diretor Comercial não recebem
+    // dado do Importar, então não têm (nem precisam de) resyncMdata.
+    try { win?.resyncMdata ? win.resyncMdata() : win?.[map[p]]?.(); } catch {}
+  });
+}
+
+// Os 3 aceitam um mês opcional — sem ele, usam o seletor da Visão
+// Consolidada (comportamento original). Com um mês explícito, dá pra chamar
+// essas mesmas ações a partir de qualquer outro lugar (ex.: o Histórico de
+// Importações, que lista o ano inteiro e não tem um único "mês selecionado").
+function consAprovarMes(mesParam) {
+  const mes = mesParam || document.getElementById('cons_mes').value;
+  if (!mes) { alert('Selecione o mês de referência primeiro.'); return; }
+  if (!confirm(`Aprovar o comissionamento de ${fmtMesC(mes)}?\n\nDepois de aprovado, os valores deste mês não podem mais ser editados em nenhum perfil nem reprocessados pelo Importar — só desaprovando (ação administrativa) ou excluindo os dados.`)) return;
+  const a = aprovacoesGet();
+  a[mes] = { aprovado: true, aprovadoEm: new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) };
+  LS_set(APROV_KEY, a);
+  renderConsAprovacao(document.getElementById('cons_mes').value);
+  consRefreshAllFrames();
+  renderImportHistorico();
+  showCadToast('Comissionamento aprovado ✓');
+}
+
+function consDesaprovarMes(mesParam) {
+  const mes = mesParam || document.getElementById('cons_mes').value;
+  if (!confirm(`Desaprovar o comissionamento de ${fmtMesC(mes)}?\n\nEsta é uma ação administrativa — normalmente não deveria ser feita depois que o mês já foi fechado. Os valores voltam a poder ser editados e reprocessados.`)) return;
+  const a = aprovacoesGet();
+  delete a[mes];
+  LS_set(APROV_KEY, a);
+  renderConsAprovacao(document.getElementById('cons_mes').value);
+  consRefreshAllFrames();
+  renderImportHistorico();
+  showCadToast('Comissionamento desaprovado');
+}
+
+function consExcluirMes(mesParam) {
+  const mes = mesParam || document.getElementById('cons_mes').value;
+  if (!confirm(`EXCLUIR todos os dados de comissionamento de ${fmtMesC(mes)}?\n\nIsso apaga os valores calculados de todos os perfis pra esse mês — não dá pra desfazer. Você vai precisar reprocessar o Importar (ou lançar de novo) pra esse mês.`)) return;
+  // Vendedor/Dealer/Indicador guardam uma entrada por pessoa+mês (chave termina
+  // em "_mes"); Gestor/Diretor Adm/Diretor Comercial guardam uma entrada por
+  // mês direto (são perfis de uma pessoa só, sem lista de gente).
+  ['gs5_m', 'dp1_m', 'ind1_m'].forEach(key => {
+    const store = CLS.get(key, {});
+    Object.keys(store).forEach(k => { if (k.endsWith('_' + mes)) delete store[k]; });
+    LS_set(key, store);
+  });
+  ['go1_m', 'da1_m', 'dc1_m'].forEach(key => {
+    const store = CLS.get(key, {});
+    delete store[mes];
+    LS_set(key, store);
+  });
+  // Sem isso, "Excluir" deixava pra trás a fonte bruta que alimenta as Regras
+  // de Comissão (soma/contagem de ativação, volume de pedidos do Hilario/
+  // Ione) — o mês parecia limpo nos perfis, mas reprocessar em cima ainda
+  // carregava um resquício do ciclo anterior. Achado pelo Diego: "antes de
+  // lançar um novo ciclo eu estou excluindo tudo" — então excluir precisa
+  // ser isso mesmo, tudo.
+  const fontes = fontesDealerGet();
+  Object.keys(fontes).forEach(id => { delete fontes[id][mes]; });
+  LS_set(FONTES_DEALER_KEY, fontes);
+  // Lançamento manual desse mês também é "dado calculado" — some junto.
+  const manual = CLS.get('cons_hist_manual', {});
+  delete manual[mes];
+  LS_set('cons_hist_manual', manual);
+  const a = aprovacoesGet();
+  delete a[mes];
+  LS_set(APROV_KEY, a);
+  renderConsolidado();
+  consRefreshAllFrames();
+  renderImportHistorico();
+  showCadToast('Dados do mês excluídos');
+}
+
+function renderConsolidado() {
+  let mes = document.getElementById('cons_mes').value;
+  if (!mes) {
+    const now = new Date();
+    mes = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    document.getElementById('cons_mes').value = mes;
+  }
+  renderConsAprovacao(mes);
+  const manual = consManualGet(mes);
+
+  const vendedorRows = manual ? [consManualRow('Vendedor · lançamento manual', manual.vendedor)] : consVendedorTotais(mes);
+  const { dealerRows, projetoRows } = manual
+    ? { dealerRows: [consManualRow('Dealer · lançamento manual', manual.dealer)], projetoRows: [consManualRow('Projeto Especial · lançamento manual', manual.projeto)] }
+    : consDealerProjetoTotais(mes);
+  const gestorOps = manual ? consManualRow('Gestor de Operações', manual.gestor) : consGestorOpsTotal(mes);
+  const diretorAdm = manual ? consManualRow('Diretor Administrativo', manual.diretor) : consDiretorAdmTotal(mes);
+  const diretorCom = manual ? consManualRow('Diretor Comercial', manual.diretorComercial) : consDiretorComercialTotal(mes);
+  const indicadorRows = manual ? [consManualRow('Indicador · lançamento manual', manual.indicador)] : consIndicadoresTotais(mes);
+
+  const sum = rows => rows.reduce((a, r) => a + r.total, 0);
+  const vendedorTotal = sum(vendedorRows);
+  const dealerTotal = sum(dealerRows);
+  const projetoTotal = sum(projetoRows);
+  const indicadorTotal = sum(indicadorRows);
+
+  const grand = vendedorTotal + dealerTotal + projetoTotal + gestorOps.total + diretorAdm.total + diretorCom.total + indicadorTotal;
+  document.getElementById('cons_grand_total').textContent = 'R$ ' + br2c(grand);
+  document.getElementById('cons_grand_sub').textContent = fmtMesC(mes) + ' · soma de todos os perfis de comissionamento';
+  document.getElementById('cons_gen_ts').textContent = 'Gerado em ' + new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+
+  // Um único array por grupo alimenta o KPI de status e o gráfico comparativo
+  // abaixo — assim os dois nunca podem divergir sobre total/atividade do mês.
+  const groupsData = [
+    { nome: 'Vendedor', total: vendedorTotal, hasData: vendedorRows.some(r => r.hasData) },
+    { nome: 'Dealer', total: dealerTotal, hasData: dealerRows.some(r => r.hasData) },
+    { nome: 'Indicador', total: indicadorTotal, hasData: indicadorRows.some(r => r.hasData) },
+    { nome: 'Projeto Especial', total: projetoTotal, hasData: projetoRows.some(r => r.hasData) },
+    { nome: 'Gestor de Operações', total: gestorOps.total, hasData: gestorOps.hasData },
+    { nome: 'Diretor Administrativo', total: diretorAdm.total, hasData: diretorAdm.hasData },
+    { nome: 'Diretor Comercial', total: diretorCom.total, hasData: diretorCom.hasData },
+  ];
+
+  // Escala única de verde (mais escuro = maior valor, mais claro = menor),
+  // em vez da cor de marca de cada perfil — pedido do Diego pro "Comparativo
+  // por perfil" ficar como um gráfico de tons de verde, não um arco-íris.
+  const GREEN_SCALE = ['#0b3d2a', '#166B4A', '#1f8f63', '#2fa876', '#4dbd8c', '#7ecfab', '#b6e4cf'];
+  const sorted = [...groupsData].sort((a, b) => b.total - a.total);
+  const maxTotal = Math.max(...sorted.map(g => g.total), 1);
+  document.getElementById('cons_chart').innerHTML = sorted.map((g, i) => {
+    const pct = g.total > 0 ? Math.max((g.total / maxTotal) * 100, 2) : 0;
+    const color = GREEN_SCALE[Math.min(i, GREEN_SCALE.length - 1)];
+    return `
+    <div class="cons-bar-row">
+      <span class="cons-bar-lbl">${g.nome}</span>
+      <span class="cons-bar-track"><span class="cons-bar-fill" style="width:${pct}%;background:${color}"></span></span>
+      <span class="cons-bar-val">R$ ${br2c(g.total)}</span>
+    </div>`;
+  }).join('');
+
+  // ─── Tabela única consolidada — uma linha por executivo, misturando todos
+  // os perfis, com as mesmas colunas que o Diego já usa na planilha dele
+  // (Simcard/Bonificação/Equipamento/Smart GPS/Desc.Canc./Desc.Frete/Total).
+  // Gestor de Operações e Diretor Administrativo não têm essas subcategorias
+  // (são métricas próprias: satisfação, eficiência, dividendo etc.) — o total
+  // inteiro deles cai em "Simcard" por não ter onde mais encaixar.
+  // Categorias comerciais (Vendedor/Dealer/Indicador/Projeto Especial) usam a
+  // mesma escala de verde do "Comparativo por perfil" (do mais escuro pro
+  // mais claro, na ordem 1-4) — pedido do Diego pra não misturar cor de marca
+  // com essa tela. Gestor/Diretores saíram dessa tabela (ver abaixo).
+  const CAT = {
+    vendedor: { label: '1 – Vendedor', color: '#0b3d2a' },
+    dealer: { label: '2 – Dealer', color: '#166B4A' },
+    indicador: { label: '3 – Indicador', color: '#1f8f63' },
+    projeto: { label: '4 – Proj. Especial', color: '#2fa876' },
+    // Diretoria/Gestores: cinza claro pras 3, em vez da cor de marca de cada
+    // um — pedido do Diego ("cinza bem clarinho"). Texto escuro pra manter
+    // contraste legível (o cinza claro não lê bem com texto branco).
+    gestor: { label: '1 – Gestor Op.', color: '#e5e4df', text: '#55617a' },
+    diretor: { label: '2 – Diretor Adm.', color: '#e5e4df', text: '#55617a' },
+    diretorComercial: { label: '3 – Diretor Com.', color: '#e5e4df', text: '#55617a' },
+  };
+  const linhasTabela = [
+    ...vendedorRows.map(r => ({ cat: 'vendedor', ...r })),
+    ...dealerRows.map(r => ({ cat: 'dealer', ...r })),
+    ...indicadorRows.map(r => ({ cat: 'indicador', ...r })),
+    ...projetoRows.map(r => ({ cat: 'projeto', ...r })),
+  ];
+  const linhasDiretoria = [
+    { cat: 'gestor', nome: 'Gestor de Operações', ...gestorOps },
+    { cat: 'diretor', nome: 'Diretor Administrativo', ...diretorAdm },
+    { cat: 'diretorComercial', nome: 'Diretor Comercial', ...diretorCom },
+  ];
+  const valOrDash = (v, neg) => v ? (neg ? '-R$ ' : 'R$ ') + br2c(v) : '<span style="color:#ccc">—</span>';
+  const somaColDe = linhas => campo => linhas.reduce((a, r) => a + (r[campo] || 0), 0);
+  const tabelaHtml = linhas => {
+    const somaCol = somaColDe(linhas);
+    return `
+    <table>
+      <thead><tr>
+        <th>ID</th><th>Categoria</th><th>Executivo</th>
+        <th>Simcard</th><th>Bonificação</th><th>Equipamento</th><th>Smart GPS</th>
+        <th>Desc. Canc.</th><th>Desc. Frete</th><th>Total</th>
+      </tr></thead>
+      <tbody>
+        ${linhas.map((r, i) => `
+          <tr class="${r.hasData ? '' : 'cons-row-empty'}">
+            <td>${i + 1}</td>
+            <td><span class="cons-cat-pill" style="background:${CAT[r.cat].color};color:${CAT[r.cat].text || '#fff'}">${CAT[r.cat].label}</span></td>
+            <td>${r.nome}</td>
+            <td>${valOrDash(r.simcard)}</td>
+            <td>${valOrDash(r.bonificacao)}</td>
+            <td>${valOrDash(r.equipamento)}</td>
+            <td>${valOrDash(r.gps)}</td>
+            <td>${valOrDash(r.descCanc, true)}</td>
+            <td>${valOrDash(r.descFrete, true)}</td>
+            <td style="font-weight:700">R$ ${br2c(r.total)}</td>
+          </tr>`).join('')}
+        <tr class="cons-row-total">
+          <td colspan="3">Total</td>
+          <td>R$ ${br2c(somaCol('simcard'))}</td>
+          <td>R$ ${br2c(somaCol('bonificacao'))}</td>
+          <td>R$ ${br2c(somaCol('equipamento'))}</td>
+          <td>R$ ${br2c(somaCol('gps'))}</td>
+          <td>-R$ ${br2c(somaCol('descCanc'))}</td>
+          <td>-R$ ${br2c(somaCol('descFrete'))}</td>
+          <td>R$ ${br2c(somaCol('total'))}</td>
+        </tr>
+      </tbody>
+    </table>`;
+  };
+  document.getElementById('cons_tabela_wrap').innerHTML = tabelaHtml(linhasTabela);
+  document.getElementById('cons_tabela_diretoria_wrap').innerHTML = tabelaHtml(linhasDiretoria);
+
+  renderConsHistorico(mes);
+}
+
+document.getElementById('cons_mes').addEventListener('change', renderConsolidado);
+
+// ─── Gráfico de pilha: Janeiro até o mês selecionado, empilhado por perfil ──
+function consTotalPorPerfil(mesStr) {
+  const manual = consManualGet(mesStr);
+  if (manual) return { vendedor: manual.vendedor, dealer: manual.dealer, indicador: manual.indicador, projeto: manual.projeto, gestor: manual.gestor, diretor: manual.diretor, diretorComercial: manual.diretorComercial };
+  const { dealerRows, projetoRows } = consDealerProjetoTotais(mesStr);
+  return {
+    vendedor: consVendedorTotais(mesStr).reduce((a, r) => a + r.total, 0),
+    dealer: dealerRows.reduce((a, r) => a + r.total, 0),
+    indicador: consIndicadoresTotais(mesStr).reduce((a, r) => a + r.total, 0),
+    projeto: projetoRows.reduce((a, r) => a + r.total, 0),
+    gestor: consGestorOpsTotal(mesStr).total,
+    diretor: consDiretorAdmTotal(mesStr).total,
+    diretorComercial: consDiretorComercialTotal(mesStr).total,
+  };
+}
+
+const CONS_PERFIS = [
+  { key: 'vendedor', label: 'Vendedor', color: 'var(--gs-c-vendedor)' },
+  { key: 'dealer', label: 'Dealer', color: 'var(--gs-c-dealer)' },
+  { key: 'indicador', label: 'Indicador', color: 'var(--gs-c-indicador)' },
+  { key: 'projeto', label: 'Projeto Esp.', color: 'var(--gs-c-projeto)' },
+  { key: 'gestor', label: 'Gestor Op.', color: 'var(--gs-c-gestor)' },
+  { key: 'diretor', label: 'Diretor Adm.', color: 'var(--gs-c-diretor)' },
+  { key: 'diretorComercial', label: 'Diretor Com.', color: 'var(--gs-c-diretor-comercial)' },
+];
+
+function renderConsHistorico(mesAte) {
+  const [anoAte, mesNumAte] = mesAte.split('-').map(Number);
+  document.getElementById('cons_hist_mes_label').textContent = fmtMesC(mesAte);
+
+  const dados = [];
+  for (let m = 1; m <= mesNumAte; m++) {
+    const mesStr = `${anoAte}-${String(m).padStart(2, '0')}`;
+    dados.push({ mes: mesStr, ...consTotalPorPerfil(mesStr) });
+  }
+  const totalMes = d => CONS_PERFIS.reduce((a, p) => a + d[p.key], 0);
+  const maxTotal = Math.max(...dados.map(totalMes), 1);
+
+  const barrasHtml = dados.map(d => {
+    const total = totalMes(d);
+    const alturaBarra = total > 0 ? Math.max((total / maxTotal) * 100, 1) : 0;
+    const segs = CONS_PERFIS
+      .filter(p => d[p.key] > 0)
+      .map(p => `<div style="flex:${d[p.key]} 1 0;background:${p.color}" title="${p.label}: R$ ${br2c(d[p.key])}"></div>`)
+      .join('');
+    return `
+      <div class="cons-hist-bar-wrap" title="${fmtMesC(d.mes)} · Total: R$ ${br2c(total)}">
+        <div class="cons-hist-bar" style="height:${alturaBarra}%">${segs}</div>
+        <div class="cons-hist-lbl">${fmtMesC(d.mes).split('/')[0]}</div>
+      </div>`;
+  }).join('');
+
+  const legendaHtml = CONS_PERFIS.map(p => `
+    <div class="cons-hist-legend-item"><span class="cons-hist-legend-dot" style="background:${p.color}"></span>${p.label}</div>`).join('');
+
+  document.getElementById('cons_hist_chart').innerHTML =
+    `<div class="cons-hist-chart">${barrasHtml}</div><div class="cons-hist-legend">${legendaHtml}</div>`;
+}
+
+// ─── CADASTRO DE PARCEIROS ─────────────────────────────
+// Indicador, Dealer e Projeto Especial têm alta rotatividade (entram/saem a
+// qualquer momento) — por isso ganham uma tela de cadastro própria, ao
+// contrário de Vendedor/Gestor/Diretor (cadastrados só na aba Metas/Config
+// de cada perfil, já que mudam raramente). Grava direto nas mesmas listas
+// que cada perfil já lê (ind1_list, dp1_dealers, dp1_projetos) — o cadastro
+// aparece automaticamente na aba do perfil correspondente.
+// "Indicador" e "Indicador N2" compartilham a mesma lista de armazenamento
+// (ind1_list) — ambos são o mesmo perfil no sistema (indicadores.html), só
+// mudam o rótulo/categoria de cadastro. CAD_KEY resolve pra lista certa;
+// entry.categoria guarda qual das 4 opções foi escolhida, pra distinguir
+// Indicador de Indicador N2 dentro da mesma lista.
+const CAD_KEY = { indicador: 'ind1_list', indicador_n2: 'ind1_list', dealer: 'dp1_dealers', projeto: 'dp1_projetos' };
+const CAD_LABEL_SING = { indicador: 'Indicador', indicador_n2: 'Indicador N2', dealer: 'Dealer', projeto: 'Projeto Especial' };
+const CAD_PILL_CLASS = { indicador: 'indicador', indicador_n2: 'indicador_n2', dealer: 'dealer', projeto: 'projeto' };
+const CAD_PREFIX = { indicador: 'i', indicador_n2: 'i', dealer: 'd', projeto: 'p' };
+// Progressão de carreira dentro da Smart — usada só pra ordenar/exibir.
+const CAD_ORDEM_CARREIRA = ['indicador', 'indicador_n2', 'dealer', 'projeto'];
+
+function cadCategoriaChanged() {
+  const cat = document.getElementById('cad_categoria').value;
+  document.getElementById('cad_ajudacusto_wrap').style.display = cat === 'indicador_n2' ? 'block' : 'none';
+}
+
+function cadPopulateComercial() {
+  const vendedores = CLS.get('gs5_v', CONS_DEFAULTS.vendedores);
+  const sel = document.getElementById('cad_comercial');
+  sel.innerHTML = '<option value="">Selecione…</option>' + vendedores.map(v => `<option value="${v.nome}">${v.nome}</option>`).join('');
+}
+
+function cadClearForm() {
+  ['cad_nome', 'cad_empresa', 'cad_cpf', 'cad_cnpj', 'cad_celular', 'cad_telefone', 'cad_email', 'cad_email2', 'cad_bairro', 'cad_cidade', 'cad_conta', 'cad_apelido', 'cad_ajudacusto'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('cad_comercial').value = '';
+}
+
+function cadDefaults(tipo) {
+  if (tipo === 'indicador' || tipo === 'indicador_n2') return CONS_DEFAULTS.indicadores;
+  return tipo === 'dealer' ? CONS_DEFAULTS.dealers : CONS_DEFAULTS.projetos;
+}
+
+// Pra distinguir Indicador de Indicador N2 dentro da mesma lista, cadastros
+// antigos (sem o campo categoria ainda) caem no "indicador" puro por padrão.
+function cadCategoriaDoEntry(e, tipoDaLista) {
+  if (e.categoria) return e.categoria;
+  return tipoDaLista === 'indicador_n2' && !e.categoria ? 'indicador' : tipoDaLista;
+}
+
+// Edição de um cadastro já existente — cadEditando={tipo,id} enquanto o
+// modal "Novo Cadastro" está sendo reaproveitado pra editar, em vez de criar.
+let cadEditando = null;
+
+function cadModalModoNovo() {
+  document.getElementById('cadModalNovoTitulo').textContent = 'Novo Cadastro';
+  document.getElementById('cadModalNovoSubtitulo').textContent = 'Novo cadastro';
+  document.getElementById('cadModalNovoBtnSalvar').textContent = '✓ Cadastrar';
+  document.getElementById('cad_categoria').disabled = false;
+}
+function cadModalModoEdicao(nome) {
+  document.getElementById('cadModalNovoTitulo').textContent = 'Editar Cadastro';
+  document.getElementById('cadModalNovoSubtitulo').textContent = 'Editando ' + nome;
+  document.getElementById('cadModalNovoBtnSalvar').textContent = '✓ Salvar alterações';
+}
+
+function cadEditar(tipo, id) {
+  const entry = CLS.get(CAD_KEY[tipo], cadDefaults(tipo)).find(e => e.id === id);
+  if (!entry) return;
+  cadEditando = { tipo, id };
+
+  document.getElementById('cadDropdownMenu').classList.remove('open');
+  renderCadastro();
+  document.getElementById('cad_categoria').value = tipo;
+  cadCategoriaChanged();
+  document.getElementById('cad_nome').value = entry.nome || '';
+  document.getElementById('cad_empresa').value = entry.empresa || '';
+  document.getElementById('cad_cpf').value = entry.cpf || entry.doc || '';
+  document.getElementById('cad_cnpj').value = entry.cnpj || '';
+  document.getElementById('cad_celular').value = entry.celular || '';
+  document.getElementById('cad_telefone').value = entry.telefone || '';
+  document.getElementById('cad_email').value = entry.email || '';
+  document.getElementById('cad_email2').value = entry.email2 || '';
+  document.getElementById('cad_bairro').value = entry.bairro || '';
+  document.getElementById('cad_cidade').value = entry.cidade || '';
+  document.getElementById('cad_conta').value = entry.conta || '';
+  document.getElementById('cad_apelido').value = entry.apelido || '';
+  document.getElementById('cad_ajudacusto').value = entry.ajudaCusto || '';
+  document.getElementById('cad_comercial').value = entry.comercial || '';
+  cadModalModoEdicao(entry.nome);
+
+  document.getElementById('cadModalNovo').classList.add('open');
+}
+
+function cadSalvar() {
+  const tipo = document.getElementById('cad_categoria').value;
+  const nome = document.getElementById('cad_nome').value.trim();
+  const cpf = document.getElementById('cad_cpf').value.trim();
+  const comercial = document.getElementById('cad_comercial').value;
+  const cidade = document.getElementById('cad_cidade').value.trim();
+  const apelido = document.getElementById('cad_apelido').value.trim();
+  const conta = document.getElementById('cad_conta').value.trim();
+  const celular = document.getElementById('cad_celular').value.trim();
+  const email = document.getElementById('cad_email').value.trim();
+
+  if (!nome) { alert('Informe o nome completo.'); return; }
+  if (!comercial) { alert('Selecione a qual executivo este cadastro está vinculado.'); return; }
+  // CPF/cidade/apelido/conta/celular/e-mail idealmente vêm preenchidos, mas
+  // às vezes o comissionamento de alguém precisa rodar antes de ter esses
+  // dados em mãos (ex.: nome veio de uma planilha de comissão, não de um
+  // cadastro completo). Em vez de travar tudo, deixa salvar só com nome +
+  // vínculo e marca `pendente:true` — a lista mostra um aviso até alguém
+  // completar os dados de pagamento (nunca inventar CPF/conta/PIX).
+  if (!cpf) { if (!confirm('CPF em branco — o cadastro fica marcado como "dados pendentes" até alguém completar. Continuar mesmo assim?')) return; }
+
+  const pendente = !cpf || !cidade || !conta || !celular || !email;
+
+  const dados = {
+    nome,
+    categoria: tipo,
+    empresa: document.getElementById('cad_empresa').value.trim(),
+    cpf,
+    cnpj: document.getElementById('cad_cnpj').value.trim(),
+    celular,
+    telefone: document.getElementById('cad_telefone').value.trim(),
+    email,
+    email2: document.getElementById('cad_email2').value.trim(),
+    bairro: document.getElementById('cad_bairro').value.trim(),
+    cidade,
+    conta,
+    comercial,
+    ajudaCusto: tipo === 'indicador_n2' ? (+document.getElementById('cad_ajudacusto').value || 0) : 0,
+    // Nome/login que aparece no CRM/Clientes/Inventário, quando é diferente do
+    // nome de exibição acima (ex: "carneiro.junior" para "Império dos Rastreadores").
+    apelido,
+    pendente,
+  };
+
+  if (cadEditando) {
+    const keyAntiga = CAD_KEY[cadEditando.tipo];
+    const listAntiga = CLS.get(keyAntiga, cadDefaults(cadEditando.tipo));
+    const idx = listAntiga.findIndex(e => e.id === cadEditando.id);
+    const original = idx !== -1 ? listAntiga[idx] : { id: cadEditando.id };
+
+    const keyNova = CAD_KEY[tipo];
+    if (keyNova === keyAntiga) {
+      // Mesma lista de armazenamento (ex: Indicador → Indicador N2) — só atualiza.
+      if (idx !== -1) listAntiga[idx] = { ...original, ...dados };
+      LS_set(keyAntiga, listAntiga);
+    } else {
+      // Cresceu de categoria (ex: Indicador N2 → Dealer) — muda de lista,
+      // mantendo o mesmo id pra não perder o vínculo com lançamentos antigos.
+      if (idx !== -1) listAntiga.splice(idx, 1);
+      LS_set(keyAntiga, listAntiga);
+      const listNova = CLS.get(keyNova, cadDefaults(tipo));
+      listNova.push({ ...original, ...dados, id: cadEditando.id });
+      LS_set(keyNova, listNova);
+
+      // Saiu de Projeto Especial: não precisa mais da entrada de preços.
+      if (cadEditando.tipo === 'projeto' && tipo !== 'projeto') {
+        const pp = CLS.get('dp1_pp', {});
+        delete pp[cadEditando.id];
+        LS_set('dp1_pp', pp);
+      }
+      // Entrou em Projeto Especial: precisa da entrada de preços por operadora.
+      if (tipo === 'projeto' && cadEditando.tipo !== 'projeto') {
+        const pp = CLS.get('dp1_pp', {});
+        pp[cadEditando.id] = { ALGAR: 0, ARQIA: 0, VIVO: 0, CLARO: 0, TIM: 0 };
+        LS_set('dp1_pp', pp);
+      }
+    }
+
+    cadEditando = null;
+    cadModalModoNovo();
+    cadClearForm();
+    cadRenderList();
+    showCadToast(`${nome} atualizado(a) ✓`);
+    return;
+  }
+
+  const key = CAD_KEY[tipo];
+  const list = CLS.get(key, cadDefaults(tipo));
+  const entry = { id: CAD_PREFIX[tipo] + Date.now(), ...dados };
+  list.push(entry);
+  LS_set(key, list);
+
+  // Projeto Especial precisa de uma entrada em dp1_pp (preços por operadora)
+  // pra não quebrar a tela de Configurações do perfil.
+  if (tipo === 'projeto') {
+    const pp = CLS.get('dp1_pp', {});
+    pp[entry.id] = { ALGAR: 0, ARQIA: 0, VIVO: 0, CLARO: 0, TIM: 0 };
+    LS_set('dp1_pp', pp);
+  }
+
+  cadClearForm();
+  cadRenderList();
+  showCadToast(`${nome} cadastrado(a) como ${CAD_LABEL_SING[tipo]} ✓`);
+}
+
+function cadRemover(tipo, id) {
+  const key = CAD_KEY[tipo];
+  const list = CLS.get(key, cadDefaults(tipo)).filter(e => e.id !== id);
+  LS_set(key, list);
+  cadRenderList();
+}
+
+function cadRenderList() {
+  const wrap = document.getElementById('cad_table_wrap_pagina');
+  // Cada chave de armazenamento (ind1_list/dp1_dealers/dp1_projetos) só pode
+  // ser lida uma vez — "indicador" e "indicador_n2" apontam pra mesma lista,
+  // então usamos entry.categoria (não a chave do loop) pra saber o real tipo.
+  const chavesUnicas = [...new Set(Object.values(CAD_KEY))];
+  const todos = chavesUnicas.flatMap(key => {
+    const tipoPadrao = Object.keys(CAD_KEY).find(t => CAD_KEY[t] === key && t !== 'indicador_n2');
+    return CLS.get(key, cadDefaults(tipoPadrao)).map(e => ({ ...e, _tipo: e.categoria || tipoPadrao }));
+  }).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+
+  if (!todos.length) { wrap.innerHTML = '<div class="cad-empty">Nenhum cadastro ainda.</div>'; return; }
+  wrap.innerHTML = `<table><thead><tr>
+      <th>Categoria</th><th>Nome</th><th>Apelido/CRM</th><th>Empresa</th><th>CPF</th><th>CNPJ</th><th>Cidade</th><th>Celular</th><th>E-mail</th><th>Comercial</th><th>Ajuda de Custo</th><th style="width:140px"></th>
+    </tr></thead><tbody>${todos.map(e => `
+      <tr>
+        <td><span class="cad-tipo-pill ${CAD_PILL_CLASS[e._tipo]}">${CAD_LABEL_SING[e._tipo]}</span></td>
+        <td style="font-weight:500">${e.nome}${e.pendente ? ' <span title="Faltam dados de contato/pagamento (CPF, cidade, celular, e-mail ou conta) — comissão calcula normal, mas não pague sem completar." style="display:inline-block;margin-left:6px;font-size:9px;font-weight:700;letter-spacing:.04em;color:#b8863f;background:#fbf1de;padding:2px 7px;border-radius:10px;vertical-align:middle">⚠ DADOS PENDENTES</span>' : ''}</td>
+        <td style="color:#888">${e.apelido || '<span style="color:#ccc">—</span>'}</td>
+        <td style="color:#888">${e.empresa || '<span style="color:#ccc">—</span>'}</td>
+        <td style="color:#888">${e.cpf || e.doc || '<span style="color:#ccc">—</span>'}</td>
+        <td style="color:#888">${e.cnpj || '<span style="color:#ccc">—</span>'}</td>
+        <td style="color:#888">${e.cidade || '<span style="color:#ccc">—</span>'}</td>
+        <td style="color:#888">${e.celular || '<span style="color:#ccc">—</span>'}</td>
+        <td style="color:#888">${e.email || '<span style="color:#ccc">—</span>'}</td>
+        <td style="color:#888">${e.comercial || '<span style="color:#ccc">—</span>'}</td>
+        <td style="color:#888">${e.ajudaCusto ? 'R$ ' + (+e.ajudaCusto).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '<span style="color:#ccc">—</span>'}</td>
+        <td style="white-space:nowrap">
+          <button class="cad-btn-outline" onclick="cadEditar('${e._tipo}','${e.id}')" style="padding:4px 9px;font-size:11px;margin-right:4px">Editar</button>
+          <button class="cad-del-btn" onclick="cadRemover('${e._tipo}','${e.id}')">Remover</button>
+        </td>
+      </tr>`).join('')}</tbody></table>`;
+}
+
+function renderCadastroLink() {
+  const vendedores = CLS.get('gs5_v', CONS_DEFAULTS.vendedores);
+  const sel = document.getElementById('cad_link_comercial');
+  const atual = sel.value;
+  sel.innerHTML = '<option value="">Selecione…</option>' + vendedores.map(v => `<option value="${v.nome}">${v.nome}</option>`).join('');
+  if (atual) sel.value = atual;
+}
+
+function cadGerarLink() {
+  const tipo = document.getElementById('cad_link_categoria').value;
+  const comercial = document.getElementById('cad_link_comercial').value;
+  const params = new URLSearchParams({ tipo });
+  if (comercial) params.set('comercial', comercial);
+  const base = location.href.replace(/index\.html(\?.*)?(#.*)?$/, '');
+  document.getElementById('cad_invite_link').value = base + 'cadastro_publico.html?' + params.toString();
+}
+
+function cadCopiarLink() {
+  const el = document.getElementById('cad_invite_link');
+  if (!el.value) { alert('Clique em "Gerar link" primeiro.'); return; }
+  el.select();
+  navigator.clipboard?.writeText(el.value).then(() => showCadToast('Link copiado ✓')).catch(() => document.execCommand('copy'));
+}
+
+function showCadToast(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#1a1a18;color:#fff;font-size:12px;font-weight:600;padding:10px 18px;border-radius:8px;z-index:999;box-shadow:0 4px 14px rgba(0,0,0,.2)';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2600);
+}
+
+function LS_set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+
+function renderCadastro() {
+  cadPopulateComercial();
+  cadRenderList();
+}
+
+// ─── IMPORTAR ───────────────────────────────────────────
+// Tela única e compartilhada que substitui as abas "Importar" que existiam
+// dentro de cada perfil (Vendedor/Dealer/Indicador/Projeto Especial). Cruza
+// Clientes (Cliente → responsável) com Inventário (linha → cliente) pra
+// descobrir de quem é cada linha, e grava o resultado agregado direto nas
+// mesmas chaves de localStorage que cada perfil já lê — não guarda o
+// Inventário bruto (500 mil linhas estourariam a cota do localStorage).
+let impRows = { pedidos: null, clientes: null, inventario: null, cancel: null, equipamentos: null, smartgps: null };
+
+// Remove acentos além de maiúsculas/espaços — "Acacio Souza" (planilha) e
+// "Acácio Souza" (cadastro) precisam bater no mesmo nome.
+const norm = s => (s == null ? '' : String(s)).normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase().replace(/\s+/g, ' ');
+const onlyDigits = s => (s == null ? '' : String(s)).replace(/\D/g, '');
+const impDateToMonth = d => {
+  if (!(d instanceof Date) || isNaN(d)) return null;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
+const MESES_PT = { janeiro: 1, fevereiro: 2, marco: 3, abril: 4, maio: 5, junho: 6, julho: 7, agosto: 8, setembro: 9, outubro: 10, novembro: 11, dezembro: 12 };
+const impMesAnterior = mes => {
+  const [y, m] = mes.split('-').map(Number);
+  const d = new Date(y, m - 2, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
+// Defasagem de "ativação" confirmada com o Diego: comissionamento de Setembro
+// considera linhas com Data de ativação em Julho (2 meses antes) — vale pra
+// Vendedor (Ativação), Indicador (contagem) e Dealer (soma/contagem de
+// ativação + novas linhas do modelo padrão). Não confundir com `impMesAnterior`
+// (usado pela defasagem de 1 mês de uma Regra de Comissão específica, ou pelo
+// "mês anterior" da base de Placas — conceitos diferentes, cada um com seu
+// próprio número de meses).
+const impMesRefAtivacao = mes => {
+  const [y, m] = mes.split('-').map(Number);
+  const d = new Date(y, m - 3, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
+const impMesSeguinte = mes => {
+  const [y, m] = mes.split('-').map(Number);
+  const d = new Date(y, m, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
+
+function impSetStatus(target, cls, msg) {
+  const el = document.getElementById('imp_' + target + '_status');
+  el.className = 'imp-status ' + cls;
+  el.textContent = msg;
+}
+
+function impHandleFile(evt, target) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  impSetStatus(target, 'st-idle', 'Lendo "' + file.name + '"…');
+  const reader = new FileReader();
+  reader.onload = e => {
+    // setTimeout deixa a mensagem "Lendo…" pintar na tela antes do parse
+    // (que é síncrono e trava a aba por alguns segundos em arquivos grandes).
+    setTimeout(() => {
+      try {
+        // dense:true é obrigatório aqui — o Inventário passa de 500 mil linhas, e o
+        // modo padrão (objeto esparso por célula) do SheetJS falha silenciosamente
+        // nesse tamanho (sem erro, mas wb.Sheets fica vazio).
+        const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: true, dense: true });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { defval: null });
+        impRows[target] = rows;
+        impSetStatus(target, 'st-ok', rows.length.toLocaleString('pt-BR') + ' linha(s) carregada(s) de "' + file.name + '". Clique em processar.');
+      } catch (err) {
+        impSetStatus(target, 'st-err', 'Não consegui ler esse arquivo: ' + err.message);
+      }
+    }, 30);
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// Nome → {tipo, id}, lido fresco do localStorage a cada processamento (assim
+// gente cadastrada depois em Cadastro de Parceiros já entra no cruzamento).
+function impBuildEntityIndex() {
+  const vendedores = CLS.get('gs5_v', CONS_DEFAULTS.vendedores);
+  const dealers = CLS.get('dp1_dealers', CONS_DEFAULTS.dealers);
+  const indicadores = CLS.get('ind1_list', CONS_DEFAULTS.indicadores);
+  const projetos = CLS.get('dp1_projetos', CONS_DEFAULTS.projetos);
+  const idx = {};
+  // Indexa pelo nome de exibição e, quando existir, também pelo apelido/ID do
+  // CRM (ex: "carneiro.junior" para o Projeto Especial "Império dos Rastreadores").
+  // comercial: nome do vendedor vinculado (campo "Comercial" do cadastro) —
+  // usado pro Volume do Vendedor somar também o volume dos parceiros que ele
+  // atende (ver impProcessarPedidos).
+  const add = (list, tipo) => list.forEach(e => {
+    idx[norm(e.nome)] = { tipo, id: e.id, comercial: e.comercial };
+    if (e.apelido) idx[norm(e.apelido)] = { tipo, id: e.id, comercial: e.comercial };
+  });
+  add(vendedores, 'vendedor');
+  add(dealers, 'dealer');
+  add(indicadores, 'indicador');
+  add(projetos, 'projeto');
+  return idx;
+}
+
+function impReqMes() {
+  const mes = document.getElementById('imp_ref_mes').value;
+  if (!mes) alert('Selecione o mês de referência no topo da tela.');
+  return mes;
+}
+
+function impResultTable(rows) {
+  if (!rows.length) return '<div class="cons-panel-empty">Nenhum lançamento.</div>';
+  return `<table class="cons-panel-table"><tbody>${rows.map(r => `<tr><td>${r[0]}</td><td class="r">${r[1]}</td></tr>`).join('')}</tbody></table>`;
+}
+
+// ─── 1 · Vendas do mês (Volume do Vendedor) ────────────
+function impProcessarPedidos() {
+  if (!impRows.pedidos) { alert('Selecione a planilha de Vendas do mês primeiro.'); return; }
+  const mes = impReqMes(); if (!mes) return;
+  if (mesAprovado(mes)) { alert('Este mês já foi aprovado — não é possível reprocessar. Desaprove antes, se precisar.'); return; }
+  // Zera tanto o mês de pagamento quanto o mês anterior — dealer com regra de
+  // defasagem grava o volume um mês antes (ver abaixo), então reprocessar
+  // precisa limpar os dois pra não somar em cima do que já tinha.
+  fontesDealerResetCampo(mes, 'volumePedidos');
+  fontesDealerResetCampo(impMesAnterior(mes), 'volumePedidos');
+  const idx = impBuildEntityIndex();
+  const vendedores = CLS.get('gs5_v', CONS_DEFAULTS.vendedores);
+  const porVendedor = {}, naoIdentificados = {}, outroPerfil = {};
+  const pedidosHeaders = Object.keys(impRows.pedidos[0] || {});
+  const rawPorVendedor = {};
+
+  impRows.pedidos.forEach(r => {
+    if (norm(r['Tipo']) !== 'simcard') return;
+    if (norm(r['Status']) === 'cancelado') return;
+    const nome = norm(r['Vendedor']);
+    if (nome === 'golpe' || nome === 'base inativa' || !nome) return;
+    const qtd = Number(r['Quantidade']) || 0;
+    const ent = idx[nome];
+    if (!ent) {
+      naoIdentificados[r['Vendedor'] || '(vazio)'] = (naoIdentificados[r['Vendedor'] || '(vazio)'] || 0) + qtd;
+      return;
+    }
+    if (ent.tipo !== 'vendedor') {
+      // já é um Dealer/Indicador/Projeto Especial cadastrado — não é um erro.
+      outroPerfil[r['Vendedor']] = (outroPerfil[r['Vendedor']] || 0) + qtd;
+      // Guarda o volume de vendas por dealer — alimenta o motor de regras pra
+      // quem usa "Volume de vendas (Pedidos)" como fonte (ex: Ione Rastrek).
+      // Mesmo padrão do Hilario/ativação: o Diego sempre seleciona o mês de
+      // PAGAMENTO na tela (ex.: Setembro) — se a Regra do dealer tem defasagem
+      // (Volume referente ao mês anterior), o deslocamento é automático aqui
+      // na gravação, não exige selecionar um mês diferente na tela.
+      if (ent.tipo === 'dealer') {
+        const regraD = regrasGet()['dealer:' + ent.id];
+        const mesGravar = (regraD && regraD.defasagem) ? impMesAnterior(mes) : mes;
+        fontesDealerAcumular(ent.id, mesGravar, 'volumePedidos', qtd);
+      }
+      // Volume do Vendedor soma também o volume dos parceiros (Indicador/
+      // Dealer/Projeto Especial) que esse vendedor atende — confirmado com o
+      // Diego batendo a planilha real ("Acompanhamento_mensal_de_vendas.xlsx",
+      // aba Comissão): Vitória vendeu 2.502 + DM Tracker (indicador dela) 101
+      // = 2.603 no volume da Vitória. Vínculo é o campo "Comercial" do
+      // cadastro do parceiro. Só vale pro Vendedor — nenhum outro perfil.
+      if (ent.comercial) {
+        const vendVinculado = vendedores.find(v => norm(v.nome) === norm(ent.comercial));
+        if (vendVinculado) porVendedor[vendVinculado.id] = (porVendedor[vendVinculado.id] || 0) + qtd;
+      }
+      return;
+    }
+    porVendedor[ent.id] = (porVendedor[ent.id] || 0) + qtd;
+    (rawPorVendedor[ent.id] = rawPorVendedor[ent.id] || []).push(pedidosHeaders.map(h => (r[h] == null ? '' : r[h])));
+  });
+
+  const mdata = CLS.get('gs5_m', {});
+  Object.keys(porVendedor).forEach(vid => {
+    const key = vid + '_' + mes;
+    mdata[key] = { ...(mdata[key] || {}), linhas: porVendedor[vid] };
+  });
+  LS_set('gs5_m', mdata);
+
+  const vendFrame = document.getElementById('frame-vendedor').contentWindow;
+  Object.keys(porVendedor).forEach(vid => vendFrame?.impSetRaw?.(vid, mes, 'simcard', pedidosHeaders, rawPorVendedor[vid] || []));
+
+  const regrasResultado = regraRecalcularTodas(mes);
+
+  // Sem isso, o Importar grava certo no localStorage mas a aba do Vendedor
+  // (e a do Dealer, se alguma Regra de Comissão usar "Volume de vendas" como
+  // fonte) continuam mostrando o dado antigo — cada iframe só lê sua chave
+  // uma vez, quando abre, não fica escutando mudanças externas.
+  vendFrame?.resyncMdata?.();
+  document.getElementById('frame-dealer').contentWindow?.resyncMdata?.();
+
+  const linhas = vendedores.filter(v => porVendedor[v.id]).map(v => [v.nome, porVendedor[v.id]]);
+  const naoIdRows = Object.entries(naoIdentificados);
+  const outroPerfilRows = Object.entries(outroPerfil);
+  document.getElementById('imp_pedidos_result').innerHTML =
+    `<div class="imp-result-title">Volume aplicado ao mês (${fmtMesC(mes)})</div>${impResultTable(linhas)}` +
+    (outroPerfilRows.length ? `<div class="imp-result-title">De outro perfil (Dealer/Indicador/Projeto Especial — não conta aqui)</div>${impResultTable(outroPerfilRows)}` : '') +
+    (naoIdRows.length ? `<div class="imp-result-title">Não identificados (revisar cadastro)</div>${impResultTable(naoIdRows)}` : '') +
+    (regrasResultado.length ? `<div class="imp-result-title">Regras de Comissão recalculadas</div>${impResultTable(regrasResultado)}` : '');
+}
+
+// ─── MOTOR DE REGRAS DE COMISSÃO (Dealer) ──────────────────────────────
+// Deixa criar/editar, direto na tela "Regras de Comissão", um modelo de
+// comissão totalmente próprio pra qualquer dealer — sem precisar programar
+// um caso especial no código a cada vez (era assim que Ione Rastrek e HTL
+// Hilario funcionavam antes). Uma regra pega um dado já apurado no Importar
+// (soma do "Preço de ativação", contagem de linhas ativadas, ou volume de
+// vendas do Pedidos — com ou sem defasagem de 1 mês) e aplica percentual,
+// valor fixo por unidade, ou faixas com vigência por data. O resultado
+// sobrescreve a margem do dealer no mês; o cancelamento continua sendo
+// aplicado depois, no dealer.html, usando a taxa da própria regra (ou a
+// genérica, se a regra não definir uma).
+const REGRAS_KEY = 'regras_comissao';
+const FONTES_DEALER_KEY = 'imp_dealer_fontes';
+// Usado pelo próprio motor (regraAvaliar, no "detalhe" do 2º componente) e
+// pela UI de Regras em dealer.html (que tem sua própria cópia idêntica,
+// já que roda num documento/iframe separado).
+const REGRA_FONTE_LABEL = { somaAtivacao: 'Soma "Preço de ativação" (Inventário)', contagemAtivadas: 'Contagem de linhas ativadas (Inventário)', volumePedidos: 'Volume de vendas (Pedidos)' };
+
+// Seed = as duas regras que já existiam hardcoded no código antes desse
+// motor existir — preservam o comportamento de hoje até que o Diego edite
+// alguma delas pela tela.
+const REGRAS_SEED = {
+  'dealer:d2': {
+    // defasagem:true — voltou a ser o modelo original a pedido do Diego
+    // (chegou a ser desligada por um dia, mas ele preferiu manter o mês
+    // anterior mesmo): Setembro considera o volume de vendas de Agosto.
+    label: 'Ione Rastrek', fonte: 'volumePedidos', defasagem: true, modo: 'faixas',
+    faixasVigencia: [
+      { desde: '2026-07', faixas: [{ gatilho: 500, mult: 2, bonus: 800 }, { gatilho: 800, mult: 3, bonus: 800 }, { gatilho: 1200, mult: 4, bonus: 800 }] },
+      { desde: '2026-09', faixas: [{ gatilho: 600, mult: 2, bonus: 900 }, { gatilho: 900, mult: 3, bonus: 900 }, { gatilho: 1300, mult: 4, bonus: 900 }] },
+      { desde: '2026-11', faixas: [{ gatilho: 700, mult: 2, bonus: 1000 }, { gatilho: 1000, mult: 3, bonus: 1000 }, { gatilho: 1400, mult: 4, bonus: 1000 }] },
+    ],
+    semFaixaMult: 2, semFaixaBonus: 0, cancelamento: null, ajudaCustoFixa: null,
+  },
+  'dealer:d1': {
+    label: 'HTL Hilario', fonte: 'somaAtivacao', defasagem: false, modo: 'percentual',
+    percentual: 0.7, faixasVigencia: [], semFaixaMult: 0, semFaixaBonus: 0,
+    cancelamento: { taxa: 1.00 }, ajudaCustoFixa: 2800,
+    // Confirmado com o Diego: além dos 70% de ativação, ele também ganha
+    // R$1,00 por linha vendida (Volume de Pedidos) — os dois somados.
+    segundo: { ativo: true, fonte: 'volumePedidos', valor: 1.00 },
+  },
+};
+
+function regrasGet() {
+  // Persiste a semente na primeira leitura — assim dealer.html (que lê o
+  // localStorage direto, sem essa semente em memória) já vê Ione/Hilario
+  // mesmo antes de qualquer Importar rodar nesta sessão.
+  const raw = localStorage.getItem(REGRAS_KEY);
+  if (raw) { try { return JSON.parse(raw); } catch {} }
+  LS_set(REGRAS_KEY, REGRAS_SEED);
+  return REGRAS_SEED;
+}
+function regraDealer(id) { return regrasGet()['dealer:' + id] || null; }
+function regrasSalvar(regras) { LS_set(REGRAS_KEY, regras); }
+regrasGet(); // garante a semente persistida assim que o shell carrega
+
+function fontesDealerGet() { return CLS.get(FONTES_DEALER_KEY, {}); }
+function fontesDealerAcumular(id, mes, campo, valor) {
+  const hist = fontesDealerGet();
+  if (!hist[id]) hist[id] = {};
+  if (!hist[id][mes]) hist[id][mes] = { somaAtivacao: 0, contagemAtivadas: 0, volumePedidos: 0 };
+  hist[id][mes][campo] = (hist[id][mes][campo] || 0) + valor;
+  LS_set(FONTES_DEALER_KEY, hist);
+}
+// Zera um campo (pra todos os dealers) antes de reprocessar um mês — sem
+// isso, reprocessar a mesma planilha 2x soma tudo de novo em cima do que já
+// tinha (achado real: Hilario com volumePedidos triplicado, 3144 em vez de
+// 1048, porque a planilha de Pedidos foi processada 3x). Todo outro cálculo
+// do sistema (Volume do Vendedor, ativação do Indicador, margem do Dealer)
+// já é recalculado do zero a cada Importar — só essa fonte acumulava sem
+// resetar. Chamado no início de cada impProcessar* antes do loop de linhas.
+function fontesDealerResetCampo(mes, campo) {
+  const hist = fontesDealerGet();
+  Object.keys(hist).forEach(id => { if (hist[id][mes]) hist[id][mes][campo] = 0; });
+  LS_set(FONTES_DEALER_KEY, hist);
+}
+
+
+function regraFaixasVigentes(faixasVigencia, mes) {
+  if (!faixasVigencia || !faixasVigencia.length) return [];
+  let melhor = faixasVigencia[0];
+  faixasVigencia.forEach(v => { if (mes >= v.desde) melhor = v; });
+  return melhor.faixas || [];
+}
+
+// Avalia uma regra pra um dealer num mês — não grava nada, só calcula.
+function regraAvaliar(regra, id, mes) {
+  const mesUsado = regra.defasagem ? impMesAnterior(mes) : mes;
+  const hist = fontesDealerGet();
+  const f = (hist[id] && hist[id][mesUsado]) || { somaAtivacao: 0, contagemAtivadas: 0, volumePedidos: 0 };
+  const base = f[regra.fonte] || 0;
+  let margin = 0, detalhe = '', faixaBonus = 0;
+  if (regra.modo === 'percentual') {
+    margin = base * (regra.percentual || 0);
+    detalhe = `${((regra.percentual || 0) * 100).toFixed(0)}% de R$ ${br2c(base)}`;
+  } else if (regra.modo === 'valorFixo') {
+    margin = base * (regra.valorFixo || 0);
+    detalhe = `${base.toLocaleString('pt-BR')} × R$ ${br2c(regra.valorFixo || 0)}`;
+  } else if (regra.modo === 'faixas') {
+    // A faixa vigente é a do mês em que o volume foi gerado (mesUsado — ex.:
+    // volume de Agosto compara com a meta de Agosto), não a do mês em que a
+    // comissão está sendo paga (mes — ex.: Setembro). Achado real: Ione com
+    // volume de Agosto sendo comparado contra a meta de Setembro por engano,
+    // fazendo o volume não bater nenhuma faixa e perder a bonificação.
+    const faixas = regraFaixasVigentes(regra.faixasVigencia, mesUsado);
+    let melhorFaixa = null;
+    faixas.forEach(fx => { if (base >= fx.gatilho && (!melhorFaixa || fx.gatilho > melhorFaixa.gatilho)) melhorFaixa = fx; });
+    if (melhorFaixa) {
+      margin = base * melhorFaixa.mult;
+      faixaBonus = melhorFaixa.bonus;
+      detalhe = `faixa ${faixas.indexOf(melhorFaixa) + 1} (gatilho ${melhorFaixa.gatilho.toLocaleString('pt-BR')} · ${melhorFaixa.mult}x + R$${melhorFaixa.bonus})`;
+    } else {
+      margin = base * (regra.semFaixaMult || 0);
+      faixaBonus = regra.semFaixaBonus || 0;
+      detalhe = 'nenhuma faixa batida';
+    }
+    margin += faixaBonus;
+  }
+  // Guarda o valor do componente principal isolado (antes de somar o 2º) —
+  // o Dealer precisa dos dois separados pra mostrar em colunas diferentes
+  // (ver dealer.html: Linhas Ativas = valor do principal, Novas Linhas =
+  // quantidade do 2º, Margem = valor do 2º), em vez de só a soma final.
+  const principalValor = margin;
+
+  // Segundo componente opcional — soma por cima do principal (nunca substitui).
+  // Existe pra dealer que ganha por 2 coisas ao mesmo tempo (ex.: Hilario:
+  // 70% de ativação + R$1,00 por linha vendida/Volume de Pedidos). Sempre
+  // "valor fixo por unidade" (base2 × valor) — os modos percentual/faixas do
+  // componente principal não fazem sentido pra um extra que só soma.
+  let detalheSegundo = '', segundoBase = 0, segundoValor = 0;
+  if (regra.segundo && regra.segundo.ativo) {
+    segundoBase = f[regra.segundo.fonte] || 0;
+    segundoValor = segundoBase * (regra.segundo.valor || 0);
+    margin += segundoValor;
+    detalheSegundo = ` + ${segundoBase.toLocaleString('pt-BR')} × R$${br2c(regra.segundo.valor || 0)} (${REGRA_FONTE_LABEL[regra.segundo.fonte] || regra.segundo.fonte})`;
+  }
+  return {
+    margin: +margin.toFixed(2), base, mesUsado, detalhe: detalhe + detalheSegundo,
+    // "novas" precisa ser o dado que de fato alimenta o cálculo principal
+    // dessa regra (a "base" — o mesmo valor usado no multiplicador/percentual
+    // acima), não um palpite entre contagemAtivadas/volumePedidos. Achado
+    // real: Ione (fonte volumePedidos) mostrava a contagem de ativação da
+    // Inventário (um número que nem entra na conta dela) em vez do próprio
+    // volume de vendas que decide a faixa.
+    novas: base,
+    faixaBonus: +faixaBonus.toFixed(2),
+    principalValor: +principalValor.toFixed(2), segundoBase, segundoValor: +segundoValor.toFixed(2),
+  };
+}
+
+// Roda depois de Pedidos e de Inventário — recalcula TODOS os dealers que
+// têm regra customizada, usando as fontes já acumuladas até agora.
+function regraRecalcularTodas(mes) {
+  if (mesAprovado(mes)) return []; // mês aprovado — não sobrescreve, mesmo se a regra mudou.
+  const regras = regrasGet();
+  const dpM = CLS.get('dp1_m', {});
+  const dealers = CLS.get('dp1_dealers', CONS_DEFAULTS.dealers);
+  const resultados = [];
+  Object.keys(regras).forEach(key => {
+    if (!key.startsWith('dealer:')) return;
+    const id = key.split(':')[1];
+    const res = regraAvaliar(regras[key], id, mes);
+    const k = 'd_' + id + '_' + mes;
+    dpM[k] = {
+      ...(dpM[k] || {}), margin: res.margin, novas: res.novas,
+      componentePrincipal: res.principalValor, segundoBase: res.segundoBase, segundoValor: res.segundoValor,
+      faixaBonus: res.faixaBonus,
+    };
+    const nome = (dealers.find(d => d.id === id) || {}).nome || regras[key].label || id;
+    resultados.push([nome, res.detalhe + ' · Total: R$ ' + br2c(res.margin)]);
+  });
+  LS_set('dp1_m', dpM);
+  return resultados;
+}
+
+// ─── 2 · Clientes atualizado ────────────────────────────
+function impProcessarClientes() {
+  if (!impRows.clientes) { alert('Selecione a planilha de Clientes primeiro.'); return; }
+  const mapa = {};
+  let semDoc = 0;
+  impRows.clientes.forEach(r => {
+    const doc = onlyDigits(r['CNPJ']) || onlyDigits(r['CPF']);
+    if (!doc) { semDoc++; return; }
+    mapa['ss_' + doc] = (r['Vendedor'] || '').toString().trim();
+  });
+  LS_set('imp_clientes_map', mapa);
+  document.getElementById('imp_clientes_result').innerHTML =
+    `<div class="imp-status st-ok">${Object.keys(mapa).length.toLocaleString('pt-BR')} clientes carregados e prontos para cruzar com o Inventário${semDoc ? ' (' + semDoc + ' sem CPF nem CNPJ, ignorados)' : ''}.</div>`;
+}
+
+// ─── 3 · Inventário (Dealer / Indicador / Projeto Especial) ──
+function impPrecoOperadora(precosArr, opEsp, opGeral) {
+  const hit = precosArr.find(p => p.op === opEsp) || precosArr.find(p => p.op === opGeral);
+  return hit ? hit.base : null;
+}
+
+function impProcessarInventario() {
+  if (!impRows.inventario) { alert('Selecione a planilha de Inventário primeiro.'); return; }
+  const mapa = CLS.get('imp_clientes_map', null);
+  if (!mapa) { alert('Carregue e processe a planilha de Clientes (passo 2) antes do Inventário.'); return; }
+  const mes = impReqMes(); if (!mes) return;
+  if (mesAprovado(mes)) { alert('Este mês já foi aprovado — não é possível reprocessar. Desaprove antes, se precisar.'); return; }
+  // Comissionamento de "mes" (ex.: Setembro) considera ativação de 2 meses
+  // antes (ex.: Julho) — confirmado com o Diego. Vale pra Vendedor/Indicador/
+  // Dealer, os 3 únicos lugares que filtram por "Data de ativação".
+  const mesRefAtiv = impMesRefAtivacao(mes);
+  fontesDealerResetCampo(mes, 'somaAtivacao'); // zera antes de reprocessar — não soma em cima do que já tinha
+  fontesDealerResetCampo(mes, 'contagemAtivadas');
+
+  const idx = impBuildEntityIndex();
+  const precosDealer = CLS.get('dp1_precos', DEF_PRECOS_DEALER);
+  const ppProjetos = CLS.get('dp1_pp', DEF_PP_PROJETO);
+
+  const dealerAgg = {}, projAgg = {}, projAtivacaoAgg = {}, projLinhasAgg = {}, indAgg = {}, vendedorAtv = {};
+  // Separados por perfil porque o efeito de "sem preço" é diferente em cada
+  // um: Dealer sem regra soma a mensalidade cheia (não mexido), Projeto
+  // Especial soma 0 (confirmado com o Diego) — juntar os dois numa lista só
+  // desinformava sobre o que realmente acontece com o valor.
+  const naoIdentificados = {}, semPrecoDealer = {}, semPrecoProjeto = {};
+  // Linhas brutas por entidade — alimenta o "↓ Extrair" de cada perfil (só em
+  // memória nesta sessão, igual ao comportamento que a aba Importar antiga já
+  // tinha: some se recarregar a página, mas o número calculado fica salvo).
+  const invHeaders = Object.keys(impRows.inventario[0] || {});
+  const dealerRaw = {}, projRaw = {}, indRaw = {};
+  const asRow = r => invHeaders.map(h => (r[h] == null ? '' : r[h]));
+
+  impRows.inventario.forEach(r => {
+    const nomeResp = mapa[r['ID_CPF/CNPJ']];
+    if (!nomeResp) return; // linha sem cliente correspondente na base de Clientes
+    const nn = norm(nomeResp);
+    if (nn === 'golpe' || nn === 'base inativa') return;
+    const ent = idx[nn];
+    if (!ent) { naoIdentificados[nomeResp] = (naoIdentificados[nomeResp] || 0) + 1; return; }
+
+    const mesAtivacao = impDateToMonth(r['Data de ativação']);
+    const mensalidade = Number(r['Mensalidade']) || 0;
+    const opEsp = r['Operadora específica'], opGeral = r['Operadora'];
+
+    if (ent.tipo === 'vendedor') {
+      // Ativação do Vendedor: soma do "Preço de ativação" das linhas ativadas
+      // no mês de referência menos 2 (Volume continua vindo do passo 1/Pedidos).
+      if (mesAtivacao === mesRefAtiv) {
+        const precoAtivacao = Number(r['Preço de ativação']) || 0;
+        vendedorAtv[ent.id] = (vendedorAtv[ent.id] || 0) + precoAtivacao;
+      }
+    } else if (ent.tipo === 'indicador') {
+      if (mesAtivacao === mesRefAtiv) {
+        indAgg[ent.id] = (indAgg[ent.id] || 0) + 1;
+        (indRaw[ent.id] = indRaw[ent.id] || []).push(asRow(r));
+      }
+    } else if (ent.tipo === 'dealer') {
+      (dealerRaw[ent.id] = dealerRaw[ent.id] || []).push(asRow(r));
+      // Sempre acumula as fontes genéricas (soma "Preço de ativação" e
+      // contagem de linhas ativadas no mês de referência menos 2) — usadas
+      // pelo motor de regras pra quem tiver uma regra customizada salva (ver
+      // "Regras de Comissão").
+      if (mesAtivacao === mesRefAtiv) {
+        fontesDealerAcumular(ent.id, mes, 'somaAtivacao', Number(r['Preço de ativação']) || 0);
+        fontesDealerAcumular(ent.id, mes, 'contagemAtivadas', 1);
+      }
+      // Dealer com regra customizada (ex: Ione, Hilario) não usa margem por
+      // mensalidade/preço-base — o motor de regras sobrescreve depois (ver
+      // regraRecalcularTodas, chamado no fim desta função).
+      if (regraDealer(ent.id)) return;
+      const preco = impPrecoOperadora(precosDealer, opEsp, opGeral);
+      if (preco == null) semPrecoDealer[opEsp || opGeral || '(sem operadora)'] = (semPrecoDealer[opEsp || opGeral || '(sem operadora)'] || 0) + 1;
+      if (!dealerAgg[ent.id]) dealerAgg[ent.id] = { margin: 0, novas: 0 };
+      dealerAgg[ent.id].margin += mensalidade - (preco || 0);
+      if (mesAtivacao === mesRefAtiv) dealerAgg[ent.id].novas += 1;
+      (dealerRaw[ent.id] = dealerRaw[ent.id] || []).push(asRow(r));
+    } else if (ent.tipo === 'projeto') {
+      // "Linhas em base": total de linhas faturadas no mês, contando todas as
+      // linhas da entidade — independente de ter preço de operadora mapeado.
+      projLinhasAgg[ent.id] = (projLinhasAgg[ent.id] || 0) + 1;
+      const pp = ppProjetos[ent.id] || {};
+      const hist = pp[opEsp] || pp[opGeral];
+      let preco = hist ? impPrecoVigente(hist, r['Data de ativação']) : null;
+      // Linha unitária "fora do padrão" (BL/alto consumo etc.): se a margem
+      // bruta dessa linha (mensalidade − valor base da tabela) passar de
+      // R$5,00, o Valor Base vira igual à Mensalidade (margem 0) — confirmado
+      // com o Diego, critério é só o valor, não o nome do plano/contrato.
+      if (preco != null && (mensalidade - preco) > 5) preco = mensalidade;
+      if (preco == null) {
+        // Operadora sem valor base cadastrado — margem dessa linha é 0 (não a
+        // mensalidade inteira), confirmado com o Diego. Só conta como
+        // "sem preço" pro aviso, não entra na soma da margem.
+        semPrecoProjeto[opEsp || opGeral || '(sem operadora)'] = (semPrecoProjeto[opEsp || opGeral || '(sem operadora)'] || 0) + 1;
+      } else {
+        // Margem bruta da linha (nunca negativa — confirmado na planilha real:
+        // quando Valor Base > Mensalidade, a linha não desconta, fica em 0).
+        // O percentual de margem (taxaMargem, próprio de cada projeto) é
+        // aplicado depois do loop, na hora de gravar em dp1_m — igual à
+        // Ativação.
+        projAgg[ent.id] = (projAgg[ent.id] || 0) + Math.max(0, mensalidade - preco);
+      }
+      // Ativação do Projeto Especial: soma do "Preço de ativação" das linhas
+      // ativadas no mês de referência (mesma defasagem de 2 meses dos outros
+      // perfis) — o percentual próprio de cada projeto é aplicado depois do
+      // loop, na hora de gravar em dp1_m.
+      if (mesAtivacao === mesRefAtiv) {
+        projAtivacaoAgg[ent.id] = (projAtivacaoAgg[ent.id] || 0) + (Number(r['Preço de ativação']) || 0);
+      }
+      (projRaw[ent.id] = projRaw[ent.id] || []).push(asRow(r));
+    }
+  });
+
+  const dealerFrame = document.getElementById('frame-dealer').contentWindow;
+  Object.keys(dealerRaw).forEach(id => dealerFrame?.impSetRaw?.(id, mes, invHeaders, dealerRaw[id] || []));
+  const projFrame = document.getElementById('frame-projeto_especial').contentWindow;
+  Object.keys(projAgg).forEach(id => projFrame?.impSetRaw?.(id, mes, invHeaders, projRaw[id] || []));
+  const indFrame = document.getElementById('frame-indicadores').contentWindow;
+  Object.keys(indAgg).forEach(id => indFrame?.impSetRaw?.(id, mes, invHeaders, indRaw[id] || []));
+
+  const dpM = CLS.get('dp1_m', {});
+  Object.keys(dealerAgg).forEach(id => {
+    const key = 'd_' + id + '_' + mes;
+    dpM[key] = { ...(dpM[key] || {}), margin: dealerAgg[id].margin, novas: dealerAgg[id].novas };
+  });
+  const projetosCfg = CLS.get('dp1_projetos', CONS_DEFAULTS.projetos);
+  const idsProjeto = new Set([...Object.keys(projAgg), ...Object.keys(projAtivacaoAgg), ...Object.keys(projLinhasAgg)]);
+  idsProjeto.forEach(id => {
+    const key = 'p_' + id + '_' + mes;
+    const cfg = projetosCfg.find(p => p.id === id) || {};
+    const ativacao = (projAtivacaoAgg[id] || 0) * (cfg.taxaAtivacao || 0);
+    const margin = (projAgg[id] || 0) * (cfg.taxaMargem || 0);
+    dpM[key] = { ...(dpM[key] || {}), margin: +margin.toFixed(2), ativacao: +ativacao.toFixed(2), linhas: projLinhasAgg[id] || 0 };
+  });
+  LS_set('dp1_m', dpM);
+  // Recalcula por cima quem tem regra customizada — sobrescreve a margem
+  // genérica que possa ter sido escrita acima (não deveria, já que o bloco
+  // dealer retorna antes disso pra quem tem regra, mas garante consistência).
+  const regrasResultadoInv = regraRecalcularTodas(mes);
+
+  const indM = CLS.get('ind1_m', {});
+  Object.keys(indAgg).forEach(id => {
+    const key = id + '_' + mes;
+    indM[key] = { ...(indM[key] || {}), atv: indAgg[id] };
+  });
+  LS_set('ind1_m', indM);
+
+  // Ativação do Vendedor entra por cima do que o passo 1 (Volume) já gravou —
+  // sem sobrescrever o campo linhas.
+  const gsM = CLS.get('gs5_m', {});
+  Object.keys(vendedorAtv).forEach(id => {
+    const key = id + '_' + mes;
+    gsM[key] = { ...(gsM[key] || {}), atv: vendedorAtv[id] };
+  });
+  LS_set('gs5_m', gsM);
+
+  // Sem isso, o Importar grava certo no localStorage mas as abas dos 4
+  // perfis continuam mostrando o dado antigo — cada iframe só lê sua chave
+  // uma vez, quando abre, não fica escutando mudanças externas.
+  document.getElementById('frame-vendedor').contentWindow?.resyncMdata?.();
+  dealerFrame?.resyncMdata?.();
+  projFrame?.resyncMdata?.();
+  indFrame?.resyncMdata?.();
+
+  const vendedores = CLS.get('gs5_v', CONS_DEFAULTS.vendedores);
+  const dealers = CLS.get('dp1_dealers', CONS_DEFAULTS.dealers);
+  const projetos = CLS.get('dp1_projetos', CONS_DEFAULTS.projetos);
+  const indicadores = CLS.get('ind1_list', CONS_DEFAULTS.indicadores);
+  const vendAtvRows = vendedores.filter(v => vendedorAtv[v.id]).map(v => [v.nome, 'R$ ' + br2c(vendedorAtv[v.id])]);
+  const dealerRows = dealers.filter(d => dealerAgg[d.id]).map(d => [d.nome, 'R$ ' + br2c(dealerAgg[d.id].margin) + ' · ' + dealerAgg[d.id].novas + ' nova(s)']);
+  const projRows = projetos.filter(p => projAgg[p.id]).map(p => [p.nome, 'R$ ' + br2c(projAgg[p.id] * (p.taxaMargem || 0))]);
+  const indRows = indicadores.filter(i => indAgg[i.id]).map(i => [i.nome, indAgg[i.id] + ' linha(s)']);
+  const naoIdRows = Object.entries(naoIdentificados);
+  const semPrecoDealerRows = Object.entries(semPrecoDealer);
+  const semPrecoProjetoRows = Object.entries(semPrecoProjeto);
+
+  document.getElementById('imp_inventario_result').innerHTML =
+    `<div class="imp-result-title">Vendedor — ativação em ${fmtMesC(mes)}</div>${impResultTable(vendAtvRows)}` +
+    `<div class="imp-result-title">Dealer — margem do mês</div>${impResultTable(dealerRows)}` +
+    `<div class="imp-result-title">Indicador — ativações em ${fmtMesC(mes)}</div>${impResultTable(indRows)}` +
+    `<div class="imp-result-title">Projeto Especial — margem (todas as linhas)</div>${impResultTable(projRows)}` +
+    (regrasResultadoInv.length ? `<div class="imp-result-title">Regras de Comissão recalculadas</div>${impResultTable(regrasResultadoInv)}` : '') +
+    (naoIdRows.length ? `<div class="imp-result-title">Não identificados (revisar cadastro)</div>${impResultTable(naoIdRows)}` : '') +
+    (semPrecoDealerRows.length ? `<div class="imp-result-title">Dealer — operadora sem preço base configurado (margem = mensalidade cheia nessas linhas — revisar nome da operadora ou cadastrar o preço)</div>${impResultTable(semPrecoDealerRows)}` : '') +
+    (semPrecoProjetoRows.length ? `<div class="imp-result-title">Projeto Especial — operadora sem preço base configurado (margem = 0 nessas linhas — revisar nome da operadora ou cadastrar o preço)</div>${impResultTable(semPrecoProjetoRows)}` : '');
+}
+
+// ─── 4 · Cancelamentos (Dealer / Projeto Especial) ─────
+// A planilha vem completa (sem separar por perfil) — cada linha é classificada
+// batendo o nome do executivo contra os cadastros, igual ao Inventário.
+function impProcessarCancelamentos() {
+  if (!impRows.cancel) { alert('Selecione a planilha de cancelamentos primeiro.'); return; }
+  const mes = impReqMes(); if (!mes) return;
+  if (mesAprovado(mes)) { alert('Este mês já foi aprovado — não é possível reprocessar. Desaprove antes, se precisar.'); return; }
+  const idx = impBuildEntityIndex();
+  const porEntidade = { dealer: {}, projeto: {} };
+  const cancelHeaders = Object.keys(impRows.cancel[0] || {});
+  const cancelRaw = { dealer: {}, projeto: {} };
+
+  impRows.cancel.forEach(r => {
+    const nomeCol = r['Vendedor'] ?? r['Executivo'] ?? r['Vendedor/Executivo'];
+    const ent = idx[norm(nomeCol)];
+    if (!ent || (ent.tipo !== 'dealer' && ent.tipo !== 'projeto')) return;
+    porEntidade[ent.tipo][ent.id] = (porEntidade[ent.tipo][ent.id] || 0) + 1;
+    (cancelRaw[ent.tipo][ent.id] = cancelRaw[ent.tipo][ent.id] || []).push(cancelHeaders.map(h => (r[h] == null ? '' : r[h])));
+  });
+
+  const dealerFrame = document.getElementById('frame-dealer').contentWindow;
+  Object.keys(porEntidade.dealer).forEach(id => dealerFrame?.impSetCancelRaw?.(id, mes, cancelHeaders, cancelRaw.dealer[id] || []));
+  const projFrame = document.getElementById('frame-projeto_especial').contentWindow;
+  Object.keys(porEntidade.projeto).forEach(id => projFrame?.impSetCancelRaw?.(id, mes, cancelHeaders, cancelRaw.projeto[id] || []));
+
+  const dpM = CLS.get('dp1_m', {});
+  Object.keys(porEntidade.dealer).forEach(id => {
+    const key = 'd_' + id + '_' + mes;
+    dpM[key] = { ...(dpM[key] || {}), cancel: porEntidade.dealer[id] };
+  });
+  Object.keys(porEntidade.projeto).forEach(id => {
+    const key = 'p_' + id + '_' + mes;
+    dpM[key] = { ...(dpM[key] || {}), cancel: porEntidade.projeto[id] };
+  });
+  LS_set('dp1_m', dpM);
+  dealerFrame?.resyncMdata?.();
+  projFrame?.resyncMdata?.();
+
+  const dealers = CLS.get('dp1_dealers', CONS_DEFAULTS.dealers);
+  const projetos = CLS.get('dp1_projetos', CONS_DEFAULTS.projetos);
+  const dealerRows = dealers.filter(e => porEntidade.dealer[e.id]).map(e => [e.nome, porEntidade.dealer[e.id] + ' linha(s)']);
+  const projRows = projetos.filter(e => porEntidade.projeto[e.id]).map(e => [e.nome, porEntidade.projeto[e.id] + ' linha(s)']);
+  document.getElementById('imp_cancel_result').innerHTML =
+    `<div class="imp-result-title">Dealer — cancelamentos em ${fmtMesC(mes)}</div>${impResultTable(dealerRows)}` +
+    `<div class="imp-result-title">Projeto Especial — cancelamentos em ${fmtMesC(mes)}</div>${impResultTable(projRows)}`;
+}
+
+// ─── 5a · Cobranças (Asaas) · Equipamento ──────
+// Planilha crua de recebíveis — sem coluna de Executivo, então o vendedor sai
+// do cruzamento com Clientes (passo 2), igual ao Inventário. Só entra linha
+// cuja Descrição contenha "equipamento"; o resto é ignorado.
+function impProcessarEquipamentos() {
+  if (!impRows.equipamentos) { alert('Selecione a planilha de Equipamentos primeiro.'); return; }
+  const mapa = CLS.get('imp_clientes_map', null);
+  if (!mapa) { alert('Carregue e processe a planilha de Clientes (passo 2) antes de Equipamentos.'); return; }
+  const mes = impReqMes(); if (!mes) return;
+  if (mesAprovado(mes)) { alert('Este mês já foi aprovado — não é possível reprocessar. Desaprove antes, se precisar.'); return; }
+
+  const idx = impBuildEntityIndex();
+  const equipVendedor = {};
+  const equipRaw = {};
+  const equipHeaders = Object.keys(impRows.equipamentos[0] || {});
+  const asRowEq = r => equipHeaders.map(h => (r[h] == null ? '' : r[h]));
+  const naoIdentificados = {};
+
+  impRows.equipamentos.forEach(r => {
+    if (norm(r['Situação']) !== 'recebida') return;
+    const doc = onlyDigits(r['CPF ou CNPJ']);
+    if (!doc) return;
+    const nomeResp = mapa['ss_' + doc];
+    if (!nomeResp) return;
+    const nn = norm(nomeResp);
+    if (nn === 'golpe' || nn === 'base inativa') return;
+    const ent = idx[nn];
+    // Equipamento é comissão do Vendedor — Dealer/Indicador/Projeto Especial
+    // não entram aqui (não têm essa coluna na regra que o Diego deu).
+    if (!ent || ent.tipo !== 'vendedor') {
+      if (!ent) naoIdentificados[nomeResp] = (naoIdentificados[nomeResp] || 0) + 1;
+      return;
+    }
+
+    const desc = norm(r['Descrição']);
+    if (!desc.includes('equipamento')) return;
+    // Sem filtro de mês — é só o recebível, conta assim que "Recebida".
+    const valor = Number(r['Valor']) || 0;
+    equipVendedor[ent.id] = (equipVendedor[ent.id] || 0) + valor;
+    (equipRaw[ent.id] = equipRaw[ent.id] || []).push(asRowEq(r));
+  });
+
+  const vendFrameEq = document.getElementById('frame-vendedor').contentWindow;
+  Object.keys(equipVendedor).forEach(id => vendFrameEq?.impSetRaw?.(id, mes, 'equip', equipHeaders, equipRaw[id] || []));
+
+  const gsM = CLS.get('gs5_m', {});
+  Object.keys(equipVendedor).forEach(id => {
+    const key = id + '_' + mes;
+    gsM[key] = { ...(gsM[key] || {}), eq: equipVendedor[id] };
+  });
+  LS_set('gs5_m', gsM);
+  vendFrameEq?.resyncMdata?.();
+
+  const vendedores = CLS.get('gs5_v', CONS_DEFAULTS.vendedores);
+  const eqRows = vendedores.filter(v => equipVendedor[v.id]).map(v => [v.nome, 'R$ ' + br2c(equipVendedor[v.id] * 0.02) + ' (recebido: R$ ' + br2c(equipVendedor[v.id]) + ')']);
+  const naoIdRows = Object.entries(naoIdentificados);
+
+  document.getElementById('imp_equipamentos_result').innerHTML =
+    `<div class="imp-result-title">Equipamento — 2% do valor recebido</div>${impResultTable(eqRows)}` +
+    (naoIdRows.length ? `<div class="imp-result-title">Não identificados (revisar cadastro)</div>${impResultTable(naoIdRows)}` : '');
+}
+
+// ─── 5b · Cobranças (Asaas) · Smart GPS (Placas) ──────
+// A comissão já vem pronta na planilha que o Diego prepara fora do sistema
+// (coluna P — a 16ª coluna do arquivo, seja qual for o nome do cabeçalho ali).
+// O sistema só cruza por CNPJ/CPF (via Clientes, passo 2) pra achar o vendedor
+// e soma o valor da coluna P — não recalcula nada a partir da Descrição.
+function impProcessarSmartGPS() {
+  if (!impRows.smartgps) { alert('Selecione a planilha de Smart GPS primeiro.'); return; }
+  const mapa = CLS.get('imp_clientes_map', null);
+  if (!mapa) { alert('Carregue e processe a planilha de Clientes (passo 2) antes de Smart GPS.'); return; }
+  const mes = impReqMes(); if (!mes) return;
+  if (mesAprovado(mes)) { alert('Este mês já foi aprovado — não é possível reprocessar. Desaprove antes, se precisar.'); return; }
+
+  const idx = impBuildEntityIndex();
+  const placasVendedor = {};
+  const placasRaw = {};
+  const gpsHeaders = Object.keys(impRows.smartgps[0] || {});
+  const colP = gpsHeaders[15]; // coluna P = 16ª coluna
+  const asRowGps = r => gpsHeaders.map(h => (r[h] == null ? '' : r[h]));
+  const naoIdentificados = {};
+
+  impRows.smartgps.forEach(r => {
+    if (norm(r['Situação']) !== 'recebida') return;
+    const doc = onlyDigits(r['CPF ou CNPJ']);
+    if (!doc) return;
+    const nomeResp = mapa['ss_' + doc];
+    if (!nomeResp) return;
+    const nn = norm(nomeResp);
+    if (nn === 'golpe' || nn === 'base inativa') return;
+    const ent = idx[nn];
+    // Smart GPS é comissão do Vendedor — Dealer/Indicador/Projeto Especial
+    // não entram aqui (não têm essa coluna na regra que o Diego deu).
+    if (!ent || ent.tipo !== 'vendedor') {
+      if (!ent) naoIdentificados[nomeResp] = (naoIdentificados[nomeResp] || 0) + 1;
+      return;
+    }
+
+    const valor = Number(r[colP]) || 0;
+    placasVendedor[ent.id] = (placasVendedor[ent.id] || 0) + valor;
+    (placasRaw[ent.id] = placasRaw[ent.id] || []).push(asRowGps(r));
+  });
+
+  const vendFrameGps = document.getElementById('frame-vendedor').contentWindow;
+  Object.keys(placasVendedor).forEach(id => vendFrameGps?.impSetRaw?.(id, mes, 'gps', gpsHeaders, placasRaw[id] || []));
+
+  const gsM = CLS.get('gs5_m', {});
+  Object.keys(placasVendedor).forEach(id => {
+    const key = id + '_' + mes;
+    // Guarda a comissão de Smart GPS já calculada direto no campo "gps" — o
+    // cálculo do Vendedor faz gps*(gpsRate/100), e gpsRate default é 100(%),
+    // então o valor bate direto.
+    gsM[key] = { ...(gsM[key] || {}), gps: placasVendedor[id] };
+  });
+  LS_set('gs5_m', gsM);
+  vendFrameGps?.resyncMdata?.();
+
+  const vendedores = CLS.get('gs5_v', CONS_DEFAULTS.vendedores);
+  const placasRows = vendedores.filter(v => placasVendedor[v.id]).map(v => [v.nome, 'R$ ' + br2c(placasVendedor[v.id])]);
+  const naoIdRows = Object.entries(naoIdentificados);
+
+  document.getElementById('imp_smartgps_result').innerHTML =
+    `<div class="imp-result-title">Smart GPS — coluna P em ${fmtMesC(mes)}</div>${impResultTable(placasRows)}` +
+    (naoIdRows.length ? `<div class="imp-result-title">Não identificados (revisar cadastro)</div>${impResultTable(naoIdRows)}` : '');
+}
+
+function renderImportar() {
+  const el = document.getElementById('imp_ref_mes');
+  if (!el.value) {
+    const now = new Date();
+    el.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  }
+  consManualPreencherForm(el.value);
+  const bloqueado = mesAprovado(el.value);
+  document.getElementById('cons_manual_lock').style.display = bloqueado ? 'block' : 'none';
+  document.querySelectorAll('#cons_manual_wrap input, #cons_manual_wrap button').forEach(x => x.disabled = bloqueado);
+  renderImportHistorico();
+}
+
+// ─── HISTÓRICO DE IMPORTAÇÕES (Importar) ───────────────
+// Lista o ano inteiro (Jan-Dez), mês a mês, com status de aprovação e total
+// geral — pra não precisar ficar trocando de tela pra aprovar/desaprovar/
+// excluir um mês específico, e pra dar uma visão "o que já foi lançado esse
+// ano" de bater o olho, sem precisar navegar mês a mês na Visão Consolidada.
+function impHistAnosDisponiveis() {
+  const anos = new Set([new Date().getFullYear()]);
+  const refMes = document.getElementById('imp_ref_mes')?.value;
+  if (refMes) anos.add(+refMes.slice(0, 4));
+  Object.keys(aprovacoesGet()).forEach(m => anos.add(+m.slice(0, 4)));
+  ['gs5_m', 'dp1_m', 'ind1_m'].forEach(key => {
+    Object.keys(CLS.get(key, {})).forEach(k => { const m = k.slice(-7); if (/^\d{4}-\d{2}$/.test(m)) anos.add(+m.slice(0, 4)); });
+  });
+  ['go1_m', 'da1_m', 'dc1_m'].forEach(key => {
+    Object.keys(CLS.get(key, {})).forEach(m => { if (/^\d{4}-\d{2}$/.test(m)) anos.add(+m.slice(0, 4)); });
+  });
+  return [...anos].sort((a, b) => b - a);
+}
+
+function renderImportHistorico() {
+  const selAno = document.getElementById('imp_hist_ano');
+  const anos = impHistAnosDisponiveis();
+  const anoAtual = selAno.value ? +selAno.value : new Date().getFullYear();
+  selAno.innerHTML = anos.map(a => `<option value="${a}">${a}</option>`).join('');
+  selAno.value = anos.includes(anoAtual) ? anoAtual : anos[0];
+  const ano = +selAno.value;
+
+  const hoje = new Date();
+  const mesLimite = ano === hoje.getFullYear() ? hoje.getMonth() + 1 : 12;
+  const linhas = [];
+  for (let m = 1; m <= 12; m++) {
+    const mesStr = `${ano}-${String(m).padStart(2, '0')}`;
+    const totais = consTotalPorPerfil(mesStr);
+    const total = CONS_PERFIS.reduce((a, p) => a + (totais[p.key] || 0), 0);
+    const aprov = aprovacoesGet()[mesStr];
+    const temDado = total > 0 || !!consManualGet(mesStr);
+    let badge, acoes;
+    if (aprov && aprov.aprovado) {
+      badge = `<span class="imp-hist-badge aprovado">🔒 Aprovado</span>`;
+      acoes = `<button class="cad-btn-outline" onclick="consDesaprovarMes('${mesStr}')">Desaprovar</button><button class="cad-del-btn" onclick="consExcluirMes('${mesStr}')">Excluir</button>`;
+    } else if (temDado) {
+      badge = `<span class="imp-hist-badge aberto">Aberto</span>`;
+      acoes = `<button class="cad-btn" onclick="consAprovarMes('${mesStr}')">Aprovar</button><button class="cad-del-btn" onclick="consExcluirMes('${mesStr}')">Excluir</button>`;
+    } else {
+      badge = `<span class="imp-hist-badge vazio">Sem lançamento</span>`;
+      acoes = '';
+    }
+    // Meses futuros (além do mês corrente, só no ano atual) não têm porque
+    // mostrar ação nenhuma ainda — ninguém aprova ou exclui o que nem existe.
+    if (ano === hoje.getFullYear() && m > mesLimite && !temDado) acoes = '';
+    linhas.push(`<div class="imp-hist-row">
+      <div class="imp-hist-mes">${fmtMesC(mesStr)}</div>
+      ${badge}
+      <div class="imp-hist-total">${temDado ? 'R$ ' + br2c(total) : '<span style="color:#ccc">—</span>'}</div>
+      <div class="imp-hist-actions">${acoes}</div>
+    </div>`);
+  }
+  document.getElementById('imp_hist_lista').innerHTML = linhas.join('');
+}
+
+// Reabre no painel em que o usuário estava antes do F5 (ou Visão Consolidada,
+// se for a primeira vez ou o painel salvo não existir mais).
+let painelInicial = 'consolidado';
+try {
+  const salvo = localStorage.getItem(PAINEL_KEY);
+  if (salvo && ALL_PANELS.includes(salvo)) painelInicial = salvo;
+} catch {}
+ativarPainel(painelInicial);
+</script>
+
+</body>
+</html>

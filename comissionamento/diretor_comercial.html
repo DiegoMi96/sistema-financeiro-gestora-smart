@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Comissão Diretor Comercial · Gestora Smart</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#f5f4f0;color:#1a2332;font-size:13px;line-height:1.5}
+.page{max-width:1080px;margin:0 auto;padding:40px 28px 80px}
+:root{--navy:#0f2340;--gold:#b8863f;--gold-bg:#fdf6ec;--gold-border:#e8d5b5}
+
+.header{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:18px;border-bottom:3px solid var(--navy);margin-bottom:26px}
+.header-left .eyebrow{font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+.header-left h1{font-size:24px;font-weight:800;color:var(--navy)}
+.header-right{text-align:right}
+.hbadge{background:var(--navy);color:#fff;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:5px 14px;border-radius:3px}
+.ciclo-label{font-size:11px;color:#55617a;margin-top:6px}
+
+.tab-nav{display:flex;border-bottom:1px solid #e2e5ea;margin-bottom:28px}
+.tab-btn{background:none;border:none;border-bottom:2.5px solid transparent;margin-bottom:-1px;padding:9px 18px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#99a3b4;cursor:pointer;font-family:'Inter',sans-serif;transition:color .15s}
+.tab-btn.active{color:var(--navy);border-bottom-color:var(--navy)}
+.tab-btn:hover:not(.active){color:#333}
+.tab-panel{display:none}.tab-panel.active{display:block}
+
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.card{background:#fff;border:1px solid #e2e5ea;border-top:3px solid var(--navy);border-radius:4px;padding:20px 22px;margin-bottom:14px}
+.card.gold{border-top-color:var(--gold)}
+.card-title{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#55617a;margin-bottom:14px}
+label.lbl{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#55617a;margin-bottom:4px;display:block}
+.irow{display:flex;align-items:center;gap:6px}.irow input{flex:1}
+.ipfx{font-size:12px;color:#99a3b4;white-space:nowrap}
+input[type=number],input[type=text],input[type=month],select,textarea{background:#f6f7f9;border:1px solid #e2e5ea;border-radius:4px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:#1a2332;width:100%;outline:none}
+input:focus,select:focus{border-color:var(--navy);background:#fff}
+textarea{resize:vertical}
+.btn{background:var(--navy);color:#fff;border:none;border-radius:4px;padding:9px 18px;font-size:12px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer}
+.btn:hover{background:#1e3a5f}
+.btn-sm{padding:5px 12px;font-size:11px}
+.btn-ghost{background:transparent;color:var(--navy);border:1px solid #d1d7e0;border-radius:4px;padding:8px 14px;font-size:12px;font-weight:500;font-family:'Inter',sans-serif;cursor:pointer}
+.btn-ghost:hover{background:#f0f2f5}
+.btn-gold{background:var(--gold);color:#fff;border:none;border-radius:4px;padding:9px 18px;font-size:12px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer}
+.btn-del{background:#fceaea;color:#b83232;border:1px solid #f5c6c6;border-radius:3px;padding:4px 8px;font-size:11px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer}
+table{width:100%;border-collapse:collapse}
+th{background:var(--navy);color:#fff;text-align:center;padding:10px 12px;font-size:11px;font-weight:600;letter-spacing:.04em;white-space:nowrap}
+th.left{text-align:left}
+td{padding:9px 12px;border-bottom:1px solid #eef0f4;font-size:12px;color:#1a2332;text-align:center;white-space:nowrap}
+td.left{text-align:left}
+tr:last-child td{border-bottom:none}
+.c-navy{color:var(--navy);font-weight:600}
+.rule-input{background:#f6f7f9;border:1px solid #e2e5ea;border-radius:3px;padding:5px 7px;font-size:12px;font-family:'Inter',sans-serif;color:#1a2332;text-align:right;outline:none}
+.rule-input:focus{border-color:var(--navy);background:#fff}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:22px}
+.kpi{background:#fff;border:1px solid #e2e5ea;border-top:3px solid var(--navy);border-radius:4px;padding:14px 16px}
+.kpi.gold{border-top-color:var(--gold)}
+.kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#55617a;margin-bottom:5px;font-weight:600}
+.kpi-val{font-size:20px;font-weight:800;color:var(--navy);line-height:1.1}
+.kpi.gold .kpi-val{color:var(--gold)}
+.kpi-sub{font-size:10px;color:#99a3b4;margin-top:3px}
+
+.marco-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:6px;margin-bottom:8px;border:1px solid #e2e5ea;background:#fff}
+.marco-row.pago{background:#f0fdf6;border-color:#86efb0}
+.marco-icon{font-size:20px;flex-shrink:0}
+.marco-info{flex:1}
+.marco-nome{font-size:12px;font-weight:600;color:var(--navy)}
+.marco-pago{font-size:11px;color:#2e7d5b;font-weight:600}
+.marco-pendente{font-size:11px;color:#99a3b4}
+.marco-val{font-size:16px;font-weight:800;color:var(--gold)}
+
+.sis-item{background:#fff;border:1px solid #e2e5ea;border-radius:4px;padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.sis-nome{font-size:12px;font-weight:600;color:var(--navy)}
+.sis-data{font-size:10px;color:#99a3b4;margin-top:2px}
+.sis-val{font-size:16px;font-weight:800;color:var(--gold)}
+
+.calc-preview{background:var(--navy);border-radius:6px;padding:18px 22px;margin-top:14px}
+.cp-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.cp-item label{font-size:9px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px}
+.cp-item span{font-size:13px;font-weight:600;color:#fff}
+.cp-sep{font-size:15px;color:rgba(255,255,255,.25)}
+.cp-total{display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,.12);padding-top:12px;margin-top:4px}
+.cp-total-lbl{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.1em}
+.cp-total-val{font-size:28px;font-weight:800;color:#fbbf24}
+
+.footnote{background:var(--gold-bg);border:1px solid var(--gold-border);border-radius:4px;padding:12px 16px;font-size:11.5px;color:#7a6636;line-height:1.6;margin-top:14px}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--navy);color:#fff;font-size:12px;font-weight:600;padding:10px 18px;border-radius:4px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:99}
+.toast.show{opacity:1}
+
+.nivel-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-radius:4px;margin-bottom:6px;background:#f6f7f9;border:1px solid #e2e5ea}
+.nivel-row.atual{background:var(--gold-bg);border-color:var(--gold-border)}
+.nivel-nome{font-size:12px;font-weight:700;color:var(--navy)}
+.nivel-periodo{font-size:10px;color:#99a3b4}
+.nivel-val{font-size:13px;font-weight:700;color:var(--gold);text-align:right}
+
+/* ─── Responsivo (tablet/celular) ─── */
+@media (max-width:860px){
+  .page{padding:24px 16px 60px}
+  .g2{grid-template-columns:1fr}
+  .tab-nav{flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="header">
+  <div class="header-left">
+    <div class="eyebrow">Gestora Smart · Confidencial</div>
+    <h1>Diretor Comercial</h1>
+  </div>
+  <div class="header-right">
+    <span class="hbadge">Johnny Alves</span>
+    <div class="ciclo-label">Modelo v1 · valores parametrizáveis · ago/2026</div>
+  </div>
+</div>
+
+<div class="tab-nav">
+  <button class="tab-btn active" data-tab="calc">Calculadora Mensal</button>
+  <button class="tab-btn" data-tab="ciclo">Ciclo &amp; Bonificações</button>
+  <button class="tab-btn" data-tab="config">Configurações</button>
+</div>
+
+<!-- ═══ CALCULADORA MENSAL ═══ -->
+<div id="tab-calc" class="tab-panel active">
+
+  <div class="card gold">
+    <p class="card-title">Remuneração fixa do nível atual <span style="font-weight:400;text-transform:none;color:#99a3b4">— referência, não entra no total variável abaixo</span></p>
+    <div id="nivel_atual_box"></div>
+  </div>
+
+  <div class="kpi-grid" id="kpiGrid">
+    <div class="kpi"><div class="kpi-label">Volume (Gross Adds)</div><div class="kpi-val" id="k_volume">R$ 0</div><div class="kpi-sub" id="k_volume_sub">—</div></div>
+    <div class="kpi"><div class="kpi-label">Cresc. Líquido</div><div class="kpi-val" id="k_cresc">R$ 0</div><div class="kpi-sub" id="k_cresc_sub">—</div></div>
+    <div class="kpi"><div class="kpi-label">Hardware</div><div class="kpi-val" id="k_hw">R$ 0</div><div class="kpi-sub" id="k_hw_sub">—</div></div>
+    <div class="kpi gold"><div class="kpi-label">Satisfação</div><div class="kpi-val" id="k_sat">R$ 0</div><div class="kpi-sub" id="k_sat_sub">—</div></div>
+    <div class="kpi" style="border-top-color:#2563eb"><div class="kpi-label">Total do mês</div><div class="kpi-val" id="k_total" style="color:#2563eb">R$ 0</div><div class="kpi-sub" id="k_mes_label"></div></div>
+  </div>
+
+  <div class="g2">
+    <div>
+      <div class="card">
+        <p class="card-title">Lançamento do mês</p>
+        <div style="margin-bottom:12px">
+          <label class="lbl">Mês do Comissionamento</label>
+          <input type="month" id="mesInput" onchange="updateCalc()">
+        </div>
+        <div class="g2" style="gap:10px">
+          <div><label class="lbl">Volume de vendas (linhas)</label><input type="number" id="i_volume" min="0" oninput="updateCalc()"></div>
+          <div><label class="lbl">Crescimento líquido (linhas)</label><input type="number" id="i_cresc" min="0" oninput="updateCalc()"></div>
+        </div>
+        <div style="margin-top:10px"><label class="lbl">Equipamentos (hardware) vendidos</label><input type="number" id="i_hw" min="0" oninput="updateCalc()"></div>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid #eef0f4">
+          <label class="lbl">Pesquisa de satisfação (só em jan/abr/jul/out)</label>
+          <div class="irow"><input type="number" id="i_sat" min="0" max="100" step="1" placeholder="% de alcance" oninput="updateCalc()"><span class="ipfx">%</span></div>
+        </div>
+        <div style="margin-top:10px;display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="i_news" onchange="updateCalc()" style="width:auto">
+          <label class="lbl" style="margin-bottom:0">Disparo do SMART News feito este mês (+R$ <span id="news_val_label">200</span>)</label>
+        </div>
+      </div>
+      <button class="btn" onclick="saveMes()" style="width:100%">Salvar lançamento do mês</button>
+    </div>
+    <div>
+      <div class="calc-preview">
+        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px">Cálculo detalhado do mês</div>
+        <div class="cp-row">
+          <div class="cp-item"><label>Volume</label><span id="cp_volume">R$ 0</span></div>
+          <span class="cp-sep">+</span>
+          <div class="cp-item"><label>Cresc. Líq.</label><span id="cp_cresc">R$ 0</span></div>
+          <span class="cp-sep">+</span>
+          <div class="cp-item"><label>Hardware</label><span id="cp_hw">R$ 0</span></div>
+        </div>
+        <div class="cp-row">
+          <div class="cp-item"><label>Satisfação</label><span id="cp_sat">R$ 0</span></div>
+          <span class="cp-sep">+</span>
+          <div class="cp-item"><label>SMART News</label><span id="cp_news">R$ 0</span></div>
+        </div>
+        <div class="cp-total">
+          <span class="cp-total-lbl">Total do mês</span>
+          <span class="cp-total-val" id="cp_total">R$ 0,00</span>
+        </div>
+      </div>
+      <div class="footnote">Bônus/Canais/Reajuste/Novos Produtos/Base Conquistada não entram aqui — são eventos avulsos, registrados na aba <strong>Ciclo &amp; Bonificações</strong> e somados ao total do mês em que ocorreram.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CICLO & BONIFICAÇÕES ═══ -->
+<div id="tab-ciclo" class="tab-panel">
+
+  <div class="kpi-grid">
+    <div class="kpi"><div class="kpi-label">Ganho variável total</div><div class="kpi-val" id="ck_total">R$ 0</div></div>
+    <div class="kpi gold"><div class="kpi-label">Canais + Reajuste + Produtos</div><div class="kpi-val" id="ck_extras">R$ 0</div></div>
+  </div>
+
+  <div style="overflow-x:auto;margin-bottom:32px">
+    <table style="min-width:760px">
+      <thead>
+        <tr>
+          <th class="left">Mês</th><th>Volume</th><th>Cresc. Líq.</th><th>Hardware</th><th>Satisfação</th><th>SMART News</th><th>Total</th>
+        </tr>
+      </thead>
+      <tbody id="cicloBody"></tbody>
+    </table>
+  </div>
+
+  <div style="border-top:2px solid var(--navy);margin-bottom:24px;padding-top:20px">
+    <div style="font-size:13px;font-weight:700;color:var(--navy);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px">Bonificações Extras</div>
+    <div style="font-size:11px;color:#55617a">Canais indiretos, reajuste anual, novos produtos e base conquistada — fora do ciclo mensal</div>
+  </div>
+
+  <!-- CANAIS INDIRETOS -->
+  <div class="card">
+    <p class="card-title">🔗 Bonificação por Novos Canais Indiretos</p>
+    <div style="font-size:11px;color:#55617a;margin-bottom:14px">Indicador Nível II/III, Dealer, Projeto Especial, Broker. Marco A ao assinar/ativar; B/B1/B2 pelo volume acumulado do canal.</div>
+    <div class="g3" style="margin-bottom:10px">
+      <div><label class="lbl">Nome do canal/parceiro</label><input type="text" id="canal_nome" placeholder="Ex: Distribuidora XPTO"></div>
+      <div><label class="lbl">Data de abertura</label><input type="month" id="canal_data"></div>
+      <div><label class="lbl">Volume acumulado (linhas)</label><input type="number" id="canal_vol" min="0"></div>
+    </div>
+    <button class="btn" onclick="addCanal()">+ Registrar canal</button>
+    <div id="canais_lista" style="margin-top:14px"></div>
+  </div>
+
+  <!-- REAJUSTE -->
+  <div class="card gold">
+    <p class="card-title">📈 Bonificação em Períodos de Reajuste</p>
+    <div style="font-size:11px;color:#55617a;margin-bottom:14px">Evento anual de setembro — faixas próprias por ano.</div>
+    <div class="g3">
+      <div><label class="lbl">Ano do reajuste</label><input type="number" id="reaj_ano" min="2026" max="2035" value="2027"></div>
+      <div><label class="lbl">Valor gerado pelo reajuste</label><div class="irow"><span class="ipfx">R$</span><input type="text" id="reaj_val" placeholder="0"
+        onblur="this.value=this.value?brFmt(parseNum(this.value)):''"></div></div>
+      <div style="display:flex;align-items:flex-end"><button class="btn-gold" onclick="saveReajuste()" style="width:100%">Registrar reajuste</button></div>
+    </div>
+    <div id="reaj_lista" style="margin-top:14px"></div>
+  </div>
+
+  <!-- NOVOS PRODUTOS -->
+  <div class="card">
+    <p class="card-title">🚀 Bonificação por Novos Produtos</p>
+    <div style="font-size:11px;color:#55617a;margin-bottom:14px">Até R$ 3.000 por lançamento, discricionário — mediante aprovação da diretoria.</div>
+    <div class="g3">
+      <div><label class="lbl">Nome do produto/serviço</label><input type="text" id="prod_nome" placeholder="Ex: Guardião, Clube SMART"></div>
+      <div><label class="lbl">Data</label><input type="month" id="prod_data"></div>
+      <div><label class="lbl">Valor concedido</label><div class="irow"><span class="ipfx">R$</span><input type="text" id="prod_val" placeholder="0"
+        onblur="this.value=this.value?brFmt(parseNum(this.value)):''"></div></div>
+    </div>
+    <button class="btn" onclick="addProduto()" style="margin-top:10px">+ Registrar produto</button>
+    <div id="prod_lista" style="margin-top:14px"></div>
+  </div>
+
+  <!-- SMART NEWS KICK-OFF -->
+  <div class="card">
+    <p class="card-title">📰 SMART News — Kick-off</p>
+    <div style="font-size:11px;color:#55617a;margin-bottom:14px">Pagamento único de R$ 800 no início do projeto — a manutenção mensal (R$200/disparo) é lançada na Calculadora Mensal.</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <input type="checkbox" id="news_kickoff" onchange="saveNewsKickoff()" style="width:auto">
+      <label class="lbl" style="margin-bottom:0">Kick-off já pago</label>
+      <span id="news_kickoff_data" style="font-size:11px;color:#99a3b4"></span>
+    </div>
+  </div>
+
+  <!-- BASE CONQUISTADA -->
+  <div class="card gold">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <p class="card-title" style="margin-bottom:0">🏆 Gratificação por Base Conquistada</p>
+      <div style="display:flex;align-items:center;gap:10px">
+        <label class="lbl" style="margin-bottom:0;white-space:nowrap">Base ativa atual:</label>
+        <div class="irow" style="width:160px"><input type="number" id="base_atual" min="0" placeholder="linhas" oninput="renderBaseConquistada()"></div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:#55617a;margin-bottom:14px">Pagamento único por marco — uma vez pago, nunca mais entra no cálculo mesmo que a base continue acima.</div>
+    <div id="base_marcos"></div>
+  </div>
+
+</div>
+
+<!-- ═══ CONFIGURAÇÕES ═══ -->
+<div id="tab-config" class="tab-panel">
+  <div class="g2">
+    <div>
+      <div class="card">
+        <p class="card-title">Faixas — Volume de Vendas (Gross Adds)</p>
+        <table><thead><tr><th class="left">Gatilho (linhas)</th><th>Bônus</th><th style="width:36px"></th></tr></thead>
+        <tbody id="faixasVolBody"></tbody></table>
+        <button class="btn-ghost btn-sm" onclick="addFaixa('faixasVolume')" style="margin-top:10px;width:100%">+ Faixa</button>
+      </div>
+      <div class="card">
+        <p class="card-title">Faixas — Crescimento Líquido (Net Adds)</p>
+        <table><thead><tr><th class="left">Gatilho (linhas)</th><th>Bônus</th><th style="width:36px"></th></tr></thead>
+        <tbody id="faixasCrescBody"></tbody></table>
+        <button class="btn-ghost btn-sm" onclick="addFaixa('faixasCresc')" style="margin-top:10px;width:100%">+ Faixa</button>
+      </div>
+      <div class="card">
+        <p class="card-title">Faixas — Satisfação Institucional</p>
+        <table><thead><tr><th class="left">Alcance mín. (%)</th><th>Bônus</th><th style="width:36px"></th></tr></thead>
+        <tbody id="faixasSatBody"></tbody></table>
+        <button class="btn-ghost btn-sm" onclick="addFaixaSat()" style="margin-top:10px;width:100%">+ Faixa</button>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <p class="card-title">SMART News</p>
+        <div><label class="lbl">Kick-off (pagamento único)</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="r_newsKickoff" step="0.01" oninput="saveConfig()"></div></div>
+        <div style="margin-top:10px"><label class="lbl">Manutenção mensal (por disparo)</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="r_newsManutencao" step="0.01" oninput="saveConfig()"></div></div>
+      </div>
+      <div class="card">
+        <p class="card-title">Marcos — Canais Indiretos</p>
+        <div style="font-size:11px;color:#55617a;margin-bottom:12px">A = abertura (assinado/ativo) · B/B1/B2 = volume acumulado do canal</div>
+        <table><thead><tr><th class="left">Marco</th><th>Gatilho (linhas)</th><th>Valor</th></tr></thead>
+        <tbody id="marcosCanaisBody"></tbody></table>
+      </div>
+      <div class="card">
+        <p class="card-title">Marcos — Base Conquistada</p>
+        <table><thead><tr><th class="left">Base (linhas)</th><th>Bônus</th><th style="width:36px"></th></tr></thead>
+        <tbody id="marcosBaseBody"></tbody></table>
+        <button class="btn-ghost btn-sm" onclick="addMarcoBase()" style="margin-top:10px;width:100%">+ Marco</button>
+      </div>
+      <button class="btn" onclick="saveConfig()" style="width:100%">Salvar configurações</button>
+    </div>
+  </div>
+</div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── DEFAULTS ────────────────────────────────────────
+// Honorário fixo + verba de apoio — só referência informativa (não entra no
+// total variável), igual regra já aplicada nos outros perfis.
+const NIVEIS = [
+  { nivel: 'I', inicio: '2026-08', fixo: 12000, verbaCom: 2000, verbaMkt: 2500 },
+  { nivel: 'II', inicio: '2027-10', fixo: 13500, verbaCom: 3000, verbaMkt: 3000 },
+  { nivel: 'III', inicio: '2028-10', fixo: 15000, verbaCom: 4000, verbaMkt: 3500 },
+];
+const DEF_CONFIG = {
+  faixasVolume: [
+    { min: 23000, bonus: 450 }, { min: 24600, bonus: 960 }, { min: 26200, bonus: 1530 },
+    { min: 27800, bonus: 2160 }, { min: 29400, bonus: 2850 }, { min: 31000, bonus: 3600 }, { min: 32600, bonus: 4410 },
+  ],
+  faixasCresc: [
+    { min: 6700, bonus: 630 }, { min: 7900, bonus: 1160 }, { min: 9100, bonus: 1750 },
+    { min: 10300, bonus: 2400 }, { min: 11500, bonus: 3110 }, { min: 12700, bonus: 3900 }, { min: 13900, bonus: 4760 },
+  ],
+  // Faixa 1 é multiplicador por unidade; faixas seguintes são valor fixo (bateu-levou, só a maior atingida).
+  faixasHw: [
+    { min: 1, tipo: 'unidade', valor: 1.20 },
+    { min: 200, tipo: 'fixo', valor: 500 },
+    { min: 350, tipo: 'fixo', valor: 700 },
+    { min: 500, tipo: 'fixo', valor: 900 },
+    { min: 750, tipo: 'fixo', valor: 1100 },
+    { min: 1000, tipo: 'fixo', valor: 1300 },
+    { min: 1001, tipo: 'fixo', valor: 1500 },
+  ],
+  faixasSat: [
+    { min: 75, bonus: 100 }, { min: 80, bonus: 180 }, { min: 85, bonus: 260 },
+    { min: 91, bonus: 340 }, { min: 94, bonus: 420 }, { min: 98, bonus: 500 },
+  ],
+  faixasReajuste: {
+    2027: [{ min: 80000, bonus: 1600 }, { min: 86000, bonus: 2580 }, { min: 93000, bonus: 3720 }, { min: 100000, bonus: 5000 }, { min: 107000, bonus: 6420 }],
+    2028: [{ min: 95000, bonus: 1900 }, { min: 101000, bonus: 3030 }, { min: 108000, bonus: 4320 }, { min: 115000, bonus: 5750 }, { min: 122000, bonus: 7320 }],
+  },
+  marcosCanais: [
+    { marco: 'A', label: 'Abertura', gatilho: 0, valor: 300 },
+    { marco: 'B', label: 'Volume inicial', gatilho: 3000, valor: 500 },
+    { marco: 'B1', label: 'Volume intermediário', gatilho: 5000, valor: 700 },
+    { marco: 'B2', label: 'Volume consolidado', gatilho: 10000, valor: 1000 },
+  ],
+  marcosBase: [
+    { marco: 700000, bonus: 1500, pago: false, dataPag: '' },
+    { marco: 820000, bonus: 3500, pago: false, dataPag: '' },
+    { marco: 1000000, bonus: 7000, pago: false, dataPag: '' },
+    { marco: 1200000, bonus: 10000, pago: false, dataPag: '' },
+    { marco: 1400000, bonus: 15000, pago: false, dataPag: '' },
+  ],
+  newsKickoff: 800,
+  newsManutencao: 200,
+};
+const DEF_EXTRAS = { canais: [], reajustes: [], produtos: [], newsKickoffPago: false, newsKickoffData: '' };
+
+const LS = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+// Mês aprovado (Visão Consolidada) fica travado — nem lançamento manual
+// sobrescreve. Só desaprovando (ação administrativa) ou excluindo os dados.
+function mesAprovado(mes) { try { const a = JSON.parse(localStorage.getItem('aprovacoes_mes') || '{}'); return !!(a[mes] && a[mes].aprovado); } catch { return false; } }
+let config = LS.get('dc1_cfg', DEF_CONFIG);
+let mdata = LS.get('dc1_m', {});
+let extras = LS.get('dc1_ext', DEF_EXTRAS);
+
+// ─── INIT ─────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const now = new Date();
+  const mv = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  document.getElementById('mesInput').value = mv;
+  document.getElementById('news_val_label').textContent = brFmt(config.newsManutencao);
+  renderNivelAtual();
+  loadConfig(); buildFaixasConfig(); buildMarcosCanaisConfig(); buildMarcosBaseConfig();
+  renderCanais(); renderReajustes(); renderProdutos(); renderNewsKickoff(); renderBaseConquistada();
+  updateCalc(); renderCiclo();
+});
+document.querySelectorAll('.tab-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById('tab-' + b.dataset.tab).classList.add('active');
+    if (b.dataset.tab === 'ciclo') renderCiclo();
+  });
+});
+
+// ─── HELPERS ──────────────────────────────────────────
+const br2 = v => (typeof v === 'number' ? v : 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const brFmt = v => (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const parseNum = s => +String(s).replace(/\./g, '').replace(',', '.') || 0;
+const brInt = v => Math.round(v || 0).toLocaleString('pt-BR');
+const fmtMes = s => { if (!s) return ''; const [y, m] = s.split('-'); const ms = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']; return ms[+m - 1] + '/' + y; };
+function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2200); }
+
+// Faixas "bateu a faixa, levou o valor" — só a maior faixa atingida paga (não acumulativo).
+function faixaMaior(faixas, valor) {
+  let melhor = null;
+  faixas.forEach(f => { if (valor >= f.min && (!melhor || f.min > melhor.min)) melhor = f; });
+  return melhor ? melhor.bonus : 0;
+}
+function calcHardware(qtd) {
+  if (!qtd) return 0;
+  const f1 = config.faixasHw.find(f => f.tipo === 'unidade');
+  if (qtd < (config.faixasHw.find(f => f.tipo === 'fixo')?.min || 200)) return qtd * (f1?.valor || 0);
+  let melhor = null;
+  config.faixasHw.filter(f => f.tipo === 'fixo').forEach(f => { if (qtd >= f.min && (!melhor || f.min > melhor.min)) melhor = f; });
+  return melhor ? melhor.valor : qtd * (f1?.valor || 0);
+}
+function calcSat(pct) { return faixaMaior(config.faixasSat, pct); }
+
+function calcMonth(d) {
+  const volume = d.volume || 0, cresc = d.cresc || 0, hw = d.hw || 0;
+  const volumeBonus = faixaMaior(config.faixasVolume, volume);
+  const crescBonus = faixaMaior(config.faixasCresc, cresc);
+  const hwBonus = calcHardware(hw);
+  const satBonus = (d.sat !== null && d.sat !== undefined) ? calcSat(d.sat) : 0;
+  const newsBonus = d.news ? (config.newsManutencao || 0) : 0;
+  const total = volumeBonus + crescBonus + hwBonus + satBonus + newsBonus;
+  return { volumeBonus, crescBonus, hwBonus, satBonus, newsBonus, total };
+}
+
+// ─── NÍVEL ATUAL (informativo) ────────────────────────
+function nivelNaData(mes) {
+  let atual = NIVEIS[0];
+  NIVEIS.forEach(n => { if (mes >= n.inicio) atual = n; });
+  return atual;
+}
+function renderNivelAtual() {
+  const mes = document.getElementById('mesInput').value || new Date().toISOString().slice(0, 7);
+  const atual = nivelNaData(mes);
+  document.getElementById('nivel_atual_box').innerHTML = NIVEIS.map(n => `
+    <div class="nivel-row ${n.nivel === atual.nivel ? 'atual' : ''}">
+      <div>
+        <span class="nivel-nome">Nível ${n.nivel}</span>
+        <span class="nivel-periodo"> · a partir de ${fmtMes(n.inicio)}</span>
+      </div>
+      <div class="nivel-val">R$ ${brFmt(n.fixo)}/mês <span style="color:#99a3b4;font-weight:400">+ R$${brFmt(n.verbaCom)} com. + R$${brFmt(n.verbaMkt)} mkt.</span></div>
+    </div>`).join('');
+}
+
+// ─── CALCULADORA MENSAL ───────────────────────────────
+function updateCalc() {
+  renderNivelAtual();
+  const d = {
+    volume: +document.getElementById('i_volume').value || 0,
+    cresc: +document.getElementById('i_cresc').value || 0,
+    hw: +document.getElementById('i_hw').value || 0,
+    sat: document.getElementById('i_sat').value === '' ? null : +document.getElementById('i_sat').value,
+    news: document.getElementById('i_news').checked,
+  };
+  const c = calcMonth(d);
+  document.getElementById('k_volume').textContent = 'R$ ' + br2(c.volumeBonus);
+  document.getElementById('k_volume_sub').textContent = d.volume ? d.volume.toLocaleString('pt-BR') + ' linhas' : '—';
+  document.getElementById('k_cresc').textContent = 'R$ ' + br2(c.crescBonus);
+  document.getElementById('k_cresc_sub').textContent = d.cresc ? d.cresc.toLocaleString('pt-BR') + ' linhas' : '—';
+  document.getElementById('k_hw').textContent = 'R$ ' + br2(c.hwBonus);
+  document.getElementById('k_hw_sub').textContent = d.hw ? d.hw.toLocaleString('pt-BR') + ' unid.' : '—';
+  document.getElementById('k_sat').textContent = 'R$ ' + br2(c.satBonus);
+  document.getElementById('k_sat_sub').textContent = d.sat != null ? d.sat + '%' : '—';
+  document.getElementById('k_total').textContent = 'R$ ' + br2(c.total);
+  document.getElementById('k_mes_label').textContent = fmtMes(document.getElementById('mesInput').value) || '—';
+
+  document.getElementById('cp_volume').textContent = 'R$ ' + br2(c.volumeBonus);
+  document.getElementById('cp_cresc').textContent = 'R$ ' + br2(c.crescBonus);
+  document.getElementById('cp_hw').textContent = 'R$ ' + br2(c.hwBonus);
+  document.getElementById('cp_sat').textContent = 'R$ ' + br2(c.satBonus);
+  document.getElementById('cp_news').textContent = 'R$ ' + br2(c.newsBonus);
+  document.getElementById('cp_total').textContent = 'R$ ' + br2(c.total);
+}
+
+function saveMes() {
+  const mes = document.getElementById('mesInput').value;
+  if (!mes) { showToast('Selecione o mês'); return; }
+  if (mesAprovado(mes)) { showToast('Mês aprovado — desaprove na Visão Consolidada pra editar.'); return; }
+  mdata[mes] = {
+    volume: +document.getElementById('i_volume').value || 0,
+    cresc: +document.getElementById('i_cresc').value || 0,
+    hw: +document.getElementById('i_hw').value || 0,
+    sat: document.getElementById('i_sat').value === '' ? null : +document.getElementById('i_sat').value,
+    news: document.getElementById('i_news').checked,
+  };
+  LS.set('dc1_m', mdata);
+  renderCiclo();
+  showToast('Lançamento salvo ✓');
+}
+
+// ─── CICLO ────────────────────────────────────────────
+function extrasDoMes(mes) {
+  let total = 0;
+  (extras.canais || []).forEach(c => Object.keys(c.marcosPagos || {}).forEach(k => {
+    if (c.marcosPagos[k] === mes) { const m = config.marcosCanais.find(mm => mm.marco === k); if (m) total += m.valor; }
+  }));
+  (extras.reajustes || []).forEach(r => { if (r.mes === mes) total += r.bonus; });
+  (extras.produtos || []).forEach(p => { if (p.data === mes) total += p.val; });
+  if (extras.newsKickoffPago && extras.newsKickoffData === mes) total += (config.newsKickoff || 0);
+  (config.marcosBase || []).forEach(m => { if (m.pago && m.dataPagMes === mes) total += m.bonus; });
+  return total;
+}
+function renderCiclo() {
+  const meses = Object.keys(mdata).sort();
+  let totGeral = 0, totExtras = 0;
+  const rows = meses.map(mes => {
+    const d = mdata[mes];
+    const c = calcMonth(d);
+    const ex = extrasDoMes(mes);
+    const totalMes = c.total + ex;
+    totGeral += totalMes; totExtras += ex;
+    return `<tr>
+      <td class="left"><strong>${fmtMes(mes)}</strong></td>
+      <td>R$ ${br2(c.volumeBonus)}</td>
+      <td>R$ ${br2(c.crescBonus)}</td>
+      <td>R$ ${br2(c.hwBonus)}</td>
+      <td>${d.sat != null ? 'R$ ' + br2(c.satBonus) : '—'}</td>
+      <td>${d.news ? 'R$ ' + br2(c.newsBonus) : '—'}</td>
+      <td class="c-navy"><strong>R$ ${br2(totalMes)}</strong>${ex ? `<div style="font-size:9px;color:#b8863f;font-weight:400">+R$${br2(ex)} extras</div>` : ''}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('cicloBody').innerHTML = rows || '<tr><td colspan="7" style="color:#99a3b4;text-align:center">Nenhum mês lançado ainda.</td></tr>';
+  document.getElementById('ck_total').textContent = 'R$ ' + br2(totGeral);
+  document.getElementById('ck_extras').textContent = 'R$ ' + br2(totExtras);
+}
+
+// ─── CANAIS INDIRETOS ─────────────────────────────────
+function addCanal() {
+  const nome = document.getElementById('canal_nome').value.trim();
+  const data = document.getElementById('canal_data').value;
+  const vol = +document.getElementById('canal_vol').value || 0;
+  if (!nome || !data) { showToast('Informe nome e data de abertura'); return; }
+  extras.canais.push({ id: 'c' + Date.now(), nome, data, vol, marcosPagos: {} });
+  LS.set('dc1_ext', extras);
+  document.getElementById('canal_nome').value = ''; document.getElementById('canal_vol').value = '';
+  renderCanais(); showToast('Canal registrado ✓');
+}
+function canalMarcosBatidos(c) {
+  return config.marcosCanais.filter(m => (m.marco === 'A') || c.vol >= m.gatilho);
+}
+function pagarMarcoCanal(id, marco) {
+  const c = extras.canais.find(x => x.id === id); if (!c) return;
+  const mes = document.getElementById('mesInput').value || new Date().toISOString().slice(0, 7);
+  c.marcosPagos[marco] = mes;
+  LS.set('dc1_ext', extras);
+  renderCanais(); renderCiclo();
+  showToast(`Marco ${marco} do canal registrado ✓`);
+}
+function renderCanais() {
+  const list = extras.canais || [];
+  if (!list.length) { document.getElementById('canais_lista').innerHTML = '<p style="font-size:11px;color:#99a3b4">Nenhum canal registrado.</p>'; return; }
+  document.getElementById('canais_lista').innerHTML = list.map(c => {
+    const batidos = canalMarcosBatidos(c);
+    const marcosHtml = config.marcosCanais.map(m => {
+      const atingido = batidos.some(b => b.marco === m.marco);
+      const pago = !!c.marcosPagos[m.marco];
+      if (!atingido) return `<span style="font-size:9px;color:#c7ccd6;padding:2px 7px;border-radius:10px;background:#f6f7f9;margin-right:4px">${m.marco} pendente</span>`;
+      if (pago) return `<span style="font-size:9px;color:#2e7d5b;font-weight:700;padding:2px 7px;border-radius:10px;background:#f0fdf6;margin-right:4px">✓ ${m.marco} pago</span>`;
+      return `<button class="btn-gold btn-sm" style="font-size:9px;padding:2px 8px;margin-right:4px" onclick="pagarMarcoCanal('${c.id}','${m.marco}')">⭐ ${m.marco} atingido — pagar R$${m.valor}</button>`;
+    }).join('');
+    return `<div class="sis-item" style="flex-direction:column;align-items:stretch">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><div class="sis-nome">${c.nome}</div><div class="sis-data">Aberto em ${fmtMes(c.data)} · ${c.vol.toLocaleString('pt-BR')} linhas acum.</div></div>
+        <button class="btn-del" onclick="rmCanal('${c.id}')">×</button>
+      </div>
+      <div style="margin-top:8px">${marcosHtml}</div>
+    </div>`;
+  }).join('');
+}
+function rmCanal(id) { extras.canais = extras.canais.filter(c => c.id !== id); LS.set('dc1_ext', extras); renderCanais(); }
+
+// ─── REAJUSTE ─────────────────────────────────────────
+function saveReajuste() {
+  const ano = +document.getElementById('reaj_ano').value;
+  const valor = parseNum(document.getElementById('reaj_val').value) || 0;
+  if (!valor) return;
+  const faixas = config.faixasReajuste[ano] || [];
+  const bonus = faixaMaior(faixas, valor);
+  const mes = document.getElementById('mesInput').value || new Date().toISOString().slice(0, 7);
+  extras.reajustes.push({ ano, valor, bonus, mes, data: new Date().toLocaleDateString('pt-BR') });
+  LS.set('dc1_ext', extras);
+  document.getElementById('reaj_val').value = '';
+  renderReajustes(); renderCiclo();
+  showToast('Reajuste registrado ✓');
+}
+function renderReajustes() {
+  const list = extras.reajustes || [];
+  if (!list.length) { document.getElementById('reaj_lista').innerHTML = '<p style="font-size:11px;color:#99a3b4">Nenhum reajuste registrado.</p>'; return; }
+  document.getElementById('reaj_lista').innerHTML = list.map((r, i) => `
+    <div class="sis-item">
+      <div><div class="sis-nome">Reajuste ${r.ano}</div><div class="sis-data">Valor gerado: R$ ${br2(r.valor)} · lançado em ${fmtMes(r.mes)}</div></div>
+      <div style="display:flex;align-items:center;gap:10px"><div class="sis-val">R$ ${br2(r.bonus)}</div><button class="btn-del" onclick="rmReajuste(${i})">×</button></div>
+    </div>`).join('');
+}
+function rmReajuste(i) { extras.reajustes.splice(i, 1); LS.set('dc1_ext', extras); renderReajustes(); renderCiclo(); }
+
+// ─── NOVOS PRODUTOS ───────────────────────────────────
+function addProduto() {
+  const nome = document.getElementById('prod_nome').value.trim();
+  const data = document.getElementById('prod_data').value;
+  const val = parseNum(document.getElementById('prod_val').value) || 0;
+  if (!nome || !val) return;
+  extras.produtos.push({ nome, data, val });
+  LS.set('dc1_ext', extras);
+  document.getElementById('prod_nome').value = ''; document.getElementById('prod_val').value = '';
+  renderProdutos(); renderCiclo();
+  showToast('Produto registrado ✓');
+}
+function renderProdutos() {
+  const list = extras.produtos || [];
+  if (!list.length) { document.getElementById('prod_lista').innerHTML = '<p style="font-size:11px;color:#99a3b4">Nenhum produto registrado.</p>'; return; }
+  document.getElementById('prod_lista').innerHTML = list.map((p, i) => `
+    <div class="sis-item">
+      <div><div class="sis-nome">🚀 ${p.nome}</div><div class="sis-data">${fmtMes(p.data) || p.data}</div></div>
+      <div style="display:flex;align-items:center;gap:10px"><div class="sis-val">R$ ${br2(p.val)}</div><button class="btn-del" onclick="rmProduto(${i})">×</button></div>
+    </div>`).join('');
+}
+function rmProduto(i) { extras.produtos.splice(i, 1); LS.set('dc1_ext', extras); renderProdutos(); renderCiclo(); }
+
+// ─── SMART NEWS KICK-OFF ──────────────────────────────
+function saveNewsKickoff() {
+  const checked = document.getElementById('news_kickoff').checked;
+  extras.newsKickoffPago = checked;
+  extras.newsKickoffData = checked ? (document.getElementById('mesInput').value || new Date().toISOString().slice(0, 7)) : '';
+  LS.set('dc1_ext', extras);
+  renderNewsKickoff(); renderCiclo();
+}
+function renderNewsKickoff() {
+  document.getElementById('news_kickoff').checked = !!extras.newsKickoffPago;
+  document.getElementById('news_kickoff_data').textContent = extras.newsKickoffPago ? `Pago em ${fmtMes(extras.newsKickoffData)} · R$ ${brFmt(config.newsKickoff)}` : '';
+}
+
+// ─── BASE CONQUISTADA ─────────────────────────────────
+function renderBaseConquistada() {
+  const base = +document.getElementById('base_atual').value || 0;
+  document.getElementById('base_marcos').innerHTML = config.marcosBase.map((m, i) => {
+    const atingido = base >= m.marco;
+    return `<div class="marco-row ${m.pago ? 'pago' : ''}">
+      <div class="marco-icon">${m.pago ? '✅' : '🏆'}</div>
+      <div class="marco-info">
+        <div class="marco-nome">${m.marco.toLocaleString('pt-BR')} linhas</div>
+        ${m.pago ? `<div class="marco-pago">Pago em ${m.dataPag}</div>` : atingido ? `<div style="color:#b8863f;font-size:11px;font-weight:600">⭐ Marco atingido — registrar pagamento</div>` : `<div class="marco-pendente">Faltam ${Math.max(0, m.marco - base).toLocaleString('pt-BR')} linhas</div>`}
+      </div>
+      <div class="marco-val" style="${m.pago ? 'color:#2e7d5b' : ''}">R$ ${m.bonus.toLocaleString('pt-BR')}</div>
+      ${atingido && !m.pago ? `<button class="btn-gold btn-sm" onclick="pagarMarcoBase(${i})">Registrar pagamento</button>` : ''}
+    </div>`;
+  }).join('');
+}
+function pagarMarcoBase(i) {
+  const hoje = new Date().toLocaleDateString('pt-BR');
+  const mes = document.getElementById('mesInput').value || new Date().toISOString().slice(0, 7);
+  config.marcosBase[i].pago = true;
+  config.marcosBase[i].dataPag = hoje;
+  config.marcosBase[i].dataPagMes = mes;
+  LS.set('dc1_cfg', config);
+  renderBaseConquistada(); renderCiclo();
+  showToast('Marco de base registrado ✓');
+}
+
+// ─── CONFIG ───────────────────────────────────────────
+function loadConfig() {
+  document.getElementById('r_newsKickoff').value = config.newsKickoff;
+  document.getElementById('r_newsManutencao').value = config.newsManutencao;
+}
+function saveConfig() {
+  config.newsKickoff = +document.getElementById('r_newsKickoff').value || 800;
+  config.newsManutencao = +document.getElementById('r_newsManutencao').value || 200;
+  LS.set('dc1_cfg', config);
+  document.getElementById('news_val_label').textContent = brFmt(config.newsManutencao);
+  updateCalc();
+  showToast('Configurações salvas ✓');
+}
+function buildFaixasTable(bodyId, key, labelFn) {
+  document.getElementById(bodyId).innerHTML = config[key].map((f, i) => `
+    <tr>
+      <td class="left">${labelFn(f)}</td>
+      <td><div class="irow" style="justify-content:center"><span class="ipfx">R$</span>
+        <input type="text" class="rule-input" value="${brFmt(f.bonus)}" style="width:80px"
+          onblur="config.${key}[${i}].bonus=parseNum(this.value);this.value=brFmt(parseNum(this.value));LS.set('dc1_cfg',config)"
+          onfocus="this.value=String(config.${key}[${i}].bonus)"></div></td>
+      <td><button class="btn-del" onclick="config.${key}.splice(${i},1);buildFaixasConfig()">×</button></td>
+    </tr>`).join('');
+}
+function buildFaixasConfig() {
+  document.getElementById('faixasVolBody').innerHTML = config.faixasVolume.map((f, i) => `
+    <tr><td class="left">
+        <input type="text" class="rule-input" value="${brInt(f.min)}" style="width:80px;text-align:left"
+          onblur="config.faixasVolume[${i}].min=parseNum(this.value);this.value=brInt(config.faixasVolume[${i}].min);LS.set('dc1_cfg',config)"
+          onfocus="this.value=String(config.faixasVolume[${i}].min)"></td>
+      <td><div class="irow" style="justify-content:center"><span class="ipfx">R$</span>
+        <input type="text" class="rule-input" value="${brFmt(f.bonus)}" style="width:80px"
+          onblur="config.faixasVolume[${i}].bonus=parseNum(this.value);this.value=brFmt(parseNum(this.value));LS.set('dc1_cfg',config)"
+          onfocus="this.value=String(config.faixasVolume[${i}].bonus)"></div></td>
+      <td><button class="btn-del" onclick="config.faixasVolume.splice(${i},1);buildFaixasConfig()">×</button></td></tr>`).join('');
+  document.getElementById('faixasCrescBody').innerHTML = config.faixasCresc.map((f, i) => `
+    <tr><td class="left">
+        <input type="text" class="rule-input" value="${brInt(f.min)}" style="width:80px;text-align:left"
+          onblur="config.faixasCresc[${i}].min=parseNum(this.value);this.value=brInt(config.faixasCresc[${i}].min);LS.set('dc1_cfg',config)"
+          onfocus="this.value=String(config.faixasCresc[${i}].min)"></td>
+      <td><div class="irow" style="justify-content:center"><span class="ipfx">R$</span>
+        <input type="text" class="rule-input" value="${brFmt(f.bonus)}" style="width:80px"
+          onblur="config.faixasCresc[${i}].bonus=parseNum(this.value);this.value=brFmt(parseNum(this.value));LS.set('dc1_cfg',config)"
+          onfocus="this.value=String(config.faixasCresc[${i}].bonus)"></div></td>
+      <td><button class="btn-del" onclick="config.faixasCresc.splice(${i},1);buildFaixasConfig()">×</button></td></tr>`).join('');
+  document.getElementById('faixasSatBody').innerHTML = config.faixasSat.map((f, i) => `
+    <tr><td class="left">
+        <input type="number" class="rule-input" value="${f.min}" style="width:70px;text-align:left"
+          onblur="config.faixasSat[${i}].min=+this.value||0;LS.set('dc1_cfg',config)"></td>
+      <td><div class="irow" style="justify-content:center"><span class="ipfx">R$</span>
+        <input type="text" class="rule-input" value="${brFmt(f.bonus)}" style="width:70px"
+          onblur="config.faixasSat[${i}].bonus=parseNum(this.value);this.value=brFmt(parseNum(this.value));LS.set('dc1_cfg',config)"
+          onfocus="this.value=String(config.faixasSat[${i}].bonus)"></div></td>
+      <td><button class="btn-del" onclick="config.faixasSat.splice(${i},1);buildFaixasConfig()">×</button></td></tr>`).join('');
+}
+function addFaixa(key) {
+  const arr = key === 'faixasVolume' ? config.faixasVolume : config.faixasCresc;
+  const last = arr[arr.length - 1];
+  arr.push({ min: (last?.min || 0) + 1000, bonus: (last?.bonus || 0) + 100 });
+  buildFaixasConfig();
+}
+function addFaixaSat() {
+  const last = config.faixasSat[config.faixasSat.length - 1];
+  config.faixasSat.push({ min: (last?.min || 0) + 1, bonus: (last?.bonus || 0) + 50 });
+  buildFaixasConfig();
+}
+function buildMarcosCanaisConfig() {
+  document.getElementById('marcosCanaisBody').innerHTML = config.marcosCanais.map((m, i) => `
+    <tr><td class="left">${m.marco} — ${m.label}</td>
+      <td>${m.marco === 'A' ? '<span style="color:#99a3b4">assinado/ativo</span>' : `<input type="text" class="rule-input" value="${brInt(m.gatilho)}" style="width:80px" onblur="config.marcosCanais[${i}].gatilho=parseNum(this.value);this.value=brInt(config.marcosCanais[${i}].gatilho);LS.set('dc1_cfg',config)" onfocus="this.value=String(config.marcosCanais[${i}].gatilho)">`}</td>
+      <td><div class="irow" style="justify-content:center"><span class="ipfx">R$</span>
+        <input type="text" class="rule-input" value="${brFmt(m.valor)}" style="width:70px"
+          onblur="config.marcosCanais[${i}].valor=parseNum(this.value);this.value=brFmt(parseNum(this.value));LS.set('dc1_cfg',config)"
+          onfocus="this.value=String(config.marcosCanais[${i}].valor)"></div></td></tr>`).join('');
+}
+function buildMarcosBaseConfig() {
+  document.getElementById('marcosBaseBody').innerHTML = config.marcosBase.map((m, i) => `
+    <tr><td class="left">
+        <input type="text" class="rule-input" value="${brInt(m.marco)}" style="width:100px;text-align:left"
+          onblur="config.marcosBase[${i}].marco=parseNum(this.value);this.value=brInt(config.marcosBase[${i}].marco);LS.set('dc1_cfg',config)"
+          onfocus="this.value=String(config.marcosBase[${i}].marco)"></td>
+      <td><div class="irow" style="justify-content:center"><span class="ipfx">R$</span>
+        <input type="text" class="rule-input" value="${brFmt(m.bonus)}" style="width:80px"
+          onblur="config.marcosBase[${i}].bonus=parseNum(this.value);this.value=brFmt(parseNum(this.value));LS.set('dc1_cfg',config)"
+          onfocus="this.value=String(config.marcosBase[${i}].bonus)"></div></td>
+      <td><button class="btn-del" onclick="config.marcosBase.splice(${i},1);buildMarcosBaseConfig();renderBaseConquistada()">×</button></td></tr>`).join('');
+}
+function addMarcoBase() {
+  const last = config.marcosBase[config.marcosBase.length - 1];
+  config.marcosBase.push({ marco: (last?.marco || 0) + 100000, bonus: (last?.bonus || 0) + 1000, pago: false, dataPag: '' });
+  buildMarcosBaseConfig(); renderBaseConquistada();
+}
+</script>
+</body>
+</html>

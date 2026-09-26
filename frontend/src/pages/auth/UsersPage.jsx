@@ -21,6 +21,7 @@ const PERMS = [
   ['can_view_dashboard',    'Ver dashboard'],
   ['can_manage_users',      'Gerenciar usuários'],
   ['can_view_contestacao',  'Ver contestação'],
+  ['can_view_comissao',     'Ver comissionamento'],
   ['can_approve_adjustment','Pode aprovar ajustes'],
 ]
 

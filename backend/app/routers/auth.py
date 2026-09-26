@@ -40,6 +40,7 @@ class UserCreate(BaseModel):
     can_view_dashboard: Optional[bool]    = None
     can_manage_users: Optional[bool]      = None
     can_view_contestacao: Optional[bool]  = None
+    can_view_comissao: Optional[bool]     = None
     can_view_smt: Optional[bool]          = None
 
 
@@ -53,6 +54,7 @@ class UserUpdate(BaseModel):
     can_view_dashboard: Optional[bool]    = None
     can_manage_users: Optional[bool]      = None
     can_view_contestacao: Optional[bool]  = None
+    can_view_comissao: Optional[bool]     = None
     can_view_smt: Optional[bool]          = None
 
 
@@ -217,6 +219,7 @@ def create_user(
         can_view_dashboard=data.can_view_dashboard,
         can_manage_users=data.can_manage_users,
         can_view_contestacao=data.can_view_contestacao,
+        can_view_comissao=data.can_view_comissao,
     )
     db.add(user)
     db.add(AuditLog(

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cadastro de Parceiro · Gestora Smart</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#f5f4f0;color:#1a1a18;font-size:13px;line-height:1.5}
+.wrap{max-width:560px;margin:0 auto;padding:40px 24px 80px}
+.header{padding-bottom:16px;border-bottom:2px solid #1a1a18;margin-bottom:24px}
+.header p{font-size:11px;color:#888;font-weight:500;margin-bottom:4px}
+.header h1{font-size:22px;font-weight:800;line-height:1.15}
+.header .sub{font-size:12.5px;color:#666;margin-top:8px;line-height:1.6}
+.card{background:#fff;border:1px solid #d4d3ce;border-radius:10px;padding:22px 24px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.grid .full{grid-column:1/-1}
+label.lbl{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#888;margin-bottom:5px;display:block}
+label.lbl .req{color:#b83232}
+input[type=text],select,textarea{width:100%;background:#f5f4f0;border:.5px solid #d4d3ce;border-radius:6px;padding:9px 11px;font-size:13px;font-family:'Inter',sans-serif;color:#1a1a18;outline:none}
+input:focus,select:focus,textarea:focus{border-color:#1a1a18;background:#fff}
+textarea{resize:vertical;min-height:60px}
+.actions{display:flex;justify-content:flex-end;margin-top:6px}
+.btn{background:#1a1a18;color:#fff;border:none;border-radius:6px;padding:11px 24px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer}
+.btn:hover{background:#333230}
+.err{color:#b83232;font-size:12px;margin-top:10px;display:none}
+#done{display:none}
+.done-icon{font-size:32px;margin-bottom:10px}
+.hint{background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:0 6px 6px 0;padding:11px 14px;font-size:12px;color:#444;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <p>Gestora Smart</p>
+    <h1>Cadastro de Parceiro</h1>
+    <p class="sub">Preencha seus dados abaixo. Ao clicar em "Concluir cadastro", seus dados já entram direto no sistema — não precisa enviar nada de volta.</p>
+  </div>
+
+  <div class="card" id="form_card">
+    <div class="grid">
+      <div>
+        <label class="lbl">Categoria <span class="req">*</span></label>
+        <select id="f_tipo">
+          <option value="indicador">Indicador</option>
+          <option value="indicador_n2">Indicador N2</option>
+          <option value="dealer">Dealer</option>
+          <option value="projeto">Projeto Especial</option>
+        </select>
+      </div>
+      <div>
+        <label class="lbl">Nome completo <span class="req">*</span></label>
+        <input type="text" id="f_nome" placeholder="Ex: João da Silva">
+      </div>
+      <div>
+        <label class="lbl">Nome da empresa</label>
+        <input type="text" id="f_empresa" placeholder="Ex: JS Rastreamentos LTDA">
+      </div>
+      <div>
+        <label class="lbl">CPF <span class="req">*</span></label>
+        <input type="text" id="f_cpf" placeholder="000.000.000-00">
+      </div>
+      <div>
+        <label class="lbl">CNPJ</label>
+        <input type="text" id="f_cnpj" placeholder="00.000.000/0001-00">
+      </div>
+      <div>
+        <label class="lbl">Vinculado a qual executivo <span class="req">*</span></label>
+        <select id="f_comercial"></select>
+      </div>
+      <div>
+        <label class="lbl">Celular <span class="req">*</span></label>
+        <input type="text" id="f_celular" placeholder="(41) 99999-9999">
+      </div>
+      <div>
+        <label class="lbl">Telefone</label>
+        <input type="text" id="f_telefone" placeholder="(41) 3333-3333">
+      </div>
+      <div>
+        <label class="lbl">E-mail <span class="req">*</span></label>
+        <input type="text" id="f_email" placeholder="nome@exemplo.com">
+      </div>
+      <div>
+        <label class="lbl">E-mail secundário</label>
+        <input type="text" id="f_email2" placeholder="opcional">
+      </div>
+      <div>
+        <label class="lbl">Bairro</label>
+        <input type="text" id="f_bairro" placeholder="Ex: Centro">
+      </div>
+      <div>
+        <label class="lbl">Cidade <span class="req">*</span></label>
+        <input type="text" id="f_cidade" placeholder="Ex: Curitiba">
+      </div>
+      <div id="f_ajudacusto_wrap">
+        <label class="lbl">Ajuda de custo (R$/mês)</label>
+        <input type="text" id="f_ajudacusto" placeholder="0,00">
+      </div>
+      <div>
+        <label class="lbl">Apelido / ID no CRM <span class="req">*</span></label>
+        <input type="text" id="f_apelido" placeholder="Ex: carneiro.junior">
+      </div>
+      <div class="full">
+        <label class="lbl">Dados da conta (com o PIX) <span class="req">*</span></label>
+        <textarea id="f_conta" placeholder="Ex: Banco Sicredi, Ag. 0818, Conta 20974-7, Chave PIX: 12345678900"></textarea>
+      </div>
+    </div>
+    <div class="err" id="f_err"></div>
+    <div class="actions">
+      <button class="btn" onclick="enviarCadastro()">✓ Concluir cadastro</button>
+    </div>
+  </div>
+
+  <div class="card" id="done">
+    <div class="done-icon">✅</div>
+    <p style="font-weight:700;font-size:15px;margin-bottom:6px">Cadastro concluído!</p>
+    <p style="color:#666">Seus dados já foram registrados no sistema. Pode fechar esta página.</p>
+  </div>
+
+  <div class="hint">Este é um formulário de pré-cadastro do protótipo de Comissionamento da Gestora Smart. Nenhum dado é enviado para nenhum servidor externo — fica salvo direto no sistema local usado pela equipe.</div>
+</div>
+
+<script>
+const DEFAULT_VENDEDORES = ['Henrique Alves','Patrick Rodrigues','Décio Moraes','Julia Borsato','Vitória Karoline','Gabriela Geraud','Claudia Longano','Daiane Oliveira','Renato Araujo'];
+
+function getVendedores() {
+  try {
+    const raw = localStorage.getItem('gs5_v');
+    if (raw) {
+      const list = JSON.parse(raw);
+      if (Array.isArray(list) && list.length) return list.map(v => v.nome);
+    }
+  } catch {}
+  return DEFAULT_VENDEDORES;
+}
+
+const params = new URLSearchParams(location.search);
+
+function popularComercial() {
+  const sel = document.getElementById('f_comercial');
+  sel.innerHTML = '<option value="">Selecione…</option>' + getVendedores().map(n => `<option value="${n}">${n}</option>`).join('');
+  const pre = params.get('comercial');
+  if (pre && [...sel.options].some(o => o.value === pre)) sel.value = pre;
+}
+
+function tipoChanged() {
+  document.getElementById('f_ajudacusto_wrap').style.display = document.getElementById('f_tipo').value === 'indicador_n2' ? 'block' : 'none';
+}
+
+document.getElementById('f_tipo').addEventListener('change', tipoChanged);
+
+(function init() {
+  popularComercial();
+  const preTipo = params.get('tipo');
+  if (preTipo && ['indicador','indicador_n2','dealer','projeto'].includes(preTipo)) document.getElementById('f_tipo').value = preTipo;
+  tipoChanged();
+})();
+
+// Mesma origem que index.html — grava direto nas mesmas chaves de
+// localStorage que a tela "Cadastro de Parceiros" já lê, então o cadastro
+// aparece lá sem precisar de nenhum código indo e voltando. "indicador" e
+// "indicador_n2" compartilham a mesma lista (ind1_list) — o campo categoria
+// no registro é quem distingue os dois lá na tela de Cadastro.
+const CAD_KEY = { indicador: 'ind1_list', indicador_n2: 'ind1_list', dealer: 'dp1_dealers', projeto: 'dp1_projetos' };
+const CAD_PREFIX = { indicador: 'i', indicador_n2: 'i', dealer: 'd', projeto: 'p' };
+const CAD_DEFAULTS = {
+  indicador: [{ id: 'i1', nome: 'Acácio Souza' }, { id: 'i2', nome: 'Indicador 2' }],
+  indicador_n2: [{ id: 'i1', nome: 'Acácio Souza' }, { id: 'i2', nome: 'Indicador 2' }],
+  dealer: [{ id: 'd1', nome: 'HTL Hilario' }, { id: 'd2', nome: 'Ione Rastrek' }],
+  projeto: [
+    { id: 'p1', nome: 'Imperio Dos Rastreadores', apelido: 'carneiro.junior' },
+    { id: 'p3', nome: 'Loja do Rastreador', apelido: 'indicador.helamin' },
+  ],
+};
+
+function enviarCadastro() {
+  const errEl = document.getElementById('f_err');
+  errEl.style.display = 'none';
+  const nome = document.getElementById('f_nome').value.trim();
+  const cpf = document.getElementById('f_cpf').value.trim();
+  const comercial = document.getElementById('f_comercial').value;
+  const cidade = document.getElementById('f_cidade').value.trim();
+  const apelido = document.getElementById('f_apelido').value.trim();
+  const conta = document.getElementById('f_conta').value.trim();
+  const celular = document.getElementById('f_celular').value.trim();
+  const email = document.getElementById('f_email').value.trim();
+
+  if (!nome) { errEl.textContent = 'Informe seu nome completo.'; errEl.style.display = 'block'; return; }
+  if (!cpf) { errEl.textContent = 'Informe seu CPF.'; errEl.style.display = 'block'; return; }
+  if (!comercial) { errEl.textContent = 'Selecione a qual executivo você está vinculado(a).'; errEl.style.display = 'block'; return; }
+  if (!cidade) { errEl.textContent = 'Informe sua cidade.'; errEl.style.display = 'block'; return; }
+  if (!apelido) { errEl.textContent = 'Informe seu apelido / ID no CRM.'; errEl.style.display = 'block'; return; }
+  if (!conta) { errEl.textContent = 'Informe os dados da conta.'; errEl.style.display = 'block'; return; }
+  if (!celular) { errEl.textContent = 'Informe seu celular.'; errEl.style.display = 'block'; return; }
+  if (!email) { errEl.textContent = 'Informe seu e-mail.'; errEl.style.display = 'block'; return; }
+
+  const tipo = document.getElementById('f_tipo').value;
+  const entry = {
+    id: CAD_PREFIX[tipo] + Date.now(),
+    nome,
+    categoria: tipo,
+    empresa: document.getElementById('f_empresa').value.trim(),
+    cpf,
+    cnpj: document.getElementById('f_cnpj').value.trim(),
+    celular,
+    telefone: document.getElementById('f_telefone').value.trim(),
+    email,
+    email2: document.getElementById('f_email2').value.trim(),
+    bairro: document.getElementById('f_bairro').value.trim(),
+    cidade,
+    comercial,
+    ajudaCusto: tipo === 'indicador_n2' ? (+document.getElementById('f_ajudacusto').value || 0) : 0,
+    apelido,
+    conta,
+  };
+
+  const key = CAD_KEY[tipo];
+  let list;
+  try { list = JSON.parse(localStorage.getItem(key)) || CAD_DEFAULTS[tipo]; } catch { list = CAD_DEFAULTS[tipo]; }
+  if (!Array.isArray(list)) list = CAD_DEFAULTS[tipo];
+  list.push(entry);
+  localStorage.setItem(key, JSON.stringify(list));
+
+  // Projeto Especial precisa de uma entrada em dp1_pp (preços por operadora)
+  // pra não quebrar a tela de Configurações do perfil.
+  if (tipo === 'projeto') {
+    let pp;
+    try { pp = JSON.parse(localStorage.getItem('dp1_pp')) || {}; } catch { pp = {}; }
+    pp[entry.id] = { ALGAR: 0, ARQIA: 0, VIVO: 0, CLARO: 0, TIM: 0 };
+    localStorage.setItem('dp1_pp', JSON.stringify(pp));
+  }
+
+  document.getElementById('form_card').style.display = 'none';
+  document.getElementById('done').style.display = 'block';
+}
+</script>
+</body>
+</html>

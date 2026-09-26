@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dealer · Gestora Smart</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#f5f4f0;color:#1a1a18;font-size:13px;line-height:1.5}
+.page{max-width:1100px;margin:0 auto;padding:40px 24px 80px}
+.header{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:18px;border-bottom:2px solid #1a1a18;margin-bottom:24px}
+.header-left p{font-size:11px;color:#888;font-weight:500;margin-bottom:4px}
+.header-left h1{font-size:26px;font-weight:800;color:#1a1a18;line-height:1}
+.hbadge{background:#166B4A;color:#fff;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:5px 14px;border-radius:20px}
+.tab-nav{display:flex;border-bottom:1px solid #d4d3ce;margin-bottom:28px}
+.tab-btn{background:none;border:none;border-bottom:2.5px solid transparent;margin-bottom:-1px;padding:9px 18px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#bbb;cursor:pointer;font-family:'Inter',sans-serif;transition:color .15s}
+.tab-btn.active{color:#166B4A;border-bottom-color:#166B4A}
+.tab-btn:hover:not(.active){color:#555}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.card{background:#fff;border:.5px solid #d4d3ce;border-radius:10px;padding:20px 22px;margin-bottom:14px}
+.card-title{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#888;margin-bottom:14px}
+label.lbl{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#888;margin-bottom:4px;display:block}
+.irow{display:flex;align-items:center;gap:6px}.irow input{flex:1}
+.ipfx{font-size:12px;color:#888;white-space:nowrap}
+input[type=number],input[type=text],input[type=month],select,textarea{background:#f5f4f0;border:.5px solid #d4d3ce;border-radius:6px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:#1a1a18;width:100%;outline:none}
+input:focus,select:focus{border-color:#1E9B6B;background:#fff}
+textarea{resize:vertical}
+.btn{background:#166B4A;color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:12px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer}
+.btn:hover{background:#0d5233}
+.btn-sm{padding:5px 12px;font-size:11px}
+.btn-ghost{background:transparent;color:#1a1a18;border:.5px solid #d4d3ce;border-radius:6px;padding:8px 14px;font-size:12px;font-weight:500;font-family:'Inter',sans-serif;cursor:pointer}
+.btn-ghost:hover{background:#f5f4f0}
+.btn-del{background:#fceaea;color:#b83232;border:.5px solid #f5c6c6;border-radius:4px;padding:4px 8px;font-size:11px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer}
+.btn-edit{background:#f5f4f0;color:#166B4A;border:.5px solid #d4d3ce;border-radius:6px;padding:5px 9px;font-size:11px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer}
+.btn-edit:hover,.btn-edit.active{background:#eaf5f0;border-color:#1E9B6B}
+.btn-export{background:#fff;color:#1d4ed8;border:.5px solid #93c5fd;border-radius:6px;padding:5px 9px;font-size:11px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer}
+.btn-export:hover{background:#eff6ff}
+.btn-export.disabled{background:#f5f4f0;color:#bbb;border-color:#e0dfdb;cursor:default}
+table{width:100%;border-collapse:collapse}
+th{font-size:10px;font-weight:600;color:#888;text-align:left;padding:8px 10px;border-bottom:.5px solid #d4d3ce;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+th.r{text-align:right}
+td{padding:9px 10px;border-bottom:.5px solid #eeede8;font-size:12px;color:#1a1a18;vertical-align:middle}
+td.r{text-align:right;font-variant-numeric:tabular-nums}
+.c-verde{color:#166B4A;font-weight:600}.c-red{color:#b83232}.c-dim{color:#bbb}
+#dealerTable th.r,#dealerTable td.r{text-align:center}
+.toast{position:fixed;bottom:24px;right:24px;color:#fff;font-size:12px;font-weight:600;padding:10px 18px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:99}
+.toast.show{opacity:1}
+/* ─── Regras de Comissão ─── */
+.rg-req{color:#b83232}
+.rg-modal-overlay{position:fixed;inset:0;background:rgba(20,20,18,.5);display:none;align-items:center;justify-content:center;z-index:200;padding:24px}
+.rg-modal-overlay.open{display:flex}
+.rg-modal-card{background:#faf9f6;border-radius:14px;max-width:680px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.3)}
+.rg-modal-hdr{display:flex;justify-content:space-between;align-items:center;padding:20px 26px;border-bottom:2px solid #1a1a18;background:#faf9f6;position:sticky;top:0}
+.rg-modal-hdr h2{font-size:18px;font-weight:800;color:#1a1a18}
+.rg-modal-close{background:none;border:none;font-size:15px;color:#888;cursor:pointer;width:30px;height:30px;border-radius:7px;line-height:1}
+.rg-modal-close:hover{background:#eeede8;color:#1a1a18}
+.rg-modal-body{padding:22px 26px 28px}
+.seg-toggle{display:flex;gap:6px;background:#eeede8;border-radius:9px;padding:4px;margin-bottom:16px;max-width:480px}
+.seg-btn{flex:1;background:none;border:none;border-radius:6px;padding:9px 12px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:#888;cursor:pointer;transition:background .15s,color .15s}
+.seg-btn:hover{color:#1a1a18}
+.seg-btn.active{background:#fff;color:#1a1a18;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.rg-versao{background:#f5f4f0;border:1px solid #d4d3ce;border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.rg-versao-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.rg-versao-hdr label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#888}
+.rg-faixa-row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;margin-bottom:6px;align-items:center}
+.rg-faixa-row input{padding:6px 8px;font-size:12px}
+.rg-faixa-hdr{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;margin-bottom:4px}
+.rg-faixa-hdr span{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#888}
+.edit-panel{background:#f9fffe;border-top:2px solid #1E9B6B;padding:16px 20px}
+.edit-panel-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.edit-panel-title{font-size:11px;font-weight:700;color:#166B4A;text-transform:uppercase;letter-spacing:.08em}
+.edit-fields{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:12px}
+.edit-preview{background:#fff;border:.5px solid #d4d3ce;border-radius:8px;padding:14px 16px;margin-bottom:12px}
+.ep-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ep-item label{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px}
+.ep-item span{font-size:14px;font-weight:700;color:#1a1a18}
+.ep-item span.big{font-size:20px;color:#166B4A}
+.ep-sep{font-size:16px;color:#d4d3ce}
+.ep-bl{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.ep-bl-box{border-radius:6px;padding:7px 10px;text-align:center;border:.5px solid transparent;min-width:90px}
+.epb-hit{background:#eaf5f0;border-color:#1E9B6B}
+.epb-miss{background:#f5f4f0;border-color:#e0dfdb}
+.epb-hit .ebl{color:#166B4A}.epb-miss .ebl{color:#bbb}
+.epb-hit .ebv{color:#166B4A}.epb-miss .ebv{color:#ccc}
+.ebl{font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px}
+.ebv{font-size:13px;font-weight:800}
+.edit-actions{display:flex;gap:8px;justify-content:flex-end}
+tr.row-editing td{background:#f9fffe !important}
+
+/* ─── Responsivo (tablet/celular) ─── */
+@media (max-width:860px){
+  .page{padding:24px 16px 60px}
+  .g2{grid-template-columns:1fr}
+  .tab-nav{flex-wrap:wrap}
+  .edit-fields{grid-template-columns:repeat(3,1fr)}
+  .rg-modal-card{max-width:94vw}
+  .rg-modal-body{padding:16px 18px}
+}
+@media (max-width:480px){
+  .edit-fields{grid-template-columns:1fr 1fr}
+  .rg-faixa-row,.rg-faixa-hdr{grid-template-columns:1fr 1fr 1fr auto;font-size:11px}
+  .rg-versao-hdr{flex-wrap:wrap}
+  .rg-versao-hdr input[type=month]{max-width:140px}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="header">
+  <div class="header-left">
+    <p>Gestora Smart · Sistema de Comissionamento</p>
+    <h1>Dealer</h1>
+  </div>
+  <span class="hbadge">2 – Dealer</span>
+</div>
+
+<div class="tab-nav">
+  <button class="tab-btn active" data-tab="dealer">Resumo</button>
+  <button class="tab-btn" data-tab="regras">Regras de Comissão</button>
+</div>
+
+<!-- ═══ TAB DEALER ═══ -->
+<div id="tab-dealer" class="tab-panel active">
+  <div style="margin-bottom:18px">
+    <label class="lbl">Mês do Comissionamento</label><input type="month" id="mesInput" style="max-width:160px" onchange="renderDealer()">
+  </div>
+  <div id="rawNoticeDp" style="display:none;margin-bottom:12px;padding:10px 14px;background:#eff6ff;border:.5px solid #93c5fd;border-radius:8px;font-size:11px;color:#1d4ed8">
+    <strong>↓ Extrair disponível</strong> — dados brutos carregados nesta sessão.
+  </div>
+  <div style="background:#fff;border:.5px solid #d4d3ce;border-radius:10px;overflow:hidden">
+    <div style="overflow-x:auto">
+      <table id="dealerTable" style="min-width:860px">
+        <thead><tr>
+          <th style="padding-left:20px">Dealer</th>
+          <th class="r">Linhas ativas</th>
+          <th class="r">Novas linhas</th>
+          <th class="r">Margem total</th>
+          <th class="r">Bateu-Levou</th>
+          <th class="r">Bônus extra</th>
+          <th class="r">−Cancelamentos</th>
+          <th class="r">Total</th>
+          <th style="width:130px;text-align:center">Ações</th>
+        </tr></thead>
+        <tbody id="dealerBody"></tbody>
+        <tfoot id="dealerFoot"></tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB REGRAS DE COMISSÃO ═══ -->
+<!-- Vivia como tela própria no shell (index.html) — o Diego pediu pra trazer
+     pra dentro do Dealer já que é a única categoria que usa esse motor de
+     regras hoje. O cálculo (regraAvaliar/regraRecalcularTodas) continua no
+     shell porque o Importar precisa dele; aqui é só a UI de criar/editar. -->
+<div id="tab-regras" class="tab-panel">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <p style="font-size:11px;color:#888;max-width:560px;line-height:1.6">Crie ou ajuste o modelo de comissão de qualquer dealer sem precisar editar código: escolha de onde vem o dado (Pedidos ou Inventário), como ele se transforma em valor (percentual, valor fixo por unidade, ou faixas com vigência por data) e o desconto por cancelamento.</p>
+    <button class="btn" onclick="regraAbrirModal(null)" style="white-space:nowrap;margin-left:16px">+ Nova Regra</button>
+  </div>
+  <div id="regras_lista"></div>
+</div>
+
+<!-- ═══ TAB CONFIG ═══ -->
+</div>
+
+<div class="rg-modal-overlay" id="regraModal" onclick="if(event.target===this) regraFecharModal()">
+  <div class="rg-modal-card">
+    <div class="rg-modal-hdr">
+      <h2 id="regraModalTitulo">Nova Regra de Comissão</h2>
+      <button class="rg-modal-close" onclick="regraFecharModal()">✕</button>
+    </div>
+    <div class="rg-modal-body">
+      <div class="card">
+        <div class="g2">
+          <div>
+            <label class="lbl">Dealer <span class="rg-req">*</span></label>
+            <select id="rg_dealer"></select>
+          </div>
+          <div>
+            <label class="lbl">De onde vem o dado</label>
+            <select id="rg_fonte">
+              <option value="somaAtivacao">Soma do "Preço de ativação" (Inventário)</option>
+              <option value="contagemAtivadas">Contagem de linhas ativadas (Inventário)</option>
+              <option value="volumePedidos">Volume de vendas (Pedidos)</option>
+            </select>
+          </div>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:#444;margin-bottom:18px;cursor:pointer">
+          <input type="checkbox" id="rg_defasagem" style="width:auto"> Usar o dado do <strong>mês anterior</strong> (defasagem de 1 mês)
+        </label>
+
+        <label class="lbl">Como isso se transforma em valor</label>
+        <div class="seg-toggle" id="rg_modo_toggle">
+          <button type="button" class="seg-btn active" data-modo="percentual" onclick="regraSetModo('percentual')">Percentual</button>
+          <button type="button" class="seg-btn" data-modo="valorFixo" onclick="regraSetModo('valorFixo')">Valor fixo por unidade</button>
+          <button type="button" class="seg-btn" data-modo="faixas" onclick="regraSetModo('faixas')">Faixas</button>
+        </div>
+
+        <div id="rg_area_percentual">
+          <label class="lbl">Percentual sobre o valor apurado</label>
+          <div class="irow" style="max-width:160px;margin-bottom:16px"><input type="number" id="rg_percentual" min="0" max="100" step="0.1" value="70"><span class="ipfx">%</span></div>
+        </div>
+
+        <div id="rg_area_valorFixo" style="display:none">
+          <label class="lbl">Valor fixo por unidade</label>
+          <div class="irow" style="max-width:160px;margin-bottom:16px"><span class="ipfx">R$</span><input type="number" id="rg_valorFixo" min="0" step="0.01" value="1.00"></div>
+        </div>
+
+        <div id="rg_area_faixas" style="display:none">
+          <div id="rg_faixas_versoes"></div>
+          <button class="btn-ghost" type="button" onclick="regraFaixasAddVersao()" style="margin-bottom:16px">+ Nova versão (vigência)</button>
+          <div class="g2" style="margin-bottom:4px">
+            <div>
+              <label class="lbl">Sem bater nenhuma faixa: multiplicador</label>
+              <input type="number" id="rg_semFaixaMult" min="0" step="0.01" value="2">
+            </div>
+            <div>
+              <label class="lbl">Sem bater nenhuma faixa: bônus fixo</label>
+              <div class="irow"><span class="ipfx">R$</span><input type="number" id="rg_semFaixaBonus" min="0" step="0.01" value="0"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="g2" style="margin-top:16px">
+          <div>
+            <label class="lbl">Desconto por linha cancelada</label>
+            <div class="irow"><span class="ipfx">R$</span><input type="number" id="rg_cancelTaxa" min="0" step="0.01" placeholder="deixe vazio pra usar a taxa genérica"></div>
+          </div>
+          <div>
+            <label class="lbl">Ajuda de custo fixa (só referência, opcional)</label>
+            <div class="irow"><span class="ipfx">R$</span><input type="number" id="rg_ajudaCustoFixa" min="0" step="0.01" placeholder="0,00"></div>
+          </div>
+        </div>
+
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:#444;margin:18px 0 10px;cursor:pointer">
+          <input type="checkbox" id="rg_segundo_ativo" style="width:auto" onchange="document.getElementById('rg_segundo_area').style.display=this.checked?'grid':'none'">
+          + Adicionar um segundo componente (soma por cima do principal, ex.: R$/linha vendida além da ativação)
+        </label>
+        <div class="g2" id="rg_segundo_area" style="display:none">
+          <div>
+            <label class="lbl">De onde vem o dado (2º componente)</label>
+            <select id="rg_segundo_fonte">
+              <option value="somaAtivacao">Soma do "Preço de ativação" (Inventário)</option>
+              <option value="contagemAtivadas">Contagem de linhas ativadas (Inventário)</option>
+              <option value="volumePedidos">Volume de vendas (Pedidos)</option>
+            </select>
+          </div>
+          <div>
+            <label class="lbl">Valor fixo por unidade</label>
+            <div class="irow"><span class="ipfx">R$</span><input type="number" id="rg_segundo_valor" min="0" step="0.01" placeholder="1.00"></div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:6px">
+        <button class="btn-del" id="rg_btn_remover" onclick="regraRemoverAtual()" style="display:none">Remover regra (voltar ao modelo padrão)</button>
+        <button class="btn" onclick="regraSalvar()" style="margin-left:auto">✓ Salvar regra</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// ─── DEFAULTS ──────────────────────────────────────
+const DEF_DEALERS=[
+  {id:'d1',nome:'HTL Hilario'},
+  {id:'d2',nome:'Ione Rastrek'},
+];
+const DEF_PRECOS=[
+  {op:'ALGAR',base:5.30},{op:'ALGAR TELECOM',base:5.20},{op:'ALGAR MULTI',base:5.20},
+  {op:'ALGAR ONE TIM',base:3.80},{op:'ARQIA',base:5.00},{op:'ARQIA 2OP',base:5.00},
+  {op:'ARQIA INTERNACIONAL',base:7.90},{op:'CLARO',base:4.00},{op:'CLARO 5GB',base:17.00},
+  {op:'CLARO 3GB',base:39.00},{op:'CLARO CATM1',base:4.00},{op:'SIERRA',base:11.90},
+  {op:'TIM',base:3.00},{op:'TIM 5GB',base:18.00},{op:'VIVO',base:4.10},
+  {op:'VIVO CATM1',base:4.20},{op:'VIVO 1GB',base:10.00},{op:'VIVO 2GB',base:20.00},
+  {op:'VIVO 5GB',base:33.00},{op:'VIVO 5GB - Voz',base:52.90},{op:'VIVO 3GB',base:30.00},
+  {op:'VIVO 40GB',base:78.00},{op:'VIVO 10GB',base:60.00},
+];
+const DEF_BL=[{threshold:1000,bonus:1000}];
+const DEF_RULES={cancelRate:2};
+
+// Mesma semente de "Regras de Comissão" do shell (index.html) — repetida
+// aqui como fallback padrão, no mesmo padrão dos outros DEF_* deste arquivo,
+// pra não depender de ordem de carregamento entre o shell e este iframe.
+const DEF_REGRAS={
+  'dealer:d2':{label:'Ione Rastrek',fonte:'volumePedidos',defasagem:true,modo:'faixas',cancelamento:null,ajudaCustoFixa:null},
+  'dealer:d1':{label:'HTL Hilario',fonte:'somaAtivacao',defasagem:false,modo:'percentual',percentual:0.7,cancelamento:{taxa:1.00},ajudaCustoFixa:2800},
+};
+// regrasGet/regrasSalvar: se o shell (index.html, o pai deste iframe) já
+// carregou, usa a cópia dele — ele é quem persiste a semente completa
+// (faixas com vigência da Ione etc.) assim que a página abre. Cair pro
+// LS local + DEF_REGRAS é só rede de segurança, pra esse arquivo continuar
+// funcionando mesmo aberto sozinho ou antes do pai terminar de carregar.
+function regrasGet(){
+  try{if(window.parent&&window.parent!==window&&typeof window.parent.regrasGet==='function')return window.parent.regrasGet();}catch{}
+  return LS.get('regras_comissao',DEF_REGRAS);
+}
+function regrasSalvar(regras){LS.set('regras_comissao',regras);}
+
+// Dealer com uma "Regra de Comissão" salva (ver aba "Regras de Comissão" logo
+// acima) não usa margem por mensalidade nem Bateu-Levou — o "margin" dele já
+// chega pronto do Importar (motor de regras, index.html), aqui só aplicamos a
+// taxa de cancelamento (a da própria regra, se ela definir uma; senão a
+// genérica).
+function regraDoDealer(id){
+  return regrasGet()['dealer:'+id]||null;
+}
+
+// ─── TELA "REGRAS DE COMISSÃO" (UI) ─────────────────
+// O cálculo em si (regraAvaliar/regraRecalcularTodas) mora no shell
+// (index.html), porque é lá que o Importar escreve as fontes (Pedidos/
+// Inventário) e recalcula. Aqui é só criar/editar a regra — ao salvar,
+// chamamos o shell pra recalcular o mês que está aberto nesta tela.
+const REGRA_FONTE_LABEL={somaAtivacao:'Soma "Preço de ativação" (Inventário)',contagemAtivadas:'Contagem de linhas ativadas (Inventário)',volumePedidos:'Volume de vendas (Pedidos)'};
+
+function regraModoLabel(regra){
+  let base='—';
+  if(regra.modo==='percentual')base=`${((regra.percentual||0)*100).toFixed(0)}% de ${REGRA_FONTE_LABEL[regra.fonte]||regra.fonte}`;
+  else if(regra.modo==='valorFixo')base=`R$ ${br2(regra.valorFixo||0)} por unidade de ${REGRA_FONTE_LABEL[regra.fonte]||regra.fonte}`;
+  else if(regra.modo==='faixas')base=`Faixas com vigência sobre ${REGRA_FONTE_LABEL[regra.fonte]||regra.fonte}`;
+  if(regra.segundo&&regra.segundo.ativo)base+=` + R$ ${br2(regra.segundo.valor||0)} por unidade de ${REGRA_FONTE_LABEL[regra.segundo.fonte]||regra.segundo.fonte}`;
+  return base;
+}
+
+function renderRegrasLista(){
+  const regras=regrasGet();
+  const chaves=Object.keys(regras).filter(k=>k.startsWith('dealer:'));
+  const wrap=document.getElementById('regras_lista');
+  if(!wrap)return;
+  if(!chaves.length){wrap.innerHTML='<div class="note">Nenhuma regra customizada ainda — todo dealer usa o modelo padrão (margem por mensalidade).</div>';return;}
+  wrap.innerHTML=chaves.map(key=>{
+    const id=key.split(':')[1];
+    const regra=regras[key];
+    const nome=(dealers.find(d=>d.id===id)||{}).nome||regra.label||id;
+    return `<div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+        <div>
+          <p class="card-title" style="margin-bottom:6px">${nome}</p>
+          <div style="font-size:13px;color:#1a1a18;margin-bottom:4px">${regraModoLabel(regra)}${regra.defasagem?' · dado do mês anterior':''}</div>
+          <div style="font-size:12px;color:#888">${regra.cancelamento?`− R$ ${br2(regra.cancelamento.taxa)} por linha cancelada`:'usa a taxa de cancelamento genérica'}${regra.ajudaCustoFixa?` · Ajuda de custo fixa R$ ${br2(regra.ajudaCustoFixa)}/mês (só referência)`:''}</div>
+        </div>
+        <button class="btn-ghost" onclick="regraAbrirModal('${key}')">Editar</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+let rgEditandoKey=null;
+let rgFaixasVigencia=[];
+
+function regraPopularDealerSelect(selecionarId){
+  const regras=regrasGet();
+  const sel=document.getElementById('rg_dealer');
+  const disponiveis=dealers.filter(d=>!regras['dealer:'+d.id]||d.id===selecionarId);
+  sel.innerHTML=disponiveis.map(d=>`<option value="${d.id}">${d.nome}</option>`).join('');
+  if(selecionarId)sel.value=selecionarId;
+}
+
+function regraAbrirModal(key){
+  rgEditandoKey=key;
+  const regra=key?regrasGet()[key]:null;
+  document.getElementById('regraModalTitulo').textContent=key?'Editar Regra de Comissão':'Nova Regra de Comissão';
+  document.getElementById('rg_btn_remover').style.display=key?'inline-block':'none';
+  regraPopularDealerSelect(key?key.split(':')[1]:null);
+  document.getElementById('rg_dealer').disabled=!!key;
+
+  document.getElementById('rg_fonte').value=regra?.fonte||'somaAtivacao';
+  document.getElementById('rg_defasagem').checked=!!regra?.defasagem;
+  document.getElementById('rg_percentual').value=regra?.percentual!=null?(regra.percentual*100):70;
+  document.getElementById('rg_valorFixo').value=regra?.valorFixo!=null?regra.valorFixo:1.00;
+  document.getElementById('rg_semFaixaMult').value=regra?.semFaixaMult!=null?regra.semFaixaMult:2;
+  document.getElementById('rg_semFaixaBonus').value=regra?.semFaixaBonus!=null?regra.semFaixaBonus:0;
+  document.getElementById('rg_cancelTaxa').value=regra?.cancelamento?regra.cancelamento.taxa:'';
+  document.getElementById('rg_ajudaCustoFixa').value=regra?.ajudaCustoFixa||'';
+
+  const seg=regra?.segundo;
+  document.getElementById('rg_segundo_ativo').checked=!!seg?.ativo;
+  document.getElementById('rg_segundo_area').style.display=seg?.ativo?'grid':'none';
+  document.getElementById('rg_segundo_fonte').value=seg?.fonte||'volumePedidos';
+  document.getElementById('rg_segundo_valor').value=seg?.valor!=null?seg.valor:1.00;
+
+  const mesAtual=document.getElementById('mesInput').value||'2026-01';
+  rgFaixasVigencia=regra?.faixasVigencia&&regra.faixasVigencia.length
+    ?JSON.parse(JSON.stringify(regra.faixasVigencia))
+    :[{desde:mesAtual,faixas:[{gatilho:500,mult:2,bonus:0}]}];
+  regraFaixasRender();
+  regraSetModo(regra?.modo||'percentual');
+
+  document.getElementById('regraModal').classList.add('open');
+}
+
+function regraFecharModal(){
+  document.getElementById('regraModal').classList.remove('open');
+}
+
+function regraSetModo(modo){
+  document.querySelectorAll('#rg_modo_toggle .seg-btn').forEach(b=>b.classList.toggle('active',b.dataset.modo===modo));
+  document.getElementById('rg_area_percentual').style.display=modo==='percentual'?'block':'none';
+  document.getElementById('rg_area_valorFixo').style.display=modo==='valorFixo'?'block':'none';
+  document.getElementById('rg_area_faixas').style.display=modo==='faixas'?'block':'none';
+}
+
+function regraFaixasRender(){
+  const wrap=document.getElementById('rg_faixas_versoes');
+  wrap.innerHTML=rgFaixasVigencia.map((v,vi)=>`
+    <div class="rg-versao">
+      <div class="rg-versao-hdr">
+        <label>Vigente desde</label>
+        <input type="month" value="${(v.desde||'').length>=7?v.desde.slice(0,7):''}" onchange="rgFaixasVigencia[${vi}].desde=this.value">
+        ${rgFaixasVigencia.length>1?`<button class="btn-del" type="button" onclick="regraFaixasRemoverVersao(${vi})" style="margin-left:auto">Remover versão</button>`:''}
+      </div>
+      <div class="rg-faixa-hdr"><span>Gatilho</span><span>Multiplicador</span><span>Bônus R$</span><span></span></div>
+      ${v.faixas.map((fx,fi)=>`
+        <div class="rg-faixa-row">
+          <input type="number" placeholder="Gatilho" value="${fx.gatilho}" onchange="rgFaixasVigencia[${vi}].faixas[${fi}].gatilho=+this.value">
+          <input type="number" placeholder="Multiplicador" step="0.1" value="${fx.mult}" onchange="rgFaixasVigencia[${vi}].faixas[${fi}].mult=+this.value">
+          <input type="number" placeholder="Bônus R$" step="0.01" value="${fx.bonus}" onchange="rgFaixasVigencia[${vi}].faixas[${fi}].bonus=+this.value">
+          <button class="btn-del" type="button" onclick="regraFaixasRemoverLinha(${vi},${fi})">×</button>
+        </div>`).join('')}
+      <button class="btn-ghost" type="button" onclick="regraFaixasAddLinha(${vi})" style="margin-top:6px">+ Faixa</button>
+    </div>`).join('');
+}
+function regraFaixasAddVersao(){
+  rgFaixasVigencia.push({desde:document.getElementById('mesInput').value||'2026-01',faixas:[{gatilho:500,mult:2,bonus:0}]});
+  regraFaixasRender();
+}
+function regraFaixasRemoverVersao(vi){rgFaixasVigencia.splice(vi,1);regraFaixasRender();}
+function regraFaixasAddLinha(vi){rgFaixasVigencia[vi].faixas.push({gatilho:0,mult:1,bonus:0});regraFaixasRender();}
+function regraFaixasRemoverLinha(vi,fi){rgFaixasVigencia[vi].faixas.splice(fi,1);regraFaixasRender();}
+
+function regraModoAtual(){
+  return document.querySelector('#rg_modo_toggle .seg-btn.active')?.dataset.modo||'percentual';
+}
+
+// Depois de salvar/remover, pede pro shell recalcular o mês que está aberto
+// aqui no Dealer (é ele quem sabe cruzar com as fontes do Importar).
+function regraRecalcularNoShell(){
+  const mes=document.getElementById('mesInput').value;
+  try{if(mes&&window.parent&&typeof window.parent.regraRecalcularTodas==='function')window.parent.regraRecalcularTodas(mes);}catch{}
+  mdata=LS.get('dp1_m',{});
+  renderDealer();
+}
+
+function regraSalvar(){
+  const id=document.getElementById('rg_dealer').value;
+  if(!id){alert('Selecione o dealer.');return;}
+  const modo=regraModoAtual();
+  const cancelTaxaVal=document.getElementById('rg_cancelTaxa').value;
+  const ajudaVal=document.getElementById('rg_ajudaCustoFixa').value;
+
+  const regra={
+    label:(dealers.find(d=>d.id===id)||{}).nome||id,
+    fonte:document.getElementById('rg_fonte').value,
+    defasagem:document.getElementById('rg_defasagem').checked,
+    modo,
+    percentual:+document.getElementById('rg_percentual').value/100||0,
+    valorFixo:+document.getElementById('rg_valorFixo').value||0,
+    faixasVigencia:JSON.parse(JSON.stringify(rgFaixasVigencia)),
+    semFaixaMult:+document.getElementById('rg_semFaixaMult').value||0,
+    semFaixaBonus:+document.getElementById('rg_semFaixaBonus').value||0,
+    cancelamento:cancelTaxaVal!==''?{taxa:+cancelTaxaVal}:null,
+    ajudaCustoFixa:ajudaVal!==''?+ajudaVal:null,
+    segundo:document.getElementById('rg_segundo_ativo').checked?{
+      ativo:true,
+      fonte:document.getElementById('rg_segundo_fonte').value,
+      valor:+document.getElementById('rg_segundo_valor').value||0,
+    }:null,
+  };
+
+  const regras=regrasGet();
+  regras['dealer:'+id]=regra;
+  regrasSalvar(regras);
+
+  regraRecalcularNoShell();
+  regraFecharModal();
+  renderRegrasLista();
+  showToast(`Regra de ${regra.label} salva ✓`);
+}
+
+function regraRemoverAtual(){
+  if(!rgEditandoKey)return;
+  if(!confirm('Remover essa regra? O dealer volta a usar o modelo padrão (margem por mensalidade).'))return;
+  const regras=regrasGet();
+  delete regras[rgEditandoKey];
+  regrasSalvar(regras);
+
+  regraRecalcularNoShell();
+  regraFecharModal();
+  renderRegrasLista();
+  showToast('Regra removida ✓');
+}
+
+const LS={
+  get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+};
+// Mês aprovado (Visão Consolidada) fica travado — nem edição manual sobrescreve,
+// mesmo que a regra de alguém mude depois. Só desaprovando ou excluindo os dados.
+function mesAprovado(mes){try{const a=JSON.parse(localStorage.getItem('aprovacoes_mes')||'{}');return !!(a[mes]&&a[mes].aprovado);}catch{return false;}}
+// Pra Visão do Executivo (index.html) conseguir ler os dados brutos deste
+// iframe — `rawStore` é `let`, não vira propriedade de window sozinho.
+function getRawFor(id,mes){return rawStore[`dealer_${id}_${mes}`]||{};}
+let dealers=LS.get('dp1_dealers',DEF_DEALERS);
+let precos=LS.get('dp1_precos',DEF_PRECOS);
+let blTiers=LS.get('dp1_bl',DEF_BL);
+let rules=LS.get('dp1_rules',DEF_RULES);
+let mdata=LS.get('dp1_m',{});
+let rawStore={};
+
+// Mesmo motivo do getRawFor: o Importar (shell) grava direto em
+// localStorage['dp1_m'], mas essa variável só é lida uma vez quando o iframe
+// abre — escrever de fora não atualiza sozinho o que já está na memória
+// aqui. Exposta pro shell chamar assim que terminar de processar Inventário
+// ou Cancelamentos.
+function resyncMdata(){mdata=LS.get('dp1_m',{});renderDealer();}
+// Chamado pela tela Importar (index.html) depois de cruzar o Inventário —
+// alimenta o mesmo rawStore que a antiga aba Importar preenchia, pra o botão
+// "↓ Extrair" continuar funcionando mesmo sem a aba local.
+window.impSetRaw=function(id,mes,headers,rows){
+  rawStore[`dealer_${id}_${mes}`]={...(rawStore[`dealer_${id}_${mes}`]||{}),headers,rows};
+  renderDealer();
+};
+window.impSetCancelRaw=function(id,mes,headers,rows){
+  rawStore[`dealer_${id}_${mes}`]={...(rawStore[`dealer_${id}_${mes}`]||{}),cancelHeaders:headers,cancelRows:rows};
+  renderDealer();
+};
+let editingId=null;
+
+// ─── INIT ──────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  const now=new Date();
+  const mv=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('mesInput').value=mv;
+  renderDealer();
+});
+document.querySelectorAll('.tab-btn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById('tab-'+b.dataset.tab).classList.add('active');
+    if(b.dataset.tab==='regras')renderRegrasLista();
+  });
+});
+function switchTab(t){
+  document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));
+  document.querySelector(`[data-tab="${t}"]`).classList.add('active');
+  document.getElementById('tab-'+t).classList.add('active');
+}
+
+// ─── HELPERS ───────────────────────────────────────
+const br2=v=>v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtMes=s=>{if(!s)return'';const[y,m]=s.split('-');const ms=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];return ms[+m-1]+'/'+y;};
+const norm=(s='')=>String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9 ]/g,' ').trim();
+
+function getBL(novasLinhas){
+  let total=0;let hits=[];
+  blTiers.sort((a,b)=>a.threshold-b.threshold).forEach(t=>{if(novasLinhas>=t.threshold){total+=t.bonus;hits.push(t);}});
+  return{total,hits};
+}
+function calcDealer(d,dealerId){
+  const novas=d.novas||0;
+  const bonus=d.bonus||0;
+  const margin=d.margin||0;
+  const regra=regraDoDealer(dealerId);
+  if(regra){
+    // margin já vem pronto do Importar (motor de regras) — aqui só aplicamos
+    // a taxa de cancelamento (a da própria regra, senão a genérica) e nunca
+    // Bateu-Levou, que é exclusivo do modelo padrão por mensalidade.
+    const cancelRate=regra.cancelamento?regra.cancelamento.taxa:rules.cancelRate;
+    const cancelDesc=(d.cancel||0)*cancelRate;
+    const total=margin+bonus-cancelDesc;
+    // Regra com 2º componente (ex.: Hilario: ativação + volume de vendas) —
+    // sem isso, "Margem Total" mostrava a soma dos dois juntos e não dava
+    // pra saber quanto era ativação e quanto era volume só olhando a tabela.
+    // Reaproveita as colunas que já existem em vez de criar novas: Linhas
+    // Ativas = valor do componente principal (ativação), Novas Linhas =
+    // quantidade do 2º componente (volume), Margem Total = valor do 2º.
+    const temSegundo=regra.segundo&&regra.segundo.ativo;
+    const faixaBonus=d.faixaBonus||0;
+    // Regra em "faixas" sem 2º componente (ex.: Ione) — a bonificação por
+    // atingimento de faixa vai pra coluna Bateu-Levou (que já existe e já
+    // significa isso pro modelo padrão), Novas Linhas continua a quantidade
+    // (volume) e Margem Total mostra só volume×multiplicador, sem embutir a
+    // bonificação — assim dá pra ver os dois valores separados na lista,
+    // igual o Diego pediu.
+    let colunasRegra=null;
+    if(temSegundo){
+      colunasRegra={
+        linhasAtivas:'R$'+br2(d.componentePrincipal||0),
+        novasLinhas:(d.segundoBase||0).toLocaleString('pt-BR'),
+        margem:'R$'+br2(d.segundoValor||0),
+      };
+    }else if(regra.modo==='faixas'&&faixaBonus>0){
+      colunasRegra={margem:'R$'+br2(margin-faixaBonus)};
+    }
+    return{
+      margin,bl:{total:temSegundo?0:faixaBonus,hits:[]},cancelDesc,bonus,total,novas,linhas:d.linhas||0,
+      colunasRegra,
+    };
+  }
+  const bl=getBL(novas);
+  const cancelDesc=(d.cancel||0)*rules.cancelRate;
+  const total=margin+bl.total+bonus-cancelDesc;
+  return{margin,bl,cancelDesc,bonus,total,novas,linhas:d.linhas||0};
+}
+function showToast(msg,color='#166B4A'){
+  const t=document.getElementById('toast');t.textContent=msg;t.style.background=color;
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);
+}
+function matchEntity(name,list){
+  const nn=norm(name);let best=null,bestScore=0;
+  list.forEach(e=>{
+    const en=norm(e.nome);
+    if(nn===en){best=e;bestScore=3;return;}
+    if(nn.includes(en)||en.includes(nn)){if(bestScore<2){best=e;bestScore=2;}}
+    else{const fw=en.split(' ')[0];if(fw.length>3&&nn.includes(fw)&&bestScore<1){best=e;bestScore=1;}}
+  });
+  return best;
+}
+function hasRaw(id,mes){
+  const r=rawStore[`dealer_${id}_${mes}`];
+  return r&&r.rows&&r.rows.length>0;
+}
+
+// ─── RENDER DEALER ─────────────────────────────────
+function renderDealer(){
+  const mes=document.getElementById('mesInput').value;
+  const bloqueado=mesAprovado(mes);
+  let grand=0;let rows='';let anyRaw=false;
+  let sumMargin=0,sumBl=0,sumBonus=0,sumCancel=0;
+  dealers.forEach(dealer=>{
+    const d=mdata[`d_${dealer.id}_${mes}`]||{};
+    const c=calcDealer(d,dealer.id);
+    grand+=c.total;
+    sumMargin+=c.margin;sumBl+=c.bl.total;sumBonus+=c.bonus;sumCancel+=c.cancelDesc;
+    const isEmpty=!c.margin&&!c.novas&&!c.bonus&&!d.cancel;
+    const isEditing=editingId===dealer.id;
+    const canExport=hasRaw(dealer.id,mes);
+    if(canExport)anyRaw=true;
+    rows+=`<tr id="drow_${dealer.id}" ${isEditing?'class="row-editing"':''}>
+      <td style="padding-left:20px;font-weight:500">${dealer.nome}</td>
+      <td class="r">${isEmpty?'<span class="c-dim">—</span>':(c.colunasRegra?.linhasAtivas??c.linhas.toLocaleString('pt-BR'))}</td>
+      <td class="r">${isEmpty?'<span class="c-dim">—</span>':(c.colunasRegra?.novasLinhas??c.novas.toLocaleString('pt-BR'))}</td>
+      <td class="r">${isEmpty?'<span class="c-dim">—</span>':(c.colunasRegra?.margem??'R$'+br2(c.margin))}</td>
+      <td class="r">${c.bl.total>0?'<span class="c-verde">+R$'+br2(c.bl.total)+'</span>':'<span class="c-dim">—</span>'}</td>
+      <td class="r">${c.bonus>0?'<span class="c-verde">+R$'+br2(c.bonus)+'</span>':'<span class="c-dim">—</span>'}</td>
+      <td class="r">${c.cancelDesc>0?'<span class="c-red">-R$'+br2(c.cancelDesc)+'</span>':'<span class="c-dim">—</span>'}</td>
+      <td class="r" style="font-weight:700;color:${isEmpty?'#bbb':'#166B4A'}">${isEmpty?'—':'R$'+br2(c.total)}</td>
+      <td style="text-align:center;white-space:nowrap">
+        <button class="btn-edit ${isEditing?'active':''}" onclick="toggleEdit('${dealer.id}','${mes}')" style="margin-right:4px" title="${bloqueado?'Mês aprovado — travado':''}">${isEditing?'✕':(bloqueado?'🔒':'✏')}</button>
+        <button class="${canExport?'btn-export':'btn-export disabled'}" onclick="${canExport?`exportEntity('${dealer.id}','${mes}')`:''}" title="${canExport?'Baixar extrato':'Importe para habilitar'}">↓ Extrair</button>
+      </td>
+    </tr>
+    <tr id="deditrow_${dealer.id}" style="display:${isEditing?'table-row':'none'}">
+      <td colspan="8" style="padding:0"><div class="edit-panel" id="dpanel_${dealer.id}"></div></td>
+    </tr>`;
+  });
+  document.getElementById('dealerBody').innerHTML=rows;
+  document.getElementById('dealerFoot').innerHTML=`<tr style="font-weight:700;background:#eaf5f0">
+    <td style="padding-left:20px;color:#166B4A" colspan="3">Total Dealers</td>
+    <td class="r">R$${br2(sumMargin)}</td>
+    <td class="r">${sumBl>0?'R$'+br2(sumBl):'<span class="c-dim">—</span>'}</td>
+    <td class="r">${sumBonus>0?'R$'+br2(sumBonus):'<span class="c-dim">—</span>'}</td>
+    <td class="r">${sumCancel>0?'-R$'+br2(sumCancel):'<span class="c-dim">—</span>'}</td>
+    <td class="r" style="color:#166B4A;font-size:15px">R$${br2(grand)}</td>
+    <td></td>
+  </tr>`;
+  document.getElementById('rawNoticeDp').style.display=anyRaw?'block':'none';
+  if(editingId)renderEditPanel(editingId,mes);
+}
+
+// ─── EDIT PANEL ────────────────────────────────────
+function toggleEdit(id,mes){
+  if(mesAprovado(mes)){showToast('Mês aprovado — desaprove na Visão Consolidada pra editar.','#b83232');return;}
+  editingId=(editingId===id)?null:id;
+  renderDealer();
+}
+function renderEditPanel(id,mes){
+  const entity=dealers.find(e=>e.id===id);
+  const d=mdata[`d_${id}_${mes}`]||{};
+  const panel=document.getElementById(`dpanel_${id}`);if(!panel)return;
+
+  const regra=regraDoDealer(id);
+  panel.innerHTML=`
+    <div class="edit-panel-hdr">
+      <span class="edit-panel-title">🏢 ${entity.nome} · ${fmtMes(mes)}</span>
+      <span style="font-size:10px;color:#888">${regra?'Regra de Comissão própria (ver tela "Regras de Comissão") − Cancelamentos':'Novas linhas → gatilho Bateu-Levou'}</span>
+    </div>
+    <div class="edit-fields">
+      <div>
+        <label class="lbl">Linhas em base</label>
+        <input type="number" id="ef_linhas_${id}" value="${d.linhas||0}" min="0" oninput="liveCalcEntity('${id}')">
+      </div>
+      <div><label class="lbl">${regra?'Linhas ativadas no mês':'Novas linhas'}</label><input type="number" id="ef_novas_${id}" value="${d.novas||0}" min="0" oninput="liveCalcEntity('${id}')"></div>
+      <div>
+        <label class="lbl">${regra?'Comissão da regra (já calculada)':'Margem total'}</label>
+        <div class="irow"><span class="ipfx">R$</span><input type="number" id="ef_margin_${id}" value="${(d.margin||0).toFixed(2)}" min="0" step="0.01" oninput="liveCalcEntity('${id}')"></div>
+      </div>
+      <div>
+        <label class="lbl">Cancelamentos</label>
+        <div class="irow"><input type="number" id="ef_cancel_${id}" value="${d.cancel||0}" min="0" oninput="liveCalcEntity('${id}')"><span class="ipfx">linhas</span></div>
+      </div>
+      <div>
+        <label class="lbl" style="color:#166B4A">Bônus extra</label>
+        <div class="irow"><span class="ipfx" style="color:#166B4A">R$</span><input type="number" id="ef_bonus_${id}" value="${d.bonus||0}" min="0" step="0.01" oninput="liveCalcEntity('${id}')" style="border-color:#1E9B6B"></div>
+      </div>
+    </div>
+    <div style="margin-bottom:12px"><label class="lbl">Observação</label><input type="text" id="ef_obs_${id}" value="${d.obs||''}" placeholder="Ex: ajuste de margem, cancelamento em massa contestado…"></div>
+    <div class="edit-preview" id="eprev_${id}"></div>
+    <div class="edit-actions">
+      <button class="btn-ghost btn-sm" onclick="toggleEdit('${id}','${document.getElementById('mesInput').value}')">Cancelar</button>
+      <button class="btn btn-sm" onclick="saveEdit('${id}','${mes}')">✓ Salvar</button>
+    </div>`;
+  liveCalcEntity(id);
+}
+function liveCalcEntity(id){
+  const regra=regraDoDealer(id);
+  const cancel=+document.getElementById(`ef_cancel_${id}`).value||0;
+  const bonus=+document.getElementById(`ef_bonus_${id}`).value||0;
+  const linhas=+document.getElementById(`ef_linhas_${id}`).value||0;
+  const novas=+document.getElementById(`ef_novas_${id}`).value||0;
+
+  const margin=+document.getElementById(`ef_margin_${id}`).value||0;
+  const cancelRate=regra?(regra.cancelamento?regra.cancelamento.taxa:rules.cancelRate):rules.cancelRate;
+  const cancelDesc=cancel*cancelRate;
+  const bl=regra?{total:0,hits:[]}:getBL(novas);
+  const total=margin+bl.total+bonus-cancelDesc;
+
+  const prev=document.getElementById(`eprev_${id}`);if(!prev)return;
+  const blHtml=regra?'':`<div class="ep-bl">${blTiers.sort((a,b)=>a.threshold-b.threshold).map(t=>{
+    const hit=novas>=t.threshold;
+    return`<div class="ep-bl-box ${hit?'epb-hit':'epb-miss'}"><div class="ebl">${t.threshold.toLocaleString('pt-BR')} linhas${hit?' ✓':''}</div><div class="ebv">+R$${t.bonus.toLocaleString('pt-BR')}</div></div>`;
+  }).join('')}</div>`;
+  prev.innerHTML=`
+    ${blHtml}
+    <div class="ep-row" style="margin-top:10px">
+      <div class="ep-item"><label>${regra?'Comissão da regra':'Margem'}</label><span>R$${br2(margin)}</span></div>
+      ${bl.total>0?`<span class="ep-sep">+</span><div class="ep-item"><label>Bateu-Levou</label><span>R$${br2(bl.total)}</span></div>`:''}
+      ${bonus>0?`<span class="ep-sep">+</span><div class="ep-item"><label style="color:#166B4A">Bônus</label><span>R$${br2(bonus)}</span></div>`:''}
+      ${cancelDesc>0?`<span class="ep-sep">−</span><div class="ep-item"><label style="color:#b83232">Cancel. (${cancel}×R$${br2(cancelRate)})</label><span style="color:#b83232">R$${br2(cancelDesc)}</span></div>`:''}
+      <div style="margin-left:auto"><div class="ep-item"><label>Total</label><span class="big">R$ ${br2(total)}</span></div></div>
+    </div>`;
+}
+function saveEdit(id,mes){
+  if(mesAprovado(mes)){showToast('Mês aprovado — desaprove na Visão Consolidada pra editar.','#b83232');return;}
+  mdata[`d_${id}_${mes}`]={
+    linhas:+document.getElementById(`ef_linhas_${id}`).value||0,
+    novas:+document.getElementById(`ef_novas_${id}`).value||0,
+    margin:+document.getElementById(`ef_margin_${id}`).value||0,
+    cancel:+document.getElementById(`ef_cancel_${id}`).value||0,
+    bonus:+document.getElementById(`ef_bonus_${id}`).value||0,
+    obs:document.getElementById(`ef_obs_${id}`).value||'',
+  };
+  LS.set('dp1_m',mdata);editingId=null;
+  renderDealer();
+  showToast('Salvo ✓');
+}
+
+// ─── EXPORT ────────────────────────────────────────
+function exportEntity(id,mes){
+  const entity=dealers.find(e=>e.id===id);
+  const d=mdata[`d_${id}_${mes}`]||{};
+  const c=calcDealer(d,id);
+  const raw=rawStore[`dealer_${id}_${mes}`]||{};
+
+  const wb=XLSX.utils.book_new();
+  const resumoRows=[
+    ['MARGEM','','CANCELAMENTOS','','COMISSÃO TOTAL',''],
+    ['Linhas em base',c.linhas||0,'Linhas canceladas',d.cancel||0,'Margem',c.margin],
+    ['Novas linhas',c.novas||0,'Taxa por linha',-rules.cancelRate,'Bateu-Levou',c.bl.total],
+    [null,null,'Total desconto',-c.cancelDesc,'Bônus extra',c.bonus],
+    [null,null,null,null,'−Cancelamentos',-c.cancelDesc],
+    [null,null,null,null,'TOTAL',c.total],
+  ];
+  if(d.obs)resumoRows.push([null,null,null,null,'Observação',d.obs]);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(resumoRows),'RESUMO');
+  if(raw.rows&&raw.rows.length){
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([raw.headers,...raw.rows]),'LINHAS');
+  }
+  if(raw.cancelRows&&raw.cancelRows.length){
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([raw.cancelHeaders||[],...raw.cancelRows]),'CANCELAMENTOS');
+  }
+  const[y,m]=mes.split('-');
+  const meses=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const nomeLimpo=entity.nome.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,'_');
+  XLSX.writeFile(wb,`${nomeLimpo}_${meses[+m-1]}_${y}.xlsx`);
+  showToast(`↓ ${entity.nome} · extrato gerado`,'#1d4ed8');
+}
+
+</script>
+</body>
+</html>

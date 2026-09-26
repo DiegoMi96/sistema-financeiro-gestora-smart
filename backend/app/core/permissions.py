@@ -17,6 +17,7 @@ ALL_PERMISSIONS = [
     "can_view_faturamento",
     "can_edit_billing",
     "can_view_contestacao",
+    "can_view_comissao",
     "can_view_logistica",
     "can_view_organograma",
     "can_edit_organograma",
@@ -93,6 +94,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_faturamento":     True,
         "can_edit_billing":         True,
         "can_view_contestacao":     True,
+        "can_view_comissao":        True,
         "can_view_logistica":       True,
         "can_view_organograma":     True,
         "can_edit_organograma":     True,
@@ -153,6 +155,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_faturamento":     True,
         "can_edit_billing":         True,
         "can_view_contestacao":     True,
+        "can_view_comissao":        True,
         "can_view_logistica":       True,
         "can_view_organograma":     True,
         "can_edit_organograma":     True,
@@ -213,6 +216,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_faturamento":     True,
         "can_edit_billing":         True,
         "can_view_contestacao":     False,
+        "can_view_comissao":        False,
         "can_view_logistica":       False,
         "can_view_organograma":     True,
         "can_edit_organograma":     False,
@@ -273,6 +277,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_faturamento":     False,
         "can_edit_billing":         False,
         "can_view_contestacao":     True,
+        "can_view_comissao":        False,
         "can_view_logistica":       True,
         "can_view_organograma":     True,
         "can_edit_organograma":     False,
@@ -333,6 +338,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_faturamento":     True,
         "can_edit_billing":         False,
         "can_view_contestacao":     False,
+        "can_view_comissao":        False,
         "can_view_logistica":       True,
         "can_view_organograma":     True,
         "can_edit_organograma":     False,
@@ -393,6 +399,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_faturamento":     True,
         "can_edit_billing":         True,
         "can_view_contestacao":     False,
+        "can_view_comissao":        False,
         "can_view_logistica":       False,
         "can_view_organograma":     True,
         "can_edit_organograma":     False,
@@ -453,6 +460,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_faturamento":     True,
         "can_edit_billing":         False,
         "can_view_contestacao":     False,
+        "can_view_comissao":        True,
         "can_view_logistica":       False,
         "can_view_organograma":     True,
         "can_edit_organograma":     False,
@@ -528,7 +536,7 @@ ROLE_DESCRIPTIONS = {
     "suporte_tecnico": "Suporte Técnico — acesso somente à contestação e logística.",
     "logistica":       "Logística — gestão de fretes e upload de planilhas.",
     "backoffice":      "Backoffice — operações internas, faturamento e ajustes.",
-    "comercial":       "Comercial — painel de resultados.",
+    "comercial":       "Comercial — comissionamento e painel de resultados.",
 }
 
 # ─────────────────────────────────────────────
@@ -581,6 +589,9 @@ MODULE_PERMISSIONS = {
     "CONTESTAÇÃO": [
         "can_view_contestacao", "can_view_cont_ciclos", "can_view_cont_ciclo_detalhe", "can_view_cont_allcom",
     ],
+    "COMISSIONAMENTO": [
+        "can_view_comissao",
+    ],
     "GUARDIÃO": [
         "can_view_guardiao", "can_view_grd_dashboard", "can_view_grd_importacoes",
         "can_view_grd_timeline", "can_view_grd_analises", "can_view_grd_envios",
@@ -605,7 +616,7 @@ MODULE_PERMISSIONS = {
 
 AREA_MODULES = {
     "operacoes":      ["LOGÍSTICA", "ORGANOGRAMA", "GUARDIÃO", "ESTOQUE"],
-    "comercial":      [],
+    "comercial":      ["COMISSIONAMENTO"],
     "administrativo": ["FATURAMENTO"],
 }
 

@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Indicadores · Gestora Smart</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#f5f4f0;color:#1a1a18;font-size:13px;line-height:1.5}
+.page{max-width:900px;margin:0 auto;padding:40px 24px 80px}
+.header{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:18px;border-bottom:2px solid #1a1a18;margin-bottom:24px}
+.header-left p{font-size:11px;color:#888;font-weight:500;margin-bottom:4px}
+.header-left h1{font-size:26px;font-weight:800;color:#1a1a18;line-height:1}
+.hbadge{background:#1f8f63;color:#fff;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:5px 14px;border-radius:20px}
+.tab-nav{display:flex;border-bottom:1px solid #d4d3ce;margin-bottom:28px}
+.tab-btn{background:none;border:none;border-bottom:2.5px solid transparent;margin-bottom:-1px;padding:9px 18px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#bbb;cursor:pointer;font-family:'Inter',sans-serif;transition:color .15s}
+.tab-btn.active{color:#166B4A;border-bottom-color:#166B4A}
+.tab-btn:hover:not(.active){color:#555}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.card{background:#fff;border:.5px solid #d4d3ce;border-radius:10px;padding:20px 22px;margin-bottom:14px}
+.card-title{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#888;margin-bottom:14px}
+label.lbl{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#888;margin-bottom:4px;display:block}
+.irow{display:flex;align-items:center;gap:6px}.irow input{flex:1}
+.ipfx{font-size:12px;color:#888;white-space:nowrap}
+input[type=number],input[type=text],input[type=month],textarea{background:#f5f4f0;border:.5px solid #d4d3ce;border-radius:6px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:#1a1a18;width:100%;outline:none}
+input:focus{border-color:#166B4A;background:#fff}
+.btn{background:#166B4A;color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:12px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer}
+.btn:hover{background:#92400e}
+.btn-sm{padding:5px 12px;font-size:11px}
+.btn-ghost{background:transparent;color:#1a1a18;border:.5px solid #d4d3ce;border-radius:6px;padding:8px 14px;font-size:12px;font-weight:500;font-family:'Inter',sans-serif;cursor:pointer}
+.btn-ghost:hover{background:#f5f4f0}
+.btn-edit{background:#f5f4f0;color:#166B4A;border:.5px solid #d4d3ce;border-radius:6px;padding:5px 9px;font-size:11px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer}
+.btn-edit:hover,.btn-edit.active{background:#eaf5f0;border-color:#166B4A}
+.btn-export{background:#fff;color:#1d4ed8;border:.5px solid #93c5fd;border-radius:6px;padding:5px 9px;font-size:11px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer}
+.btn-export:hover{background:#eff6ff}
+.btn-export.disabled{background:#f5f4f0;color:#bbb;border-color:#e0dfdb;cursor:default}
+table{width:100%;border-collapse:collapse}
+th{font-size:10px;font-weight:600;color:#888;text-align:left;padding:8px 10px;border-bottom:.5px solid #d4d3ce;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+th.r{text-align:right}
+td{padding:9px 10px;border-bottom:.5px solid #eeede8;font-size:12px;color:#1a1a18;vertical-align:middle}
+td.r{text-align:right;font-variant-numeric:tabular-nums}
+.c-verde{color:#166B4A;font-weight:600}.c-dim{color:#bbb}
+#indTable th.r,#indTable td.r{text-align:center}
+.note{background:#eaf5f0;border-left:3px solid #166B4A;border-radius:0 6px 6px 0;padding:11px 14px;font-size:12px;color:#444;line-height:1.6;margin-top:12px}
+.note strong{color:#166B4A}
+.toast{position:fixed;bottom:24px;right:24px;color:#fff;font-size:12px;font-weight:600;padding:10px 18px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:99}
+.toast.show{opacity:1}
+/* edit panel */
+.edit-panel{background:#f9fffe;border-top:2px solid #166B4A;padding:16px 20px}
+.edit-panel-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.edit-panel-title{font-size:11px;font-weight:700;color:#166B4A;text-transform:uppercase;letter-spacing:.08em}
+.edit-fields{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px}
+.edit-preview{background:#fff;border:.5px solid #d4d3ce;border-radius:8px;padding:14px 16px;margin-bottom:12px}
+.ep-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ep-item label{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px}
+.ep-item span{font-size:14px;font-weight:700;color:#1a1a18}
+.ep-item span.big{font-size:20px;color:#166B4A}
+.ep-sep{font-size:16px;color:#d4d3ce}
+tr.row-editing td{background:#f9fffe !important}
+/* activation badge */
+.atv-pill{background:#eaf5f0;color:#166B4A;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;display:inline-block}
+
+/* ─── Responsivo (tablet/celular) ─── */
+@media (max-width:860px){
+  .page{padding:24px 16px 60px}
+  .g2{grid-template-columns:1fr}
+  .tab-nav{flex-wrap:wrap}
+  .edit-fields{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="header">
+  <div class="header-left">
+    <p>Gestora Smart · Sistema de Comissionamento</p>
+    <h1>Indicadores</h1>
+  </div>
+  <span class="hbadge">3 – Indicador</span>
+</div>
+
+<div class="tab-nav">
+  <button class="tab-btn active" data-tab="ind">Indicadores</button>
+  <button class="tab-btn" data-tab="config">Configurações</button>
+</div>
+
+<!-- ═══ TAB INDICADORES ═══ -->
+<div id="tab-ind" class="tab-panel active">
+
+  <div style="margin-bottom:18px">
+    <label class="lbl">Mês do Comissionamento</label><input type="month" id="mesInput" style="max-width:160px" onchange="renderInd()">
+  </div>
+
+  <!-- regra resumida visível -->
+  <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;padding:10px 16px;background:#eaf5f0;border:.5px solid #1E9B6B;border-radius:8px">
+    <span style="font-size:20px">💡</span>
+    <span style="font-size:12px;color:#555">Comissão flat: <strong style="color:#166B4A" id="taxaDisplay">R$ 2,00</strong> por linha ativada no mês · Pagamento único · Cancelamentos não impactam</span>
+  </div>
+
+  <div id="rawNotice" style="display:none;margin-bottom:12px;padding:10px 14px;background:#eff6ff;border:.5px solid #93c5fd;border-radius:8px;font-size:11px;color:#1d4ed8">
+    <strong>↓ Extrair disponível</strong> — dados brutos carregados nesta sessão.
+  </div>
+
+  <div style="background:#fff;border:.5px solid #d4d3ce;border-radius:10px;overflow:hidden">
+    <div style="overflow-x:auto">
+      <table id="indTable" style="min-width:700px">
+        <thead><tr>
+          <th style="padding-left:20px">Indicador</th>
+          <th class="r">Ativações no mês</th>
+          <th class="r">Taxa / linha</th>
+          <th class="r">Comissão</th>
+          <th class="r">Bônus extra</th>
+          <th class="r">Total</th>
+          <th style="width:130px;text-align:center">Ações</th>
+        </tr></thead>
+        <tbody id="indBody"></tbody>
+        <tfoot id="indFoot"></tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB CONFIG ═══ -->
+<div id="tab-config" class="tab-panel">
+  <div class="g2">
+    <div>
+      <div class="card">
+        <p class="card-title">Taxa de comissão</p>
+        <label class="lbl">Valor por linha ativada</label>
+        <div class="irow"><span class="ipfx">R$</span><input type="number" id="r_taxa" min="0" step="0.01" style="max-width:90px" oninput="saveRules()"><span class="ipfx">/ ativação</span></div>
+        <div style="margin-top:10px;padding:8px 10px;background:#eaf5f0;border-radius:6px;font-size:11px;color:#166B4A">
+          Pagamento único · sem recorrência · cancelamento não impacta
+        </div>
+        <button class="btn" onclick="saveConfig()" style="margin-top:10px;width:100%">Salvar configurações</button>
+      </div>
+    </div>
+  </div>
+  <div class="note">
+    <strong>Regra:</strong> R$ <span id="notaTaxa">2,00</span> por linha ativada no mês, para cada linha cujo executivo seja deste indicador. Pagamento único no mês da ativação — não há cobrança recorrente nem desconto por cancelamento.
+  </div>
+</div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// ─── DEFAULTS ────────────────────────────────────────
+const DEF_INDS=[
+  {id:'i1',nome:'Acácio Souza'},
+  {id:'i2',nome:'Indicador 2'},
+];
+const DEF_RULES={taxa:2.00};
+
+const LS={
+  get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+};
+// Mês aprovado (Visão Consolidada) fica travado — nem edição manual sobrescreve,
+// mesmo que a regra de alguém mude depois. Só desaprovando ou excluindo os dados.
+function mesAprovado(mes){try{const a=JSON.parse(localStorage.getItem('aprovacoes_mes')||'{}');return !!(a[mes]&&a[mes].aprovado);}catch{return false;}}
+// Pra Visão do Executivo (index.html) conseguir ler os dados brutos deste
+// iframe — `rawStore` é `let`, não vira propriedade de window sozinho.
+function getRawFor(id,mes){return rawStore[`${id}_${mes}`]||{};}
+let indicadores=LS.get('ind1_list',DEF_INDS);
+let rules=LS.get('ind1_rules',DEF_RULES);
+let mdata=LS.get('ind1_m',{});
+let rawStore={};
+// Mesmo motivo do getRawFor: o Importar (shell) grava direto em
+// localStorage['ind1_m'], mas essa variável só é lida uma vez quando o iframe
+// abre — escrever de fora não atualiza sozinho o que já está na memória
+// aqui. Exposta pro shell chamar assim que terminar de processar Inventário.
+function resyncMdata(){mdata=LS.get('ind1_m',{});renderInd();}
+// Chamado pela tela Importar (index.html) depois de cruzar o Inventário —
+// alimenta o mesmo rawStore que a antiga aba Importar preenchia, pra o botão
+// "↓ Extrair" continuar funcionando mesmo sem a aba local.
+window.impSetRaw=function(id,mes,headers,rows){
+  rawStore[`${id}_${mes}`]={...(rawStore[`${id}_${mes}`]||{}),headers,rows};
+  renderInd();
+};
+let editingId=null;
+
+// ─── INIT ─────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  const now=new Date();
+  const mv=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('mesInput').value=mv;
+  loadRules();renderInd();
+});
+document.querySelectorAll('.tab-btn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById('tab-'+b.dataset.tab).classList.add('active');
+  });
+});
+function switchTab(t){
+  document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));
+  document.querySelector(`[data-tab="${t}"]`).classList.add('active');
+  document.getElementById('tab-'+t).classList.add('active');
+}
+
+// ─── HELPERS ──────────────────────────────────────────
+const br2=v=>v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtMes=s=>{if(!s)return'';const[y,m]=s.split('-');const ms=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];return ms[+m-1]+'/'+y;};
+const norm=(s='')=>String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,' ').trim();
+function showToast(msg,color='#166B4A'){const t=document.getElementById('toast');t.textContent=msg;t.style.background=color;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+function matchInd(name){
+  const nn=norm(name);let best=null,bestScore=0;
+  indicadores.forEach(e=>{
+    const en=norm(e.nome);
+    if(nn===en){best=e;bestScore=3;return;}
+    if(nn.includes(en)||en.includes(nn)){if(bestScore<2){best=e;bestScore=2;}}
+    else{const fw=en.split(' ')[0];if(fw.length>3&&nn.includes(fw)&&bestScore<1){best=e;bestScore=1;}}
+  });
+  return best;
+}
+function calcInd(d){
+  const atv=d.atv||0;
+  const comissao=atv*rules.taxa;
+  const bonus=d.bonus||0;
+  const total=comissao+bonus;
+  return{atv,comissao,bonus,total};
+}
+
+// ─── RENDER ───────────────────────────────────────────
+function renderInd(){
+  const mes=document.getElementById('mesInput').value;
+  const bloqueado=mesAprovado(mes);
+  let grand=0;let rows='';let anyRaw=false;
+
+  indicadores.forEach(ind=>{
+    const d=mdata[`${ind.id}_${mes}`]||{};
+    const c=calcInd(d);
+    grand+=c.total;
+    const isEmpty=!c.atv&&!c.bonus;
+    const isEditing=editingId===ind.id;
+    const canExport=!!(rawStore[`${ind.id}_${mes}`]?.rows?.length);
+    if(canExport)anyRaw=true;
+    rows+=`<tr id="row_${ind.id}" ${isEditing?'class="row-editing"':''}>
+      <td style="padding-left:20px;font-weight:500">${ind.nome}</td>
+      <td class="r">${isEmpty?'<span class="c-dim">—</span>':`<span class="atv-pill">${c.atv.toLocaleString('pt-BR')} linha${c.atv!==1?'s':''}</span>`}</td>
+      <td class="r" style="color:#166B4A;font-size:11px">R$ ${br2(rules.taxa)}</td>
+      <td class="r">${isEmpty?'<span class="c-dim">—</span>':'R$'+br2(c.comissao)}</td>
+      <td class="r">${c.bonus>0?'<span class="c-verde">+R$'+br2(c.bonus)+'</span>':'<span class="c-dim">—</span>'}</td>
+      <td class="r" style="font-weight:700;color:${isEmpty?'#bbb':'#166B4A'}">${isEmpty?'—':'R$'+br2(c.total)}</td>
+      <td style="text-align:center;white-space:nowrap">
+        <button class="btn-edit ${isEditing?'active':''}" onclick="toggleEdit('${ind.id}','${mes}')" style="margin-right:4px" title="${bloqueado?'Mês aprovado — travado':''}">${isEditing?'✕':(bloqueado?'🔒':'✏')}</button>
+        <button class="${canExport?'btn-export':'btn-export disabled'}" onclick="${canExport?`exportInd('${ind.id}','${mes}')`:''}" title="${canExport?'Baixar extrato':'Importe para habilitar'}">↓ Extrair</button>
+      </td>
+    </tr>
+    <tr id="editrow_${ind.id}" style="display:${isEditing?'table-row':'none'}">
+      <td colspan="7" style="padding:0"><div class="edit-panel" id="panel_${ind.id}"></div></td>
+    </tr>`;
+  });
+
+  document.getElementById('indBody').innerHTML=rows;
+  document.getElementById('indFoot').innerHTML=`<tr style="font-weight:700;background:#eaf5f0">
+    <td style="padding-left:20px;color:#166B4A" colspan="5">Total do mês</td>
+    <td class="r" style="color:#166B4A;font-size:15px">R$${br2(grand)}</td>
+    <td></td>
+  </tr>`;
+  document.getElementById('rawNotice').style.display=anyRaw?'block':'none';
+  if(editingId)renderEditPanel(editingId,mes);
+}
+
+// ─── EDIT PANEL ───────────────────────────────────────
+function toggleEdit(id,mes){
+  if(mesAprovado(mes)){showToast('Mês aprovado — desaprove na Visão Consolidada pra editar.','#b83232');return;}
+  editingId=(editingId===id)?null:id;
+  renderInd();
+  if(editingId)setTimeout(()=>{const r=document.getElementById('editrow_'+id);if(r)r.scrollIntoView({behavior:'smooth',block:'nearest'});},50);
+}
+function renderEditPanel(id,mes){
+  const ind=indicadores.find(e=>e.id===id);
+  const d=mdata[`${id}_${mes}`]||{};
+  const panel=document.getElementById(`panel_${id}`);if(!panel)return;
+  panel.innerHTML=`
+    <div class="edit-panel-hdr">
+      <span class="edit-panel-title">✏ ${ind.nome} · ${fmtMes(mes)}</span>
+      <span style="font-size:10px;color:#888">R$ ${br2(rules.taxa)} por ativação</span>
+    </div>
+    <div class="edit-fields">
+      <div>
+        <label class="lbl">Ativações no mês</label>
+        <div class="irow"><input type="number" id="ef_atv_${id}" value="${d.atv||0}" min="0" oninput="liveCalc('${id}')"><span class="ipfx">linhas</span></div>
+      </div>
+      <div>
+        <label class="lbl" style="color:#166B4A">Bônus extra</label>
+        <div class="irow"><span class="ipfx" style="color:#166B4A">R$</span><input type="number" id="ef_bonus_${id}" value="${d.bonus||0}" min="0" step="0.01" oninput="liveCalc('${id}')" style="border-color:#1E9B6B"></div>
+      </div>
+      <div>
+        <label class="lbl">Observação</label>
+        <input type="text" id="ef_obs_${id}" value="${d.obs||''}" placeholder="Ex: campanha especial, ajuste…">
+      </div>
+    </div>
+    <div class="edit-preview" id="eprev_${id}"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn-ghost btn-sm" onclick="toggleEdit('${id}','${document.getElementById('mesInput').value}')">Cancelar</button>
+      <button class="btn btn-sm" onclick="saveEdit('${id}','${mes}')">✓ Salvar</button>
+    </div>`;
+  liveCalc(id);
+}
+function liveCalc(id){
+  const atv=+document.getElementById(`ef_atv_${id}`).value||0;
+  const bonus=+document.getElementById(`ef_bonus_${id}`).value||0;
+  const comissao=atv*rules.taxa;
+  const total=comissao+bonus;
+  const prev=document.getElementById(`eprev_${id}`);if(!prev)return;
+  prev.innerHTML=`
+    <div class="ep-row">
+      <div class="ep-item"><label>Ativações</label><span style="color:#166B4A">${atv.toLocaleString('pt-BR')}</span></div>
+      <span class="ep-sep">×</span>
+      <div class="ep-item"><label>Taxa</label><span>R$ ${br2(rules.taxa)}</span></div>
+      <span class="ep-sep">=</span>
+      <div class="ep-item"><label>Comissão</label><span>R$ ${br2(comissao)}</span></div>
+      ${bonus>0?`<span class="ep-sep">+</span><div class="ep-item"><label style="color:#166B4A">Bônus</label><span>R$${br2(bonus)}</span></div>`:''}
+      <div style="margin-left:auto"><div class="ep-item"><label>Total</label><span class="big">R$ ${br2(total)}</span></div></div>
+    </div>`;
+}
+function saveEdit(id,mes){
+  if(mesAprovado(mes)){showToast('Mês aprovado — desaprove na Visão Consolidada pra editar.','#b83232');return;}
+  mdata[`${id}_${mes}`]={
+    atv:+document.getElementById(`ef_atv_${id}`).value||0,
+    bonus:+document.getElementById(`ef_bonus_${id}`).value||0,
+    obs:document.getElementById(`ef_obs_${id}`).value||''
+  };
+  LS.set('ind1_m',mdata);editingId=null;renderInd();
+  showToast('Salvo ✓');
+}
+
+// ─── EXPORT ───────────────────────────────────────────
+function exportInd(id,mes){
+  const ind=indicadores.find(e=>e.id===id);
+  const d=mdata[`${id}_${mes}`]||{};
+  const c=calcInd(d);
+  const raw=rawStore[`${id}_${mes}`]||{};
+  const wb=XLSX.utils.book_new();
+
+  const resumo=[
+    ['INDICADOR','','COMISSÃO',''],
+    ['Nome',ind.nome,'Taxa por ativação',rules.taxa],
+    ['Ativações no mês',c.atv,'Comissão ativações',c.comissao],
+    [null,null,'Bônus extra',c.bonus],
+    [null,null,'TOTAL',c.total],
+  ];
+  if(d.obs)resumo.push([null,null,'Observação',d.obs]);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(resumo),'RESUMO');
+  if(raw.rows&&raw.rows.length){
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([raw.headers,...raw.rows]),'ATIVAÇÕES');
+  }
+  const[y,m]=mes.split('-');
+  const meses=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const nomeLimpo=ind.nome.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'_');
+  XLSX.writeFile(wb,`${nomeLimpo}_${meses[+m-1]}_${y}.xlsx`);
+  showToast(`↓ ${ind.nome} · extrato gerado`,'#1d4ed8');
+}
+
+// ─── CONFIG ───────────────────────────────────────────
+function loadRules(){
+  document.getElementById('r_taxa').value=rules.taxa;
+  document.getElementById('taxaDisplay').textContent='R$ '+br2(rules.taxa);
+  document.getElementById('notaTaxa').textContent=br2(rules.taxa);
+}
+function saveRules(){
+  rules.taxa=+document.getElementById('r_taxa').value||2;
+  LS.set('ind1_rules',rules);
+  document.getElementById('taxaDisplay').textContent='R$ '+br2(rules.taxa);
+  document.getElementById('notaTaxa').textContent=br2(rules.taxa);
+  renderInd();
+}
+function saveConfig(){
+  LS.set('ind1_list',indicadores);
+  LS.set('ind1_rules',rules);
+  renderInd();
+  showToast('Configurações salvas ✓');
+}
+</script>
+</body>
+</html>

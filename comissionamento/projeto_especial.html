@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Projeto Especial · Gestora Smart</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#f5f4f0;color:#1a1a18;font-size:13px;line-height:1.5}
+.page{max-width:1100px;margin:0 auto;padding:40px 24px 80px}
+.header{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:18px;border-bottom:2px solid #1a1a18;margin-bottom:24px}
+.header-left p{font-size:11px;color:#888;font-weight:500;margin-bottom:4px}
+.header-left h1{font-size:26px;font-weight:800;color:#1a1a18;line-height:1}
+.hbadge{background:#2fa876;color:#fff;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:5px 14px;border-radius:20px}
+.tab-nav{display:flex;border-bottom:1px solid #d4d3ce;margin-bottom:28px}
+.tab-btn{background:none;border:none;border-bottom:2.5px solid transparent;margin-bottom:-1px;padding:9px 18px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#bbb;cursor:pointer;font-family:'Inter',sans-serif;transition:color .15s}
+.tab-btn.active{color:#166B4A;border-bottom-color:#166B4A}
+.tab-btn:hover:not(.active){color:#555}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.card{background:#fff;border:.5px solid #d4d3ce;border-radius:10px;padding:20px 22px;margin-bottom:14px}
+.card-title{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#888;margin-bottom:14px}
+label.lbl{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#888;margin-bottom:4px;display:block}
+.irow{display:flex;align-items:center;gap:6px}.irow input{flex:1}
+.ipfx{font-size:12px;color:#888;white-space:nowrap}
+input[type=number],input[type=text],input[type=month],select,textarea{background:#f5f4f0;border:.5px solid #d4d3ce;border-radius:6px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:#1a1a18;width:100%;outline:none}
+input:focus,select:focus{border-color:#166B4A;background:#fff}
+textarea{resize:vertical}
+.btn{background:#166B4A;color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:12px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer}
+.btn:hover{background:#1841b8}
+.btn-sm{padding:5px 12px;font-size:11px}
+.btn-ghost{background:transparent;color:#1a1a18;border:.5px solid #d4d3ce;border-radius:6px;padding:8px 14px;font-size:12px;font-weight:500;font-family:'Inter',sans-serif;cursor:pointer}
+.btn-ghost:hover{background:#f5f4f0}
+.btn-del{background:#fceaea;color:#b83232;border:.5px solid #f5c6c6;border-radius:4px;padding:4px 8px;font-size:11px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer}
+.btn-edit{background:#f5f4f0;color:#166B4A;border:.5px solid #d4d3ce;border-radius:6px;padding:5px 9px;font-size:11px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer}
+.btn-edit:hover,.btn-edit.active{background:#eaf5f0;border-color:#1E9B6B}
+.btn-export{background:#fff;color:#1d4ed8;border:.5px solid #93c5fd;border-radius:6px;padding:5px 9px;font-size:11px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer}
+.btn-export:hover{background:#eff6ff;border-color:#1d4ed8}
+.btn-export.disabled{background:#f5f4f0;color:#bbb;border-color:#e0dfdb;cursor:default}
+table{width:100%;border-collapse:collapse}
+th{font-size:10px;font-weight:600;color:#888;text-align:left;padding:8px 10px;border-bottom:.5px solid #d4d3ce;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+th.r{text-align:right}
+td{padding:9px 10px;border-bottom:.5px solid #eeede8;font-size:12px;color:#1a1a18;vertical-align:middle}
+td.r{text-align:right;font-variant-numeric:tabular-nums}
+.c-verde{color:#166B4A;font-weight:600}.c-red{color:#b83232}.c-dim{color:#bbb}
+#projetosTable th.r,#projetosTable td.r{text-align:center}
+.toast{position:fixed;bottom:24px;right:24px;color:#fff;font-size:12px;font-weight:600;padding:10px 18px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:99}
+.toast.show{opacity:1}
+/* ─── Regras de Comissão (modal) ─── */
+.rg-modal-overlay{position:fixed;inset:0;background:rgba(20,20,18,.5);display:none;align-items:center;justify-content:center;z-index:200;padding:24px}
+.rg-modal-overlay.open{display:flex}
+.rg-modal-card{background:#faf9f6;border-radius:14px;max-width:680px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.3)}
+.rg-modal-hdr{display:flex;justify-content:space-between;align-items:center;padding:20px 26px;border-bottom:2px solid #1a1a18;background:#faf9f6;position:sticky;top:0}
+.rg-modal-hdr h2{font-size:18px;font-weight:800;color:#1a1a18}
+.rg-modal-close{background:none;border:none;font-size:15px;color:#888;cursor:pointer;width:30px;height:30px;border-radius:7px;line-height:1}
+.rg-modal-close:hover{background:#eeede8;color:#1a1a18}
+.rg-modal-body{padding:22px 26px 28px}
+.edit-panel{background:#f9fffe;border-top:2px solid #166B4A;padding:16px 20px}
+.edit-panel-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.edit-panel-title{font-size:11px;font-weight:700;color:#166B4A;text-transform:uppercase;letter-spacing:.08em}
+.edit-fields{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+.edit-preview{background:#fff;border:.5px solid #d4d3ce;border-radius:8px;padding:14px 16px;margin-bottom:12px}
+.ep-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ep-item label{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px}
+.ep-item span{font-size:14px;font-weight:700;color:#1a1a18}
+.ep-item span.big{font-size:20px;color:#166B4A}
+.ep-sep{font-size:16px;color:#d4d3ce}
+.edit-actions{display:flex;gap:8px;justify-content:flex-end}
+tr.row-editing td{background:#f9fffe !important}
+
+/* ─── Responsivo (tablet/celular) ─── */
+@media (max-width:860px){
+  .page{padding:24px 16px 60px}
+  .g2{grid-template-columns:1fr}
+  .tab-nav{flex-wrap:wrap}
+  .edit-fields{grid-template-columns:1fr 1fr}
+  .rg-modal-card{max-width:94vw}
+  .rg-modal-body{padding:16px 18px}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="header">
+  <div class="header-left">
+    <p>Gestora Smart · Sistema de Comissionamento</p>
+    <h1>Projeto Especial</h1>
+  </div>
+  <span class="hbadge">4 – Proj. Especial</span>
+</div>
+
+<div class="tab-nav">
+  <button class="tab-btn active" data-tab="projetos">Resumo</button>
+  <button class="tab-btn" data-tab="config">Regras de Comissão</button>
+</div>
+
+<!-- ═══ TAB PROJETOS ═══ -->
+<div id="tab-projetos" class="tab-panel active">
+  <div style="margin-bottom:18px">
+    <label class="lbl">Mês do Comissionamento</label><input type="month" id="mesInput" style="max-width:160px" onchange="renderProjetos()">
+  </div>
+  <div id="rawNoticeDp" style="display:none;margin-bottom:12px;padding:10px 14px;background:#eaf5f0;border:.5px solid #1E9B6B;border-radius:8px;font-size:11px;color:#166B4A">
+    <strong>↓ Extrair disponível</strong> — dados brutos carregados nesta sessão.
+  </div>
+  <div style="background:#fff;border:.5px solid #d4d3ce;border-radius:10px;overflow:hidden">
+    <div style="overflow-x:auto">
+      <table id="projetosTable" style="min-width:840px">
+        <thead><tr>
+          <th style="padding-left:20px">Projeto</th>
+          <th class="r">Linhas em base</th>
+          <th class="r">Margem total</th>
+          <th class="r">Ativação</th>
+          <th class="r">Bônus extra</th>
+          <th class="r">−Cancelamentos</th>
+          <th class="r">Total</th>
+          <th style="width:130px;text-align:center">Ações</th>
+        </tr></thead>
+        <tbody id="projetosBody"></tbody>
+        <tfoot id="projetosFoot"></tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB REGRAS DE COMISSÃO ═══ -->
+<div id="tab-config" class="tab-panel">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <p style="font-size:11px;color:#888;max-width:560px;line-height:1.6">Cada projeto tem sua própria regra: taxa de margem (sobre Mensalidade − Valor Base), taxa de ativação (sobre a soma do "Preço de ativação"), taxa de cancelamento e a tabela de preço base por operadora.</p>
+  </div>
+  <div id="regras_lista"></div>
+</div>
+
+</div>
+
+<div class="rg-modal-overlay" id="regraModal" onclick="if(event.target===this) regraFecharModal()">
+  <div class="rg-modal-card">
+    <div class="rg-modal-hdr">
+      <h2 id="regraModalTitulo">Regra de Comissão</h2>
+      <button class="rg-modal-close" onclick="regraFecharModal()">✕</button>
+    </div>
+    <div class="rg-modal-body">
+      <div class="card">
+        <div class="g2">
+          <div>
+            <label class="lbl">Taxa de margem</label>
+            <div class="irow" style="max-width:140px"><input type="number" id="rg_taxaMargem" min="0" max="100" step="0.1"><span class="ipfx">%</span></div>
+            <p style="font-size:10px;color:#888;margin-top:6px">Aplicado sobre máx(0, Mensalidade − Valor Base)</p>
+          </div>
+          <div>
+            <label class="lbl">Taxa de ativação</label>
+            <div class="irow" style="max-width:140px"><input type="number" id="rg_taxaAtivacao" min="0" max="100" step="0.1"><span class="ipfx">%</span></div>
+            <p style="font-size:10px;color:#888;margin-top:6px">Aplicado sobre a soma do "Preço de ativação"</p>
+          </div>
+        </div>
+        <div style="max-width:220px;margin-top:16px">
+          <label class="lbl">Desconto por linha cancelada</label>
+          <div class="irow"><span class="ipfx">R$</span><input type="number" id="rg_cancelRate" min="0" step="0.01"><span class="ipfx">/ linha</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <p class="card-title">Preço base por operadora</p>
+        <p style="font-size:11px;color:#888;margin-bottom:16px">Esses são os preços que constam como <strong>Valor Base</strong> na planilha importada — a margem por linha é <em>máx(0, Mensalidade − Valor Base)</em>, com a taxa de margem acima aplicada por cima. Operadora sem preço cadastrado aqui entra com margem 0. Toda vigência (mudança de preço ao longo do tempo) aparece como uma linha própria.</p>
+        <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;min-width:420px">
+          <thead><tr>
+            <th style="font-size:9px;color:#888;font-weight:600;text-transform:uppercase;padding:5px 8px;border-bottom:.5px solid #d4d3ce;text-align:left">Operadora / Plano</th>
+            <th style="font-size:9px;color:#888;font-weight:600;text-transform:uppercase;padding:5px 8px;border-bottom:.5px solid #d4d3ce;text-align:left">Vigente desde</th>
+            <th style="font-size:9px;color:#888;font-weight:600;text-transform:uppercase;padding:5px 8px;border-bottom:.5px solid #d4d3ce;text-align:right">Preço</th>
+            <th style="border-bottom:.5px solid #d4d3ce"></th>
+          </tr></thead>
+          <tbody id="rg_pp_tbody"></tbody>
+        </table>
+        </div>
+        <button class="btn-ghost btn-sm" style="width:100%;font-size:10px;margin-top:10px" onclick="ppAddOp(rgEditandoId)">+ Operadora</button>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:6px">
+        <button class="btn" onclick="regraSalvar()">✓ Salvar regra</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- SheetJS (acima) não grava estilo de célula no arquivo final (testado e
+     confirmado) — ExcelJS só é usado no "↓ Extrair" do Projeto Especial,
+     onde o Diego pediu o mesmo visual (cabeçalho negrito/colorido) da
+     planilha real. O resto do sistema continua no SheetJS, sem mudança. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script>
+// ─── DEFAULTS ──────────────────────────────────────
+// "carneiro.junior" e "indicador.helamin" são o nome/login que aparece no CRM
+// pra Imperio Dos Rastreadores e Loja do Rastreador (não são parceiros à parte).
+// Ione Rastrek passou a ser Dealer (não mais Projeto Especial) — ver dealer.html.
+// taxaMargem: percentual sobre máx(0, Mensalidade − Valor Base) — confirmado
+// com o Diego a partir da planilha real da Loja do Rastreador (70% bateu
+// exato R$8.858,42 em 9.833 linhas). Imperio Dos Rastreadores usa uma taxa
+// diferente, ainda não informada (fica 0 até confirmar).
+const DEF_PROJETOS=[
+  {id:'p1',nome:'Imperio Dos Rastreadores',apelido:'carneiro.junior',taxaAtivacao:1,taxaMargem:0.5,cancelRate:2},
+  {id:'p3',nome:'Loja do Rastreador',apelido:'indicador.helamin',taxaAtivacao:1,taxaMargem:0.7,cancelRate:2},
+];
+// Cada operadora agora é uma LISTA de vigências ({desde, valor}), não um valor
+// fixo — o preço pode mudar a qualquer momento, não só 1x por ano.
+const DEF_PP={
+  p1:{
+    ALGAR:[{desde:'2024-01-01',valor:5.90},{desde:'2025-01-01',valor:4.80}],
+    'ALGAR MULTI':[{desde:'2024-01-01',valor:5.90},{desde:'2025-01-01',valor:4.80}],
+    ARQIA:[{desde:'2024-01-01',valor:4.95},{desde:'2025-01-01',valor:4.95}],
+    'ARQIA 2OP':[{desde:'2024-01-01',valor:5.90},{desde:'2025-01-01',valor:4.80}],
+    VIVO:[{desde:'2024-01-01',valor:4.00},{desde:'2025-01-01',valor:3.80}],
+    CLARO:[{desde:'2024-01-01',valor:3.70},{desde:'2025-01-01',valor:3.70}],
+    TIM:[{desde:'2024-01-01',valor:3.30},{desde:'2025-01-01',valor:2.90}],
+  },
+  p3:{
+    ALGAR:[{desde:'2020-01-01',valor:4.80}],'ALGAR MULTI':[{desde:'2020-01-01',valor:4.80}],
+    'ARQIA 2OP':[{desde:'2020-01-01',valor:4.90}],
+    VIVO:[{desde:'2020-01-01',valor:3.70}],CLARO:[{desde:'2020-01-01',valor:3.90}],TIM:[{desde:'2020-01-01',valor:3.00}],
+  },
+};
+
+const LS={
+  get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+};
+// Mês aprovado (Visão Consolidada) fica travado — nem edição manual sobrescreve,
+// mesmo que a regra de alguém mude depois. Só desaprovando ou excluindo os dados.
+function mesAprovado(mes){try{const a=JSON.parse(localStorage.getItem('aprovacoes_mes')||'{}');return !!(a[mes]&&a[mes].aprovado);}catch{return false;}}
+// Pra Visão do Executivo (index.html) conseguir ler os dados brutos deste
+// iframe — `rawStore` é `let`, não vira propriedade de window sozinho.
+function getRawFor(id,mes){return rawStore[`projeto_${id}_${mes}`]||{};}
+let projetosPrecos=LS.get('dp1_pp',DEF_PP);
+let projetos=LS.get('dp1_projetos',DEF_PROJETOS);
+let mdata=LS.get('dp1_m',{});
+let rawStore={};
+// Mesmo motivo do getRawFor: o Importar (shell) grava direto em
+// localStorage['dp1_m'] (chave compartilhada com Dealer), mas essa variável
+// só é lida uma vez quando o iframe abre — escrever de fora não atualiza
+// sozinho o que já está na memória aqui. Exposta pro shell chamar assim que
+// terminar de processar Inventário ou Cancelamentos.
+function resyncMdata(){mdata=LS.get('dp1_m',{});renderProjetos();}
+// Chamado pela tela Importar (index.html) depois de cruzar o Inventário —
+// alimenta o mesmo rawStore que a antiga aba Importar preenchia, pra o botão
+// "↓ Extrair" continuar funcionando mesmo sem a aba local.
+window.impSetRaw=function(id,mes,headers,rows){
+  rawStore[`projeto_${id}_${mes}`]={...(rawStore[`projeto_${id}_${mes}`]||{}),headers,rows};
+  renderProjetos();
+};
+window.impSetCancelRaw=function(id,mes,headers,rows){
+  rawStore[`projeto_${id}_${mes}`]={...(rawStore[`projeto_${id}_${mes}`]||{}),cancelHeaders:headers,cancelRows:rows};
+  renderProjetos();
+};
+let editingId=null;
+
+
+// ─── INIT ──────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  const now=new Date();
+  const mv=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('mesInput').value=mv;
+  renderRegrasLista();
+  renderProjetos();
+});
+document.querySelectorAll('.tab-btn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById('tab-'+b.dataset.tab).classList.add('active');
+  });
+});
+function switchTab(t){
+  document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));
+  document.querySelector(`[data-tab="${t}"]`).classList.add('active');
+  document.getElementById('tab-'+t).classList.add('active');
+}
+
+// ─── HELPERS ───────────────────────────────────────
+const br2=v=>v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtMes=s=>{if(!s)return'';const[y,m]=s.split('-');const ms=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];return ms[+m-1]+'/'+y;};
+const norm=(s='')=>String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9 ]/g,' ').trim();
+
+function calcProjeto(d,proj){
+  const margin=d.margin||0;
+  const ativacao=d.ativacao||0;
+  const cancelDesc=(d.cancel||0)*(proj?.cancelRate||0);
+  const bonus=d.bonus||0;
+  const total=margin+ativacao+bonus-cancelDesc;
+  return{margin,ativacao,cancelDesc,bonus,total,linhas:d.linhas||0};
+}
+function showToast(msg,color='#166B4A'){
+  const t=document.getElementById('toast');t.textContent=msg;t.style.background=color;
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);
+}
+function matchEntity(name,list){
+  const nn=norm(name);let best=null,bestScore=0;
+  list.forEach(e=>{
+    const en=norm(e.nome);
+    if(nn===en){best=e;bestScore=3;return;}
+    if(nn.includes(en)||en.includes(nn)){if(bestScore<2){best=e;bestScore=2;}}
+    else{const fw=en.split(' ')[0];if(fw.length>3&&nn.includes(fw)&&bestScore<1){best=e;bestScore=1;}}
+  });
+  return best;
+}
+function hasRaw(id,mes){
+  const r=rawStore[`projeto_${id}_${mes}`];
+  return r&&r.rows&&r.rows.length>0;
+}
+
+// ─── RENDER PROJETOS ───────────────────────────────
+function renderProjetos(){
+  const mes=document.getElementById('mesInput').value;
+  const bloqueado=mesAprovado(mes);
+  let grand=0;let rows='';let anyRaw=false;
+  let sumMargin=0,sumAtivacao=0,sumBonus=0,sumCancel=0;
+  projetos.forEach(proj=>{
+    const d=mdata[`p_${proj.id}_${mes}`]||{};
+    const c=calcProjeto(d,proj);
+    grand+=c.total;
+    sumMargin+=c.margin;sumAtivacao+=c.ativacao;sumBonus+=c.bonus;sumCancel+=c.cancelDesc;
+    const isEmpty=!c.margin&&!c.ativacao&&!c.bonus&&!d.cancel;
+    const isEditing=editingId===proj.id;
+    const canExport=hasRaw(proj.id,mes);
+    if(canExport)anyRaw=true;
+    rows+=`<tr id="prow_${proj.id}" ${isEditing?'class="row-editing"':''}>
+      <td style="padding-left:20px;font-weight:500">${proj.nome}</td>
+      <td class="r">${isEmpty?'<span class="c-dim">—</span>':c.linhas.toLocaleString('pt-BR')}</td>
+      <td class="r">${isEmpty?'<span class="c-dim">—</span>':'R$'+br2(c.margin)}</td>
+      <td class="r">${c.ativacao>0?'R$'+br2(c.ativacao):'<span class="c-dim">—</span>'}</td>
+      <td class="r">${c.bonus>0?'<span class="c-verde">+R$'+br2(c.bonus)+'</span>':'<span class="c-dim">—</span>'}</td>
+      <td class="r">${c.cancelDesc>0?'<span class="c-red">-R$'+br2(c.cancelDesc)+'</span>':'<span class="c-dim">—</span>'}</td>
+      <td class="r" style="font-weight:700;color:${isEmpty?'#bbb':'#166B4A'}">${isEmpty?'—':'R$'+br2(c.total)}</td>
+      <td style="text-align:center;white-space:nowrap">
+        <button class="btn-edit ${isEditing?'active':''}" onclick="toggleEdit('${proj.id}','${mes}')" style="margin-right:4px" title="${bloqueado?'Mês aprovado — travado':''}">${isEditing?'✕':(bloqueado?'🔒':'✏')}</button>
+        <button class="${canExport?'btn-export':'btn-export disabled'}" onclick="${canExport?`exportEntity('${proj.id}','${mes}')`:''}" title="${canExport?'Baixar extrato':'Importe para habilitar'}">↓ Extrair</button>
+      </td>
+    </tr>
+    <tr id="peditrow_${proj.id}" style="display:${isEditing?'table-row':'none'}">
+      <td colspan="8" style="padding:0"><div class="edit-panel" id="ppanel_${proj.id}"></div></td>
+    </tr>`;
+  });
+  document.getElementById('projetosBody').innerHTML=rows;
+  document.getElementById('projetosFoot').innerHTML=`<tr style="font-weight:700;background:#eaf5f0">
+    <td style="padding-left:20px;color:#166B4A" colspan="2">Total Projetos Especiais</td>
+    <td class="r">R$${br2(sumMargin)}</td>
+    <td class="r">${sumAtivacao>0?'R$'+br2(sumAtivacao):'<span class="c-dim">—</span>'}</td>
+    <td class="r">${sumBonus>0?'R$'+br2(sumBonus):'<span class="c-dim">—</span>'}</td>
+    <td class="r">${sumCancel>0?'-R$'+br2(sumCancel):'<span class="c-dim">—</span>'}</td>
+    <td class="r" style="color:#166B4A;font-size:15px">R$${br2(grand)}</td>
+    <td></td>
+  </tr>`;
+  document.getElementById('rawNoticeDp').style.display=anyRaw?'block':'none';
+  if(editingId)renderEditPanel(editingId,mes);
+}
+
+// ─── EDIT PANEL ────────────────────────────────────
+function toggleEdit(id,mes){
+  if(mesAprovado(mes)){showToast('Mês aprovado — desaprove na Visão Consolidada pra editar.','#b83232');return;}
+  editingId=(editingId===id)?null:id;
+  renderProjetos();
+}
+function renderEditPanel(id,mes){
+  const entity=projetos.find(e=>e.id===id);
+  const d=mdata[`p_${id}_${mes}`]||{};
+  const panel=document.getElementById(`ppanel_${id}`);if(!panel)return;
+
+  panel.innerHTML=`
+    <div class="edit-panel-hdr">
+      <span class="edit-panel-title">🔷 ${entity.nome} · ${fmtMes(mes)}</span>
+    </div>
+    <div class="edit-fields">
+      <div>
+        <label class="lbl">Linhas em base</label>
+        <input type="number" id="ef_linhas_${id}" value="${d.linhas||0}" min="0" oninput="liveCalcEntity('${id}')">
+      </div>
+      <div>
+        <label class="lbl">Margem total</label>
+        <div class="irow"><span class="ipfx">R$</span><input type="number" id="ef_margin_${id}" value="${(d.margin||0).toFixed(2)}" min="0" step="0.01" oninput="liveCalcEntity('${id}')"></div>
+      </div>
+      <div>
+        <label class="lbl">Ativação</label>
+        <div class="irow"><span class="ipfx">R$</span><input type="number" id="ef_ativacao_${id}" value="${(d.ativacao||0).toFixed(2)}" min="0" step="0.01" oninput="liveCalcEntity('${id}')"></div>
+      </div>
+      <div>
+        <label class="lbl">Cancelamentos</label>
+        <div class="irow"><input type="number" id="ef_cancel_${id}" value="${d.cancel||0}" min="0" oninput="liveCalcEntity('${id}')"><span class="ipfx">linhas</span></div>
+      </div>
+      <div>
+        <label class="lbl" style="color:#166B4A">Bônus extra</label>
+        <div class="irow"><span class="ipfx" style="color:#166B4A">R$</span><input type="number" id="ef_bonus_${id}" value="${d.bonus||0}" min="0" step="0.01" oninput="liveCalcEntity('${id}')" style="border-color:#1E9B6B"></div>
+      </div>
+    </div>
+    <div style="margin-bottom:12px"><label class="lbl">Observação</label><input type="text" id="ef_obs_${id}" value="${d.obs||''}" placeholder="Ex: ajuste de margem, cancelamento em massa contestado…"></div>
+    <div class="edit-preview" id="eprev_${id}"></div>
+    <div class="edit-actions">
+      <button class="btn-ghost btn-sm" onclick="toggleEdit('${id}','${document.getElementById('mesInput').value}')">Cancelar</button>
+      <button class="btn btn-sm" onclick="saveEdit('${id}','${mes}')">✓ Salvar</button>
+    </div>`;
+  liveCalcEntity(id);
+}
+function liveCalcEntity(id){
+  const proj=projetos.find(p=>p.id===id);
+  const margin=+document.getElementById(`ef_margin_${id}`).value||0;
+  const ativacao=+document.getElementById(`ef_ativacao_${id}`).value||0;
+  const cancel=+document.getElementById(`ef_cancel_${id}`).value||0;
+  const bonus=+document.getElementById(`ef_bonus_${id}`).value||0;
+
+  const cancelRate=proj?.cancelRate||0;
+  const cancelDesc=cancel*cancelRate;
+  const total=margin+ativacao+bonus-cancelDesc;
+
+  const prev=document.getElementById(`eprev_${id}`);if(!prev)return;
+  prev.innerHTML=`
+    <div class="ep-row">
+      <div class="ep-item"><label>Margem</label><span>R$${br2(margin)}</span></div>
+      ${ativacao>0?`<span class="ep-sep">+</span><div class="ep-item"><label>Ativação</label><span>R$${br2(ativacao)}</span></div>`:''}
+      ${bonus>0?`<span class="ep-sep">+</span><div class="ep-item"><label style="color:#166B4A">Bônus</label><span>R$${br2(bonus)}</span></div>`:''}
+      ${cancelDesc>0?`<span class="ep-sep">−</span><div class="ep-item"><label style="color:#b83232">Cancel. (${cancel}×R$${br2(cancelRate)})</label><span style="color:#b83232">R$${br2(cancelDesc)}</span></div>`:''}
+      <div style="margin-left:auto"><div class="ep-item"><label>Total</label><span class="big">R$ ${br2(total)}</span></div></div>
+    </div>`;
+}
+function saveEdit(id,mes){
+  if(mesAprovado(mes)){showToast('Mês aprovado — desaprove na Visão Consolidada pra editar.','#b83232');return;}
+  mdata[`p_${id}_${mes}`]={
+    linhas:+document.getElementById(`ef_linhas_${id}`).value||0,
+    margin:+document.getElementById(`ef_margin_${id}`).value||0,
+    ativacao:+document.getElementById(`ef_ativacao_${id}`).value||0,
+    cancel:+document.getElementById(`ef_cancel_${id}`).value||0,
+    bonus:+document.getElementById(`ef_bonus_${id}`).value||0,
+    obs:document.getElementById(`ef_obs_${id}`).value||'',
+  };
+  LS.set('dp1_m',mdata);editingId=null;
+  renderProjetos();
+  showToast('Salvo ✓');
+}
+
+// ─── EXPORT ────────────────────────────────────────
+// Mesma lógica de vigência/defasagem do motor no shell (index.html), copiada
+// aqui pra este arquivo poder recalcular o detalhe linha-a-linha do extrato
+// sem depender do parent — mesmo padrão de duplicação já usado em DEF_PP.
+function pePrecoVigente(hist,dataAtivacao){
+  if(!hist||!hist.length)return null;
+  const d=dataAtivacao instanceof Date?dataAtivacao:new Date(dataAtivacao);
+  if(isNaN(d))return hist[hist.length-1].valor;
+  let melhor=null;
+  hist.forEach(h=>{const hd=new Date(h.desde+'T00:00:00');if(hd<=d&&(!melhor||hd>new Date(melhor.desde+'T00:00:00')))melhor=h;});
+  return melhor?melhor.valor:hist[0].valor;
+}
+function peDateToMonth(d){
+  if(!(d instanceof Date)||isNaN(d))return null;
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+function peMesRefAtivacao(mes){
+  const[y,m]=mes.split('-').map(Number);
+  const d=new Date(y,m-3,1);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+// Recalcula, pra cada linha bruta do Inventário, as mesmas 5 colunas que a
+// planilha real do Johnny mostra (% Ativação/Valor Base/Comissão At/Comissão
+// Mensalidade/Comissão total) — o sistema só guarda o total agregado do mês,
+// então o detalhe por linha é recalculado aqui em cima do dado bruto, com a
+// mesma fórmula do motor (impProcessarInventario, index.html).
+function peLinhaExtra(headers,row,proj,pp,mesRefAtiv){
+  const get=nome=>{const i=headers.indexOf(nome);return i>=0?row[i]:undefined;};
+  const mensalidade=Number(get('Mensalidade'))||0;
+  const opEsp=get('Operadora específica'),opGeral=get('Operadora');
+  const hist=pp[opEsp]||pp[opGeral];
+  const dataAtivacao=get('Data de ativação');
+  let valorBase=hist?pePrecoVigente(hist,dataAtivacao):null;
+  // Linha unitária "fora do padrão": margem bruta > R$5,00 vira Valor Base =
+  // Mensalidade (margem 0) — mesma regra do motor em index.html.
+  if(valorBase!=null&&(mensalidade-valorBase)>5)valorBase=mensalidade;
+  const precoAtivacao=Number(get('Preço de ativação'))||0;
+  const mesLinha=peDateToMonth(dataAtivacao instanceof Date?dataAtivacao:new Date(dataAtivacao));
+  const taxaAtivacao=proj.taxaAtivacao||0,taxaMargem=proj.taxaMargem||0;
+  const comissaoAt=(mesLinha===mesRefAtiv)?+((precoAtivacao*taxaAtivacao).toFixed(2)):0;
+  const comissaoMensalidade=valorBase!=null?+(Math.max(0,mensalidade-valorBase)*taxaMargem).toFixed(2):0;
+  return [
+    (taxaAtivacao*100).toFixed(0)+'%',
+    valorBase!=null?valorBase:null,
+    comissaoAt,
+    comissaoMensalidade,
+    +(comissaoAt+comissaoMensalidade).toFixed(2),
+  ];
+}
+function peBaixarBlob(buffer,nomeArquivo){
+  const blob=new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=nomeArquivo;document.body.appendChild(a);a.click();
+  document.body.removeChild(a);URL.revokeObjectURL(url);
+}
+// Cabeçalho igual a planilha real (negrito vermelho sobre fundo verde) — o
+// SheetJS (usado no resto do sistema) não grava estilo de célula no arquivo
+// final (testado e confirmado), então esse extrato específico usa o ExcelJS
+// só pra isso, via CDN carregado no topo do arquivo.
+const PE_HEADER_STYLE={
+  font:{bold:true,color:{argb:'FFC00000'}},
+  fill:{type:'pattern',pattern:'solid',fgColor:{argb:'FFC6E0B4'}},
+};
+async function exportEntity(id,mes){
+  const entity=projetos.find(e=>e.id===id);
+  const d=mdata[`p_${id}_${mes}`]||{};
+  const c=calcProjeto(d,entity);
+  const raw=rawStore[`projeto_${id}_${mes}`]||{};
+
+  // Formato pedido pelo Diego: mesma estrutura de 3 abas da planilha real que a
+  // Johnny usa pra conferência ("Resumo"/"Simcard"/"Cancelamento") — a aba
+  // Resumo é só o total de cada bloco (igual lá: Simcard = soma da Comissão
+  // total de cada linha [margem+ativação], Desconto = cancelamento negativo,
+  // Bônus quando existir, Total = soma dos 3). A aba Simcard replica também as
+  // 5 colunas calculadas por linha (% Ativação/Valor Base/Comissão At/Comissão
+  // Mensalidade/Comissão total), não só os dados brutos importados.
+  const wb=new ExcelJS.Workbook();
+  const wsResumo=wb.addWorksheet('Resumo');
+  wsResumo.getCell('B2').value='Simcard';wsResumo.getCell('C2').value=+(c.margin+c.ativacao).toFixed(2);
+  wsResumo.getCell('B3').value='Desconto';wsResumo.getCell('C3').value=-c.cancelDesc;
+  if(c.bonus){wsResumo.getCell('B4').value='Bônus';wsResumo.getCell('C4').value=c.bonus;}
+  wsResumo.getCell('B5').value='Total';wsResumo.getCell('C5').value=c.total;
+  if(d.obs){wsResumo.getCell('B6').value='Observação';wsResumo.getCell('C6').value=d.obs;}
+
+  if(raw.rows&&raw.rows.length){
+    const pp=projetosPrecos[id]||{};
+    const mesRefAtiv=peMesRefAtivacao(mes);
+    const extraHeaders=['% Ativação','Valor Base','Comissão At','Comissão Mensalidade','Comissão total'];
+    const wsSimcard=wb.addWorksheet('Simcard');
+    wsSimcard.addRow([...raw.headers,...extraHeaders]);
+    raw.rows.forEach(row=>wsSimcard.addRow([...row,...peLinhaExtra(raw.headers,row,entity,pp,mesRefAtiv)]));
+    wsSimcard.getRow(1).eachCell(cell=>{cell.font=PE_HEADER_STYLE.font;cell.fill=PE_HEADER_STYLE.fill;});
+    wsSimcard.autoFilter={from:{row:1,column:1},to:{row:raw.rows.length+1,column:raw.headers.length+extraHeaders.length}};
+  }
+  if(raw.cancelRows&&raw.cancelRows.length){
+    const wsCancel=wb.addWorksheet('Cancelamento');
+    wsCancel.addRow(raw.cancelHeaders||[]);
+    raw.cancelRows.forEach(row=>wsCancel.addRow(row));
+    wsCancel.getRow(1).eachCell(cell=>{cell.font=PE_HEADER_STYLE.font;cell.fill=PE_HEADER_STYLE.fill;});
+    wsCancel.autoFilter={from:{row:1,column:1},to:{row:raw.cancelRows.length+1,column:(raw.cancelHeaders||[]).length}};
+  }
+
+  const[y,m]=mes.split('-');
+  const meses=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const nomeLimpo=entity.nome.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,'_');
+  const buffer=await wb.xlsx.writeBuffer();
+  peBaixarBlob(buffer,`${nomeLimpo}_${meses[+m-1]}_${y}.xlsx`);
+  showToast(`↓ ${entity.nome} · extrato gerado`,'#166B4A');
+}
+
+// ─── REGRAS DE COMISSÃO ────────────────────────────
+// Cada operadora guarda uma LISTA de vigências ({desde,valor}) — a tabela
+// sempre edita/mostra a vigência mais recente; "+ Vigência" pede uma data e
+// valor novos (pra quando o preço mudar de novo, sem perder o histórico).
+function ppVigenteAtual(hist){ return hist&&hist.length?hist[hist.length-1]:{desde:'',valor:0}; }
+function regraResumo(proj){
+  const nOps=Object.keys(projetosPrecos[proj.id]||{}).length;
+  return `Margem: ${((proj.taxaMargem||0)*100).toFixed(0)}% sobre (Mensalidade − Valor Base) · Ativação: ${((proj.taxaAtivacao||0)*100).toFixed(0)}%`
+    +` · Cancelamento: R$${br2(proj.cancelRate||0)}/linha · ${nOps} operadora(s) configurada(s)`;
+}
+function renderRegrasLista(){
+  const wrap=document.getElementById('regras_lista');
+  if(!wrap)return;
+  wrap.innerHTML=projetos.map(proj=>`
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+        <div>
+          <p class="card-title" style="margin-bottom:6px">${proj.nome}${proj.apelido?` <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#aaa">(${proj.apelido})</span>`:''}</p>
+          <div style="font-size:12px;color:#444">${regraResumo(proj)}</div>
+        </div>
+        <button class="btn-ghost" onclick="regraAbrirModal('${proj.id}')">Editar</button>
+      </div>
+    </div>`).join('');
+}
+
+let rgEditandoId=null;
+function regraAbrirModal(id){
+  rgEditandoId=id;
+  const proj=projetos.find(p=>p.id===id);
+  if(!proj)return;
+  document.getElementById('regraModalTitulo').textContent='Regra de Comissão · '+proj.nome;
+  document.getElementById('rg_taxaMargem').value=((proj.taxaMargem||0)*100).toFixed(0);
+  document.getElementById('rg_taxaAtivacao').value=((proj.taxaAtivacao||0)*100).toFixed(0);
+  document.getElementById('rg_cancelRate').value=(proj.cancelRate||0).toFixed(2);
+  buildPpTable(id);
+  document.getElementById('regraModal').classList.add('open');
+}
+function regraFecharModal(){
+  document.getElementById('regraModal').classList.remove('open');
+  rgEditandoId=null;
+}
+function regraSalvar(){
+  const proj=projetos.find(p=>p.id===rgEditandoId);
+  if(!proj)return;
+  proj.taxaMargem=(+document.getElementById('rg_taxaMargem').value||0)/100;
+  proj.taxaAtivacao=(+document.getElementById('rg_taxaAtivacao').value||0)/100;
+  proj.cancelRate=+document.getElementById('rg_cancelRate').value||0;
+  LS.set('dp1_projetos',projetos);
+  LS.set('dp1_pp',projetosPrecos);
+  regraFecharModal();
+  renderRegrasLista();
+  renderProjetos();
+  showToast('Regra salva ✓');
+}
+function buildPpTable(pid){
+  const tbody=document.getElementById('rg_pp_tbody');
+  if(!tbody)return;
+  const pp=projetosPrecos[pid]||{};
+  const ops=Object.keys(pp);
+  let rows='';
+  ops.forEach(op=>{
+    const hist=Array.isArray(pp[op])?pp[op]:[{desde:'2020-01-01',valor:pp[op]||0}];
+    hist.forEach((v,vi)=>{
+      rows+=`<tr>`;
+      if(vi===0){
+        rows+=`<td rowspan="${hist.length}" style="padding:6px 8px;vertical-align:top;border-right:.5px solid #e0dfdb">
+          <div style="font-weight:600;font-size:12px">${op}</div>
+          <div style="margin-top:4px;display:flex;gap:4px">
+            <button class="btn-ghost btn-sm" style="font-size:9px;padding:2px 6px" onclick="ppRenameOpPrompt('${pid}','${op}')">renomear</button>
+            <button class="btn-del" style="font-size:9px;padding:2px 6px" onclick="ppRemoveOp('${pid}','${op}')">remover</button>
+          </div>
+        </td>`;
+      }
+      rows+=`
+        <td style="padding:4px 8px">
+          <input type="date" value="${v.desde||''}" style="font-size:11px" onchange="ppSetVigenciaDesde('${pid}','${op}',${vi},this.value)">
+        </td>
+        <td style="padding:4px 8px;text-align:right">
+          <div class="irow" style="justify-content:flex-end">
+            <span class="ipfx">R$</span>
+            <input type="number" class="rule-input" value="${(v.valor||0).toFixed(2)}" step="0.01" style="width:70px"
+              onchange="ppSetVigenciaValor('${pid}','${op}',${vi},+this.value)">
+          </div>
+        </td>
+        <td style="text-align:center;padding:4px 6px">
+          ${hist.length>1?`<button class="btn-del" style="padding:2px 5px;font-size:10px" onclick="ppRemoverVigencia('${pid}','${op}',${vi})">×</button>`:''}
+        </td>
+      </tr>`;
+    });
+    rows+=`<tr><td colspan="4" style="padding:2px 8px 12px;border-bottom:.5px solid #e0dfdb">
+      <button class="btn-ghost btn-sm" style="font-size:9px" onclick="ppNovaVigencia('${pid}','${op}')">+ vigência pra ${op}</button>
+    </td></tr>`;
+  });
+  tbody.innerHTML=rows;
+}
+function ppAddOp(pid){
+  if(!projetosPrecos[pid])projetosPrecos[pid]={};
+  const newOp='Nova operadora '+(Object.keys(projetosPrecos[pid]).length+1);
+  projetosPrecos[pid][newOp]=[{desde:new Date().toISOString().slice(0,10),valor:0}];
+  buildPpTable(pid);
+}
+function ppRemoveOp(pid,op){
+  if(projetosPrecos[pid])delete projetosPrecos[pid][op];
+  buildPpTable(pid);
+}
+function ppRenameOpPrompt(pid,oldOp){
+  const newOp=prompt('Renomear operadora/plano:',oldOp);
+  if(!newOp||newOp===oldOp||!projetosPrecos[pid])return;
+  const hist=projetosPrecos[pid][oldOp];
+  delete projetosPrecos[pid][oldOp];
+  projetosPrecos[pid][newOp]=hist;
+  buildPpTable(pid);
+}
+function ppSetVigenciaDesde(pid,op,vi,valor){
+  const hist=projetosPrecos[pid]?.[op];
+  if(!hist||!hist[vi])return;
+  hist[vi].desde=valor;
+  hist.sort((a,b)=>a.desde.localeCompare(b.desde));
+}
+function ppSetVigenciaValor(pid,op,vi,valor){
+  const hist=projetosPrecos[pid]?.[op];
+  if(!hist||!hist[vi])return;
+  hist[vi].valor=valor;
+}
+function ppRemoverVigencia(pid,op,vi){
+  const hist=projetosPrecos[pid]?.[op];
+  if(!hist||hist.length<=1)return;
+  hist.splice(vi,1);
+  buildPpTable(pid);
+}
+function ppNovaVigencia(pid,op){
+  const hist=projetosPrecos[pid]?.[op];
+  if(!hist)return;
+  hist.push({desde:new Date().toISOString().slice(0,10),valor:hist[hist.length-1]?.valor||0});
+  hist.sort((a,b)=>a.desde.localeCompare(b.desde));
+  buildPpTable(pid);
+}
+</script>
+</body>
+</html>

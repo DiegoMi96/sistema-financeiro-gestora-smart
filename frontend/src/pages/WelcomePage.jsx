@@ -15,6 +15,9 @@ const MODULE_HOME = {
   // Controladoria tem casa própria (dashboard em iframe), nunca o /dashboard
   // do Faturamento — separação total dos cards (08/08/2026).
   controladoria:   '/controladoria/dash',
+  // Comissionamento tem casa própria (dashboard em iframe), mesmo padrão da
+  // Controladoria — nunca uma rota do Layout/sidebar do Faturamento.
+  comissionamento: '/comissionamento/dash',
   organograma:     '/organograma',
   acessos:         '/acessos',
   smt:             null,
@@ -102,6 +105,10 @@ export default function WelcomePage() {
   const handleSelect = (module) => {
     if (module.id === 'controladoria') {
       navigate('/controladoria/dash')
+      return
+    }
+    if (module.id === 'comissionamento') {
+      navigate('/comissionamento/dash')
       return
     }
     if (module.id === 'acessos') {

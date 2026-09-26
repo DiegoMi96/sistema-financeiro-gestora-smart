@@ -68,6 +68,18 @@ export const MODULES = [
     ],
   },
   {
+    id:          'comissionamento',
+    label:       'Comissionamento',
+    description: 'Cálculo de comissão por vendedor, dealer, indicador e projeto especial',
+    icon:        'TrendingUp',
+    color:       'indigo',
+    status:      'active',
+    permission:  'can_view_comissao',
+    // Mesmo padrão da Controladoria: dashboard externo em iframe, sem
+    // sidebar própria do React — nav vazio de propósito.
+    nav: [],
+  },
+  {
     id:          'smt',
     label:       'SMT',
     description: 'Dashboard financeiro SMT — cotações, resultados e operações Brasil e Portugal',

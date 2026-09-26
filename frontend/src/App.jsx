@@ -25,6 +25,7 @@ const ClientsPage              = lazy(() => import('./pages/clients/ClientsPage'
 const OrganoPage               = lazy(() => import('./pages/organograma/OrganoPage'))
 const IndicadoresPage          = lazy(() => import('./pages/controladoria/IndicadoresPage'))
 const ControladoriaDashboard   = lazy(() => import('./pages/controladoria/ControladoriaDashboard'))
+const ComissionamentoDashboard = lazy(() => import('./pages/comissionamento/ComissionamentoDashboard'))
 const AcessosPage              = lazy(() => import('./pages/acessos/AcessosPage'))
 const DiagnosticoIAPage        = lazy(() => import('./pages/billing/DiagnosticoIAPage'))
 
@@ -113,6 +114,11 @@ function AppRoutes() {
 
         {/* Controladoria — dashboard externo em iframe, sem sidebar */}
         <Route path="/controladoria/dash" element={<PrivateRoute permission="can_view_controladoria"><ControladoriaDashboard /></PrivateRoute>} />
+
+        {/* Comissionamento — mesmo padrão da Controladoria: dashboard externo
+            em iframe, sem sidebar (reconstruído do zero em 26/09/2026 — ver
+            comissionamento/README.md) */}
+        <Route path="/comissionamento/dash" element={<PrivateRoute permission="can_view_comissao"><ComissionamentoDashboard /></PrivateRoute>} />
 
         {/* Gestão de Acessos — página standalone, sem sidebar */}
         <Route path="/acessos" element={<PrivateRoute permission="can_manage_users"><AcessosPage /></PrivateRoute>} />
