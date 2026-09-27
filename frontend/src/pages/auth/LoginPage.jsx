@@ -53,11 +53,14 @@ export default function LoginPage() {
         {/* Logo estática (letra clara, fundo transparente) — feita para o
             fundo escuro desta tela. Independente da logo de Configurações.
             Altura responsiva (menor em celular, maior em telas grandes) —
-            antes era um valor fixo (260px) que não cabia em telas baixas. */}
+            antes era um valor fixo (260px) que não cabia em telas baixas.
+            Tamanho 1,5x maior e mais próxima do card (pedido do Diego, em
+            cima do que já estava no ar: h-32/44/56 → 1,5x = 192/264/336px;
+            margem -16/-24 → 1,5x = -24/-36). */}
         <img
           src="/logo-smart-white.png"
           alt="Gestora Smart"
-          className="h-32 sm:h-44 md:h-56 w-auto object-contain mb-[-16px] sm:mb-[-24px]"
+          className="h-[192px] sm:h-[264px] md:h-[336px] w-auto object-contain mb-[-24px] sm:mb-[-36px]"
           style={{ maxWidth: '100%' }}
         />
 
