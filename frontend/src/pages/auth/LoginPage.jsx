@@ -38,8 +38,18 @@ export default function LoginPage() {
 
       {/* Logo + card tratados como um bloco único (pedido do Diego) — um só
           flex column, centralizado como grupo, sem depender de margem
-          negativa pra "colar" os dois. */}
-      <div className="w-full max-w-md flex flex-col items-center">
+          negativa pra "colar" os dois.
+
+          O arquivo logo-smart-white.png tem ~38% de espaço transparente
+          acima da marca e ~35% abaixo (medido via canvas) — isso faz a caixa
+          da logo ficar centralizada mas o "peso visual" (a marca em si)
+          sobrar pro fundo, deixando o bloco com aparência de estar mais
+          baixo que o centro real da tela, mesmo estando matematicamente
+          centralizado. Corrigido deslocando o BLOCO INTEIRO um pouco pra
+          cima (a logo continua no tamanho normal, sem cortar nada) — tentei
+          cortar o espaço vazio da logo antes, mas isso deixava a marca
+          visivelmente menor; o Diego pediu pra manter o tamanho original. */}
+      <div className="w-full max-w-md flex flex-col items-center -translate-y-6 sm:-translate-y-8 md:-translate-y-10">
         {/* Logo estática (letra clara, fundo transparente) — feita para o
             fundo escuro desta tela. Independente da logo de Configurações.
             Altura responsiva (menor em celular, maior em telas grandes) —
