@@ -72,8 +72,6 @@ input,select,textarea,button{font-family:inherit}
 .nav-sep{height:1px;background:#333230;margin:10px 4px}
 .nav-label{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6f6e69;padding:8px 12px 6px}
 
-.sidebar-note{padding:14px 20px;border-top:1px solid #333230;font-size:10.5px;color:#7a7972;line-height:1.5}
-
 .main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden}
 .frame-area{flex:1;position:relative;overflow:hidden}
 iframe{
@@ -319,10 +317,28 @@ iframe.active{display:block}
     <button class="profile-btn" data-p="importar">Importar</button>
   </div>
 
-  <div style="padding:10px 20px">
-    <button onclick="trocarModulo()" title="Trocar módulo" style="width:100%;display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;font-size:12px;font-weight:500;color:#9a9a95;border:1px dashed #333230;background:transparent;cursor:pointer;transition:background .15s;font-family:'Inter',sans-serif" onmouseover="this.style.background='#232320'" onmouseout="this.style.background='transparent'">← Trocar módulo</button>
+  <div style="padding:10px 8px 0">
+    <button onclick="trocarModulo()" title="Trocar módulo" style="width:100%;display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;font-size:12px;font-weight:500;color:#9a9a95;border:1px dashed #333230;background:transparent;cursor:pointer;transition:background .15s;font-family:'Inter',sans-serif" onmouseover="this.style.background='#232320'" onmouseout="this.style.background='transparent'">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+      <span>Trocar módulo</span>
+    </button>
   </div>
-  <div class="sidebar-note">Cada perfil é um módulo independente (ainda local, sem banco de dados) — dados de um não afetam os demais. Serve para validar as regras antes da integração definitiva no sistema.</div>
+  <!-- Conta + Sair — mesmo modelo do menu do Faturamento (Layout.jsx), lendo
+       localStorage['user'] (mesma origem, já preenchido pelo login do app
+       principal — não precisa de login próprio aqui). -->
+  <div style="border-top:1px solid #333230;padding:10px;margin-top:10px">
+    <div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:#232320;margin-bottom:4px">
+      <div id="contaAvatar" style="width:28px;height:28px;border-radius:50%;background:#123d2b;color:#1E9B6B;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">?</div>
+      <div style="flex:1;min-width:0">
+        <p id="contaNome" style="color:#fff;font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</p>
+        <p id="contaRole" style="color:#9a9a95;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</p>
+      </div>
+    </div>
+    <button onclick="sairDaConta()" style="width:100%;display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:500;color:#9a9a95;background:transparent;border:none;cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif" onmouseover="this.style.background='rgba(239,68,68,.12)';this.style.color='#EF4444'" onmouseout="this.style.background='transparent';this.style.color='#9a9a95'">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+      Sair da conta
+    </button>
+  </div>
 </div>
 
 <div class="main">
@@ -835,6 +851,28 @@ function toggleSidebar(forcar) {
 function trocarModulo() {
   if (window.parent && window.parent !== window) {
     window.parent.postMessage({ type: 'TROCAR_MODULO' }, '*');
+  }
+}
+// ── Conta + Sair ─────────────────────────────────────────────────
+// Mesmo modelo do menu do Faturamento (Layout.jsx): avatar com iniciais,
+// nome, cargo. Lê localStorage['user'] direto — mesma origem do app
+// principal, já preenchido no login (não precisa de login próprio aqui).
+function renderContaWidget() {
+  let user = null;
+  try { user = JSON.parse(localStorage.getItem('user') || 'null'); } catch {}
+  const nome = user?.name || '';
+  const iniciais = nome ? nome.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() : '?';
+  document.getElementById('contaAvatar').textContent = iniciais;
+  document.getElementById('contaNome').textContent = nome || 'Usuário';
+  document.getElementById('contaRole').textContent = user?.role_label || '';
+}
+// Mesmo padrão do trocarModulo(): avisa o React (que já tem a função de
+// logout de verdade, limpando o estado do AuthContext) em vez de mexer no
+// localStorage direto daqui — evita o app principal continuar "logado" na
+// memória depois de voltar do iframe.
+function sairDaConta() {
+  if (window.parent && window.parent !== window) {
+    window.parent.postMessage({ type: 'LOGOUT' }, '*');
   }
 }
 function ativarPainel(p) {
@@ -2966,6 +3004,7 @@ try {
   if (salvo && ALL_PANELS.includes(salvo)) painelInicial = salvo;
 } catch {}
 ativarPainel(painelInicial);
+renderContaWidget();
 </script>
 
 </body>
