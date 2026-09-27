@@ -408,6 +408,12 @@ function UserFormModal({ user, onClose, onSuccess }) {
 
   const toggleSection = (key) => setOpenSections(o => ({ ...o, [key]: !o[key] }))
 
+  // Quantas permissões (dentre as que este admin/gestor pode ver) ainda estão
+  // em "Padrão do perfil" (null = não decidida individualmente).
+  const pendingTotal = visibleSections
+    .flatMap(s => s.perms)
+    .filter(([k]) => form[k] === null).length
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
@@ -491,20 +497,44 @@ function UserFormModal({ user, onClose, onSuccess }) {
 
             {/* Permissões individuais por seção */}
             <div>
-              <p className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
-                <Shield size={12} className="text-gray-400" />
-                Permissões individuais
-              </p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+                  <Shield size={12} className="text-gray-400" />
+                  Permissões individuais
+                </p>
+                {/* Pedido do Diego (27/09/2026): mostrar o que ainda não foi
+                    decidido — "Padrão do perfil" (null) é o valor pendente,
+                    não uma escolha explícita. Sem isso, é fácil sair da tela
+                    achando que configurou tudo quando só abriu 1 de 10 seções. */}
+                {pendingTotal > 0 ? (
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">
+                    {pendingTotal} pendente{pendingTotal !== 1 ? 's' : ''} (padrão do perfil)
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
+                    Tudo decidido
+                  </span>
+                )}
+              </div>
               <div className="space-y-2">
-                {visibleSections.map(section => (
+                {visibleSections.map(section => {
+                  const pendingInSection = section.perms.filter(([k]) => form[k] === null).length
+                  return (
                   <div key={section.key} className="border border-gray-100 rounded-xl overflow-hidden">
                     <button
                       type="button"
                       onClick={() => toggleSection(section.key)}
                       className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 text-left"
                     >
-                      <span className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase">
-                        {section.key}
+                      <span className="flex items-center gap-2">
+                        <span className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase">
+                          {section.key}
+                        </span>
+                        {pendingInSection > 0 && (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700">
+                            {pendingInSection} pendente{pendingInSection !== 1 ? 's' : ''}
+                          </span>
+                        )}
                       </span>
                       {openSections[section.key] ? <ChevronDown size={13} className="text-gray-400" /> : <ChevronRight size={13} className="text-gray-400" />}
                     </button>
@@ -527,7 +557,8 @@ function UserFormModal({ user, onClose, onSuccess }) {
                       </div>
                     )}
                   </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           </div>

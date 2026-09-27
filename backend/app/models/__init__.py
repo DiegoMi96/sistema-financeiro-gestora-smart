@@ -77,6 +77,70 @@ class User(Base):
     can_view_comissao     = Column(Boolean, default=None)
     can_view_smt          = Column(Boolean, default=None)
 
+    # Resto de ALL_PERMISSIONS (app/core/permissions.py) — até 27/09/2026 essas
+    # colunas não existiam, então a tela de Gestão de Acessos deixava marcar
+    # o toggle mas o backend descartava em silêncio (UserCreate/UserUpdate não
+    # tinham o campo) — toda permissão abaixo sempre caía no padrão do perfil,
+    # não importa o que fosse marcado por usuário. Achado real do Diego:
+    # Faturamento sempre habilitado + Estoque não salvava enquanto Guardião
+    # "parecia" salvar (na real nenhum dos dois salvava — só coincidência do
+    # padrão do perfil de cada um bater com o que ele queria num caso e não no
+    # outro). Lista igual a ALL_PERMISSIONS, na mesma ordem, pra nenhuma nova
+    # permissão futura repetir esse mesmo bug.
+    can_view_faturamento          = Column(Boolean, default=None)
+    can_view_logistica            = Column(Boolean, default=None)
+    can_view_organograma          = Column(Boolean, default=None)
+    can_edit_organograma          = Column(Boolean, default=None)
+    can_view_controladoria        = Column(Boolean, default=None)
+    can_view_configuracoes        = Column(Boolean, default=None)
+    can_create_adjustment         = Column(Boolean, default=None)
+    can_approve_adjustment        = Column(Boolean, default=None)
+    can_upload_files              = Column(Boolean, default=None)
+    can_sync_asaas                = Column(Boolean, default=None)
+    can_view_financial_values     = Column(Boolean, default=None)
+    can_export_excel               = Column(Boolean, default=None)
+    can_export_pdf                 = Column(Boolean, default=None)
+    can_view_ctrl_indicadores      = Column(Boolean, default=None)
+    can_view_ctrl_dre              = Column(Boolean, default=None)
+    can_view_ctrl_sales            = Column(Boolean, default=None)
+    can_view_ctrl_ops              = Column(Boolean, default=None)
+    can_view_ctrl_logistics        = Column(Boolean, default=None)
+    can_view_ctrl_rh               = Column(Boolean, default=None)
+    can_view_ctrl_fluxo_caixa      = Column(Boolean, default=None)
+    can_view_fat_ciclos            = Column(Boolean, default=None)
+    can_view_fat_ciclo_detalhe     = Column(Boolean, default=None)
+    can_view_fat_cliente_detalhe   = Column(Boolean, default=None)
+    can_view_fat_diagnostico_ia    = Column(Boolean, default=None)
+    can_view_cont_ciclos           = Column(Boolean, default=None)
+    can_view_cont_ciclo_detalhe    = Column(Boolean, default=None)
+    can_view_cont_allcom           = Column(Boolean, default=None)
+    can_view_guardiao              = Column(Boolean, default=None)
+    can_view_estoque               = Column(Boolean, default=None)
+    can_view_est_dashboard         = Column(Boolean, default=None)
+    can_view_est_geral             = Column(Boolean, default=None)
+    can_view_est_smart             = Column(Boolean, default=None)
+    can_view_est_smt               = Column(Boolean, default=None)
+    can_view_est_upload            = Column(Boolean, default=None)
+    can_view_est_saida_dashboard   = Column(Boolean, default=None)
+    can_view_est_saida_resumo      = Column(Boolean, default=None)
+    can_view_est_saida_dia         = Column(Boolean, default=None)
+    can_view_est_saida_retornos    = Column(Boolean, default=None)
+    can_view_est_canc_dashboard    = Column(Boolean, default=None)
+    can_view_est_canc_multa        = Column(Boolean, default=None)
+    can_view_est_config            = Column(Boolean, default=None)
+    can_view_grd_dashboard         = Column(Boolean, default=None)
+    can_view_grd_importacoes       = Column(Boolean, default=None)
+    can_view_grd_timeline          = Column(Boolean, default=None)
+    can_view_grd_analises          = Column(Boolean, default=None)
+    can_view_grd_envios            = Column(Boolean, default=None)
+    can_view_grd_nao_acionados     = Column(Boolean, default=None)
+    can_view_grd_upload            = Column(Boolean, default=None)
+    can_view_grd_alerts            = Column(Boolean, default=None)
+    can_view_grd_history           = Column(Boolean, default=None)
+    can_view_grd_historico_mensal  = Column(Boolean, default=None)
+    can_view_grd_clientes          = Column(Boolean, default=None)
+    can_view_grd_configuracoes     = Column(Boolean, default=None)
+
     # Relacionamentos
     adjustments = relationship("BillingAdjustment", foreign_keys="BillingAdjustment.created_by_id", back_populates="created_by_user")
     audit_logs  = relationship("AuditLog", back_populates="user")

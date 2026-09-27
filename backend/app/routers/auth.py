@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, create_model
 from typing import Optional, List
 from datetime import datetime
 
@@ -12,7 +12,7 @@ from app.models import User, UserRole, AuditLog
 from app.core.security import verify_password, hash_password, create_access_token, decode_token
 from app.core.permissions import (
     ROLE_PERMISSIONS, ROLE_LABELS, get_permission,
-    get_manager_scope, target_in_scope,
+    get_manager_scope, target_in_scope, ALL_PERMISSIONS,
 )
 
 router = APIRouter(prefix="/auth", tags=["Autenticação"])
@@ -29,33 +29,34 @@ class Token(BaseModel):
     user: dict
 
 
-class UserCreate(BaseModel):
-    name: str
-    email: EmailStr
-    password: str
-    role: UserRole = UserRole.CONTAS_RECEBER
-    custom_role_key: Optional[str]        = None
-    can_edit_billing: Optional[bool]      = None
-    can_approve_billing: Optional[bool]   = None
-    can_view_dashboard: Optional[bool]    = None
-    can_manage_users: Optional[bool]      = None
-    can_view_contestacao: Optional[bool]  = None
-    can_view_comissao: Optional[bool]     = None
-    can_view_smt: Optional[bool]          = None
+# Um campo Optional[bool]=None por permissão de ALL_PERMISSIONS, gerado a
+# partir da lista única (não duplicado à mão nos dois schemas abaixo) — bug
+# real corrigido em 27/09/2026: metade das permissões (Faturamento, Estoque,
+# Guardião granular, Controladoria, etc.) nunca tinha campo aqui, então a
+# Gestão de Acessos deixava marcar o toggle mas o FastAPI descartava o campo
+# em silêncio (Pydantic ignora chave não declarada no schema por padrão) —
+# essas permissões nunca eram salvas como individual, sempre caíam no padrão
+# do perfil. Ver também as colunas correspondentes em app/models/__init__.py.
+_PERM_FIELDS = {perm: (Optional[bool], None) for perm in ALL_PERMISSIONS}
 
+UserCreate = create_model(
+    "UserCreate",
+    name=(str, ...),
+    email=(EmailStr, ...),
+    password=(str, ...),
+    role=(UserRole, UserRole.CONTAS_RECEBER),
+    custom_role_key=(Optional[str], None),
+    **_PERM_FIELDS,
+)
 
-class UserUpdate(BaseModel):
-    name: Optional[str]        = None
-    role: Optional[UserRole]   = None
-    custom_role_key: Optional[str]        = None
-    is_active: Optional[bool]  = None
-    can_edit_billing: Optional[bool]      = None
-    can_approve_billing: Optional[bool]   = None
-    can_view_dashboard: Optional[bool]    = None
-    can_manage_users: Optional[bool]      = None
-    can_view_contestacao: Optional[bool]  = None
-    can_view_comissao: Optional[bool]     = None
-    can_view_smt: Optional[bool]          = None
+UserUpdate = create_model(
+    "UserUpdate",
+    name=(Optional[str], None),
+    role=(Optional[UserRole], None),
+    custom_role_key=(Optional[str], None),
+    is_active=(Optional[bool], None),
+    **_PERM_FIELDS,
+)
 
 
 class PasswordChange(BaseModel):
@@ -214,13 +215,12 @@ def create_user(
         hashed_password=hash_password(data.password),
         role=data.role,
         custom_role_key=data.custom_role_key,
-        can_edit_billing=data.can_edit_billing,
-        can_approve_billing=data.can_approve_billing,
-        can_view_dashboard=data.can_view_dashboard,
-        can_manage_users=data.can_manage_users,
-        can_view_contestacao=data.can_view_contestacao,
-        can_view_comissao=data.can_view_comissao,
     )
+    # Aplica TODAS as permissões individuais (era uma lista manual de 6 campos
+    # aqui — bug real: qualquer permissão fora dessa lista era descartada na
+    # criação, mesmo já existindo na tela e no schema UserCreate).
+    for perm in ALL_PERMISSIONS:
+        setattr(user, perm, getattr(data, perm, None))
     db.add(user)
     db.add(AuditLog(
         user_id=current_user.id, action="user.create",
