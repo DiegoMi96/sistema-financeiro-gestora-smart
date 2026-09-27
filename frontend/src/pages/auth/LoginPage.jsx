@@ -28,29 +28,43 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4"
+    // min-h-[100dvh] (não 100vh) + overflow-y-auto: em celular, 100vh conta a
+    // barra de endereço do navegador como altura disponível e o conteúdo
+    // cortava embaixo (rodapé/copyright fora da tela, sem como rolar até
+    // ele). dvh usa a altura real visível; overflow-y-auto garante rolagem
+    // em telas baixas o suficiente pra não caber mesmo (ex: celular deitado).
+    <div className="min-h-[100dvh] flex items-center justify-center p-4 overflow-y-auto"
       style={{ background: 'linear-gradient(135deg, #060E07 0%, #0D1F10 100%)' }}>
 
-      {/* Logo estática (letra clara, fundo transparente) — feita para o fundo
-          escuro desta tela. Independente da logo cadastrada em Configurações. */}
-      <div className="text-center" style={{ marginBottom: -30 }}>
-        <img src="/logo-smart-white.png" alt="Gestora Smart" style={{ height: 260, maxWidth: 480, width: 'auto', objectFit: 'contain' }} />
-      </div>
+      {/* Logo + card tratados como um bloco único (pedido do Diego) — um só
+          flex column, centralizado como grupo, sem depender de margem
+          negativa pra "colar" os dois. */}
+      <div className="w-full max-w-md flex flex-col items-center">
+        {/* Logo estática (letra clara, fundo transparente) — feita para o
+            fundo escuro desta tela. Independente da logo de Configurações.
+            Altura responsiva (menor em celular, maior em telas grandes) —
+            antes era um valor fixo (260px) que não cabia em telas baixas. */}
+        <img
+          src="/logo-smart-white.png"
+          alt="Gestora Smart"
+          className="h-32 sm:h-44 md:h-56 w-auto object-contain mb-[-16px] sm:mb-[-24px]"
+          style={{ maxWidth: '100%' }}
+        />
 
-      {/* Card — vidro escuro flutuando sobre o fundo verde, no molde pedido
-          pelo Diego (referência: comunidade.filosofiadozero.com.br), mas com
-          a paleta verde/branco do sistema no lugar do vermelho/dourado deles. */}
-      <div className="w-full max-w-md">
-        <div
-          className="relative rounded-2xl p-8 overflow-hidden"
-          style={{
-            background: 'rgba(13,31,16,0.55)',
-            backdropFilter: 'blur(18px)',
-            WebkitBackdropFilter: 'blur(18px)',
-            border: '1px solid rgba(60,181,74,0.22)',
-            boxShadow: '0 24px 60px rgba(0,0,0,0.45)',
-          }}
-        >
+        {/* Card — vidro escuro flutuando sobre o fundo verde, no molde pedido
+            pelo Diego (referência: comunidade.filosofiadozero.com.br), mas com
+            a paleta verde/branco do sistema no lugar do vermelho/dourado deles. */}
+        <div className="w-full">
+          <div
+            className="relative rounded-2xl p-8 overflow-hidden"
+            style={{
+              background: 'rgba(13,31,16,0.55)',
+              backdropFilter: 'blur(18px)',
+              WebkitBackdropFilter: 'blur(18px)',
+              border: '1px solid rgba(60,181,74,0.22)',
+              boxShadow: '0 24px 60px rgba(0,0,0,0.45)',
+            }}
+          >
           {/* Tarja fina no topo — degradê verde animado (desliza continuamente,
               mesmo efeito da referência que o Diego mandou). Keyframe global
               em index.css (login-bar-slide) porque style inline não suporta
@@ -150,6 +164,7 @@ export default function LoginPage() {
           <p className="text-center text-xs mt-6" style={{ color: '#5c7a60' }}>
             © {new Date().getFullYear()} Gestora Smart. Todos os direitos reservados.
           </p>
+          </div>
         </div>
       </div>
     </div>
