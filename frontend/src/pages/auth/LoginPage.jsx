@@ -55,14 +55,16 @@ export default function LoginPage() {
             Altura responsiva (menor em celular, maior em telas grandes) —
             antes era um valor fixo (260px) que não cabia em telas baixas.
             Tamanho 1,5x maior (pedido do Diego, em cima do que já estava no
-            ar: h-32/44/56 → 1,5x = 192/264/336px). Depois de um round de
-            "aproxima"/"separa" a logo do card, a margem negativa final ficou
-            -25/-36/-44 — a logo em si não muda de tamanho nem de posição
-            própria, só o espaço até o card (próximo irmão) muda. */}
+            ar: h-32/44/56 → 1,5x = 192/264/336px). A margem negativa (só
+            afeta o espaço até o card, o próximo irmão — a logo em si não
+            muda de tamanho nem de posição própria) já passou por alguns
+            rounds de ajuste fino a pedido do Diego: -24/-36 → -45/-60/-70
+            (apertado demais) → -25/-36/-44 → -40/-54/-64 (subiu o card mais
+            uma vez, valor atual). */}
         <img
           src="/logo-smart-white.png"
           alt="Gestora Smart"
-          className="h-[192px] sm:h-[264px] md:h-[336px] w-auto object-contain mb-[-25px] sm:mb-[-36px] md:mb-[-44px]"
+          className="h-[192px] sm:h-[264px] md:h-[336px] w-auto object-contain mb-[-40px] sm:mb-[-54px] md:mb-[-64px]"
           style={{ maxWidth: '100%' }}
         />
 
