@@ -26,7 +26,7 @@ const AREA_LABEL = Object.fromEntries(AREAS.map(a => [a.value, a.label]))
 // de fora de propósito. Espelha AREA_MODULES em backend/app/core/permissions.py
 // — mudou aqui, muda lá também.
 const AREA_MODULE_SECTIONS = {
-  operacoes:      ['LOGÍSTICA', 'ORGANOGRAMA', 'GUARDIÃO', 'ESTOQUE'],
+  operacoes:      ['ORGANOGRAMA', 'GUARDIÃO', 'ESTOQUE'],
   comercial:      ['COMISSIONAMENTO'],
   administrativo: ['FATURAMENTO'],
 }
@@ -112,9 +112,6 @@ const PERM_SECTIONS = [
     ['can_view_ctrl_logistics',   'Logística'],
     ['can_view_ctrl_rh',          'RH'],
     ['can_view_ctrl_fluxo_caixa', 'DFC Gerencial'],
-  ]},
-  { key: 'LOGÍSTICA', perms: [
-    ['can_view_logistica', 'Acesso ao módulo'],
   ]},
   { key: 'ORGANOGRAMA', perms: [
     ['can_view_organograma', 'Visualizar'],

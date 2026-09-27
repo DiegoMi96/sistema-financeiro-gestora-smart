@@ -578,6 +578,11 @@ ROLE_TIER = {
 # nativo Suporte Técnico tendo can_view_contestacao=True por padrão hoje).
 # Mesmas chaves de seção usadas em PERM_SECTIONS no frontend (AcessosPage.jsx)
 # — se uma seção nova for adicionada lá, replicar aqui também.
+# Seção "LOGÍSTICA" removida em 27/09/2026 (achado pelo Diego, era um resíduo
+# órfão): o card de Logística já tinha sido tirado do menu em 20/08/2026, mas
+# a seção de permissão continuou aparecendo na tela sem card correspondente.
+# A permissão can_view_logistica em si e a rota /logistica não foram tocadas
+# (só a seção sumiu da UI de permissões) — Logística virou parte do Estoque.
 MODULE_PERMISSIONS = {
     "FATURAMENTO": [
         "can_view_faturamento", "can_view_fat_ciclos", "can_view_fat_ciclo_detalhe",
@@ -604,7 +609,6 @@ MODULE_PERMISSIONS = {
         "can_view_ctrl_sales", "can_view_ctrl_ops", "can_view_ctrl_logistics",
         "can_view_ctrl_rh", "can_view_ctrl_fluxo_caixa",
     ],
-    "LOGÍSTICA": ["can_view_logistica"],
     "ORGANOGRAMA": ["can_view_organograma", "can_edit_organograma"],
     "SMT": ["can_view_smt"],
     "ESTOQUE": ["can_view_estoque", "can_view_est_dashboard", "can_view_est_geral", "can_view_est_smart", "can_view_est_smt", "can_view_est_upload", "can_view_est_saida_dashboard", "can_view_est_saida_resumo", "can_view_est_saida_dia", "can_view_est_saida_retornos", "can_view_est_canc_dashboard", "can_view_est_canc_multa", "can_view_est_config"],
@@ -615,7 +619,7 @@ MODULE_PERMISSIONS = {
 }
 
 AREA_MODULES = {
-    "operacoes":      ["LOGÍSTICA", "ORGANOGRAMA", "GUARDIÃO", "ESTOQUE"],
+    "operacoes":      ["ORGANOGRAMA", "GUARDIÃO", "ESTOQUE"],
     "comercial":      ["COMISSIONAMENTO"],
     "administrativo": ["FATURAMENTO"],
 }
