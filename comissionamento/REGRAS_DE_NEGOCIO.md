@@ -586,5 +586,44 @@ máquina ou limpar o navegador, mesmo risco do extrato antes de ser persistido.
 - Cache-bust bumped: `gestor_operacoes.html` `?b=10`→`?b=11`, `diretor_adm.html`
   `?b=8`→`?b=9`, `diretor_comercial.html` `?b=8`→`?b=9`.
 
+## Deploy no servidor real + bloco de nginx que faltava — 2026-09-27
+Depois dos 2 commits acima (extrato + ciclo), fizemos o deploy de verdade no
+droplet DigitalOcean (`147.182.143.83`, `sistema.gestorasmart.com.br`):
+`git pull` (trouxe de uma vez a reconstrução do card/rotas — que nunca tinha
+sido deployada — mais a persistência de hoje) + rebuild dos containers
+`backend` e `frontend`.
+
+- **Achado ao testar ao vivo**: `/comissionamento/dash` (React) abria em
+  branco. Causa: o nginx do servidor **nunca teve o bloco `/comissionamento/`**
+  criado (só existe pra Controladoria) — a URL do arquivo estático caía no
+  fallback do React (`location /`), que não tem essa rota. Diferente da
+  Controladoria (arquivo único, usa `location =` exato), o Comissionamento tem
+  vários arquivos (`vendedor.html`, `dealer.html` etc. carregados via iframe),
+  então precisa de um `location /comissionamento/` de **prefixo** — e por isso
+  precisou também de um `location = /comissionamento/dash` (match exato, que
+  sempre vence sobre prefixo no nginx) pra essa rota do React continuar caindo
+  no lugar certo. Bloco criado no servidor (não é código versionado — nginx do
+  host não vive no git, mesma situação da Controladoria), backup do arquivo
+  original salvo em `/root/sistema-gestora.bak.<timestamp>`. `nginx -t` antes
+  de `nginx -s reload`.
+- **Achado no boot do backend**: os 2 workers do Uvicorn tentaram criar as
+  tabelas novas (`comissao_extratos`/`comissao_ciclos`) ao mesmo tempo na
+  primeira subida — um bateu num erro de concorrência (`UniqueViolation` na
+  sequence), mas o outro worker criou a tabela normalmente, então o app subiu
+  funcionando (só com 1 dos 2 workers vivos). Reiniciado o container uma vez
+  depois — como as tabelas já existiam, subiu limpo com os 2 workers. Não
+  precisou de código novo (é uma corrida que só pode acontecer na primeira vez
+  que uma tabela nova nasce; `checkfirst=True` já evita repetir isso depois).
+- **Testado de ponta a ponta em produção** (não só localmente): gravado um
+  extrato de teste do Vendedor real "Décio Moraes" (`v3`) via `impSetRaw`,
+  confirmado no Postgres do servidor que a linha existe com headers/linhas
+  exatos; **dado F5 de verdade** na página e confirmado que `rawStore` fica
+  vazio (`{}`) mas `exportVendedor('v3','2026-09')` busca do backend e
+  reidrata certinho antes de gerar o Excel — o critério de sucesso que o Diego
+  pediu, provado ao vivo. Mesmo teste feito no Ciclo do Diretor Administrativo
+  (`COM_API.salvarCiclo`/leitura automática no `DOMContentLoaded` pós-F5) —
+  também confirmado. Dados de teste apagados do banco ao final (`DELETE` nas
+  2 linhas criadas), nada de teste ficou nos dados reais.
+
 ---
 *Última atualização: 2026-09-19 — Tela "Regras de Comissão" movida do menu lateral (nível shell) pra uma aba dentro do próprio perfil Dealer, já que a regra hoje só se aplica a esse perfil. O motor de cálculo (o que o Importar usa pra recalcular) continuou em `index.html`; só a UI (lista + modal de criar/editar) foi pra `dealer.html`, com a leitura de dados (`regrasGet`) delegando pro shell quando disponível pra não perder a semente completa das faixas (ex.: Ione). Testado em navegador: lista mostra Ione/Hilario com todos os dados, edição/gravação e recálculo funcionam. Antes disso, no mesmo dia: "Visão do Executivo" agora inclui os parceiros (Indicador/Indicador N2/Dealer/Projeto Especial), não só Vendedor — seletor único agrupado por categoria, puxando os dados automaticamente pra qualquer um. Também movida do Vendedor pra item próprio no menu (abaixo da Visão Consolidada). Em 2026-09-18: criada essa tela pela primeira vez (leitura, mesmo formato da planilha individual real); corrigido bug real de arredondamento na fronteira das faixas de alcance (validado contra planilha real da Claudia Longano). Criada a Aprovação do comissionamento do mês (trava edição/reprocessamento em todos os perfis depois de aprovado, só desaprova ou exclui). Cadastro de Parceiros: adicionada categoria "Indicador N2" (com campo de ajuda de custo), CPF/CNPJ separados, celular/telefone/e-mail/e-mail secundário, edição agora permite trocar categoria (migra entre listas mantendo o id), e lista de campos obrigatórios expandida. Também criado o Motor de Regras de Comissão (tela "Regras de Comissão"), migrando Ione e Hilario de código hardcoded pra regras editáveis pelo próprio Diego, sem precisar mandar mensagem pra mim a cada ajuste.*

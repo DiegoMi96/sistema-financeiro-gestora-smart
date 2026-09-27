@@ -11,18 +11,39 @@ lançamentos mensais) ainda vive só no `localStorage`.
 
 ## Como é servido
 
-Mesmo padrão da Controladoria: o nginx do servidor (`sistema.gestorasmart.com.br`)
-serve esta pasta diretamente, sem precisar de rebuild de container.
+Parecido com a Controladoria, mas não idêntico: o nginx do servidor
+(`sistema.gestorasmart.com.br`) serve esta pasta diretamente, sem precisar de
+rebuild de container — porém, diferente da Controladoria (arquivo único), aqui
+tem vários arquivos (`vendedor.html`, `dealer.html` etc., carregados via
+iframe), então o bloco precisa ser de **prefixo**, não de match exato. Isso
+exige um segundo bloco (match exato, que sempre vence sobre prefixo no nginx)
+pra proteger a rota `/comissionamento/dash` do React Router, que senão seria
+capturada pelo prefixo:
 
 ```nginx
+location = /comissionamento/dash {
+    proxy_pass http://127.0.0.1:4000;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection upgrade;
+    proxy_set_header Host $host;
+    proxy_cache_bypass $http_upgrade;
+}
 location /comissionamento/ {
     alias /opt/gestora-smart/comissionamento/;
     index index.html;
 }
 ```
 
-Deploy: `git push` → no servidor `git pull`. O nginx já serve a versão nova assim
-que o `git pull` termina.
+Criado no servidor em 27/09/2026 (não existia até então — o card abria em
+branco até esse bloco ser adicionado). Não é código versionado: o nginx do
+host não vive neste repositório, mesma situação da Controladoria — este README
+é a fonte da verdade de como o bloco deve ser. Backup do arquivo original antes
+da edição em `/root/sistema-gestora.bak.<timestamp>` no próprio servidor.
+
+Deploy do conteúdo (HTML/JS): `git push` → no servidor `git pull`. O nginx já
+serve a versão nova assim que o `git pull` termina — não precisa mexer no
+bloco de novo, ele só precisou ser criado uma vez.
 
 ## Origem
 
