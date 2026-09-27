@@ -42,3 +42,24 @@ class ComissaoExtrato(Base):
         # Reprocessar o mesmo mês sobrescreve a aba (upsert), não duplica.
         UniqueConstraint("colaborador_id", "mes_referencia", "aba", name="uq_comissao_extrato"),
     )
+
+
+class ComissaoCiclo(Base):
+    """
+    Lançamentos mensais dos 3 perfis de acompanhamento de ciclo (Diretor
+    Administrativo, Diretor Comercial, Gestor de Operações) — cada um tem seu
+    próprio conjunto de campos por mês (ex: "resultado" no Diretor
+    Administrativo; "volume"/"cresc"/"hw"/"sat" no Diretor Comercial), então
+    guarda o objeto `mdata` inteiro (todos os meses) como JSON, igual ao que já
+    vive hoje em `localStorage['da1_m'/'dc1_m'/'go1_m']`. Sem isso, o dado só
+    existe no navegador de quem lançou — perdido ao trocar de máquina/limpar
+    o navegador.
+    """
+    __tablename__ = "comissao_ciclos"
+
+    id            = Column(Integer, primary_key=True, index=True)
+    # diretor_adm | diretor_comercial | gestor_operacoes
+    perfil        = Column(String(30), nullable=False, unique=True, index=True)
+    # Mesmo formato do mdata local: { "2026-09": {resultado: 123, meta: 456}, ... }
+    dados         = Column(JSON, nullable=False)
+    atualizado_em = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

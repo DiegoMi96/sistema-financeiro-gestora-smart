@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.comissionamento import ComissaoExtrato
+from app.models.comissionamento import ComissaoExtrato, ComissaoCiclo
 from app.core.permissions import require_permission
 
 # Mesmo padrão do organograma: qualquer chamada exige login + a permissão do
@@ -98,3 +98,34 @@ def buscar_extratos(
         .all()
     )
     return [_out(r) for r in rows]
+
+
+# ── Ciclo (Diretor Administrativo / Diretor Comercial / Gestor de Operações) ──
+# Cada perfil guarda o `mdata` inteiro (todos os meses) como um blob só —
+# são poucos campos por mês, não vale a pena uma linha por mês no banco.
+
+class CicloIn(BaseModel):
+    perfil: str
+    dados:  dict
+
+
+@router.post("/ciclo", status_code=201)
+def salvar_ciclo(data: CicloIn, db: Session = Depends(get_db)):
+    existente = db.query(ComissaoCiclo).filter(ComissaoCiclo.perfil == data.perfil).first()
+    if existente:
+        existente.dados = data.dados
+        db.commit()
+        db.refresh(existente)
+        return {"perfil": existente.perfil, "dados": existente.dados}
+
+    novo = ComissaoCiclo(perfil=data.perfil, dados=data.dados)
+    db.add(novo)
+    db.commit()
+    db.refresh(novo)
+    return {"perfil": novo.perfil, "dados": novo.dados}
+
+
+@router.get("/ciclo")
+def buscar_ciclo(perfil: str, db: Session = Depends(get_db)):
+    row = db.query(ComissaoCiclo).filter(ComissaoCiclo.perfil == perfil).first()
+    return {"perfil": perfil, "dados": row.dados if row else {}}

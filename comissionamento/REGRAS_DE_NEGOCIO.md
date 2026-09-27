@@ -552,5 +552,39 @@ qualquer momento, com arquivamento automático depois desse prazo.
   `?b=23`, `dealer.html` `?b=20`→`?b=21`, `indicadores.html` `?b=15`→`?b=16`,
   `projeto_especial.html` `?b=29`→`?b=30`.
 
+## Persistência do Ciclo (Diretor Adm./Diretor Comercial/Gestor de Operações) — 2026-09-27
+Logo depois de persistir o extrato dos 4 perfis acima, o Diego apontou que os
+outros 3 perfis (Diretor Administrativo, Diretor Comercial, Gestor de
+Operações) também lançam dado **todo mês** (o "resultado", no caso do Diretor
+Administrativo; um conjunto de KPIs mensais nos outros dois) — e que isso é
+importante não perder. Hoje esse lançamento (`mdata`) vivia só no
+`localStorage` de quem lançou (`da1_m`/`dc1_m`/`go1_m`) — perdido ao trocar de
+máquina ou limpar o navegador, mesmo risco do extrato antes de ser persistido.
+
+- **Diferença pro extrato**: aqui não é uma tabela de linhas por categoria —
+  é um objeto pequeno por mês (`{resultado, meta}` no Diretor Administrativo;
+  `{volume, cresc, hw, sat, news}` no Diretor Comercial; `{sat, efic, aud,
+  trei, ...}` no Gestor de Operações). Guardar o `mdata` inteiro (todos os
+  meses) como **um JSON só por perfil** é mais simples e já resolve — não
+  precisa de uma linha por mês no banco.
+- **Backend**: novo modelo `ComissaoCiclo` (`perfil` único + `dados` JSON) em
+  `app/models/comissionamento.py`; rotas `POST/GET /api/comissionamento/ciclo`
+  em `app/routers/comissionamento.py` (mesma proteção `can_view_comissao`).
+- **Front**: `saveMes()` (lançamento manual) e `importCiclo()` (importação em
+  lote via Excel, onde existir) em `diretor_adm.html`/`gestor_operacoes.html`/
+  `diretor_comercial.html` agora também chamam `COM_API.salvarCiclo(perfil,
+  mdata)` depois de gravar no `localStorage`. No carregamento da página
+  (`DOMContentLoaded`), busca o backend primeiro (`COM_API.buscarCiclo`) — se
+  tiver dado salvo lá, ele é a fonte de verdade (sobrescreve o `localStorage`
+  local), evitando abrir com um lançamento antigo feito em outra máquina.
+- **Fora do escopo, de propósito**: as outras telas desses 3 perfis
+  (configurações de faixas/marcos, "Cofre" do Diretor Administrativo,
+  auditorias/sistemas, canais/reajustes/produtos do Diretor Comercial, extras
+  do Gestor de Operações) continuam só no `localStorage` — o Diego pediu
+  especificamente pelo "resultado"/lançamento mensal, não por essas telas de
+  configuração (que mudam raramente, diferente do lançamento que é todo mês).
+- Cache-bust bumped: `gestor_operacoes.html` `?b=10`→`?b=11`, `diretor_adm.html`
+  `?b=8`→`?b=9`, `diretor_comercial.html` `?b=8`→`?b=9`.
+
 ---
 *Última atualização: 2026-09-19 — Tela "Regras de Comissão" movida do menu lateral (nível shell) pra uma aba dentro do próprio perfil Dealer, já que a regra hoje só se aplica a esse perfil. O motor de cálculo (o que o Importar usa pra recalcular) continuou em `index.html`; só a UI (lista + modal de criar/editar) foi pra `dealer.html`, com a leitura de dados (`regrasGet`) delegando pro shell quando disponível pra não perder a semente completa das faixas (ex.: Ione). Testado em navegador: lista mostra Ione/Hilario com todos os dados, edição/gravação e recálculo funcionam. Antes disso, no mesmo dia: "Visão do Executivo" agora inclui os parceiros (Indicador/Indicador N2/Dealer/Projeto Especial), não só Vendedor — seletor único agrupado por categoria, puxando os dados automaticamente pra qualquer um. Também movida do Vendedor pra item próprio no menu (abaixo da Visão Consolidada). Em 2026-09-18: criada essa tela pela primeira vez (leitura, mesmo formato da planilha individual real); corrigido bug real de arredondamento na fronteira das faixas de alcance (validado contra planilha real da Claudia Longano). Criada a Aprovação do comissionamento do mês (trava edição/reprocessamento em todos os perfis depois de aprovado, só desaprova ou exclui). Cadastro de Parceiros: adicionada categoria "Indicador N2" (com campo de ajuda de custo), CPF/CNPJ separados, celular/telefone/e-mail/e-mail secundário, edição agora permite trocar categoria (migra entre listas mantendo o id), e lista de campos obrigatórios expandida. Também criado o Motor de Regras de Comissão (tela "Regras de Comissão"), migrando Ione e Hilario de código hardcoded pra regras editáveis pelo próprio Diego, sem precisar mandar mensagem pra mim a cada ajuste.*

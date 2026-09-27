@@ -424,6 +424,29 @@ const LS={
   get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d}},
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
 };
+
+// ─── PERSISTÊNCIA DO CICLO (backend) ───────────────
+// Mesmo helper duplicado em diretor_adm.html/diretor_comercial.html — grava/
+// busca o `mdata` inteiro (todos os meses) como um blob só. Se o backend não
+// estiver no ar, falha em silêncio e segue só no localStorage.
+const COM_API={
+  base:'/api/comissionamento',
+  token(){try{return localStorage.getItem('token')}catch{return null}},
+  async salvarCiclo(perfil,dados){
+    try{
+      const tok=this.token(); if(!tok) return;
+      await fetch(this.base+'/ciclo',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tok},body:JSON.stringify({perfil,dados})});
+    }catch{}
+  },
+  async buscarCiclo(perfil){
+    try{
+      const tok=this.token(); if(!tok) return null;
+      const r=await fetch(this.base+'/ciclo?perfil='+encodeURIComponent(perfil),{headers:{Authorization:'Bearer '+tok}});
+      return r.ok?(await r.json()).dados:null;
+    }catch{return null}
+  }
+};
+
 // Mês aprovado (Visão Consolidada) fica travado — nem lançamento manual
 // sobrescreve. Só desaprovando (ação administrativa) ou excluindo os dados.
 function mesAprovado(mes){try{const a=JSON.parse(localStorage.getItem('aprovacoes_mes')||'{}');return !!(a[mes]&&a[mes].aprovado);}catch{return false;}}
@@ -432,12 +455,15 @@ let mdata=LS.get('go1_m',{});
 let extras=LS.get('go1_ext',{inov:[],sgp:[],ian:[],iac:[]});
 
 // ─── INIT ──────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded',()=>{
+document.addEventListener('DOMContentLoaded',async()=>{
   const now=new Date();
   const mv=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   document.getElementById('mesInput').value=mv;
   renderNivelAtual();
-  buildConfig();renderExtras();updateCalc();renderCiclo();
+  buildConfig();renderExtras();
+  const salvo=await COM_API.buscarCiclo('gestor_operacoes');
+  if(salvo&&Object.keys(salvo).length){mdata=salvo;LS.set('go1_m',mdata);}
+  updateCalc();renderCiclo();
 });
 
 // ─── NÍVEL ATUAL (informativo) ─────────────────────────
@@ -611,7 +637,7 @@ function saveMes(){
     aud:document.getElementById('i_aud').value?parseNum(document.getElementById('i_aud').value):null,
     trei:+document.getElementById('i_trei').value||0,
   };
-  LS.set('go1_m',mdata);renderCiclo();showToast('Lançamento salvo ✓');
+  LS.set('go1_m',mdata);COM_API.salvarCiclo('gestor_operacoes',mdata);renderCiclo();showToast('Lançamento salvo ✓');
 }
 
 // ─── CICLO ─────────────────────────────────────────────
@@ -714,7 +740,7 @@ async function importCiclo(e){
       if(treiCol>=0&&row[treiCol]!=='')d.trei=+row[treiCol]||0;
       if(Object.keys(d).length){mdata[mesId]={...mdata[mesId]||{},...d};updated++;}
     });
-    LS.set('go1_m',mdata);renderCiclo();
+    LS.set('go1_m',mdata);COM_API.salvarCiclo('gestor_operacoes',mdata);renderCiclo();
     showToast(`↑ ${updated} mês(es) importado(s)`);
     e.target.value='';
   }catch(err){showToast('Erro: '+err.message,'#b83232');}

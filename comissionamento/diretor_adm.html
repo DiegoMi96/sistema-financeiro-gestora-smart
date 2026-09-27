@@ -432,6 +432,31 @@ const LS={
   get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d}},
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
 };
+
+// ─── PERSISTÊNCIA DO CICLO (backend) ───────────────
+// O lançamento mensal (resultado/meta) vivia só no localStorage — perdido ao
+// trocar de máquina ou limpar o navegador. Mesmo helper duplicado em
+// gestor_operacoes.html/diretor_comercial.html: grava/busca o `mdata` inteiro
+// (todos os meses) como um blob só. Se o backend não estiver no ar, falha em
+// silêncio e segue só no localStorage, como sempre funcionou.
+const COM_API={
+  base:'/api/comissionamento',
+  token(){try{return localStorage.getItem('token')}catch{return null}},
+  async salvarCiclo(perfil,dados){
+    try{
+      const tok=this.token(); if(!tok) return;
+      await fetch(this.base+'/ciclo',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tok},body:JSON.stringify({perfil,dados})});
+    }catch{}
+  },
+  async buscarCiclo(perfil){
+    try{
+      const tok=this.token(); if(!tok) return null;
+      const r=await fetch(this.base+'/ciclo?perfil='+encodeURIComponent(perfil),{headers:{Authorization:'Bearer '+tok}});
+      return r.ok?(await r.json()).dados:null;
+    }catch{return null}
+  }
+};
+
 // Mês aprovado (Visão Consolidada) fica travado — nem lançamento manual
 // sobrescreve. Só desaprovando (ação administrativa) ou excluindo os dados.
 function mesAprovado(mes){try{const a=JSON.parse(localStorage.getItem('aprovacoes_mes')||'{}');return !!(a[mes]&&a[mes].aprovado);}catch{return false;}}
@@ -440,13 +465,17 @@ let mdata=LS.get('da1_m',{});
 let extras=LS.get('da1_ext',DEF_EXTRAS);
 
 // ─── INIT ─────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded',()=>{
+document.addEventListener('DOMContentLoaded',async()=>{
   const now=new Date();
   const mv=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   document.getElementById('mesInput').value=mv;
   renderNivelAtual();
   loadConfig();buildMetasTable();buildFaixasConfig();
   renderCofre();renderAuditorias();renderSistemas();
+  // Backend é a fonte de verdade quando existe — evita reabrir com dado velho
+  // do localStorage depois de lançar em outra máquina.
+  const salvo=await COM_API.buscarCiclo('diretor_adm');
+  if(salvo&&Object.keys(salvo).length){mdata=salvo;LS.set('da1_m',mdata);}
   updateCalc();renderCiclo();
 });
 
@@ -565,7 +594,7 @@ function saveMes(){
     resultado:parseNum(document.getElementById('i_resultado').value)||0,
     meta:getMeta(mes)
   };
-  LS.set('da1_m',mdata);renderCiclo();showToast('Lançamento salvo ✓');
+  LS.set('da1_m',mdata);COM_API.salvarCiclo('diretor_adm',mdata);renderCiclo();showToast('Lançamento salvo ✓');
 }
 
 // ─── CICLO COMPLETO ───────────────────────────────────
@@ -646,7 +675,7 @@ async function importCiclo(event){
       if(real!==null){if(!mdata[mes.id])mdata[mes.id]={};mdata[mes.id].resultado=real;updated++;}
       if(proj!==null){mes.proj=proj;}
     });
-    LS.set('da1_m',mdata);renderCiclo();
+    LS.set('da1_m',mdata);COM_API.salvarCiclo('diretor_adm',mdata);renderCiclo();
     showToast(`↑ ${updated} mês(es) atualizado(s)`);
     event.target.value='';
   }catch(err){showToast('Erro ao importar: '+err.message,'#b83232');}
