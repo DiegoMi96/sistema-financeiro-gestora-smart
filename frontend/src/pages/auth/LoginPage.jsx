@@ -8,6 +8,7 @@ export default function LoginPage() {
   const [email, setEmail]         = useState('')
   const [password, setPassword]   = useState('')
   const [showPass, setShowPass]   = useState(false)
+  const [lembrar, setLembrar]     = useState(false)
   const [loading, setLoading]     = useState(false)
   const { login } = useAuth()
   const navigate  = useNavigate()
@@ -36,33 +37,70 @@ export default function LoginPage() {
         <img src="/logo-smart-white.png" alt="Gestora Smart" style={{ height: 260, maxWidth: 480, width: 'auto', objectFit: 'contain' }} />
       </div>
 
-      {/* Card */}
+      {/* Card — vidro escuro flutuando sobre o fundo verde, no molde pedido
+          pelo Diego (referência: comunidade.filosofiadozero.com.br), mas com
+          a paleta verde/branco do sistema no lugar do vermelho/dourado deles. */}
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <h2 className="text-xl font-semibold text-gray-800 mb-6">Entrar na conta</h2>
+        <div
+          className="relative rounded-2xl p-8 overflow-hidden"
+          style={{
+            background: 'rgba(13,31,16,0.55)',
+            backdropFilter: 'blur(18px)',
+            WebkitBackdropFilter: 'blur(18px)',
+            border: '1px solid rgba(60,181,74,0.22)',
+            boxShadow: '0 24px 60px rgba(0,0,0,0.45)',
+          }}
+        >
+          {/* Tarja fina no topo — degradê verde animado (desliza continuamente,
+              mesmo efeito da referência que o Diego mandou). Keyframe global
+              em index.css (login-bar-slide) porque style inline não suporta
+              @keyframes. */}
+          <div
+            className="absolute top-0 left-0 right-0 login-bar-slide"
+            style={{
+              height: 4,
+              background: 'linear-gradient(90deg, #0b3d2a, #1E9B6B, #7ED9A5, #1E9B6B, #0b3d2a)',
+              backgroundSize: '200% 100%',
+            }}
+          />
+
+          <div className="text-center mb-7">
+            <h2 className="text-2xl font-bold text-white mb-1.5">Bem-vindo de volta</h2>
+            <p className="text-sm" style={{ color: '#9db8a3' }}>Entre para acessar o sistema</p>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: '#c9dccb' }}>
+                E-mail
+              </label>
               <input
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#3CB54A] focus:border-transparent"
+                className="w-full px-3 py-2.5 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 transition-shadow"
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+                onFocus={e => e.currentTarget.style.boxShadow = '0 0 0 2px rgba(60,181,74,0.5)'}
+                onBlur={e => e.currentTarget.style.boxShadow = 'none'}
                 placeholder="seu@email.com.br"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: '#c9dccb' }}>
+                Senha
+              </label>
               <div className="relative">
                 <input
                   type={showPass ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required
-                  className="w-full px-3 py-2.5 pr-10 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#3CB54A] focus:border-transparent"
+                  className="w-full px-3 py-2.5 pr-10 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none transition-shadow"
+                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  onFocus={e => e.currentTarget.style.boxShadow = '0 0 0 2px rgba(60,181,74,0.5)'}
+                  onBlur={e => e.currentTarget.style.boxShadow = 'none'}
                   placeholder="••••••••"
                 />
                 <button
@@ -75,22 +113,44 @@ export default function LoginPage() {
               </div>
             </div>
 
+            <div className="flex items-center justify-between text-xs pt-1">
+              <label className="flex items-center gap-2 cursor-pointer select-none" style={{ color: '#c9dccb' }}>
+                <input
+                  type="checkbox"
+                  checked={lembrar}
+                  onChange={e => setLembrar(e.target.checked)}
+                  className="rounded"
+                  style={{ accentColor: '#3CB54A' }}
+                />
+                Lembrar de mim
+              </label>
+              <button
+                type="button"
+                onClick={() => toast('Recuperação de senha ainda não está disponível — fale com o administrador.')}
+                className="font-medium hover:underline"
+                style={{ color: '#7ED9A5' }}
+              >
+                Esqueceu a senha?
+              </button>
+            </div>
+
             <button
               type="submit"
               disabled={loading}
-              className="w-full text-white font-medium py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50"
-              style={{ background: loading ? '#2a8535' : '#3CB54A' }}
-              onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#2ea040' }}
-              onMouseLeave={e => { if (!loading) e.currentTarget.style.background = '#3CB54A' }}
+              className="w-full text-white font-semibold py-2.5 rounded-lg text-sm transition-opacity disabled:opacity-50 login-bar-slide"
+              style={{
+                background: 'linear-gradient(90deg, #0b3d2a, #1E9B6B, #7ED9A5, #1E9B6B, #0b3d2a)',
+                backgroundSize: '200% 100%',
+              }}
             >
               {loading ? 'Entrando...' : 'Entrar'}
             </button>
           </form>
-        </div>
 
-        <p className="text-center text-xs mt-6" style={{ color: '#3d5e40' }}>
-          © {new Date().getFullYear()} Gestora Smart. Todos os direitos reservados.
-        </p>
+          <p className="text-center text-xs mt-6" style={{ color: '#5c7a60' }}>
+            © {new Date().getFullYear()} Gestora Smart. Todos os direitos reservados.
+          </p>
+        </div>
       </div>
     </div>
   )

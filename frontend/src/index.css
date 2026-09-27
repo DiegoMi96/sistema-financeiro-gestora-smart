@@ -224,3 +224,15 @@
   ::-webkit-scrollbar-thumb { background: #3CB54A; border-radius: 99px; }
   ::-webkit-scrollbar-thumb:hover { background: #2EA040; }
 }
+
+/* Tela de login — tarja no topo do card e botão "Entrar" com o mesmo degradê
+   verde deslizando continuamente (pedido do Diego, referência: comunidade
+   filosofiadozero.com.br). Precisa ficar fora de @layer pra não ser purgado
+   e pra @keyframes funcionar (style inline não suporta @keyframes). */
+@keyframes login-bar-slide {
+  from { background-position: 0% 0; }
+  to   { background-position: -200% 0; }
+}
+.login-bar-slide {
+  animation: login-bar-slide 3.5s linear infinite;
+}
