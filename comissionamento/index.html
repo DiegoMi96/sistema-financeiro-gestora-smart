@@ -359,16 +359,6 @@ iframe.active{display:block}
           </div>
         </div>
 
-        <div class="cad-card" id="cons_aprov_box" style="margin-bottom:18px">
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
-            <div>
-              <p class="cad-card-title" style="margin-bottom:6px">Aprovação do comissionamento do mês</p>
-              <div id="cons_aprov_status" style="font-size:12.5px;color:#444;line-height:1.5"></div>
-            </div>
-            <div id="cons_aprov_actions" style="display:flex;gap:8px;flex-wrap:wrap"></div>
-          </div>
-        </div>
-
         <div class="cons-grand">
           <div>
             <div class="cons-grand-lbl">Total geral do mês — todos os perfis</div>
@@ -496,10 +486,20 @@ iframe.active{display:block}
           <p style="font-size:11px;color:#888;margin-top:10px;line-height:1.6">Sempre o mês do <strong>pagamento/ciclo que está fechando</strong> (ex.: se é o comissionamento de Setembro, selecione Setembro aqui) — nunca o mês da planilha em si. O sistema já desconta os meses de defasagem sozinho pra achar a "Data de ativação" certa (ex.: ativação considera 2 meses antes deste campo); selecionar um mês adiantado "pra compensar" faz o desconto dobrar e erra a conta.</p>
         </div>
 
+        <div class="cad-card" id="cons_aprov_box" style="margin-bottom:22px">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+            <div>
+              <p class="cad-card-title" style="margin-bottom:6px">Aprovação do comissionamento do mês</p>
+              <div id="cons_aprov_status" style="font-size:12.5px;color:#444;line-height:1.5"></div>
+            </div>
+            <div id="cons_aprov_actions" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+          </div>
+        </div>
+
         <details class="cad-card" id="cons_manual_wrap" style="margin-bottom:22px">
           <summary style="cursor:pointer;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888">✎ Lançamento manual do mês (histórico anterior ao Importar)</summary>
           <p style="font-size:11px;color:#888;margin:10px 0 14px">Preencha só quando este mês não tiver dado processado pelo Importar — o total aqui substitui o cálculo detalhado (sem quebrar por vendedor/dealer/etc, só o total do perfil).</p>
-          <div id="cons_manual_lock" style="display:none;font-size:11.5px;color:#b8863f;background:#fbf1de;border-radius:6px;padding:8px 12px;margin-bottom:14px">🔒 Este mês já foi aprovado — desaprove na Visão Consolidada antes de alterar o lançamento manual.</div>
+          <div id="cons_manual_lock" style="display:none;font-size:11.5px;color:#b8863f;background:#fbf1de;border-radius:6px;padding:8px 12px;margin-bottom:14px">🔒 Este mês já foi aprovado — desaprove no bloco de aprovação acima antes de alterar o lançamento manual.</div>
           <div class="cad-grid" style="grid-template-columns:repeat(3,1fr)">
             <div><label class="cad-lbl">Vendedor</label><input type="number" id="cons_manual_vendedor" step="0.01" placeholder="0,00"></div>
             <div><label class="cad-lbl">Dealer</label><input type="number" id="cons_manual_dealer" step="0.01" placeholder="0,00"></div>
@@ -645,7 +645,7 @@ iframe.active{display:block}
               <select id="imp_hist_ano" onchange="renderImportHistorico()" style="width:auto;display:inline-block"></select>
             </div>
           </div>
-          <p style="font-size:11px;color:#888;margin:8px 0 14px">Todo mês que já teve algum lançamento (Importar ou manual). Aprovar/desaprovar/excluir aqui tem o mesmo efeito que na Visão Consolidada — é só um atalho pra não precisar trocar de tela toda vez.</p>
+          <p style="font-size:11px;color:#888;margin:8px 0 14px">Todo mês que já teve algum lançamento (Importar ou manual). Aprovar/desaprovar/excluir aqui tem o mesmo efeito que o bloco de aprovação acima — é só um atalho pra não precisar trocar de mês toda vez.</p>
           <div id="imp_hist_lista"></div>
         </div>
       </div>
@@ -654,13 +654,13 @@ iframe.active{display:block}
     <!-- ?b=N é só cache-busting: o navegador guarda esses arquivos em cache
          agressivamente, e sem isso uma edição no perfil não aparece nem com F5
          normal. Suba o número sempre que mexer em algum desses arquivos. -->
-    <iframe id="frame-vendedor" src="vendedor.html?b=23" title="Vendedor"></iframe>
-    <iframe id="frame-dealer" src="dealer.html?b=21" title="Dealer"></iframe>
-    <iframe id="frame-indicadores" src="indicadores.html?b=16" title="Indicador"></iframe>
-    <iframe id="frame-projeto_especial" src="projeto_especial.html?b=30" title="Projeto Especial"></iframe>
-    <iframe id="frame-gestor_operacoes" src="gestor_operacoes.html?b=11" title="Gestor de Operações"></iframe>
-    <iframe id="frame-diretor_adm" src="diretor_adm.html?b=9" title="Diretor Administrativo"></iframe>
-    <iframe id="frame-diretor_comercial" src="diretor_comercial.html?b=9" title="Diretor Comercial"></iframe>
+    <iframe id="frame-vendedor" src="vendedor.html?b=24" title="Vendedor"></iframe>
+    <iframe id="frame-dealer" src="dealer.html?b=22" title="Dealer"></iframe>
+    <iframe id="frame-indicadores" src="indicadores.html?b=17" title="Indicador"></iframe>
+    <iframe id="frame-projeto_especial" src="projeto_especial.html?b=31" title="Projeto Especial"></iframe>
+    <iframe id="frame-gestor_operacoes" src="gestor_operacoes.html?b=12" title="Gestor de Operações"></iframe>
+    <iframe id="frame-diretor_adm" src="diretor_adm.html?b=10" title="Diretor Administrativo"></iframe>
+    <iframe id="frame-diretor_comercial" src="diretor_comercial.html?b=10" title="Diretor Comercial"></iframe>
   </div>
 </div>
 
@@ -1620,7 +1620,7 @@ function renderConsAprovacao(mes) {
 
 // Cada perfil trava/destrava a edição sozinho (mesAprovado local), mas o
 // estado visual (botão ✏ virando 🔒, etc.) só atualiza se o iframe re-renderizar
-// — como aprovar/desaprovar/excluir acontece na Visão Consolidada, força esse
+// — como aprovar/desaprovar/excluir acontece no Importar, força esse
 // refresh direto nos outros iframes.
 function consRefreshAllFrames() {
   const map = { vendedor: 'renderResumo', dealer: 'renderDealer', indicadores: 'renderInd', projeto_especial: 'renderProjetos', gestor_operacoes: 'renderCiclo', diretor_adm: 'renderCiclo', diretor_comercial: 'renderCiclo' };
@@ -1640,32 +1640,32 @@ function consRefreshAllFrames() {
 // essas mesmas ações a partir de qualquer outro lugar (ex.: o Histórico de
 // Importações, que lista o ano inteiro e não tem um único "mês selecionado").
 function consAprovarMes(mesParam) {
-  const mes = mesParam || document.getElementById('cons_mes').value;
+  const mes = mesParam || document.getElementById('imp_ref_mes').value;
   if (!mes) { alert('Selecione o mês de referência primeiro.'); return; }
   if (!confirm(`Aprovar o comissionamento de ${fmtMesC(mes)}?\n\nDepois de aprovado, os valores deste mês não podem mais ser editados em nenhum perfil nem reprocessados pelo Importar — só desaprovando (ação administrativa) ou excluindo os dados.`)) return;
   const a = aprovacoesGet();
   a[mes] = { aprovado: true, aprovadoEm: new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) };
   LS_set(APROV_KEY, a);
-  renderConsAprovacao(document.getElementById('cons_mes').value);
+  renderConsAprovacao(mes);
   consRefreshAllFrames();
   renderImportHistorico();
   showCadToast('Comissionamento aprovado ✓');
 }
 
 function consDesaprovarMes(mesParam) {
-  const mes = mesParam || document.getElementById('cons_mes').value;
+  const mes = mesParam || document.getElementById('imp_ref_mes').value;
   if (!confirm(`Desaprovar o comissionamento de ${fmtMesC(mes)}?\n\nEsta é uma ação administrativa — normalmente não deveria ser feita depois que o mês já foi fechado. Os valores voltam a poder ser editados e reprocessados.`)) return;
   const a = aprovacoesGet();
   delete a[mes];
   LS_set(APROV_KEY, a);
-  renderConsAprovacao(document.getElementById('cons_mes').value);
+  renderConsAprovacao(mes);
   consRefreshAllFrames();
   renderImportHistorico();
   showCadToast('Comissionamento desaprovado');
 }
 
 function consExcluirMes(mesParam) {
-  const mes = mesParam || document.getElementById('cons_mes').value;
+  const mes = mesParam || document.getElementById('imp_ref_mes').value;
   if (!confirm(`EXCLUIR todos os dados de comissionamento de ${fmtMesC(mes)}?\n\nIsso apaga os valores calculados de todos os perfis pra esse mês — não dá pra desfazer. Você vai precisar reprocessar o Importar (ou lançar de novo) pra esse mês.`)) return;
   // Vendedor/Dealer/Indicador guardam uma entrada por pessoa+mês (chave termina
   // em "_mes"); Gestor/Diretor Adm/Diretor Comercial guardam uma entrada por
@@ -1697,6 +1697,7 @@ function consExcluirMes(mesParam) {
   delete a[mes];
   LS_set(APROV_KEY, a);
   renderConsolidado();
+  renderConsAprovacao(mes);
   consRefreshAllFrames();
   renderImportHistorico();
   showCadToast('Dados do mês excluídos');
@@ -1709,7 +1710,6 @@ function renderConsolidado() {
     mes = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     document.getElementById('cons_mes').value = mes;
   }
-  renderConsAprovacao(mes);
   const manual = consManualGet(mes);
 
   const vendedorRows = manual ? [consManualRow('Vendedor · lançamento manual', manual.vendedor)] : consVendedorTotais(mes);
@@ -2930,6 +2930,7 @@ function renderImportar() {
     el.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   }
   consManualPreencherForm(el.value);
+  renderConsAprovacao(el.value);
   const bloqueado = mesAprovado(el.value);
   document.getElementById('cons_manual_lock').style.display = bloqueado ? 'block' : 'none';
   document.querySelectorAll('#cons_manual_wrap input, #cons_manual_wrap button').forEach(x => x.disabled = bloqueado);

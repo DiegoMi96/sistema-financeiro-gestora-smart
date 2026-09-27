@@ -625,5 +625,53 @@ sido deployada — mais a persistência de hoje) + rebuild dos containers
   também confirmado. Dados de teste apagados do banco ao final (`DELETE` nas
   2 linhas criadas), nada de teste ficou nos dados reais.
 
+## Sidebar ganha Conta + Sair (modelo do Faturamento) — 2026-09-27
+O rodapé do menu lateral tinha um texto explicativo desatualizado ("Cada
+perfil é um módulo independente... Serve para validar as regras antes da
+integração definitiva") — não fazia mais sentido depois da integração real.
+Diego pediu pra ficar **exatamente** igual ao menu do Faturamento
+(`Layout.jsx`): "▦ Trocar módulo" com ícone, divisor, avatar com iniciais +
+nome + cargo, "Sair da conta" com ícone.
+- Cores adaptadas pro tema escuro do Comissionamento (o modelo original do
+  Faturamento é sidebar clara) — mesma estrutura, paleta diferente.
+- Nome/cargo lidos direto de `localStorage['user']` (mesma origem, já
+  preenchido pelo login do app principal) — não precisou de login próprio.
+- "Sair da conta" manda `postMessage({type:'LOGOUT'})` pro React (mesmo
+  padrão do `trocarModulo()`/`TROCAR_MODULO` já existente), que chama o
+  `logout()` de verdade do `AuthContext` — limpa o estado em memória, não só
+  o `localStorage` (só limpar localStorage direto do iframe deixaria o app
+  "logado" na memória até um F5).
+- **Só na produção** (`comissionamento/index.html` do repo real) — o
+  protótipo em `Downloads/comissionamento_prototipo/` não tem essa parte
+  (não roda dentro do iframe do React, não faz sentido lá).
+
+## Aprovação do comissionamento do mês — movida da Visão Consolidada pro Importar — 2026-09-27
+Diego pediu pra mover o bloco "Aprovação do comissionamento do mês" (status +
+botões Aprovar/Desaprovar/Excluir) da Visão Consolidada pro Importar — faz
+mais sentido logicamente junto de onde os dados do mês são processados, e já
+fica ao lado do "Histórico de Importações" (que também tem esses atalhos por
+mês).
+- Bloco HTML (`cons_aprov_box`) movido pra dentro do painel Importar, logo
+  abaixo do campo "Mês do Comissionamento" (`imp_ref_mes`) e acima do
+  "Lançamento manual do mês".
+- `consAprovarMes`/`consDesaprovarMes`/`consExcluirMes` agora usam
+  `imp_ref_mes` como mês padrão (antes usavam `cons_mes`, campo que só existe
+  na Visão Consolidada) — continuam aceitando um mês explícito (usado pelo
+  Histórico de Importações), sem mudança nesse uso.
+- `renderConsolidado()` não chama mais `renderConsAprovacao` (o bloco não
+  existe mais nessa tela); `renderImportar()` passou a chamar, então o status
+  atualiza sozinho toda vez que o mês do Importar muda.
+- Textos ajustados em todos os 7 perfis (`vendedor.html`, `dealer.html`,
+  `indicadores.html`, `projeto_especial.html`, `gestor_operacoes.html`,
+  `diretor_comercial.html`, `diretor_adm.html`): "desaprove na Visão
+  Consolidada pra editar" → "desaprove no Importar pra editar" (mensagem que
+  aparece quando alguém tenta editar um mês já aprovado).
+- **Cuidado ao sincronizar**: o `index.html` da produção tem o widget de
+  Conta+Sair (seção acima) que **não existe** no protótipo — copiar o
+  `index.html` do protótipo por cima do da produção sem cuidado apaga esse
+  widget. Da próxima vez, aplicar edições de conteúdo (texto/estrutura,
+  não relacionadas ao widget) direto nos dois arquivos separadamente, nunca
+  só copiar um por cima do outro.
+
 ---
 *Última atualização: 2026-09-19 — Tela "Regras de Comissão" movida do menu lateral (nível shell) pra uma aba dentro do próprio perfil Dealer, já que a regra hoje só se aplica a esse perfil. O motor de cálculo (o que o Importar usa pra recalcular) continuou em `index.html`; só a UI (lista + modal de criar/editar) foi pra `dealer.html`, com a leitura de dados (`regrasGet`) delegando pro shell quando disponível pra não perder a semente completa das faixas (ex.: Ione). Testado em navegador: lista mostra Ione/Hilario com todos os dados, edição/gravação e recálculo funcionam. Antes disso, no mesmo dia: "Visão do Executivo" agora inclui os parceiros (Indicador/Indicador N2/Dealer/Projeto Especial), não só Vendedor — seletor único agrupado por categoria, puxando os dados automaticamente pra qualquer um. Também movida do Vendedor pra item próprio no menu (abaixo da Visão Consolidada). Em 2026-09-18: criada essa tela pela primeira vez (leitura, mesmo formato da planilha individual real); corrigido bug real de arredondamento na fronteira das faixas de alcance (validado contra planilha real da Claudia Longano). Criada a Aprovação do comissionamento do mês (trava edição/reprocessamento em todos os perfis depois de aprovado, só desaprova ou exclui). Cadastro de Parceiros: adicionada categoria "Indicador N2" (com campo de ajuda de custo), CPF/CNPJ separados, celular/telefone/e-mail/e-mail secundário, edição agora permite trocar categoria (migra entre listas mantendo o id), e lista de campos obrigatórios expandida. Também criado o Motor de Regras de Comissão (tela "Regras de Comissão"), migrando Ione e Hilario de código hardcoded pra regras editáveis pelo próprio Diego, sem precisar mandar mensagem pra mim a cada ajuste.*

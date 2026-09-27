@@ -406,7 +406,7 @@ const COM_API = {
   }
 };
 
-// Mês aprovado (Visão Consolidada) fica travado — nem lançamento manual
+// Mês aprovado (aprovação fica no Importar) fica travado — nem lançamento manual
 // sobrescreve. Só desaprovando (ação administrativa) ou excluindo os dados.
 function mesAprovado(mes) { try { const a = JSON.parse(localStorage.getItem('aprovacoes_mes') || '{}'); return !!(a[mes] && a[mes].aprovado); } catch { return false; } }
 let config = LS.get('dc1_cfg', DEF_CONFIG);
@@ -523,7 +523,7 @@ function updateCalc() {
 function saveMes() {
   const mes = document.getElementById('mesInput').value;
   if (!mes) { showToast('Selecione o mês'); return; }
-  if (mesAprovado(mes)) { showToast('Mês aprovado — desaprove na Visão Consolidada pra editar.'); return; }
+  if (mesAprovado(mes)) { showToast('Mês aprovado — desaprove no Importar pra editar.'); return; }
   mdata[mes] = {
     volume: +document.getElementById('i_volume').value || 0,
     cresc: +document.getElementById('i_cresc').value || 0,

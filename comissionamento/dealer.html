@@ -523,7 +523,7 @@ const COM_API={
     }catch{return []}
   }
 };
-// Mês aprovado (Visão Consolidada) fica travado — nem edição manual sobrescreve,
+// Mês aprovado (aprovação fica no Importar) fica travado — nem edição manual sobrescreve,
 // mesmo que a regra de alguém mude depois. Só desaprovando ou excluindo os dados.
 function mesAprovado(mes){try{const a=JSON.parse(localStorage.getItem('aprovacoes_mes')||'{}');return !!(a[mes]&&a[mes].aprovado);}catch{return false;}}
 // Pra Visão do Executivo (index.html) conseguir ler os dados brutos deste
@@ -706,7 +706,7 @@ function renderDealer(){
 
 // ─── EDIT PANEL ────────────────────────────────────
 function toggleEdit(id,mes){
-  if(mesAprovado(mes)){showToast('Mês aprovado — desaprove na Visão Consolidada pra editar.','#b83232');return;}
+  if(mesAprovado(mes)){showToast('Mês aprovado — desaprove no Importar pra editar.','#b83232');return;}
   editingId=(editingId===id)?null:id;
   renderDealer();
 }
@@ -777,7 +777,7 @@ function liveCalcEntity(id){
     </div>`;
 }
 function saveEdit(id,mes){
-  if(mesAprovado(mes)){showToast('Mês aprovado — desaprove na Visão Consolidada pra editar.','#b83232');return;}
+  if(mesAprovado(mes)){showToast('Mês aprovado — desaprove no Importar pra editar.','#b83232');return;}
   mdata[`d_${id}_${mes}`]={
     linhas:+document.getElementById(`ef_linhas_${id}`).value||0,
     novas:+document.getElementById(`ef_novas_${id}`).value||0,
