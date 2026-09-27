@@ -236,3 +236,25 @@
 .login-bar-slide {
   animation: login-bar-slide 3.5s linear infinite;
 }
+
+/* Hover do card (leve elevação + brilho na borda) e do botão "Entrar"
+   (leve zoom + brilho) — pedido do Diego. Precisa ser classe CSS (não style
+   inline) porque :hover não existe em inline style do React. */
+.login-card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.login-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 32px 70px rgba(0,0,0,0.5), 0 0 32px rgba(60,181,74,0.25);
+  border-color: rgba(60,181,74,0.45);
+}
+.login-btn {
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+.login-btn:hover {
+  transform: scale(1.02);
+  filter: brightness(1.12);
+}
+.login-btn:active {
+  transform: scale(0.99);
+}

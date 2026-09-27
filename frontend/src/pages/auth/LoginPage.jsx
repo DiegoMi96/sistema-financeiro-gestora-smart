@@ -73,7 +73,7 @@ export default function LoginPage() {
             a paleta verde/branco do sistema no lugar do vermelho/dourado deles. */}
         <div className="w-full">
           <div
-            className="relative rounded-2xl p-8 overflow-hidden"
+            className="login-card relative rounded-2xl p-8 overflow-hidden"
             style={{
               background: 'rgba(13,31,16,0.55)',
               backdropFilter: 'blur(18px)',
@@ -168,7 +168,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full text-white font-semibold py-2.5 rounded-lg text-sm transition-opacity disabled:opacity-50 login-bar-slide"
+              className="w-full text-white font-semibold py-2.5 rounded-lg text-sm transition-opacity disabled:opacity-50 login-bar-slide login-btn"
               style={{
                 background: 'linear-gradient(90deg, #0b3d2a, #1E9B6B, #7ED9A5, #1E9B6B, #0b3d2a)',
                 backgroundSize: '200% 100%',
