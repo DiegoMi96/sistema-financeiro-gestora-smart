@@ -225,6 +225,29 @@ const LS={
   get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d}},
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
 };
+
+// ─── PERSISTÊNCIA DO EXTRATO (backend) ─────────────
+// Mesmo helper duplicado em vendedor.html/dealer.html/indicadores.html —
+// grava o extrato pós-cálculo assim que o Importar processa e busca de volta
+// quando falta na memória (ex: depois de um F5). Se o backend não estiver no
+// ar, falha em silêncio e segue só na memória, como sempre funcionou.
+const COM_API={
+  base:'/api/comissionamento',
+  token(){try{return localStorage.getItem('token')}catch{return null}},
+  async salvar(p){
+    try{
+      const tok=this.token(); if(!tok) return;
+      await fetch(this.base+'/extratos',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tok},body:JSON.stringify(p)});
+    }catch{}
+  },
+  async buscar(colaboradorId,mesReferencia){
+    try{
+      const tok=this.token(); if(!tok) return [];
+      const r=await fetch(this.base+'/extratos?colaborador_id='+encodeURIComponent(colaboradorId)+'&mes_referencia='+encodeURIComponent(mesReferencia),{headers:{Authorization:'Bearer '+tok}});
+      return r.ok?await r.json():[];
+    }catch{return []}
+  }
+};
 // Mês aprovado (Visão Consolidada) fica travado — nem edição manual sobrescreve,
 // mesmo que a regra de alguém mude depois. Só desaprovando ou excluindo os dados.
 function mesAprovado(mes){try{const a=JSON.parse(localStorage.getItem('aprovacoes_mes')||'{}');return !!(a[mes]&&a[mes].aprovado);}catch{return false;}}
@@ -247,10 +270,14 @@ function resyncMdata(){mdata=LS.get('dp1_m',{});renderProjetos();}
 window.impSetRaw=function(id,mes,headers,rows){
   rawStore[`projeto_${id}_${mes}`]={...(rawStore[`projeto_${id}_${mes}`]||{}),headers,rows};
   renderProjetos();
+  const e=projetos.find(x=>x.id===id);
+  COM_API.salvar({colaborador_id:id,colaborador_nome:e?e.nome:id,tipo:'projeto',mes_referencia:mes,aba:'simcard',headers,linhas:rows});
 };
 window.impSetCancelRaw=function(id,mes,headers,rows){
   rawStore[`projeto_${id}_${mes}`]={...(rawStore[`projeto_${id}_${mes}`]||{}),cancelHeaders:headers,cancelRows:rows};
   renderProjetos();
+  const e=projetos.find(x=>x.id===id);
+  COM_API.salvar({colaborador_id:id,colaborador_nome:e?e.nome:id,tipo:'projeto',mes_referencia:mes,aba:'cancelamento',headers,linhas:rows});
 };
 let editingId=null;
 
@@ -505,7 +532,21 @@ async function exportEntity(id,mes){
   const entity=projetos.find(e=>e.id===id);
   const d=mdata[`p_${id}_${mes}`]||{};
   const c=calcProjeto(d,entity);
-  const raw=rawStore[`projeto_${id}_${mes}`]||{};
+  const key=`projeto_${id}_${mes}`;
+  // Se a aba abriu depois de um F5, rawStore está vazio — busca o extrato
+  // que ficou salvo no backend na hora do Importar, antes de montar o Excel.
+  if(!rawStore[key]){
+    const salvos=await COM_API.buscar(id,mes);
+    if(salvos.length){
+      const merged={};
+      salvos.forEach(e=>{
+        if(e.aba==='cancelamento'){merged.cancelHeaders=e.headers;merged.cancelRows=e.linhas;}
+        else{merged.headers=e.headers;merged.rows=e.linhas;}
+      });
+      rawStore[key]=merged;
+    }
+  }
+  const raw=rawStore[key]||{};
 
   // Formato pedido pelo Diego: mesma estrutura de 3 abas da planilha real que a
   // Johnny usa pra conferência ("Resumo"/"Simcard"/"Cancelamento") — a aba

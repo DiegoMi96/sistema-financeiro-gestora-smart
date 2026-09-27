@@ -497,5 +497,60 @@ Antes de integrar esse protótipo no repositório principal (`gestora-smart`) co
 - **Testado**: depois da limpeza, rodou por todas as 11 telas do menu e por todas as abas de cada um dos 7 perfis (Vendedor, Dealer, Indicador, Projeto Especial, Gestor de Operações, Diretor Comercial, Diretor Administrativo) — zero erros no console, conferido visualmente por screenshot em 2 telas (Diretor Comercial, Vendedor) que nada mudou de aparência.
 - **Próximo passo**: com o código limpo e validado, seguir pra integração no repositório `gestora-smart` (pasta estática `comissionamento/`, mesmo padrão da Controladoria) — ver seção acima sobre a reconstrução do card de Comissionamento.
 
+## Persistência do extrato (banco de dados real) — 2026-09-27
+Até aqui, o extrato pós-cálculo (o detalhe linha a linha que vira o `.xlsx` de cada
+colaborador no botão "↓ Extrair") vivia só na memória de cada iframe (`rawStore`,
+documentado como "in-memory, session only") — sumia ao dar F5. O Diego pediu pra
+guardar esse extrato por **1 ano**, disponível pra qualquer colaborador puxar a
+qualquer momento, com arquivamento automático depois desse prazo.
+
+- **O que é guardado**: só a tabela **pós-cálculo** (já cruzada com o cadastro),
+  não a planilha crua importada (que pode ter 500 mil linhas) — o mesmo dado que
+  já alimentava `rawStore` antes.
+- **Formato confirmado com o Diego**: ele mandou 4 planilhas reais (uma por
+  categoria) pra validar o formato exato do extrato. A categoria real de cada
+  colaborador foi conferida pela própria coluna "Categoria" dentro da planilha,
+  não pelo nome do arquivo (o nome do arquivo não bateu com a categoria em 2 dos
+  4 casos) — confirmado com o Diego antes de seguir:
+  - **Vendedor**: aba Simcard (17 col.) + aba Placas/Smart GPS (16 col.)
+  - **Dealer**: aba Simcards (17 col.) + Vendas/Pedidos (24 col.) + Cancelamento (12 col.)
+  - **Indicador**: só Simcard (16 col., mais simples)
+  - **Projeto Especial**: Simcard (17 col.) + Cancelamento (12 col.)
+- **Backend**: nova tabela `comissao_extratos` no banco Postgres que o backend
+  principal (Faturamento) já usa — `app/models/comissionamento.py`. Não é um
+  banco separado: a separação que protege o Faturamento é por tabela, não por
+  banco/container (Guardião/Estoque têm banco próprio porque são processos
+  Next.js separados; o Comissionamento roda dentro do mesmo backend FastAPI).
+  Guarda `headers`/`linhas` como JSON (mesmo formato que o JS já monta), com
+  `UniqueConstraint(colaborador_id, mes_referencia, aba)` — reprocessar
+  sobrescreve, não duplica.
+- **Endpoints**: `POST /api/comissionamento/extratos` (grava/sobrescreve uma
+  aba) e `GET /api/comissionamento/extratos?colaborador_id=...&mes_referencia=...`
+  (busca todas as abas de um colaborador/mês) — `app/routers/comissionamento.py`,
+  protegidos por `can_view_comissao` (mesma permissão que já existia).
+- **Auth reaproveitada**: os fetches usam o JWT que já está em
+  `localStorage['token']` — mesmo padrão que a Controladoria já usa pra chamar
+  `/api/...` (mesma origem, iframe dentro do app React já logado). Não foi
+  preciso resolver o login próprio do Comissionamento pra isso.
+- **Front**: `impSetRaw`/`impSetCancelRaw` (em `vendedor.html`/`dealer.html`/
+  `indicadores.html`/`projeto_especial.html`) agora também mandam o extrato pro
+  backend assim que o Importar processa (`COM_API.salvar`, `try/catch` em
+  silêncio — se o backend não estiver no ar, ex. rodando o protótipo local só
+  com `python3 -m http.server`, segue funcionando só na memória, como sempre).
+  `exportVendedor`/`exportEntity`/`exportInd` agora são `async`: se `rawStore`
+  estiver vazio (depois de um F5), buscam o extrato salvo (`COM_API.buscar`)
+  antes de montar o Excel — é isso que resolve o "some no F5".
+- **Retenção**: `app/services/comissionamento_retention.py` — loop diário (mesmo
+  padrão de lock consultivo do Postgres que o `asaas_sync.py` já usa, pra não
+  rodar em dobro nos 2 workers do Uvicorn) que, depois de 365 dias, monta o
+  `.xlsx` (mesmas abas/colunas) com `openpyxl` e salva em
+  `/opt/gestora-smart/comissionamento/arquivados/<ano>/`, apagando a linha do
+  banco ativo.
+- **Ainda não feito**: rodar isso no servidor de verdade (`git pull` + rebuild
+  do container do backend) — combinado com o Diego que nenhum comando de
+  produção roda sem mostrar antes. Cache-bust bumped: `vendedor.html` `?b=22`→
+  `?b=23`, `dealer.html` `?b=20`→`?b=21`, `indicadores.html` `?b=15`→`?b=16`,
+  `projeto_especial.html` `?b=29`→`?b=30`.
+
 ---
 *Última atualização: 2026-09-19 — Tela "Regras de Comissão" movida do menu lateral (nível shell) pra uma aba dentro do próprio perfil Dealer, já que a regra hoje só se aplica a esse perfil. O motor de cálculo (o que o Importar usa pra recalcular) continuou em `index.html`; só a UI (lista + modal de criar/editar) foi pra `dealer.html`, com a leitura de dados (`regrasGet`) delegando pro shell quando disponível pra não perder a semente completa das faixas (ex.: Ione). Testado em navegador: lista mostra Ione/Hilario com todos os dados, edição/gravação e recálculo funcionam. Antes disso, no mesmo dia: "Visão do Executivo" agora inclui os parceiros (Indicador/Indicador N2/Dealer/Projeto Especial), não só Vendedor — seletor único agrupado por categoria, puxando os dados automaticamente pra qualquer um. Também movida do Vendedor pra item próprio no menu (abaixo da Visão Consolidada). Em 2026-09-18: criada essa tela pela primeira vez (leitura, mesmo formato da planilha individual real); corrigido bug real de arredondamento na fronteira das faixas de alcance (validado contra planilha real da Claudia Longano). Criada a Aprovação do comissionamento do mês (trava edição/reprocessamento em todos os perfis depois de aprovado, só desaprova ou exclui). Cadastro de Parceiros: adicionada categoria "Indicador N2" (com campo de ajuda de custo), CPF/CNPJ separados, celular/telefone/e-mail/e-mail secundário, edição agora permite trocar categoria (migra entre listas mantendo o id), e lista de campos obrigatórios expandida. Também criado o Motor de Regras de Comissão (tela "Regras de Comissão"), migrando Ione e Hilario de código hardcoded pra regras editáveis pelo próprio Diego, sem precisar mandar mensagem pra mim a cada ajuste.*

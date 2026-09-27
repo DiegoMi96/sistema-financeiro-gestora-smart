@@ -273,6 +273,31 @@ const LS={
   get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d}},
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
 };
+
+// ─── PERSISTÊNCIA DO EXTRATO (backend) ─────────────
+// Grava o extrato pós-cálculo assim que o Importar processa (impSetRaw) e
+// busca de volta quando falta na memória (ex: depois de um F5) — resolve o
+// "some no F5" sem depender do localStorage (que não aguentaria o volume).
+// Se o backend não estiver no ar (ex: protótipo rodando só com
+// `python3 -m http.server`), falha em silêncio e segue só na memória, como
+// sempre funcionou.
+const COM_API={
+  base:'/api/comissionamento',
+  token(){try{return localStorage.getItem('token')}catch{return null}},
+  async salvar(p){
+    try{
+      const tok=this.token(); if(!tok) return;
+      await fetch(this.base+'/extratos',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tok},body:JSON.stringify(p)});
+    }catch{}
+  },
+  async buscar(colaboradorId,mesReferencia){
+    try{
+      const tok=this.token(); if(!tok) return [];
+      const r=await fetch(this.base+'/extratos?colaborador_id='+encodeURIComponent(colaboradorId)+'&mes_referencia='+encodeURIComponent(mesReferencia),{headers:{Authorization:'Bearer '+tok}});
+      return r.ok?await r.json():[];
+    }catch{return []}
+  }
+};
 // Mês aprovado (Visão Consolidada) fica travado — nem edição manual sobrescreve,
 // mesmo que a regra de alguém mude depois. Só desaprovando ou excluindo os dados.
 function mesAprovado(mes){try{const a=JSON.parse(localStorage.getItem('aprovacoes_mes')||'{}');return !!(a[mes]&&a[mes].aprovado);}catch{return false;}}
@@ -309,6 +334,8 @@ window.impSetRaw=function(vid,mes,categoria,headers,rows){
   const key=`${vid}_${mes}`;
   rawStore[key]={...(rawStore[key]||{}),[categoria]:{headers,rows}};
   renderResumo();
+  const vend=vendedores.find(v=>v.id===vid);
+  COM_API.salvar({colaborador_id:vid,colaborador_nome:vend?vend.nome:vid,tipo:'vendedor',mes_referencia:mes,aba:categoria,headers,linhas:rows});
 };
 
 // importStage[cat] = { agg: {execName: {linhas,atv,eq,gps}}, raw: {execName: rows[]}, headers: [] }
@@ -539,10 +566,19 @@ function saveEdit(vid){
 }
 
 // ─── EXPORT INDIVIDUAL ────────────────────────────
-function exportVendedor(vid,mes){
+async function exportVendedor(vid,mes){
   const vend=vendedores.find(v=>v.id===vid);
   const d=mdata[`${vid}_${mes}`]||{};
-  const raw=rawStore[`${vid}_${mes}`]||{};
+  const key=`${vid}_${mes}`;
+  // Se a aba abriu depois de um F5, rawStore está vazio — busca o extrato
+  // que ficou salvo no backend na hora do Importar, antes de montar o Excel.
+  if(!rawStore[key]){
+    const salvos=await COM_API.buscar(vid,mes);
+    if(salvos.length){
+      rawStore[key]=Object.fromEntries(salvos.map(e=>[e.aba,{headers:e.headers,rows:e.linhas}]));
+    }
+  }
+  const raw=rawStore[key]||{};
   const c=calcVend(d,vend.g,bonusCelulaDe(vid,mes));
   const ths=[vend.g.obj,vend.g.m1,vend.g.m2,vend.g.sm];
 

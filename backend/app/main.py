@@ -9,6 +9,7 @@ from app.database import Base, engine
 import app.models
 import app.models.extra          # PaymentRecord, AIAnalysis, AsaasPaymentSync
 import app.models.contestation   # ContestationCycle, ContestationItem, ContestationCredit
+import app.models.comissionamento  # ComissaoExtrato
 
 # Importa routers
 from app.routers import auth, billing, dashboard
@@ -21,6 +22,7 @@ from app.routers.contestation import router as contestation_router
 from app.routers.clients        import router as clients_router
 from app.routers.organograma    import router as organograma_router, public_router as organograma_public_router
 from app.routers.sheets         import router as sheets_router
+from app.routers.comissionamento import router as comissionamento_router
 
 # ── Cria enums de contestação antes do create_all (evita UniqueViolation) ──
 def _ensure_contestation_enums():
@@ -144,13 +146,16 @@ _run_migrations()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from app.services.asaas_sync import sync_loop
-    task = asyncio.create_task(sync_loop())
+    from app.services.comissionamento_retention import retention_loop
+    tasks = [asyncio.create_task(sync_loop()), asyncio.create_task(retention_loop())]
     yield
-    task.cancel()
-    try:
-        await task
-    except asyncio.CancelledError:
-        pass
+    for task in tasks:
+        task.cancel()
+    for task in tasks:
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
 
 # ── App ───────────────────────────────────────────────────────
 app = FastAPI(
@@ -185,6 +190,7 @@ app.include_router(clients_router)
 app.include_router(organograma_router)
 app.include_router(organograma_public_router)   # fotos do organograma (público — <img src>)
 app.include_router(sheets_router)
+app.include_router(comissionamento_router)
 
 
 @app.get("/health")
