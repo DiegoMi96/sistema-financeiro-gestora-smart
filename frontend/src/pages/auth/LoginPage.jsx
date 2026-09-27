@@ -73,7 +73,7 @@ export default function LoginPage() {
             a paleta verde/branco do sistema no lugar do vermelho/dourado deles. */}
         <div className="w-full">
           <div
-            className="login-card relative rounded-2xl p-8 overflow-hidden"
+            className="relative rounded-2xl p-8 overflow-hidden"
             style={{
               background: 'rgba(13,31,16,0.55)',
               backdropFilter: 'blur(18px)',
