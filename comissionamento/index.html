@@ -33,7 +33,14 @@ input,select,textarea,button{font-family:inherit}
   background:#fff;color:#1a1a18;
   border-right:1px solid #d4d3ce;
   display:flex;flex-direction:column;
-  height:100vh;overflow-y:auto;
+  /* overflow-x:hidden é necessário aqui: com só overflow-y:auto, o browser
+     promove overflow-x pra "auto" também (regra do spec quando um eixo é
+     "visible" e o outro não) — algum item interno passava de 230px e abria
+     uma barra de rolagem horizontal, comendo ~15px de altura útil e
+     empurrando o botão de recolher pra cima do lugar certo (mesmo bug que o
+     Diego notou comparando com o Faturamento, que já tem overflow-x-hidden
+     no Layout.jsx, 28/09/2026). */
+  height:100vh;overflow-y:auto;overflow-x:hidden;
   position:relative;
   transition:width .18s ease;
 }
