@@ -33,17 +33,23 @@ input,select,textarea,button{font-family:inherit}
   background:#fff;color:#1a1a18;
   border-right:1px solid #d4d3ce;
   display:flex;flex-direction:column;
-  /* overflow-x:hidden é necessário aqui: com só overflow-y:auto, o browser
-     promove overflow-x pra "auto" também (regra do spec quando um eixo é
-     "visible" e o outro não) — algum item interno passava de 230px e abria
-     uma barra de rolagem horizontal, comendo ~15px de altura útil e
-     empurrando o botão de recolher pra cima do lugar certo (mesmo bug que o
-     Diego notou comparando com o Faturamento, que já tem overflow-x-hidden
-     no Layout.jsx, 28/09/2026). */
-  height:100vh;overflow-y:auto;overflow-x:hidden;
+  height:100vh;overflow:visible;
   position:relative;
   transition:width .18s ease;
 }
+/* Todo o conteúdo rolável (logo, nav, trocar módulo, conta) vai num wrapper
+   interno separado — não pode ser o próprio .sidebar que rola, porque
+   overflow-x:hidden nele cortaria a metade do botão de recolher que fica de
+   propósito pra FORA da borda (right:-12px). overflow-x:hidden aqui dentro
+   evita a barra de rolagem horizontal fantasma (item interno passando de
+   230px comia ~15px de altura e empurrava o botão do lugar — mesmo ajuste
+   de antes, só que no wrapper certo agora). Mesmo padrão do Faturamento
+   (Layout.jsx: overflow-x-hidden só no <nav>, não no <aside>) e da
+   Controladoria (.sidebar com overflow:visible + scroll só no .nav interno)
+   — achado pelo Diego, 28/09/2026: "a seta ... na parte de fora está pra
+   dentro" (o círculo aparecia cortado, sem a metade que deveria flutuar
+   sobre o conteúdo). */
+.sidebar-scroll{flex:1;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;min-height:0}
 /* Recolher/expandir — mesmo padrão e posição do botão do Faturamento
    (frontend/src/components/layout/Layout.jsx) e da Controladoria
    (controladoria/index.html): círculo flutuante na borda direita da
@@ -330,6 +336,7 @@ iframe.active{display:block}
 <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar(false)"></div>
 
 <div class="sidebar" id="sidebarEl">
+ <div class="sidebar-scroll">
   <div class="sidebar-header" id="sidebarHeader">
     <div class="brand-logo-crop" id="brandLogoCrop">
       <img id="brandLogoImg" alt="Logo" style="position:absolute;top:-31px;left:2px;height:104px;width:auto;">
@@ -424,6 +431,7 @@ iframe.active{display:block}
       <span class="pb-label">Sair da conta</span>
     </button>
   </div>
+ </div>
 
   <button id="btnCollapseSidebar" onclick="toggleSidebarCollapse()" title="Recolher menu"
     style="position:absolute;right:-12px;bottom:28px;z-index:10;width:24px;height:24px;border-radius:50%;
