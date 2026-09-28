@@ -15,14 +15,15 @@ body{font-family:'Inter',sans-serif;background:#f0efe9;color:#1a1a18;font-size:1
 /* ── Cabeçalho — logo real (empresa_logo, mesmo padrão do Faturamento e da
    Controladoria) + identidade visual, já que quem preenche isso agora é o
    parceiro de fora, não a equipe interna (pedido do Diego, 28/09/2026:
-   "vamos deixar o layout mais profissional"). */
+   "vamos deixar o layout mais profissional"). Sem fallback em texto — mesma
+   regra já usada no Faturamento/Controladoria (21/08/2026): um placeholder
+   aparecendo e sumindo assim que a imagem chega pisca na tela, então
+   enquanto a imagem não carrega não renderiza nada (achado do Diego,
+   29/09/2026: "pisca a logo e aparece uma outra"). */
 .brand{display:flex;justify-content:center;margin-bottom:30px}
 .brand-logo-crop{display:none;width:180px;height:44px;overflow:hidden;position:relative}
 .brand-logo-crop img{position:absolute;top:-28px;left:0;height:96px;width:auto}
 .brand.logo-loaded .brand-logo-crop{display:block}
-.brand:not(.logo-loaded) .brand-fallback{display:block}
-.brand-fallback{display:none;font-family:'Inter',sans-serif;font-weight:800;font-size:15px;letter-spacing:.02em;color:#1a1a18}
-.brand-fallback b{color:#166B4A}
 
 .header{text-align:center;margin-bottom:46px}
 .header .eyebrow{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#1E9B6B;margin-bottom:6px}
@@ -94,7 +95,6 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
 <div class="wrap">
   <div class="brand" id="brandBox">
     <div class="brand-logo-crop"><img id="brandLogoImg" alt="Gestora Smart"></div>
-    <p class="brand-fallback">GESTORA <b>SMART</b></p>
   </div>
   <script>
   (function () {
