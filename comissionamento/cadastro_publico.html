@@ -99,11 +99,16 @@ textarea{resize:vertical;min-height:60px}
       </div>
       <div>
         <label class="lbl">Apelido / ID no CRM <span class="req">*</span></label>
-        <input type="text" id="f_apelido" placeholder="Ex: carneiro.junior">
+        <input type="text" id="f_apelido" placeholder="Ex: joao.silva">
       </div>
       <div class="full">
         <label class="lbl">Dados da conta (com o PIX) <span class="req">*</span></label>
-        <textarea id="f_conta" placeholder="Ex: Banco Sicredi, Ag. 0818, Conta 20974-7, Chave PIX: 12345678900"></textarea>
+        <div class="grid" style="margin-bottom:0">
+          <div><label class="lbl" style="font-weight:400;text-transform:none;letter-spacing:0">Banco</label><input type="text" id="f_conta_banco" placeholder="Ex: Sicredi"></div>
+          <div><label class="lbl" style="font-weight:400;text-transform:none;letter-spacing:0">Agência</label><input type="text" id="f_conta_agencia" placeholder="Ex: 0818"></div>
+          <div><label class="lbl" style="font-weight:400;text-transform:none;letter-spacing:0">Conta</label><input type="text" id="f_conta_numero" placeholder="Ex: 20974-7"></div>
+          <div><label class="lbl" style="font-weight:400;text-transform:none;letter-spacing:0">Chave PIX</label><input type="text" id="f_conta_pix" placeholder="CPF, e-mail, celular ou aleatória"></div>
+        </div>
       </div>
     </div>
     <div class="err" id="f_err"></div>
@@ -182,7 +187,16 @@ function enviarCadastro() {
   const comercial = document.getElementById('f_comercial').value;
   const cidade = document.getElementById('f_cidade').value.trim();
   const apelido = document.getElementById('f_apelido').value.trim();
-  const conta = document.getElementById('f_conta').value.trim();
+  const contaBanco = document.getElementById('f_conta_banco').value.trim();
+  const contaAgencia = document.getElementById('f_conta_agencia').value.trim();
+  const contaNumero = document.getElementById('f_conta_numero').value.trim();
+  const contaPix = document.getElementById('f_conta_pix').value.trim();
+  const conta = [
+    contaBanco && ('Banco ' + contaBanco),
+    contaAgencia && ('Ag. ' + contaAgencia),
+    contaNumero && ('Conta ' + contaNumero),
+    contaPix && ('Chave PIX: ' + contaPix),
+  ].filter(Boolean).join(', ');
   const celular = document.getElementById('f_celular').value.trim();
   const email = document.getElementById('f_email').value.trim();
 
@@ -213,6 +227,10 @@ function enviarCadastro() {
     ajudaCusto: tipo === 'indicador_n2' ? (+document.getElementById('f_ajudacusto').value || 0) : 0,
     apelido,
     conta,
+    contaBanco,
+    contaAgencia,
+    contaNumero,
+    contaPix,
   };
 
   const key = CAD_KEY[tipo];

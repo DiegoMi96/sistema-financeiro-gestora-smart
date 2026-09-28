@@ -870,11 +870,17 @@ iframe.active{display:block}
           </div>
           <div>
             <label class="cad-lbl">Apelido / ID no CRM <span class="req" title="Recomendado quando o nome na planilha de Importar é diferente do nome de exibição">(recomendado)</span></label>
-            <input type="text" id="cad_apelido" placeholder="Ex: carneiro.junior">
+            <input type="text" id="cad_apelido" placeholder="Ex: joao.silva">
           </div>
           <div class="full">
             <label class="cad-lbl">Dados da conta (com o PIX) <span class="req" title="Sem isso o cadastro fica marcado como pendente">(recomendado)</span></label>
-            <textarea id="cad_conta" placeholder="Ex: Banco Sicredi, Ag. 0818, Conta 20974-7, Chave PIX: 12345678900"></textarea>
+            <p id="cad_conta_legado_hint" style="display:none;font-size:11px;color:#b8863f;background:#fbf1de;border-radius:6px;padding:7px 10px;margin-bottom:8px;line-height:1.5"></p>
+            <div class="cad-grid" style="margin-bottom:0">
+              <div><label class="cad-lbl" style="font-weight:400">Banco</label><input type="text" id="cad_conta_banco" placeholder="Ex: Sicredi"></div>
+              <div><label class="cad-lbl" style="font-weight:400">Agência</label><input type="text" id="cad_conta_agencia" placeholder="Ex: 0818"></div>
+              <div><label class="cad-lbl" style="font-weight:400">Conta</label><input type="text" id="cad_conta_numero" placeholder="Ex: 20974-7"></div>
+              <div><label class="cad-lbl" style="font-weight:400">Chave PIX</label><input type="text" id="cad_conta_pix" placeholder="CPF, e-mail, celular ou aleatória"></div>
+            </div>
           </div>
         </div>
         <div class="cad-actions">
@@ -2135,8 +2141,22 @@ function cadPopulateComercial() {
 }
 
 function cadClearForm() {
-  ['cad_nome', 'cad_empresa', 'cad_cpf', 'cad_cnpj', 'cad_celular', 'cad_telefone', 'cad_email', 'cad_email2', 'cad_bairro', 'cad_cidade', 'cad_conta', 'cad_apelido', 'cad_ajudacusto'].forEach(id => document.getElementById(id).value = '');
+  ['cad_nome', 'cad_empresa', 'cad_cpf', 'cad_cnpj', 'cad_celular', 'cad_telefone', 'cad_email', 'cad_email2', 'cad_bairro', 'cad_cidade', 'cad_conta_banco', 'cad_conta_agencia', 'cad_conta_numero', 'cad_conta_pix', 'cad_apelido', 'cad_ajudacusto'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('cad_comercial').value = '';
+  document.getElementById('cad_conta_legado_hint').style.display = 'none';
+}
+
+// Monta a string "conta" (formato antigo, ainda usada por quem lê o
+// cadastro como um bloco só) a partir dos 4 campos separados novos —
+// pedido do Diego (28/09/2026): "os parceiros vão se perder" preenchendo
+// tudo junto num texto livre só.
+function cadContaCompoe(banco, agencia, numero, pix) {
+  const partes = [];
+  if (banco) partes.push('Banco ' + banco);
+  if (agencia) partes.push('Ag. ' + agencia);
+  if (numero) partes.push('Conta ' + numero);
+  if (pix) partes.push('Chave PIX: ' + pix);
+  return partes.join(', ');
 }
 
 function cadDefaults(tipo) {
@@ -2186,7 +2206,20 @@ function cadEditar(tipo, id) {
   document.getElementById('cad_email2').value = entry.email2 || '';
   document.getElementById('cad_bairro').value = entry.bairro || '';
   document.getElementById('cad_cidade').value = entry.cidade || '';
-  document.getElementById('cad_conta').value = entry.conta || '';
+  document.getElementById('cad_conta_banco').value = entry.contaBanco || '';
+  document.getElementById('cad_conta_agencia').value = entry.contaAgencia || '';
+  document.getElementById('cad_conta_numero').value = entry.contaNumero || '';
+  document.getElementById('cad_conta_pix').value = entry.contaPix || '';
+  // Cadastro antigo (de antes dos campos separados) só tem o texto livre em
+  // entry.conta — mostra como aviso em vez de sumir com o dado; ao salvar de
+  // novo com os campos separados preenchidos, ele já migra sozinho.
+  const hint = document.getElementById('cad_conta_legado_hint');
+  if (!entry.contaBanco && !entry.contaAgencia && !entry.contaNumero && !entry.contaPix && entry.conta) {
+    hint.textContent = '⚠ Dado antigo (cadastrado como texto livre, antes dos campos separados): "' + entry.conta + '" — preencha os campos abaixo pra migrar.';
+    hint.style.display = 'block';
+  } else {
+    hint.style.display = 'none';
+  }
   document.getElementById('cad_apelido').value = entry.apelido || '';
   document.getElementById('cad_ajudacusto').value = entry.ajudaCusto || '';
   document.getElementById('cad_comercial').value = entry.comercial || '';
@@ -2202,7 +2235,11 @@ function cadSalvar() {
   const comercial = document.getElementById('cad_comercial').value;
   const cidade = document.getElementById('cad_cidade').value.trim();
   const apelido = document.getElementById('cad_apelido').value.trim();
-  const conta = document.getElementById('cad_conta').value.trim();
+  const contaBanco = document.getElementById('cad_conta_banco').value.trim();
+  const contaAgencia = document.getElementById('cad_conta_agencia').value.trim();
+  const contaNumero = document.getElementById('cad_conta_numero').value.trim();
+  const contaPix = document.getElementById('cad_conta_pix').value.trim();
+  const conta = cadContaCompoe(contaBanco, contaAgencia, contaNumero, contaPix);
   const celular = document.getElementById('cad_celular').value.trim();
   const email = document.getElementById('cad_email').value.trim();
 
@@ -2231,6 +2268,10 @@ function cadSalvar() {
     bairro: document.getElementById('cad_bairro').value.trim(),
     cidade,
     conta,
+    contaBanco,
+    contaAgencia,
+    contaNumero,
+    contaPix,
     comercial,
     ajudaCusto: tipo === 'indicador_n2' ? (+document.getElementById('cad_ajudacusto').value || 0) : 0,
     // Nome/login que aparece no CRM/Clientes/Inventário, quando é diferente do
