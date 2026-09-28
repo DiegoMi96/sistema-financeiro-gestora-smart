@@ -238,11 +238,30 @@ iframe.active{display:block}
 .cad-btn-outline:hover{background:#f5f4f0}
 .cad-list-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
 .cad-list-hdr h2{font-size:13px;font-weight:700;color:#1a1a18}
+
+/* Cards de resumo + busca/filtro — melhoria de layout pedida pelo Diego
+   (28/09/2026): antes a tabela tinha 11 colunas soltas, sem nenhum resumo
+   nem forma de achar um cadastro rápido, obrigando rolagem horizontal
+   grande pra ler qualquer coisa. */
+.cad-stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.cad-stat-card{background:#fff;border:1px solid #d4d3ce;border-radius:10px;padding:14px 16px}
+.cad-stat-lbl{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#888;margin-bottom:6px}
+.cad-stat-val{font-size:22px;font-weight:800;color:#1a1a18;font-variant-numeric:tabular-nums;line-height:1}
+.cad-stat-card.warn .cad-stat-val{color:#b8863f}
+.cad-toolbar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.cad-toolbar input[type=text]{flex:1;min-width:220px;background:#f5f4f0;border:1px solid #d4d3ce;border-radius:6px;padding:9px 12px;font-size:13px;font-family:'Inter',sans-serif;color:#1a1a18;outline:none}
+.cad-toolbar input[type=text]:focus{border-color:#1a1a18;background:#fff}
+.cad-toolbar select{background:#f5f4f0;border:1px solid #d4d3ce;border-radius:6px;padding:9px 12px;font-size:12.5px;font-family:'Inter',sans-serif;color:#1a1a18;outline:none;min-width:170px}
+.cad-toolbar-check{display:flex;align-items:center;gap:6px;font-size:12px;color:#4a5868;white-space:nowrap;cursor:pointer}
+.cad-toolbar-check input{cursor:pointer}
+
 .cad-table-wrap{background:#fff;border:1px solid #d4d3ce;border-radius:10px;overflow-x:auto}
-.cad-table-wrap table{width:100%;border-collapse:collapse;min-width:1300px}
-.cad-table-wrap th{font-size:10px;font-weight:600;color:#888;text-align:left;padding:9px 14px;border-bottom:1px solid #d4d3ce;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.cad-table-wrap table{width:100%;border-collapse:collapse;min-width:960px}
+.cad-table-wrap th{font-size:10px;font-weight:600;color:#888;text-align:left;padding:9px 14px;border-bottom:1px solid #d4d3ce;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;position:sticky;top:0;background:#fff}
 .cad-table-wrap td{padding:11px 14px;border-bottom:1px solid #eeede8;font-size:12.5px;color:#1a1a18;vertical-align:middle}
 .cad-table-wrap tr:last-child td{border-bottom:none}
+.cad-table-wrap tr:hover td{background:#fafaf8}
+.cad-cell-sub{color:#999;font-size:11px;margin-top:1px}
 .cad-tipo-pill{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:3px 9px;border-radius:12px;white-space:nowrap}
 .cad-tipo-pill.indicador{background:#fef3e2;color:#b45309}
 .cad-tipo-pill.indicador_n2{background:#fde3c2;color:#92400e}
@@ -568,8 +587,24 @@ iframe.active{display:block}
           <button class="cad-dropdown-item" onclick="cadAbrirModal('vendedor')">Novo Vendedor</button>
         </div>
 
+        <div class="cad-stats-row" id="cad_stats_row"></div>
+
         <div class="cad-list-hdr">
           <h2>Todos os parceiros cadastrados</h2>
+        </div>
+        <div class="cad-toolbar">
+          <input type="text" id="cad_search" placeholder="Buscar por nome, empresa, cidade ou apelido…" oninput="cadRenderList()">
+          <select id="cad_filtro_categoria" onchange="cadRenderList()">
+            <option value="">Todas as categorias</option>
+            <option value="indicador">Indicador</option>
+            <option value="indicador_n2">Indicador N2</option>
+            <option value="dealer">Dealer</option>
+            <option value="projeto">Projeto Especial</option>
+          </select>
+          <label class="cad-toolbar-check">
+            <input type="checkbox" id="cad_filtro_pendente" onchange="cadRenderList()">
+            Só pendentes
+          </label>
         </div>
         <div class="cad-table-wrap" id="cad_table_wrap_pagina"></div>
       </div>
@@ -2274,6 +2309,7 @@ function cadRemover(tipo, id) {
 
 function cadRenderList() {
   const wrap = document.getElementById('cad_table_wrap_pagina');
+  const statsWrap = document.getElementById('cad_stats_row');
   // Cada chave de armazenamento (ind1_list/dp1_dealers/dp1_projetos) só pode
   // ser lida uma vez — "indicador" e "indicador_n2" apontam pra mesma lista,
   // então usamos entry.categoria (não a chave do loop) pra saber o real tipo.
@@ -2283,20 +2319,51 @@ function cadRenderList() {
     return CLS.get(key, cadDefaults(tipoPadrao)).map(e => ({ ...e, _tipo: e.categoria || tipoPadrao }));
   }).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 
+  // Cards de resumo sempre contam o total real (sem aplicar busca/filtro) —
+  // é a "foto" da base inteira, pra dar contexto antes de filtrar.
+  const totalPendentes = todos.filter(e => e.pendente).length;
+  const porCategoria = ['indicador', 'indicador_n2', 'dealer', 'projeto'].map(tipo => ({
+    tipo, qtd: todos.filter(e => e._tipo === tipo).length,
+  })).filter(c => c.qtd > 0);
+  statsWrap.innerHTML = `
+    <div class="cad-stat-card"><div class="cad-stat-lbl">Total de parceiros</div><div class="cad-stat-val">${todos.length}</div></div>
+    <div class="cad-stat-card ${totalPendentes ? 'warn' : ''}"><div class="cad-stat-lbl">Dados pendentes</div><div class="cad-stat-val">${totalPendentes}</div></div>
+    ${porCategoria.map(c => `<div class="cad-stat-card"><div class="cad-stat-lbl">${CAD_LABEL_SING[c.tipo]}</div><div class="cad-stat-val">${c.qtd}</div></div>`).join('')}
+  `;
+
+  // dobraAcento: busca "acacio" tem que achar "Acácio" — nome próprio
+  // brasileiro sem acento é o caso mais comum de digitação na busca.
+  const dobraAcento = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const busca = dobraAcento((document.getElementById('cad_search')?.value || '').trim().toLowerCase());
+  const filtroCategoria = document.getElementById('cad_filtro_categoria')?.value || '';
+  const soPendentes = document.getElementById('cad_filtro_pendente')?.checked || false;
+  const filtrados = todos.filter(e => {
+    if (filtroCategoria && e._tipo !== filtroCategoria) return false;
+    if (soPendentes && !e.pendente) return false;
+    if (busca) {
+      const alvo = dobraAcento([e.nome, e.empresa, e.cidade, e.apelido].filter(Boolean).join(' ').toLowerCase());
+      if (!alvo.includes(busca)) return false;
+    }
+    return true;
+  });
+
   if (!todos.length) { wrap.innerHTML = '<div class="cad-empty">Nenhum cadastro ainda.</div>'; return; }
+  if (!filtrados.length) { wrap.innerHTML = '<div class="cad-empty">Nenhum parceiro encontrado com esse filtro.</div>'; return; }
   wrap.innerHTML = `<table><thead><tr>
-      <th>Categoria</th><th>Nome</th><th>Apelido/CRM</th><th>Empresa</th><th>CPF</th><th>CNPJ</th><th>Cidade</th><th>Celular</th><th>E-mail</th><th>Comercial</th><th>Ajuda de Custo</th><th style="width:140px"></th>
-    </tr></thead><tbody>${todos.map(e => `
+      <th>Categoria</th><th>Nome</th><th>Documento</th><th>Cidade</th><th>Contato</th><th>Comercial</th><th>Ajuda de Custo</th><th style="width:140px"></th>
+    </tr></thead><tbody>${filtrados.map(e => `
       <tr>
         <td><span class="cad-tipo-pill ${CAD_PILL_CLASS[e._tipo]}">${CAD_LABEL_SING[e._tipo]}</span></td>
-        <td style="font-weight:500">${e.nome}${e.pendente ? ' <span title="Faltam dados de contato/pagamento (CPF, cidade, celular, e-mail ou conta) — comissão calcula normal, mas não pague sem completar." style="display:inline-block;margin-left:6px;font-size:9px;font-weight:700;letter-spacing:.04em;color:#b8863f;background:#fbf1de;padding:2px 7px;border-radius:10px;vertical-align:middle">⚠ DADOS PENDENTES</span>' : ''}</td>
-        <td style="color:#888">${e.apelido || '<span style="color:#ccc">—</span>'}</td>
-        <td style="color:#888">${e.empresa || '<span style="color:#ccc">—</span>'}</td>
-        <td style="color:#888">${e.cpf || e.doc || '<span style="color:#ccc">—</span>'}</td>
-        <td style="color:#888">${e.cnpj || '<span style="color:#ccc">—</span>'}</td>
+        <td>
+          <div style="font-weight:500">${e.nome}${e.pendente ? ' <span title="Faltam dados de contato/pagamento (CPF, cidade, celular, e-mail ou conta) — comissão calcula normal, mas não pague sem completar." style="display:inline-block;margin-left:6px;font-size:9px;font-weight:700;letter-spacing:.04em;color:#b8863f;background:#fbf1de;padding:2px 7px;border-radius:10px;vertical-align:middle">⚠ PENDENTE</span>' : ''}</div>
+          ${e.empresa || e.apelido ? `<div class="cad-cell-sub">${[e.empresa, e.apelido].filter(Boolean).join(' · ')}</div>` : ''}
+        </td>
+        <td style="color:#888">${e.cpf || e.doc || e.cnpj || '<span style="color:#ccc">—</span>'}</td>
         <td style="color:#888">${e.cidade || '<span style="color:#ccc">—</span>'}</td>
-        <td style="color:#888">${e.celular || '<span style="color:#ccc">—</span>'}</td>
-        <td style="color:#888">${e.email || '<span style="color:#ccc">—</span>'}</td>
+        <td style="color:#888">
+          ${e.celular || '<span style="color:#ccc">—</span>'}
+          ${e.email ? `<div class="cad-cell-sub">${e.email}</div>` : ''}
+        </td>
         <td style="color:#888">${e.comercial || '<span style="color:#ccc">—</span>'}</td>
         <td style="color:#888">${e.ajudaCusto ? 'R$ ' + (+e.ajudaCusto).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '<span style="color:#ccc">—</span>'}</td>
         <td style="white-space:nowrap">
