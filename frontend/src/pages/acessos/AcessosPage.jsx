@@ -932,14 +932,23 @@ function RoleModal({ role, onClose, onSuccess }) {
       ? { ...role.permissions }
       : Object.fromEntries(ALL_PERMS.map(([k]) => [k, false]))
   )
-  const [open, setOpen] = useState(
-    Object.fromEntries(PERM_SECTIONS.map(s => [s.key, s.key === 'GERAL']))
-  )
+  // Seções fechadas por padrão (28/09/2026) — mesmo padrão visual do wizard
+  // de novo usuário: menos coisa aberta de cara, busca acha na hora.
+  const [open, setOpen] = useState({})
   const [loading, setLoading] = useState(false)
+  const [permSearch, setPermSearch] = useState('')
 
   const visibleSections = myScope
     ? PERM_SECTIONS.filter(s => AREA_MODULE_SECTIONS[myScope]?.includes(s.key))
     : PERM_SECTIONS
+
+  const q = permSearch.trim().toLowerCase()
+  const filteredSections = visibleSections
+    .map(section => ({
+      ...section,
+      perms: section.perms.filter(([, lbl]) => !q || lbl.toLowerCase().includes(q) || section.key.toLowerCase().includes(q)),
+    }))
+    .filter(section => section.perms.length > 0)
 
   const togglePerm = (key) => setPerms(p => ({ ...p, [key]: !p[key] }))
   const markAll = (sectionPerms, value) => setPerms(p => {
@@ -1068,43 +1077,65 @@ function RoleModal({ role, onClose, onSuccess }) {
               placeholder="Descreva brevemente o que este perfil pode fazer..." />
           </div>
 
-          {/* Seções de permissão */}
-          <div className="space-y-2">
-            {visibleSections.map(section => (
-              <div key={section.key} className="border border-gray-100 rounded-xl overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50">
-                  <button
-                    type="button"
-                    onClick={() => setOpen(o => ({ ...o, [section.key]: !o[section.key] }))}
-                    className="flex items-center gap-2 text-[10px] font-semibold tracking-widest text-gray-400 uppercase"
-                  >
-                    {open[section.key] ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                    {section.key}
-                  </button>
-                  <div className="flex gap-3">
-                    <button type="button" onClick={() => markAll(section.perms, true)}
-                      className="text-xs text-blue-500 hover:text-blue-700 hover:underline">Tudo</button>
-                    <button type="button" onClick={() => markAll(section.perms, false)}
-                      className="text-xs text-gray-400 hover:text-gray-600 hover:underline">Nenhum</button>
+          {/* Busca + seções de permissão (28/09/2026 — mesmo padrão visual do
+              wizard de novo usuário, pedido do Diego pra ficar consistente) */}
+          <div>
+            <div className="relative mb-2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/>
+              </svg>
+              <input value={permSearch} onChange={e => setPermSearch(e.target.value)}
+                placeholder="Buscar uma permissão específica (ex: excel, cadastro, dashboard)..."
+                className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-green-500 focus:outline-none" />
+            </div>
+            <div className="space-y-2">
+              {filteredSections.map(section => {
+                const activeCount = section.perms.filter(([k]) => perms[k]).length
+                const isOpen = q ? true : !!open[section.key]
+                return (
+                <div key={section.key} className="border border-gray-100 rounded-xl overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50">
+                    <button
+                      type="button"
+                      onClick={() => setOpen(o => ({ ...o, [section.key]: !o[section.key] }))}
+                      className="flex items-center gap-2 text-[10px] font-semibold tracking-widest text-gray-400 uppercase"
+                    >
+                      {isOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                      {section.key}
+                      <span className="normal-case font-semibold text-gray-400 tracking-normal">
+                        {activeCount} de {section.perms.length} ativas
+                      </span>
+                    </button>
+                    <div className="flex gap-3">
+                      <button type="button" onClick={() => markAll(section.perms, true)}
+                        className="text-xs text-blue-500 hover:text-blue-700 hover:underline">Tudo</button>
+                      <button type="button" onClick={() => markAll(section.perms, false)}
+                        className="text-xs text-gray-400 hover:text-gray-600 hover:underline">Nenhum</button>
+                    </div>
                   </div>
+                  {isOpen && (
+                    <div className="divide-y divide-gray-50">
+                      {section.perms.map(([key, lbl]) => (
+                        <label key={key} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={!!perms[key]}
+                            onChange={() => togglePerm(key)}
+                            className="accent-green-600 w-4 h-4 flex-shrink-0 cursor-pointer"
+                          />
+                          <span className="text-sm text-gray-700 select-none">{lbl}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                {open[section.key] && (
-                  <div className="divide-y divide-gray-50">
-                    {section.perms.map(([key, lbl]) => (
-                      <label key={key} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={!!perms[key]}
-                          onChange={() => togglePerm(key)}
-                          className="accent-green-600 w-4 h-4 flex-shrink-0 cursor-pointer"
-                        />
-                        <span className="text-sm text-gray-700 select-none">{lbl}</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
+                )
+              })}
+              {filteredSections.length === 0 && (
+                <p className="text-xs text-gray-400 text-center py-6">Nenhuma permissão encontrada para "{permSearch}".</p>
+              )}
+            </div>
           </div>
         </div>
 
