@@ -18,6 +18,7 @@ body{font-family:'Inter',sans-serif;background:#f5f4f0;color:#1a1a18;font-size:1
 .grid .full{grid-column:1/-1}
 label.lbl{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#888;margin-bottom:5px;display:block}
 label.lbl .req{color:#b83232}
+.section-title{font-size:11px;font-weight:800;letter-spacing:.04em;color:#1a1a18;padding-top:16px;margin-top:2px;border-top:1px solid #eeede8;margin-bottom:-2px}
 input[type=text],select,textarea{width:100%;background:#f5f4f0;border:.5px solid #d4d3ce;border-radius:6px;padding:9px 11px;font-size:13px;font-family:'Inter',sans-serif;color:#1a1a18;outline:none}
 input:focus,select:focus,textarea:focus{border-color:#1a1a18;background:#fff}
 textarea{resize:vertical;min-height:60px}
@@ -85,6 +86,16 @@ textarea{resize:vertical;min-height:60px}
         <label class="lbl">E-mail secundário</label>
         <input type="text" id="f_email2" placeholder="opcional">
       </div>
+      <div id="f_ajudacusto_wrap">
+        <label class="lbl">Ajuda de custo (R$/mês)</label>
+        <input type="text" id="f_ajudacusto" placeholder="0,00">
+      </div>
+      <div>
+        <label class="lbl">Apelido / ID no CRM <span class="req">*</span></label>
+        <input type="text" id="f_apelido" placeholder="Ex: joao.silva">
+      </div>
+
+      <div class="full section-title">Endereço</div>
       <div class="full">
         <label class="lbl">Endereço (rua, número e complemento)</label>
         <input type="text" id="f_endereco" placeholder="Ex: Rua das Flores, 123, Apto 45">
@@ -105,21 +116,14 @@ textarea{resize:vertical;min-height:60px}
         <label class="lbl">CEP</label>
         <input type="text" id="f_cep" placeholder="Ex: 80000-000">
       </div>
-      <div id="f_ajudacusto_wrap">
-        <label class="lbl">Ajuda de custo (R$/mês)</label>
-        <input type="text" id="f_ajudacusto" placeholder="0,00">
-      </div>
-      <div>
-        <label class="lbl">Apelido / ID no CRM <span class="req">*</span></label>
-        <input type="text" id="f_apelido" placeholder="Ex: joao.silva">
-      </div>
+
+      <div class="full section-title">Conta bancária</div>
       <div class="full">
-        <label class="lbl">Dados da conta (com o PIX) <span class="req">*</span></label>
         <div class="grid" style="margin-bottom:0">
           <div><label class="lbl" style="font-weight:400;text-transform:none;letter-spacing:0">Banco</label><input type="text" id="f_conta_banco" placeholder="Ex: Sicredi"></div>
           <div><label class="lbl" style="font-weight:400;text-transform:none;letter-spacing:0">Agência</label><input type="text" id="f_conta_agencia" placeholder="Ex: 0818"></div>
           <div><label class="lbl" style="font-weight:400;text-transform:none;letter-spacing:0">Conta</label><input type="text" id="f_conta_numero" placeholder="Ex: 20974-7"></div>
-          <div><label class="lbl" style="font-weight:400;text-transform:none;letter-spacing:0">Chave PIX</label><input type="text" id="f_conta_pix" placeholder="CPF, e-mail, celular ou aleatória"></div>
+          <div><label class="lbl" style="font-weight:400;text-transform:none;letter-spacing:0">Chave PIX <span class="req">*</span></label><input type="text" id="f_conta_pix" placeholder="CPF, e-mail, celular ou aleatória"></div>
         </div>
       </div>
     </div>

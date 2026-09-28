@@ -222,6 +222,10 @@ iframe.active{display:block}
 .cad-grid .full{grid-column:1/-1}
 .cad-lbl{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#888;margin-bottom:5px;display:block}
 .cad-lbl .req{color:#b83232}
+/* Separador entre blocos do formulário (Dados básicos / Endereço / Conta
+   bancária) — pedido do Diego (28/09/2026): "vamos deixar um pouco
+   separado essas parte". */
+.cad-section-title{font-size:11px;font-weight:800;letter-spacing:.04em;color:#1a1a18;padding-top:16px;margin-top:2px;border-top:1px solid #eeede8;margin-bottom:-2px}
 .cad-card input[type=text],.cad-card select,.cad-card textarea{background:#f5f4f0;border:1px solid #d4d3ce;border-radius:6px;padding:9px 11px;font-size:13px;font-family:'Inter',sans-serif;color:#1a1a18;width:100%;outline:none}
 .cad-card input:focus,.cad-card select:focus,.cad-card textarea:focus{border-color:#1a1a18;background:#fff}
 .cad-card textarea{resize:vertical;min-height:64px}
@@ -856,6 +860,16 @@ iframe.active{display:block}
             <label class="cad-lbl">E-mail secundário</label>
             <input type="text" id="cad_email2" placeholder="opcional">
           </div>
+          <div id="cad_ajudacusto_wrap" style="display:none">
+            <label class="cad-lbl">Ajuda de custo (R$/mês)</label>
+            <input type="number" id="cad_ajudacusto" min="0" step="0.01" placeholder="0,00">
+          </div>
+          <div>
+            <label class="cad-lbl">Apelido / ID no CRM <span class="req" title="Recomendado quando o nome na planilha de Importar é diferente do nome de exibição">(recomendado)</span></label>
+            <input type="text" id="cad_apelido" placeholder="Ex: joao.silva">
+          </div>
+
+          <div class="full cad-section-title">Endereço</div>
           <div class="full">
             <label class="cad-lbl">Endereço (rua, número e complemento)</label>
             <input type="text" id="cad_endereco" placeholder="Ex: Rua das Flores, 123, Apto 45">
@@ -876,22 +890,15 @@ iframe.active{display:block}
             <label class="cad-lbl">CEP</label>
             <input type="text" id="cad_cep" placeholder="Ex: 80000-000">
           </div>
-          <div id="cad_ajudacusto_wrap" style="display:none">
-            <label class="cad-lbl">Ajuda de custo (R$/mês)</label>
-            <input type="number" id="cad_ajudacusto" min="0" step="0.01" placeholder="0,00">
-          </div>
-          <div>
-            <label class="cad-lbl">Apelido / ID no CRM <span class="req" title="Recomendado quando o nome na planilha de Importar é diferente do nome de exibição">(recomendado)</span></label>
-            <input type="text" id="cad_apelido" placeholder="Ex: joao.silva">
-          </div>
+
+          <div class="full cad-section-title">Conta bancária</div>
           <div class="full">
-            <label class="cad-lbl">Dados da conta (com o PIX) <span class="req" title="Sem isso o cadastro fica marcado como pendente">(recomendado)</span></label>
-            <p id="cad_conta_legado_hint" style="display:none;font-size:11px;color:#b8863f;background:#fbf1de;border-radius:6px;padding:7px 10px;margin-bottom:8px;line-height:1.5"></p>
+            <p id="cad_conta_legado_hint" style="display:none;font-size:11px;color:#b8863f;background:#fbf1de;border-radius:6px;padding:7px 10px;margin-bottom:12px;line-height:1.5"></p>
             <div class="cad-grid" style="margin-bottom:0">
               <div><label class="cad-lbl" style="font-weight:400">Banco</label><input type="text" id="cad_conta_banco" placeholder="Ex: Sicredi"></div>
               <div><label class="cad-lbl" style="font-weight:400">Agência</label><input type="text" id="cad_conta_agencia" placeholder="Ex: 0818"></div>
               <div><label class="cad-lbl" style="font-weight:400">Conta</label><input type="text" id="cad_conta_numero" placeholder="Ex: 20974-7"></div>
-              <div><label class="cad-lbl" style="font-weight:400">Chave PIX</label><input type="text" id="cad_conta_pix" placeholder="CPF, e-mail, celular ou aleatória"></div>
+              <div><label class="cad-lbl" style="font-weight:400">Chave PIX <span class="req" title="Sem isso o cadastro fica marcado como pendente">(recomendado)</span></label><input type="text" id="cad_conta_pix" placeholder="CPF, e-mail, celular ou aleatória"></div>
             </div>
           </div>
         </div>
