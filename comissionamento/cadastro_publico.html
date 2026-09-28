@@ -7,39 +7,114 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Inter',sans-serif;background:#f5f4f0;color:#1a1a18;font-size:13px;line-height:1.5}
-.wrap{max-width:560px;margin:0 auto;padding:40px 24px 80px}
-.header{padding-bottom:16px;border-bottom:2px solid #1a1a18;margin-bottom:24px}
-.header p{font-size:11px;color:#888;font-weight:500;margin-bottom:4px}
-.header h1{font-size:22px;font-weight:800;line-height:1.15}
-.header .sub{font-size:12.5px;color:#666;margin-top:8px;line-height:1.6}
-.card{background:#fff;border:1px solid #d4d3ce;border-radius:10px;padding:22px 24px;margin-bottom:16px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Inter',sans-serif;background:#f0efe9;color:#1a1a18;font-size:13.5px;line-height:1.5;-webkit-font-smoothing:antialiased}
+
+.wrap{max-width:600px;margin:0 auto;padding:36px 20px 64px}
+
+/* ── Cabeçalho — logo real (empresa_logo, mesmo padrão do Faturamento e da
+   Controladoria) + identidade visual, já que quem preenche isso agora é o
+   parceiro de fora, não a equipe interna (pedido do Diego, 28/09/2026:
+   "vamos deixar o layout mais profissional"). */
+.brand{display:flex;justify-content:center;margin-bottom:22px}
+.brand-logo-crop{display:none;width:180px;height:44px;overflow:hidden;position:relative}
+.brand-logo-crop img{position:absolute;top:-28px;left:0;height:96px;width:auto}
+.brand.logo-loaded .brand-logo-crop{display:block}
+.brand:not(.logo-loaded) .brand-fallback{display:block}
+.brand-fallback{display:none;font-family:'Inter',sans-serif;font-weight:800;font-size:15px;letter-spacing:.02em;color:#1a1a18}
+.brand-fallback b{color:#166B4A}
+
+.header{text-align:center;margin-bottom:28px}
+.header .eyebrow{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#1E9B6B;margin-bottom:6px}
+.header h1{font-size:25px;font-weight:800;line-height:1.2;letter-spacing:-.01em}
+.header .sub{font-size:13px;color:#666;margin-top:10px;line-height:1.6;max-width:440px;margin-left:auto;margin-right:auto}
+
+.card{background:#fff;border:1px solid #e2e0d9;border-radius:14px;padding:26px 28px;margin-bottom:18px;box-shadow:0 1px 2px rgba(26,26,24,.04),0 8px 24px rgba(26,26,24,.05)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
 .grid .full{grid-column:1/-1}
-label.lbl{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#888;margin-bottom:5px;display:block}
+label.lbl{font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#8a8a85;margin-bottom:6px;display:block}
 label.lbl .req{color:#b83232}
-.section-title{font-size:11px;font-weight:800;letter-spacing:.04em;color:#1a1a18;padding-top:16px;margin-top:2px;border-top:1px solid #eeede8;margin-bottom:-2px}
-input[type=text],select,textarea{width:100%;background:#f5f4f0;border:.5px solid #d4d3ce;border-radius:6px;padding:9px 11px;font-size:13px;font-family:'Inter',sans-serif;color:#1a1a18;outline:none}
-input:focus,select:focus,textarea:focus{border-color:#1a1a18;background:#fff}
+
+/* Seções numeradas (Seus dados / Endereço / Dados bancários) — divide um
+   formulário de 17 campos em blocos com começo e fim claros, em vez de um
+   grid único e homogêneo do topo ao fim. */
+.section-title{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;color:#1a1a18;padding-top:22px;margin-top:6px;margin-bottom:2px;border-top:1px solid #eeede8}
+.section-title:first-child{padding-top:0;margin-top:0;border-top:none}
+.section-num{width:22px;height:22px;border-radius:50%;background:#166B4A;color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
+input[type=text],select,textarea{
+  width:100%;background:#faf9f6;border:1px solid #d4d3ce;border-radius:8px;
+  padding:11px 13px;font-size:14.5px;font-family:'Inter',sans-serif;color:#1a1a18;
+  outline:none;transition:border-color .12s,background .12s,box-shadow .12s;
+  min-height:44px;
+}
+input:focus,select:focus,textarea:focus{border-color:#1E9B6B;background:#fff;box-shadow:0 0 0 3px rgba(30,155,107,.12)}
 textarea{resize:vertical;min-height:60px}
-.actions{display:flex;justify-content:flex-end;margin-top:6px}
-.btn{background:#1a1a18;color:#fff;border:none;border-radius:6px;padding:11px 24px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer}
-.btn:hover{background:#333230}
-.err{color:#b83232;font-size:12px;margin-top:10px;display:none}
-#done{display:none}
-.done-icon{font-size:32px;margin-bottom:10px}
-.hint{background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:0 6px 6px 0;padding:11px 14px;font-size:12px;color:#444;line-height:1.6}
+select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238a8a85' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:34px}
+
+.actions{margin-top:22px}
+.btn{
+  width:100%;background:#166B4A;color:#fff;border:none;border-radius:9px;
+  padding:14px 24px;font-size:14.5px;font-weight:700;font-family:'Inter',sans-serif;
+  cursor:pointer;transition:background .12s,transform .08s;
+}
+.btn:hover{background:#124f37}
+.btn:active{transform:scale(.99)}
+.actions-hint{text-align:center;font-size:11.5px;color:#999;margin-top:10px}
+
+.err{display:flex;align-items:flex-start;gap:8px;color:#8a2020;background:#fceaea;border:1px solid #f3caca;border-radius:8px;font-size:12.5px;padding:11px 13px;margin-top:16px;line-height:1.5}
+.err::before{content:'⚠';flex-shrink:0}
+.err:empty{display:none}
+
+#done{display:none;text-align:center;padding:44px 28px}
+.done-icon{width:56px;height:56px;border-radius:50%;background:#eaf5f0;color:#166B4A;font-size:26px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+#done .title{font-weight:800;font-size:18px;margin-bottom:8px}
+#done .sub{color:#666;font-size:13.5px;line-height:1.6;max-width:360px;margin:0 auto}
+
+.hint{display:flex;align-items:flex-start;gap:10px;font-size:11.5px;color:#8a8a85;line-height:1.6;padding:0 4px}
+.hint svg{flex-shrink:0;margin-top:1px}
+
+@media (max-width:640px){
+  .wrap{padding:24px 14px 48px}
+  .card{padding:20px 16px;border-radius:12px}
+  .grid{grid-template-columns:1fr;gap:14px}
+  .header h1{font-size:21px}
+  /* inputs a 16px no mobile: abaixo disso o Safari/iOS dá zoom automático
+     ao focar o campo, o que atrapalha muito quem preenche pelo celular
+     (achado do Diego, 28/09/2026: "a maioria deles irão responder pelo
+     celular"). */
+  input[type=text],select,textarea{font-size:16px;padding:12px 13px}
+  .btn{padding:15px 24px;font-size:15px}
+}
 </style>
 </head>
 <body>
 <div class="wrap">
+  <div class="brand" id="brandBox">
+    <div class="brand-logo-crop"><img id="brandLogoImg" alt="Gestora Smart"></div>
+    <p class="brand-fallback">GESTORA <b>SMART</b></p>
+  </div>
+  <script>
+  (function () {
+    fetch('/api/settings/public')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.empresa_logo) return;
+        document.getElementById('brandLogoImg').src = d.empresa_logo;
+        document.getElementById('brandBox').classList.add('logo-loaded');
+      })
+      .catch(function () {});
+  })();
+  </script>
+
   <div class="header">
-    <p>Gestora Smart</p>
+    <p class="eyebrow">Programa de Parceiros</p>
     <h1>Cadastro de Parceiro</h1>
-    <p class="sub">Preencha seus dados abaixo. Ao clicar em "Concluir cadastro", seus dados já entram direto no sistema — não precisa enviar nada de volta.</p>
+    <p class="sub">Preencha seus dados abaixo. Ao clicar em "Concluir cadastro", eles já entram direto no sistema da Gestora Smart — não precisa enviar nada de volta por e-mail ou WhatsApp.</p>
   </div>
 
   <div class="card" id="form_card">
+    <div class="section-title"><span class="section-num">1</span> Seus dados</div>
     <div class="grid">
       <div>
         <label class="lbl">Categoria <span class="req">*</span></label>
@@ -95,7 +170,7 @@ textarea{resize:vertical;min-height:60px}
         <input type="text" id="f_apelido" placeholder="Ex: joao.silva">
       </div>
 
-      <div class="full section-title">Endereço</div>
+      <div class="full section-title"><span class="section-num">2</span> Endereço</div>
       <div class="full">
         <label class="lbl">Endereço (rua, número e complemento)</label>
         <input type="text" id="f_endereco" placeholder="Ex: Rua das Flores, 123, Apto 45">
@@ -117,7 +192,7 @@ textarea{resize:vertical;min-height:60px}
         <input type="text" id="f_cep" placeholder="Ex: 80000-000">
       </div>
 
-      <div class="full section-title">Conta bancária</div>
+      <div class="full section-title"><span class="section-num">3</span> Dados bancários</div>
       <div class="full">
         <div class="grid" style="margin-bottom:0">
           <div><label class="lbl" style="font-weight:400;text-transform:none;letter-spacing:0">Banco</label><input type="text" id="f_conta_banco" placeholder="Ex: Sicredi"></div>
@@ -129,17 +204,21 @@ textarea{resize:vertical;min-height:60px}
     </div>
     <div class="err" id="f_err"></div>
     <div class="actions">
-      <button class="btn" onclick="enviarCadastro()">✓ Concluir cadastro</button>
+      <button class="btn" onclick="enviarCadastro()">Concluir cadastro</button>
+      <p class="actions-hint">Leva menos de 2 minutos</p>
     </div>
   </div>
 
   <div class="card" id="done">
-    <div class="done-icon">✅</div>
-    <p style="font-weight:700;font-size:15px;margin-bottom:6px">Cadastro concluído!</p>
-    <p style="color:#666">Seus dados já foram registrados no sistema. Pode fechar esta página.</p>
+    <div class="done-icon">✓</div>
+    <p class="title">Cadastro concluído!</p>
+    <p class="sub">Seus dados já foram registrados. Nossa equipe vai confirmar tudo em breve — pode fechar esta página.</p>
   </div>
 
-  <div class="hint">Este é um formulário de pré-cadastro do protótipo de Comissionamento da Gestora Smart. Nenhum dado é enviado para nenhum servidor externo — fica salvo direto no sistema local usado pela equipe.</div>
+  <div class="hint">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    <span>Seus dados são usados só para o cadastro no programa de parceiros da Gestora Smart.</span>
+  </div>
 </div>
 
 <script>
@@ -216,14 +295,22 @@ function enviarCadastro() {
   const celular = document.getElementById('f_celular').value.trim();
   const email = document.getElementById('f_email').value.trim();
 
-  if (!nome) { errEl.textContent = 'Informe seu nome completo.'; errEl.style.display = 'block'; return; }
-  if (!cpf) { errEl.textContent = 'Informe seu CPF.'; errEl.style.display = 'block'; return; }
-  if (!comercial) { errEl.textContent = 'Selecione a qual executivo você está vinculado(a).'; errEl.style.display = 'block'; return; }
-  if (!cidade) { errEl.textContent = 'Informe sua cidade.'; errEl.style.display = 'block'; return; }
-  if (!apelido) { errEl.textContent = 'Informe seu apelido / ID no CRM.'; errEl.style.display = 'block'; return; }
-  if (!conta) { errEl.textContent = 'Informe os dados da conta.'; errEl.style.display = 'block'; return; }
-  if (!celular) { errEl.textContent = 'Informe seu celular.'; errEl.style.display = 'block'; return; }
-  if (!email) { errEl.textContent = 'Informe seu e-mail.'; errEl.style.display = 'block'; return; }
+  // Formulário longo (17 campos, 3 seções) — sem rolar até o aviso, quem
+  // preenche pelo celular pode nem perceber que faltou algo lá em cima
+  // (achado ao revisar o mobile, 28/09/2026).
+  const mostrarErro = (msg) => {
+    errEl.textContent = msg;
+    errEl.style.display = 'flex';
+    errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+  if (!nome) { mostrarErro('Informe seu nome completo.'); return; }
+  if (!cpf) { mostrarErro('Informe seu CPF.'); return; }
+  if (!comercial) { mostrarErro('Selecione a qual executivo você está vinculado(a).'); return; }
+  if (!cidade) { mostrarErro('Informe sua cidade.'); return; }
+  if (!apelido) { mostrarErro('Informe seu apelido / ID no CRM.'); return; }
+  if (!conta) { mostrarErro('Informe os dados da conta.'); return; }
+  if (!celular) { mostrarErro('Informe seu celular.'); return; }
+  if (!email) { mostrarErro('Informe seu e-mail.'); return; }
 
   const tipo = document.getElementById('f_tipo').value;
   const entry = {
