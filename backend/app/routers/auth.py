@@ -95,6 +95,15 @@ def user_to_dict(user: User, db=None) -> dict:
             perm: get_permission(user, perm, db)
             for perm in ROLE_PERMISSIONS[UserRole.ADMIN].keys()
         },
+        # Valor bruto da coluna individual (None = "segue o perfil", nunca
+        # decidido) — diferente de "permissions" acima, que já resolve pro
+        # valor efetivo e por isso não dá pra saber se foi ou não decidido
+        # individualmente. Usado pelo indicador "X pendente(s)" na tela de
+        # Gestão de Acessos (28/09/2026, pedido do Diego).
+        "permission_overrides": {
+            perm: getattr(user, perm, None)
+            for perm in ROLE_PERMISSIONS[UserRole.ADMIN].keys()
+        },
         # Área de gestão restrita (None = irrestrito/Admin) — usada pelo
         # frontend pra saber se o usuário logado é um "gestor de área" e
         # deve enxergar só uma fatia da tela de Gestão de Acessos.

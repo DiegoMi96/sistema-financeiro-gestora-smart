@@ -79,12 +79,6 @@ const PERM_SECTIONS = [
     ['can_export_excel',            'Exportar Excel'],
     ['can_export_pdf',              'Exportar PDF'],
   ]},
-  { key: 'CONTESTAÇÃO', perms: [
-    ['can_view_contestacao',        'Acesso ao módulo'],
-    ['can_view_cont_ciclos',        'Ciclos de contestação'],
-    ['can_view_cont_ciclo_detalhe', 'Detalhe do ciclo'],
-    ['can_view_cont_allcom',        'Allcom'],
-  ]},
   { key: 'COMISSIONAMENTO', perms: [
     ['can_view_comissao',             'Acesso ao módulo'],
     ['can_view_com_consolidado',      'Visão Consolidada'],
@@ -174,6 +168,27 @@ const COLOR_CLASSES = Object.fromEntries(CUSTOM_COLORS.map(c => [c.value, c.cls]
 
 const INPUT = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:outline-none'
 
+// Rótulo bonito de cada seção/módulo pros cards de perfil do passo 2 do
+// "Novo usuário" (28/09/2026) — section.key já existe em CAIXA ALTA pro
+// cabeçalho do acordeon, aqui só formata pra exibição normal nos chips.
+const SECTION_LABEL = {
+  FATURAMENTO: 'Faturamento', COMISSIONAMENTO: 'Comissionamento', GUARDIÃO: 'Guardião',
+  CONTROLADORIA: 'Controladoria', ORGANOGRAMA: 'Organograma', SMT: 'SMT', ESTOQUE: 'Estoque',
+}
+
+// Quais módulos (chips) um perfil libera por padrão — usado só pra dar uma
+// prévia no card do perfil, no passo 2 do wizard de novo usuário. Considera
+// "Acesso ao módulo" = a primeira permissão de cada seção (GERAL não conta,
+// não é um módulo). Funciona pra perfis de sistema e personalizados, já que
+// os dois vêm com o mesmo formato de "permissions" resolvido pelo backend
+// (GET /settings/roles).
+function roleModuleChips(roleObj, sections) {
+  if (!roleObj) return []
+  return sections
+    .filter(s => s.key !== 'GERAL' && roleObj.permissions?.[s.perms[0][0]])
+    .map(s => SECTION_LABEL[s.key] || s.key)
+}
+
 // ── Página principal ──────────────────────────────────────────
 
 export default function AcessosPage() {
@@ -251,6 +266,17 @@ function UsuariosTab() {
   })
 
   const { user: me } = useAuth()
+  const myScope = me?.manager_scope || null
+  const visiblePerms = (myScope
+    ? PERM_SECTIONS.filter(s => AREA_MODULE_SECTIONS[myScope]?.includes(s.key))
+    : PERM_SECTIONS
+  ).flatMap(s => s.perms)
+
+  // Quantas permissões (dentre as que este admin/gestor pode ver) esse
+  // usuário ainda não teve decididas individualmente — null na coluna bruta
+  // (permission_overrides) = "segue o perfil". Pedido do Diego (28/09/2026):
+  // dar pra ver isso na lista, sem precisar abrir cada usuário um por um.
+  const pendingCount = (u) => visiblePerms.filter(([k]) => (u.permission_overrides?.[k] ?? null) === null).length
 
   const deactivate = useMutation({
     mutationFn: (id) => authApi.deleteUser(id),
@@ -296,6 +322,7 @@ function UsuariosTab() {
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Usuário</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">E-mail</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Perfil</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Permissões</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Ações</th>
               </tr>
@@ -317,6 +344,19 @@ function UsuariosTab() {
                     <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-0.5 rounded-full ${ROLE_COLORS[u.role] || 'bg-gray-100 text-gray-700'}`}>
                       {u.role_label}
                     </span>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    {pendingCount(u) === 0 ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        Tudo decidido
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700" title="Permissões que ainda seguem o padrão do perfil, nunca decididas para esta pessoa">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                        {pendingCount(u)} pendente{pendingCount(u) !== 1 ? 's' : ''}
+                      </span>
+                    )}
                   </td>
                   <td className="px-5 py-3.5">
                     <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full ${
@@ -402,16 +442,26 @@ function UserFormModal({ user, onClose, onSuccess }) {
     role: user.role,
     custom_role_key: user.custom_role_key || null,
     is_active: user.is_active,
-    ...Object.fromEntries(ALL_PERMS.map(([k]) => [k, user.permissions?.[k] ?? null])),
+    // Precisa ser o valor BRUTO da coluna individual (permission_overrides),
+    // não o resolvido (permissions) — senão null vira sempre um true/false
+    // herdado do perfil e a tela nunca mostra nada como "pendente" mesmo
+    // quando nada foi decidido pra esse usuário (bug encontrado 28/09/2026).
+    ...Object.fromEntries(ALL_PERMS.map(([k]) => [k, user.permission_overrides?.[k] ?? null])),
   } : {
     name: '', email: '', password: '', role: 'contas_receber',
     custom_role_key: null,
     ...Object.fromEntries(ALL_PERMS.map(([k]) => [k, null])),
   })
   const [loading, setLoading] = useState(false)
-  const [openSections, setOpenSections] = useState(
-    Object.fromEntries(PERM_SECTIONS.map(s => [s.key, s.key === 'GERAL']))
-  )
+  const [openSections, setOpenSections] = useState({})
+
+  // Wizard em passos (28/09/2026) — pedido do Diego: a tela antiga jogava as
+  // ~70 permissões soltas na cara de quem só queria criar um usuário rápido
+  // ("ficamos totalmente perdido"). Agora: 1) dados, 2) perfil (com preview
+  // dos módulos que ele libera — já dá pra criar aqui mesmo), 3) personalizar
+  // acessos individuais, escondido atrás de um link, só pra quem precisa.
+  const [step, setStep] = useState(1)
+  const [permSearch, setPermSearch] = useState('')
 
   const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }))
 
@@ -422,6 +472,36 @@ function UserFormModal({ user, onClose, onSuccess }) {
   const pendingTotal = visibleSections
     .flatMap(s => s.perms)
     .filter(([k]) => form[k] === null).length
+
+  const selectedRoleObj = apiRoles.find(r =>
+    form.custom_role_key ? (r.is_custom && r.role === form.custom_role_key) : (!r.is_custom && r.role === form.role)
+  )
+
+  const selectRole = (r) => {
+    if (r.is_custom) setForm(f => ({ ...f, custom_role_key: r.role }))
+    else setForm(f => ({ ...f, role: r.role, custom_role_key: null }))
+  }
+
+  const goStep = (n) => {
+    if (n === 2 && step === 1) {
+      if (!form.name.trim() || !form.email.trim() || (!isEdit && (!form.password || form.password.length < 6))) {
+        toast.error(`Preencha nome, e-mail${isEdit ? '' : ' e senha (mínimo 6 caracteres)'}`)
+        return
+      }
+    }
+    setStep(n)
+  }
+
+  // Seções filtradas pela busca do passo 3 — abre sozinha a seção que tiver
+  // permissão batendo com o texto digitado, pra não precisar abrir uma por
+  // uma procurando "excel" ou "cadastro".
+  const q = permSearch.trim().toLowerCase()
+  const filteredSections = visibleSections
+    .map(section => ({
+      ...section,
+      perms: section.perms.filter(([, lbl]) => !q || lbl.toLowerCase().includes(q) || section.key.toLowerCase().includes(q)),
+    }))
+    .filter(section => section.perms.length > 0)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -436,153 +516,238 @@ function UserFormModal({ user, onClose, onSuccess }) {
     } finally { setLoading(false) }
   }
 
+  const stepTitles = { 1: isEdit ? 'Editar usuário' : 'Novo usuário', 2: isEdit ? 'Editar usuário' : 'Novo usuário', 3: 'Personalizar acessos' }
+  const stepSubs = {
+    1: 'Passo 1 de 2 — dados básicos',
+    2: 'Passo 2 de 2 — perfil de acesso',
+    3: 'Avançado — ajuste fino por módulo (opcional)',
+  }
+
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/40 flex items-start justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg my-8 flex flex-col">
         <div className="p-5 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
           <div>
-            <h2 className="font-semibold text-gray-900">{isEdit ? 'Editar usuário' : 'Novo usuário'}</h2>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {isEdit ? 'Atualize os dados e permissões individuais' : 'Preencha os dados e configure as permissões'}
-            </p>
+            <h2 className="font-semibold text-gray-900">{stepTitles[step]}</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{stepSubs[step]}</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+          <button onClick={onClose} type="button" className="text-gray-400 hover:text-gray-600 transition-colors">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1">
-          <div className="p-5 space-y-4">
-            {/* Dados básicos */}
-            <div className="grid grid-cols-1 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Nome completo *</label>
-                <input value={form.name} onChange={e => set('name', e.target.value)} required className={INPUT} placeholder="Ex: Melissa Souza" />
-              </div>
-              {/* E-mail — antes só aparecia na criação; editar um usuário não
-                  deixava trocar o e-mail de jeito nenhum (achado pelo Diego).
-                  Agora aparece sempre, editável nos dois casos. */}
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">E-mail *</label>
-                <input type="email" value={form.email} onChange={e => set('email', e.target.value)} required className={INPUT} placeholder="melissa@empresa.com.br" />
-              </div>
-              {!isEdit && (
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Senha inicial *</label>
-                  <input type="password" value={form.password} onChange={e => set('password', e.target.value)} required minLength={6} className={INPUT} placeholder="Mínimo 6 caracteres" />
-                </div>
-              )}
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Perfil base</label>
-                <select
-                  value={form.custom_role_key ? `cus:${form.custom_role_key}` : `sys:${form.role}`}
-                  onChange={e => {
-                    const val = e.target.value
-                    if (val.startsWith('cus:')) {
-                      setForm(f => ({ ...f, custom_role_key: val.slice(4) }))
-                    } else {
-                      setForm(f => ({ ...f, role: val.slice(4), custom_role_key: null }))
-                    }
-                  }}
-                  className={INPUT}
-                >
-                  <optgroup label="Perfis do sistema">
-                    {apiRoles.filter(r => !r.is_custom).map(r => (
-                      <option key={`sys:${r.role}`} value={`sys:${r.role}`}>{r.label}</option>
-                    ))}
-                  </optgroup>
-                  {apiRoles.some(r => r.is_custom) && (
-                    <optgroup label="Perfis personalizados">
-                      {apiRoles.filter(r => r.is_custom).map(r => (
-                        <option key={`cus:${r.role}`} value={`cus:${r.role}`}>{r.label}</option>
-                      ))}
-                    </optgroup>
-                  )}
-                </select>
-                <p className="text-[11px] text-gray-400 mt-1">As permissões individuais abaixo sobrescrevem o perfil base.</p>
-              </div>
-            </div>
+        {/* Barra de progresso do wizard */}
+        <div className="px-5 pt-3 flex gap-1.5 flex-shrink-0">
+          {[1, 2, 3].map(n => (
+            <div key={n} className="h-1 flex-1 rounded-full"
+              style={{ background: step > n || (n === 3 && step === 3) ? '#111827' : step === n ? '#111827' : '#E5E7EB',
+                       opacity: n === 3 && step < 3 ? 0.35 : 1 }} />
+          ))}
+        </div>
+        <div className="px-5 pb-2 pt-1 flex justify-between text-[10px] text-gray-400 font-medium flex-shrink-0">
+          <span className={step === 1 ? 'text-gray-900 font-semibold' : ''}>Dados</span>
+          <span className={step === 2 ? 'text-gray-900 font-semibold' : ''}>Perfil</span>
+          <span className={step === 3 ? 'text-gray-900 font-semibold' : ''}>Personalizar acessos</span>
+        </div>
 
-            {/* Permissões individuais por seção */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
-                  <Shield size={12} className="text-gray-400" />
-                  Permissões individuais
-                </p>
-                {/* Pedido do Diego (27/09/2026): mostrar o que ainda não foi
-                    decidido — "Padrão do perfil" (null) é o valor pendente,
-                    não uma escolha explícita. Sem isso, é fácil sair da tela
-                    achando que configurou tudo quando só abriu 1 de 10 seções. */}
-                {pendingTotal > 0 ? (
-                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">
-                    {pendingTotal} pendente{pendingTotal !== 1 ? 's' : ''} (padrão do perfil)
-                  </span>
-                ) : (
-                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
-                    Tudo decidido
-                  </span>
+        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1">
+          <div className="p-5">
+
+            {/* ── Passo 1 — dados básicos ── */}
+            {step === 1 && (
+              <div className="grid grid-cols-1 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Nome completo *</label>
+                  <input value={form.name} onChange={e => set('name', e.target.value)} className={INPUT} placeholder="Ex: Melissa Souza" />
+                </div>
+                {/* E-mail — antes só aparecia na criação; editar um usuário não
+                    deixava trocar o e-mail de jeito nenhum (achado pelo Diego).
+                    Agora aparece sempre, editável nos dois casos. */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">E-mail *</label>
+                  <input type="email" value={form.email} onChange={e => set('email', e.target.value)} className={INPUT} placeholder="melissa@empresa.com.br" />
+                </div>
+                {!isEdit && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Senha inicial *</label>
+                    <input type="password" value={form.password} onChange={e => set('password', e.target.value)} minLength={6} className={INPUT} placeholder="Mínimo 6 caracteres" />
+                  </div>
                 )}
               </div>
-              <div className="space-y-2">
-                {visibleSections.map(section => {
-                  const pendingInSection = section.perms.filter(([k]) => form[k] === null).length
-                  return (
-                  <div key={section.key} className="border border-gray-100 rounded-xl overflow-hidden">
-                    <button
-                      type="button"
-                      onClick={() => toggleSection(section.key)}
-                      className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 text-left"
-                    >
-                      <span className="flex items-center gap-2">
-                        <span className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase">
-                          {section.key}
-                        </span>
-                        {pendingInSection > 0 && (
-                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700">
-                            {pendingInSection} pendente{pendingInSection !== 1 ? 's' : ''}
+            )}
+
+            {/* ── Passo 2 — perfil, com preview dos módulos que ele libera ── */}
+            {step === 2 && (
+              <div>
+                <p className="text-xs text-gray-400 mb-3">
+                  Escolha o que essa pessoa vai fazer no sistema. Isso já libera os módulos certos — sem precisar mexer em nada mais.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {apiRoles.map(r => {
+                    const sel = r.is_custom ? form.custom_role_key === r.role : (!r.is_custom && form.role === r.role && !form.custom_role_key)
+                    const mods = roleModuleChips(r, visibleSections)
+                    return (
+                      <div key={`${r.is_custom ? 'cus' : 'sys'}:${r.role}`}
+                        onClick={() => selectRole(r)}
+                        className={`border rounded-xl p-3 cursor-pointer transition-colors ${sel ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 ${sel ? 'border-green-500' : 'border-gray-300'}`}>
+                            {sel && <span className="block w-full h-full rounded-full scale-50" style={{ background: '#22c55e' }} />}
                           </span>
-                        )}
-                      </span>
-                      {openSections[section.key] ? <ChevronDown size={13} className="text-gray-400" /> : <ChevronRight size={13} className="text-gray-400" />}
-                    </button>
-                    {openSections[section.key] && (
-                      <div className="divide-y divide-gray-50">
-                        {section.perms.map(([key, lbl]) => (
-                          <div key={key} className="flex items-center justify-between px-4 py-2 hover:bg-gray-50">
-                            <span className="text-sm text-gray-700">{lbl}</span>
-                            <select
-                              value={form[key] === null ? 'null' : String(form[key])}
-                              onChange={e => set(key, e.target.value === 'null' ? null : e.target.value === 'true')}
-                              className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
-                            >
-                              <option value="null">Padrão do perfil</option>
-                              <option value="true">✓ Sim</option>
-                              <option value="false">✗ Não</option>
-                            </select>
-                          </div>
-                        ))}
+                          <span className="text-[13px] font-semibold text-gray-900">{r.label}</span>
+                        </div>
+                        {r.description && <p className="text-[11px] text-gray-400 leading-snug mb-1.5">{r.description}</p>}
+                        <div className="flex flex-wrap gap-1">
+                          {mods.length ? mods.map(m => (
+                            <span key={m} className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700">{m}</span>
+                          )) : (
+                            <span className="text-[10px] text-gray-300">Sem módulos liberados por padrão</span>
+                          )}
+                        </div>
                       </div>
-                    )}
-                  </div>
-                  )
-                })}
+                    )
+                  })}
+                </div>
+
+                <div className="mt-4 p-3 rounded-xl bg-green-50 border border-green-100 flex gap-2 text-[12px] text-emerald-800">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" className="flex-shrink-0 mt-0.5"><path d="M20 6L9 17l-5-5"/></svg>
+                  <span>
+                    <b>{isEdit ? 'Pronto pra salvar.' : 'Pronto pra criar.'}</b> Esse perfil já libera os módulos certos — só personalize os acessos se essa pessoa for uma exceção.
+                  </span>
+                </div>
+
+                <div className="mt-3 text-center">
+                  <button type="button" onClick={() => goStep(3)} className="text-xs text-gray-400 underline hover:text-gray-700">
+                    Personalizar acessos individuais (avançado) →
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* ── Passo 3 — personalizar acessos (opcional) ── */}
+            {step === 3 && (
+              <div>
+                <div className="relative mb-3">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/>
+                  </svg>
+                  <input value={permSearch} onChange={e => setPermSearch(e.target.value)}
+                    placeholder="Buscar uma permissão específica (ex: excel, cadastro, dashboard)..."
+                    className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-green-500 focus:outline-none" />
+                </div>
+
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+                    <Shield size={12} className="text-gray-400" />
+                    Módulos e permissões
+                  </p>
+                  {/* Pedido do Diego (27/09/2026): mostrar o que ainda não foi
+                      decidido — "Padrão do perfil" (null) é o valor pendente,
+                      não uma escolha explícita. */}
+                  {pendingTotal > 0 ? (
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">
+                      {pendingTotal} pendente{pendingTotal !== 1 ? 's' : ''} (padrão do perfil)
+                    </span>
+                  ) : (
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
+                      Tudo decidido
+                    </span>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  {filteredSections.map(section => {
+                    const pendingInSection = section.perms.filter(([k]) => form[k] === null).length
+                    const isOpen = q ? true : !!openSections[section.key]
+                    return (
+                    <div key={section.key} className="border border-gray-100 rounded-xl overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => toggleSection(section.key)}
+                        className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 text-left"
+                      >
+                        <span className="flex items-center gap-2">
+                          <span className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase">
+                            {section.key}
+                          </span>
+                          {pendingInSection > 0 && (
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700">
+                              {pendingInSection} pendente{pendingInSection !== 1 ? 's' : ''}
+                            </span>
+                          )}
+                        </span>
+                        {isOpen ? <ChevronDown size={13} className="text-gray-400" /> : <ChevronRight size={13} className="text-gray-400" />}
+                      </button>
+                      {isOpen && (
+                        <div className="divide-y divide-gray-50">
+                          {section.perms.map(([key, lbl]) => (
+                            <div key={key} className="flex items-center justify-between px-4 py-2 hover:bg-gray-50">
+                              <span className="text-sm text-gray-700">{lbl}</span>
+                              <div className="flex border border-gray-200 rounded-lg overflow-hidden text-[11px] font-semibold flex-shrink-0">
+                                <button type="button" onClick={() => set(key, null)}
+                                  className={`px-2 py-1 ${form[key] === null ? 'bg-gray-100 text-gray-700' : 'text-gray-400 hover:bg-gray-50'}`}>Padrão</button>
+                                <button type="button" onClick={() => set(key, true)}
+                                  className={`px-2 py-1 border-l border-gray-200 ${form[key] === true ? 'bg-emerald-50 text-emerald-700' : 'text-gray-400 hover:bg-gray-50'}`}>Sim</button>
+                                <button type="button" onClick={() => set(key, false)}
+                                  className={`px-2 py-1 border-l border-gray-200 ${form[key] === false ? 'bg-red-50 text-red-700' : 'text-gray-400 hover:bg-gray-50'}`}>Não</button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    )
+                  })}
+                  {filteredSections.length === 0 && (
+                    <p className="text-xs text-gray-400 text-center py-6">Nenhuma permissão encontrada para "{permSearch}".</p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="p-5 border-t border-gray-100 flex gap-3 flex-shrink-0">
-            <button type="button" onClick={onClose}
-              className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
-              Cancelar
-            </button>
-            <button type="submit" disabled={loading}
-              className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors"
-              style={{ background: loading ? '#9CA3AF' : '#111827' }}>
-              {loading ? 'Salvando...' : isEdit ? 'Salvar alterações' : 'Criar usuário'}
-            </button>
+            {step === 1 && (
+              <>
+                <button type="button" onClick={onClose}
+                  className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
+                  Cancelar
+                </button>
+                <button type="button" onClick={() => goStep(2)}
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors" style={{ background: '#111827' }}>
+                  Continuar →
+                </button>
+              </>
+            )}
+            {step === 2 && (
+              <>
+                <button type="button" onClick={() => goStep(1)}
+                  className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
+                  ← Voltar
+                </button>
+                <button type="submit" disabled={loading}
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors"
+                  style={{ background: loading ? '#9CA3AF' : '#16A34A' }}>
+                  {loading ? 'Salvando...' : isEdit ? 'Salvar alterações' : 'Criar usuário'}
+                </button>
+              </>
+            )}
+            {step === 3 && (
+              <>
+                <button type="button" onClick={() => goStep(2)}
+                  className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
+                  ← Voltar ao perfil
+                </button>
+                <button type="submit" disabled={loading}
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors"
+                  style={{ background: loading ? '#9CA3AF' : '#16A34A' }}>
+                  {loading ? 'Salvando...' : isEdit ? 'Salvar alterações' : 'Criar usuário'}
+                </button>
+              </>
+            )}
           </div>
         </form>
       </div>

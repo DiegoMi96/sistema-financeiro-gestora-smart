@@ -674,6 +674,11 @@ ROLE_TIER = {
 # a seção de permissão continuou aparecendo na tela sem card correspondente.
 # A permissão can_view_logistica em si e a rota /logistica não foram tocadas
 # (só a seção sumiu da UI de permissões) — Logística virou parte do Estoque.
+# Seção "CONTESTAÇÃO" removida em 28/09/2026 pelo mesmo motivo (Diego: "a
+# contestação também não teremos card") — módulo de Contestação nunca saiu do
+# papel (ver CLAUDE.md, Módulo 2 🚧 NÃO INICIADO). As permissões
+# can_view_contestacao/can_view_cont_* não foram tocadas, só a seção sumiu da
+# UI de permissões.
 MODULE_PERMISSIONS = {
     "FATURAMENTO": [
         "can_view_faturamento", "can_view_fat_ciclos", "can_view_fat_ciclo_detalhe",
@@ -681,9 +686,6 @@ MODULE_PERMISSIONS = {
         "can_approve_billing", "can_create_adjustment", "can_approve_adjustment",
         "can_upload_files", "can_sync_asaas", "can_view_financial_values",
         "can_export_excel", "can_export_pdf",
-    ],
-    "CONTESTAÇÃO": [
-        "can_view_contestacao", "can_view_cont_ciclos", "can_view_cont_ciclo_detalhe", "can_view_cont_allcom",
     ],
     "COMISSIONAMENTO": [
         "can_view_comissao", "can_view_com_consolidado", "can_view_com_executivo",
