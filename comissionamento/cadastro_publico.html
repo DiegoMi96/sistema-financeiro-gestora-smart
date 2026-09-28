@@ -85,6 +85,10 @@ textarea{resize:vertical;min-height:60px}
         <label class="lbl">E-mail secundário</label>
         <input type="text" id="f_email2" placeholder="opcional">
       </div>
+      <div class="full">
+        <label class="lbl">Endereço (rua, número e complemento)</label>
+        <input type="text" id="f_endereco" placeholder="Ex: Rua das Flores, 123, Apto 45">
+      </div>
       <div>
         <label class="lbl">Bairro</label>
         <input type="text" id="f_bairro" placeholder="Ex: Centro">
@@ -92,6 +96,14 @@ textarea{resize:vertical;min-height:60px}
       <div>
         <label class="lbl">Cidade <span class="req">*</span></label>
         <input type="text" id="f_cidade" placeholder="Ex: Curitiba">
+      </div>
+      <div>
+        <label class="lbl">Estado (UF)</label>
+        <input type="text" id="f_estado" maxlength="2" style="text-transform:uppercase" placeholder="Ex: PR">
+      </div>
+      <div>
+        <label class="lbl">CEP</label>
+        <input type="text" id="f_cep" placeholder="Ex: 80000-000">
       </div>
       <div id="f_ajudacusto_wrap">
         <label class="lbl">Ajuda de custo (R$/mês)</label>
@@ -221,8 +233,11 @@ function enviarCadastro() {
     telefone: document.getElementById('f_telefone').value.trim(),
     email,
     email2: document.getElementById('f_email2').value.trim(),
+    endereco: document.getElementById('f_endereco').value.trim(),
     bairro: document.getElementById('f_bairro').value.trim(),
     cidade,
+    estado: document.getElementById('f_estado').value.trim().toUpperCase(),
+    cep: document.getElementById('f_cep').value.trim(),
     comercial,
     ajudaCusto: tipo === 'indicador_n2' ? (+document.getElementById('f_ajudacusto').value || 0) : 0,
     apelido,

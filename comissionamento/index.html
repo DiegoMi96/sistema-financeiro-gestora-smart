@@ -856,6 +856,10 @@ iframe.active{display:block}
             <label class="cad-lbl">E-mail secundário</label>
             <input type="text" id="cad_email2" placeholder="opcional">
           </div>
+          <div class="full">
+            <label class="cad-lbl">Endereço (rua, número e complemento)</label>
+            <input type="text" id="cad_endereco" placeholder="Ex: Rua das Flores, 123, Apto 45">
+          </div>
           <div>
             <label class="cad-lbl">Bairro</label>
             <input type="text" id="cad_bairro" placeholder="Ex: Centro">
@@ -863,6 +867,14 @@ iframe.active{display:block}
           <div>
             <label class="cad-lbl">Cidade <span class="req" title="Sem isso o cadastro fica marcado como pendente">(recomendado)</span></label>
             <input type="text" id="cad_cidade" placeholder="Ex: Curitiba">
+          </div>
+          <div>
+            <label class="cad-lbl">Estado (UF)</label>
+            <input type="text" id="cad_estado" maxlength="2" style="text-transform:uppercase" placeholder="Ex: PR">
+          </div>
+          <div>
+            <label class="cad-lbl">CEP</label>
+            <input type="text" id="cad_cep" placeholder="Ex: 80000-000">
           </div>
           <div id="cad_ajudacusto_wrap" style="display:none">
             <label class="cad-lbl">Ajuda de custo (R$/mês)</label>
@@ -2141,7 +2153,7 @@ function cadPopulateComercial() {
 }
 
 function cadClearForm() {
-  ['cad_nome', 'cad_empresa', 'cad_cpf', 'cad_cnpj', 'cad_celular', 'cad_telefone', 'cad_email', 'cad_email2', 'cad_bairro', 'cad_cidade', 'cad_conta_banco', 'cad_conta_agencia', 'cad_conta_numero', 'cad_conta_pix', 'cad_apelido', 'cad_ajudacusto'].forEach(id => document.getElementById(id).value = '');
+  ['cad_nome', 'cad_empresa', 'cad_cpf', 'cad_cnpj', 'cad_celular', 'cad_telefone', 'cad_email', 'cad_email2', 'cad_endereco', 'cad_bairro', 'cad_cidade', 'cad_estado', 'cad_cep', 'cad_conta_banco', 'cad_conta_agencia', 'cad_conta_numero', 'cad_conta_pix', 'cad_apelido', 'cad_ajudacusto'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('cad_comercial').value = '';
   document.getElementById('cad_conta_legado_hint').style.display = 'none';
 }
@@ -2204,8 +2216,11 @@ function cadEditar(tipo, id) {
   document.getElementById('cad_telefone').value = entry.telefone || '';
   document.getElementById('cad_email').value = entry.email || '';
   document.getElementById('cad_email2').value = entry.email2 || '';
+  document.getElementById('cad_endereco').value = entry.endereco || '';
   document.getElementById('cad_bairro').value = entry.bairro || '';
   document.getElementById('cad_cidade').value = entry.cidade || '';
+  document.getElementById('cad_estado').value = entry.estado || '';
+  document.getElementById('cad_cep').value = entry.cep || '';
   document.getElementById('cad_conta_banco').value = entry.contaBanco || '';
   document.getElementById('cad_conta_agencia').value = entry.contaAgencia || '';
   document.getElementById('cad_conta_numero').value = entry.contaNumero || '';
@@ -2265,8 +2280,11 @@ function cadSalvar() {
     telefone: document.getElementById('cad_telefone').value.trim(),
     email,
     email2: document.getElementById('cad_email2').value.trim(),
+    endereco: document.getElementById('cad_endereco').value.trim(),
     bairro: document.getElementById('cad_bairro').value.trim(),
     cidade,
+    estado: document.getElementById('cad_estado').value.trim().toUpperCase(),
+    cep: document.getElementById('cad_cep').value.trim(),
     conta,
     contaBanco,
     contaAgencia,
