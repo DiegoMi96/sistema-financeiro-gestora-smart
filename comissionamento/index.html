@@ -2304,7 +2304,16 @@ function cadGerarLink() {
   const comercial = document.getElementById('cad_link_comercial').value;
   const params = new URLSearchParams({ tipo });
   if (comercial) params.set('comercial', comercial);
-  const base = location.href.replace(/index\.html(\?.*)?(#.*)?$/, '');
+  // location.href aqui pode vir como ".../comissionamento/?v=1727..." (o
+  // cache-busting do iframe em ComissionamentoDashboard.jsx) ou como
+  // ".../comissionamento/index.html" (acesso direto) — o replace antigo só
+  // tratava o 2º caso. No 1º, o "?v=..." sobrava colado no meio da URL
+  // gerada (querystring com "cadastro_publico.html" dentro do valor), e o
+  // link "gerado" na prática abria só "/comissionamento/" de novo — o bug
+  // que o Diego reportou (28/09/2026: "gerar link ele me volta pro
+  // sistema"). Corrigido tirando query/hash primeiro e depois o último
+  // segmento do caminho, cobrindo os dois formatos.
+  const base = location.href.split(/[?#]/)[0].replace(/[^/]*$/, '');
   document.getElementById('cad_invite_link').value = base + 'cadastro_publico.html?' + params.toString();
 }
 
