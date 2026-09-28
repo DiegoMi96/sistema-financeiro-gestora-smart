@@ -52,6 +52,7 @@ UserCreate = create_model(
 UserUpdate = create_model(
     "UserUpdate",
     name=(Optional[str], None),
+    email=(Optional[EmailStr], None),  # antes não dava pra editar (achado pelo Diego)
     role=(Optional[UserRole], None),
     custom_role_key=(Optional[str], None),
     is_active=(Optional[bool], None),
@@ -253,6 +254,10 @@ def update_user(
         new_custom_role_key = data.custom_role_key if data.custom_role_key is not None else user.custom_role_key
         if not target_in_scope(scope, new_role, new_custom_role_key, db):
             raise HTTPException(status_code=403, detail="Você não pode atribuir esse perfil")
+
+    if data.email is not None and data.email != user.email:
+        if db.query(User).filter(User.email == data.email, User.id != user_id).first():
+            raise HTTPException(status_code=400, detail="E-mail já cadastrado por outro usuário")
 
     for field, value in data.model_dump(exclude_none=True).items():
         setattr(user, field, value)

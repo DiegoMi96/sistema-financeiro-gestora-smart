@@ -86,7 +86,18 @@ const PERM_SECTIONS = [
     ['can_view_cont_allcom',        'Allcom'],
   ]},
   { key: 'COMISSIONAMENTO', perms: [
-    ['can_view_comissao', 'Acesso ao módulo'],
+    ['can_view_comissao',             'Acesso ao módulo'],
+    ['can_view_com_consolidado',      'Visão Consolidada'],
+    ['can_view_com_executivo',        'Visão do Executivo'],
+    ['can_view_com_vendedor',         'Perfil — Vendedor'],
+    ['can_view_com_dealer',           'Perfil — Dealer'],
+    ['can_view_com_indicadores',      'Perfil — Indicador'],
+    ['can_view_com_projeto_especial', 'Perfil — Projeto Especial'],
+    ['can_view_com_gestor_operacoes', 'Perfil — Gestor de Operações'],
+    ['can_view_com_diretor_comercial','Perfil — Diretor Comercial'],
+    ['can_view_com_diretor_adm',      'Perfil — Diretor Administrativo'],
+    ['can_view_com_cadastro',         'Cadastro de Parceiros'],
+    ['can_view_com_importar',         'Importar'],
   ]},
   { key: 'GUARDIÃO', perms: [
     ['can_view_guardiao',             'Acesso ao módulo'],
@@ -387,6 +398,7 @@ function UserFormModal({ user, onClose, onSuccess }) {
 
   const [form, setForm] = useState(user ? {
     name: user.name,
+    email: user.email,
     role: user.role,
     custom_role_key: user.custom_role_key || null,
     is_active: user.is_active,
@@ -449,17 +461,18 @@ function UserFormModal({ user, onClose, onSuccess }) {
                 <label className="block text-xs font-medium text-gray-700 mb-1">Nome completo *</label>
                 <input value={form.name} onChange={e => set('name', e.target.value)} required className={INPUT} placeholder="Ex: Melissa Souza" />
               </div>
+              {/* E-mail — antes só aparecia na criação; editar um usuário não
+                  deixava trocar o e-mail de jeito nenhum (achado pelo Diego).
+                  Agora aparece sempre, editável nos dois casos. */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">E-mail *</label>
+                <input type="email" value={form.email} onChange={e => set('email', e.target.value)} required className={INPUT} placeholder="melissa@empresa.com.br" />
+              </div>
               {!isEdit && (
-                <>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">E-mail *</label>
-                    <input type="email" value={form.email} onChange={e => set('email', e.target.value)} required className={INPUT} placeholder="melissa@empresa.com.br" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Senha inicial *</label>
-                    <input type="password" value={form.password} onChange={e => set('password', e.target.value)} required minLength={6} className={INPUT} placeholder="Mínimo 6 caracteres" />
-                  </div>
-                </>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Senha inicial *</label>
+                  <input type="password" value={form.password} onChange={e => set('password', e.target.value)} required minLength={6} className={INPUT} placeholder="Mínimo 6 caracteres" />
+                </div>
               )}
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Perfil base</label>

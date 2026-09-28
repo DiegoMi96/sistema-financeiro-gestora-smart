@@ -875,7 +875,52 @@ function sairDaConta() {
     window.parent.postMessage({ type: 'LOGOUT' }, '*');
   }
 }
+// ── Permissões granulares por painel (28/09/2026) ───────────────
+// Cada botão do menu vira uma permissão própria (Gestão de Acessos > perfil >
+// seção COMISSIONAMENTO). Lê localStorage['user'].permissions — mesmo objeto
+// que o login do app principal já preenche (mesma origem, sem precisar de
+// login próprio aqui). Isso é só a camada de UX (esconder o que o
+// colaborador não pode ver) — não existe backend próprio por trás de cada
+// painel pra reforçar isso do lado do servidor, já que o Comissionamento
+// ainda não tem banco de dados/API por perfil (ver README.md).
+const PANEL_PERM = {
+  consolidado:       'can_view_com_consolidado',
+  executivo:         'can_view_com_executivo',
+  vendedor:          'can_view_com_vendedor',
+  dealer:            'can_view_com_dealer',
+  indicadores:       'can_view_com_indicadores',
+  projeto_especial:  'can_view_com_projeto_especial',
+  gestor_operacoes:  'can_view_com_gestor_operacoes',
+  diretor_comercial: 'can_view_com_diretor_comercial',
+  diretor_adm:       'can_view_com_diretor_adm',
+  cadastro:          'can_view_com_cadastro',
+  importar:          'can_view_com_importar',
+};
+function podeVerPainel(p) {
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    const perm = user?.permissions?.[PANEL_PERM[p]];
+    // undefined (usuário logado antes dessa permissão existir, cache velho
+    // de localStorage) não pode travar todo mundo fora — só false explícito
+    // bloqueia. true e undefined liberam.
+    return perm !== false;
+  } catch { return true; }
+}
+// Esconde do menu (não só desabilita) os painéis sem permissão — roda no
+// carregamento da página, uma vez.
+function aplicarPermissoesPaineis() {
+  document.querySelectorAll('.profile-btn[data-p]').forEach(b => {
+    if (!podeVerPainel(b.dataset.p)) b.style.display = 'none';
+  });
+}
+
 function ativarPainel(p) {
+  // Guarda contra clique/chamada direta num painel sem permissão (o botão já
+  // vem escondido, mas isso cobre o caso de um F5 restaurar um painel que a
+  // permissão do usuário mudou depois de salvo em localStorage).
+  if (!podeVerPainel(p)) {
+    p = ALL_PANELS.find(podeVerPainel) || 'consolidado';
+  }
   toggleSidebar(false);
   document.querySelectorAll('.profile-btn').forEach(b => b.classList.toggle('active', b.dataset.p === p));
   ALL_PANELS.forEach(name => {
@@ -2999,6 +3044,7 @@ function renderImportHistorico() {
 
 // Reabre no painel em que o usuário estava antes do F5 (ou Visão Consolidada,
 // se for a primeira vez ou o painel salvo não existir mais).
+aplicarPermissoesPaineis();
 let painelInicial = 'consolidado';
 try {
   const salvo = localStorage.getItem(PAINEL_KEY);

@@ -77,6 +77,19 @@ class User(Base):
     can_view_comissao     = Column(Boolean, default=None)
     can_view_smt          = Column(Boolean, default=None)
 
+    # Comissionamento — granular por aba/perfil (28/09/2026), pedido do Diego.
+    can_view_com_consolidado       = Column(Boolean, default=None)
+    can_view_com_executivo         = Column(Boolean, default=None)
+    can_view_com_vendedor          = Column(Boolean, default=None)
+    can_view_com_dealer            = Column(Boolean, default=None)
+    can_view_com_indicadores       = Column(Boolean, default=None)
+    can_view_com_projeto_especial  = Column(Boolean, default=None)
+    can_view_com_gestor_operacoes  = Column(Boolean, default=None)
+    can_view_com_diretor_comercial = Column(Boolean, default=None)
+    can_view_com_diretor_adm       = Column(Boolean, default=None)
+    can_view_com_cadastro          = Column(Boolean, default=None)
+    can_view_com_importar          = Column(Boolean, default=None)
+
     # Resto de ALL_PERMISSIONS (app/core/permissions.py) — até 27/09/2026 essas
     # colunas não existiam, então a tela de Gestão de Acessos deixava marcar
     # o toggle mas o backend descartava em silêncio (UserCreate/UserUpdate não

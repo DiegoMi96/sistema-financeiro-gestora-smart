@@ -673,5 +673,35 @@ mês).
   não relacionadas ao widget) direto nos dois arquivos separadamente, nunca
   só copiar um por cima do outro.
 
+## Permissões granulares por painel — 2026-09-28
+Diego pediu permissão própria pra cada aba do menu (não só um toggle único
+"Acesso ao módulo" pro Comissionamento inteiro): Visão Consolidada, Visão do
+Executivo, cada um dos 7 perfis (Vendedor/Dealer/Indicador/Projeto Especial/
+Gestor de Operações/Diretor Comercial/Diretor Administrativo), Cadastro de
+Parceiros e Importar — 11 permissões novas, no mesmo espírito das granulares
+que Estoque/Guardião/Controladoria já tinham.
+
+- **Chaves**: `can_view_com_consolidado`, `can_view_com_executivo`,
+  `can_view_com_vendedor`, `can_view_com_dealer`, `can_view_com_indicadores`,
+  `can_view_com_projeto_especial`, `can_view_com_gestor_operacoes`,
+  `can_view_com_diretor_comercial`, `can_view_com_diretor_adm`,
+  `can_view_com_cadastro`, `can_view_com_importar`.
+- **Padrão por perfil**: cada uma nasceu com o mesmo valor que
+  `can_view_comissao` já tinha pro perfil (quem já via o módulo inteiro
+  continua vendo tudo por padrão; dá pra restringir depois, perfil por
+  perfil, na Gestão de Acessos).
+- **Só client-side**: o Comissionamento ainda não tem backend/API próprio por
+  painel (é tudo estático + localStorage), então a checagem é só de UX —
+  esconde o botão do menu de quem não tem permissão (`aplicarPermissoesPaineis()`
+  em `index.html`), e `ativarPainel()` recusa trocar pra um painel sem
+  permissão (guarda contra um F5 restaurar um painel que a permissão mudou
+  depois de salva). Não é reforçado no servidor — só existe reforço de
+  verdade quando o Comissionamento ganhar backend/login próprio (pendência já
+  documentada).
+- **Só na produção** (`comissionamento/index.html` do repo real) — o
+  protótipo em `Downloads/comissionamento_prototipo/` não lê
+  `localStorage['user']` (não roda dentro do app React logado), então não
+  ganhou essa checagem.
+
 ---
 *Última atualização: 2026-09-19 — Tela "Regras de Comissão" movida do menu lateral (nível shell) pra uma aba dentro do próprio perfil Dealer, já que a regra hoje só se aplica a esse perfil. O motor de cálculo (o que o Importar usa pra recalcular) continuou em `index.html`; só a UI (lista + modal de criar/editar) foi pra `dealer.html`, com a leitura de dados (`regrasGet`) delegando pro shell quando disponível pra não perder a semente completa das faixas (ex.: Ione). Testado em navegador: lista mostra Ione/Hilario com todos os dados, edição/gravação e recálculo funcionam. Antes disso, no mesmo dia: "Visão do Executivo" agora inclui os parceiros (Indicador/Indicador N2/Dealer/Projeto Especial), não só Vendedor — seletor único agrupado por categoria, puxando os dados automaticamente pra qualquer um. Também movida do Vendedor pra item próprio no menu (abaixo da Visão Consolidada). Em 2026-09-18: criada essa tela pela primeira vez (leitura, mesmo formato da planilha individual real); corrigido bug real de arredondamento na fronteira das faixas de alcance (validado contra planilha real da Claudia Longano). Criada a Aprovação do comissionamento do mês (trava edição/reprocessamento em todos os perfis depois de aprovado, só desaprova ou exclui). Cadastro de Parceiros: adicionada categoria "Indicador N2" (com campo de ajuda de custo), CPF/CNPJ separados, celular/telefone/e-mail/e-mail secundário, edição agora permite trocar categoria (migra entre listas mantendo o id), e lista de campos obrigatórios expandida. Também criado o Motor de Regras de Comissão (tela "Regras de Comissão"), migrando Ione e Hilario de código hardcoded pra regras editáveis pelo próprio Diego, sem precisar mandar mensagem pra mim a cada ajuste.*

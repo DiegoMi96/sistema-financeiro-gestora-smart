@@ -186,6 +186,18 @@ def _run_migrations():
         cols.append(("users", "can_view_grd_historico_mensal", "BOOLEAN"))
         cols.append(("users", "can_view_grd_clientes", "BOOLEAN"))
         cols.append(("users", "can_view_grd_configuracoes", "BOOLEAN"))
+        # Comissionamento — granular por aba/perfil (28/09/2026)
+        cols.append(("users", "can_view_com_consolidado", "BOOLEAN"))
+        cols.append(("users", "can_view_com_executivo", "BOOLEAN"))
+        cols.append(("users", "can_view_com_vendedor", "BOOLEAN"))
+        cols.append(("users", "can_view_com_dealer", "BOOLEAN"))
+        cols.append(("users", "can_view_com_indicadores", "BOOLEAN"))
+        cols.append(("users", "can_view_com_projeto_especial", "BOOLEAN"))
+        cols.append(("users", "can_view_com_gestor_operacoes", "BOOLEAN"))
+        cols.append(("users", "can_view_com_diretor_comercial", "BOOLEAN"))
+        cols.append(("users", "can_view_com_diretor_adm", "BOOLEAN"))
+        cols.append(("users", "can_view_com_cadastro", "BOOLEAN"))
+        cols.append(("users", "can_view_com_importar", "BOOLEAN"))
         for table, col, typ in cols:
             db.execute(text(f"""
                 DO $$ BEGIN
