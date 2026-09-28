@@ -34,7 +34,24 @@ input,select,textarea,button{font-family:inherit}
   border-right:1px solid #d4d3ce;
   display:flex;flex-direction:column;
   height:100vh;overflow-y:auto;
+  position:relative;
+  transition:width .18s ease;
 }
+/* Recolher/expandir — mesmo padrão e posição do botão do Faturamento
+   (frontend/src/components/layout/Layout.jsx) e da Controladoria
+   (controladoria/index.html): círculo flutuante na borda direita da
+   sidebar, canto inferior (pedido do Diego, 28/09/2026). */
+.sidebar.collapsed{width:64px}
+.sidebar.collapsed .sidebar-header{justify-content:center;padding:14px 0}
+.sidebar.collapsed .sidebar-header.logo-loaded .brand-logo-crop{display:none}
+.sidebar.collapsed .sidebar-header.logo-loaded .brand-logo-mini{display:block}
+.sidebar.collapsed .nav-label{display:none}
+.sidebar.collapsed .profile-btn{justify-content:center;padding:10px 0}
+.sidebar.collapsed .pb-label{display:none}
+.sidebar.collapsed #btnTrocarModulo{justify-content:center!important;padding:8px 0!important}
+.sidebar.collapsed .acct-card{justify-content:center!important;background:transparent!important;padding:8px 0!important}
+.sidebar.collapsed .acct-text{display:none}
+.sidebar.collapsed #btnSairConta{justify-content:center!important;padding:6px 0!important}
 .sidebar-header{padding:14px 22px;border-bottom:1px solid #d4d3ce;display:flex;align-items:center;min-height:67px;box-sizing:border-box}
 /* Logo real (empresa_logo, buscada de /api/settings/public) — mesmo recorte
    usado no Faturamento (frontend/src/components/layout/Layout.jsx) e na
@@ -56,10 +73,11 @@ input,select,textarea,button{font-family:inherit}
   color:#4a5868;cursor:pointer;
   border-radius:7px;
   text-align:left;
-  display:flex;align-items:center;
+  display:flex;align-items:center;gap:9px;
   transition:background .15s,color .15s,border-color .15s;
   border-left:2px solid transparent;
 }
+.profile-btn svg{flex-shrink:0}
 .profile-btn:hover:not(.active){background:#f5f4f0;color:#1a1a18}
 .profile-btn.active{background:#eaf5f0;color:#166B4A;border-left-color:#1E9B6B}
 .profile-btn.disabled{opacity:.4;cursor:default}
@@ -279,6 +297,8 @@ iframe.active{display:block}
     width:260px;max-width:82vw;
   }
   .sidebar.open{transform:translateX(0)}
+  /* Recolher/expandir é recurso de desktop — no mobile o menu já é off-canvas */
+  #btnCollapseSidebar{display:none}
   .sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:290}
   .sidebar-backdrop.open{display:block}
   .main{height:calc(100vh - 47px)}
@@ -325,45 +345,87 @@ iframe.active{display:block}
 
   <div class="sidebar-nav" id="profileNav">
     <div class="nav-label">Visão geral</div>
-    <button class="profile-btn active" data-p="consolidado">Visão Consolidada</button>
-    <button class="profile-btn" data-p="executivo">Visão do Executivo</button>
+    <button class="profile-btn active" data-p="consolidado" title="Visão Consolidada">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 20V10M12 20V4M6 20v-6"/></svg>
+      <span class="pb-label">Visão Consolidada</span>
+    </button>
+    <button class="profile-btn" data-p="executivo" title="Visão do Executivo">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+      <span class="pb-label">Visão do Executivo</span>
+    </button>
     <div class="nav-sep"></div>
     <div class="nav-label">Perfis</div>
-    <button class="profile-btn" data-p="vendedor">Vendedor</button>
-    <button class="profile-btn" data-p="dealer">Dealer</button>
-    <button class="profile-btn" data-p="indicadores">Indicador</button>
-    <button class="profile-btn" data-p="projeto_especial">Projeto Especial</button>
-    <button class="profile-btn" data-p="gestor_operacoes">Gestor de Operações</button>
-    <button class="profile-btn" data-p="diretor_comercial">Diretor Comercial</button>
-    <button class="profile-btn" data-p="diretor_adm">Diretor Administrativo</button>
+    <button class="profile-btn" data-p="vendedor" title="Vendedor">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span class="pb-label">Vendedor</span>
+    </button>
+    <button class="profile-btn" data-p="dealer" title="Dealer">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg>
+      <span class="pb-label">Dealer</span>
+    </button>
+    <button class="profile-btn" data-p="indicadores" title="Indicador">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
+      <span class="pb-label">Indicador</span>
+    </button>
+    <button class="profile-btn" data-p="projeto_especial" title="Projeto Especial">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      <span class="pb-label">Projeto Especial</span>
+    </button>
+    <button class="profile-btn" data-p="gestor_operacoes" title="Gestor de Operações">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.591 1.07c1.527-.88 3.293.886 2.414 2.414a1.724 1.724 0 001.066 2.59c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.59c.879 1.529-.887 3.295-2.415 2.415a1.724 1.724 0 00-2.59 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.59-1.066c-1.529.88-3.295-.886-2.415-2.415a1.724 1.724 0 00-1.066-2.59c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.59c-.88-1.528.886-3.294 2.415-2.414a1.724 1.724 0 002.59-1.07z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      <span class="pb-label">Gestor de Operações</span>
+    </button>
+    <button class="profile-btn" data-p="diretor_comercial" title="Diretor Comercial">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path stroke-linecap="round" stroke-linejoin="round" d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+      <span class="pb-label">Diretor Comercial</span>
+    </button>
+    <button class="profile-btn" data-p="diretor_adm" title="Diretor Administrativo">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="2" width="8" height="4" rx="1"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3"/></svg>
+      <span class="pb-label">Diretor Administrativo</span>
+    </button>
     <div class="nav-sep"></div>
     <div class="nav-label">Cadastros</div>
-    <button class="profile-btn" data-p="cadastro">Cadastro de Parceiros</button>
-    <button class="profile-btn" data-p="importar">Importar</button>
+    <button class="profile-btn" data-p="cadastro" title="Cadastro de Parceiros">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+      <span class="pb-label">Cadastro de Parceiros</span>
+    </button>
+    <button class="profile-btn" data-p="importar" title="Importar">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <span class="pb-label">Importar</span>
+    </button>
   </div>
 
   <div style="padding:10px 8px 0">
-    <button onclick="trocarModulo()" title="Trocar módulo" style="width:100%;display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;font-size:12px;font-weight:500;color:#4a5868;border:1px dashed #d4d3ce;background:transparent;cursor:pointer;transition:background .15s;font-family:'Inter',sans-serif" onmouseover="this.style.background='#f5f4f0'" onmouseout="this.style.background='transparent'">
+    <button id="btnTrocarModulo" onclick="trocarModulo()" title="Trocar módulo" style="width:100%;display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;font-size:12px;font-weight:500;color:#4a5868;border:1px dashed #d4d3ce;background:transparent;cursor:pointer;transition:background .15s;font-family:'Inter',sans-serif" onmouseover="this.style.background='#f5f4f0'" onmouseout="this.style.background='transparent'">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
-      <span>Trocar módulo</span>
+      <span class="pb-label">Trocar módulo</span>
     </button>
   </div>
   <!-- Conta + Sair — mesmo modelo do menu do Faturamento (Layout.jsx), lendo
        localStorage['user'] (mesma origem, já preenchido pelo login do app
        principal — não precisa de login próprio aqui). -->
   <div style="border-top:1px solid #d4d3ce;padding:10px;margin-top:10px">
-    <div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:#f5f4f0;margin-bottom:4px">
+    <div class="acct-card" style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:#f5f4f0;margin-bottom:4px">
       <div id="contaAvatar" style="width:28px;height:28px;border-radius:50%;background:#123d2b;color:#1E9B6B;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">?</div>
-      <div style="flex:1;min-width:0">
+      <div class="acct-text" style="flex:1;min-width:0">
         <p id="contaNome" style="color:#1a1a18;font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</p>
         <p id="contaRole" style="color:#888;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</p>
       </div>
     </div>
-    <button onclick="sairDaConta()" style="width:100%;display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:500;color:#4a5868;background:transparent;border:none;cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif" onmouseover="this.style.background='rgba(239,68,68,.12)';this.style.color='#EF4444'" onmouseout="this.style.background='transparent';this.style.color='#4a5868'">
+    <button id="btnSairConta" onclick="sairDaConta()" title="Sair da conta" style="width:100%;display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:500;color:#4a5868;background:transparent;border:none;cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif" onmouseover="this.style.background='rgba(239,68,68,.12)';this.style.color='#EF4444'" onmouseout="this.style.background='transparent';this.style.color='#4a5868'">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
-      Sair da conta
+      <span class="pb-label">Sair da conta</span>
     </button>
   </div>
+
+  <button id="btnCollapseSidebar" onclick="toggleSidebarCollapse()" title="Recolher menu"
+    style="position:absolute;right:-12px;bottom:28px;z-index:10;width:24px;height:24px;border-radius:50%;
+    background:#FFFFFF;border:1px solid #d4d3ce;color:#4a5868;cursor:pointer;display:grid;place-items:center;
+    transition:all .15s;box-shadow:0 2px 8px rgba(15,27,45,.18)"
+    onmouseover="this.style.background='#1E9B6B';this.style.color='#fff'"
+    onmouseout="this.style.background='#FFFFFF';this.style.color='#4a5868'">
+    <svg id="collapseIcon" width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 18l-6-6 6-6"/></svg>
+  </button>
 </div>
 
 <div class="main">
@@ -868,6 +930,29 @@ function toggleSidebar(forcar) {
   document.getElementById('sidebarEl').classList.toggle('open', abrir);
   document.getElementById('sidebarBackdrop').classList.toggle('open', abrir);
 }
+
+// ── Recolher / expandir menu (desktop) — mesmo padrão do Faturamento
+// (Layout.jsx) e da Controladoria (controladoria/index.html).
+function toggleSidebarCollapse() {
+  const sidebar = document.getElementById('sidebarEl');
+  const collapsed = sidebar.classList.toggle('collapsed');
+  localStorage.setItem('comissionamento_sidebar_collapsed', String(collapsed));
+  updateCollapseIcon(collapsed);
+}
+function updateCollapseIcon(collapsed) {
+  const icon = document.getElementById('collapseIcon');
+  const btn  = document.getElementById('btnCollapseSidebar');
+  if (icon) icon.innerHTML = collapsed
+    ? '<path stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6"/>'
+    : '<path stroke-linecap="round" stroke-linejoin="round" d="M15 18l-6-6 6-6"/>';
+  if (btn) btn.title = collapsed ? 'Expandir menu' : 'Recolher menu';
+}
+(function initSidebarCollapse() {
+  if (localStorage.getItem('comissionamento_sidebar_collapsed') === 'true') {
+    document.getElementById('sidebarEl')?.classList.add('collapsed');
+    updateCollapseIcon(true);
+  }
+})();
 // ── Trocar módulo ────────────────────────────────────────────────
 // Roda dentro de um <iframe> no sistema principal (ComissionamentoDashboard.jsx,
 // mesmo padrão da Controladoria), que já escuta esse postMessage e volta pra
