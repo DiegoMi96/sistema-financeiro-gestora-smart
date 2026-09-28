@@ -30,28 +30,38 @@ input,select,textarea,button{font-family:inherit}
 
 .sidebar{
   width:230px;flex-shrink:0;
-  background:#1a1a18;color:#fff;
+  background:#fff;color:#1a1a18;
+  border-right:1px solid #d4d3ce;
   display:flex;flex-direction:column;
   height:100vh;overflow-y:auto;
 }
-.sidebar-header{padding:22px 20px 18px;border-bottom:1px solid #333230}
-.sidebar-header .eyebrow{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#9a9a95;margin-bottom:5px}
-.sidebar-header h1{font-size:16px;font-weight:800;line-height:1.25}
+.sidebar-header{padding:14px 22px;border-bottom:1px solid #d4d3ce;display:flex;align-items:center;min-height:67px;box-sizing:border-box}
+/* Logo real (empresa_logo, buscada de /api/settings/public) — mesmo recorte
+   usado no Faturamento (frontend/src/components/layout/Layout.jsx) e na
+   Controladoria (controladoria/index.html): a imagem cadastrada tem bastante
+   margem transparente ao redor do desenho, então a caixa mostra só a região
+   com conteúdo real. Sem fallback em texto — enquanto a imagem não carrega,
+   não mostra nada (mesmo padrão, sem "flash" de placeholder). Substitui o
+   texto "Comissionamento" que ficava aqui (pedido do Diego, 28/09/2026: menu
+   branco com a logo da Smart, igual está no Faturamento). */
+.brand-logo-crop{display:none;width:197px;height:48px;overflow:hidden;position:relative}
+.brand-logo-mini{display:none;width:32px;height:32px;object-fit:contain}
+.sidebar-header.logo-loaded .brand-logo-crop{display:block}
 
 .sidebar-nav{padding:14px 10px;flex:1}
 .profile-btn{
   width:100%;background:none;border:none;
   padding:10px 14px;margin-bottom:1px;
   font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;
-  color:#9a9a95;cursor:pointer;
+  color:#4a5868;cursor:pointer;
   border-radius:7px;
   text-align:left;
   display:flex;align-items:center;
   transition:background .15s,color .15s,border-color .15s;
   border-left:2px solid transparent;
 }
-.profile-btn:hover:not(.active){background:#232320;color:#e5e4df}
-.profile-btn.active{background:#232320;color:#fff;border-left-color:#1E9B6B}
+.profile-btn:hover:not(.active){background:#f5f4f0;color:#1a1a18}
+.profile-btn.active{background:#eaf5f0;color:#166B4A;border-left-color:#1E9B6B}
 .profile-btn.disabled{opacity:.4;cursor:default}
 .profile-btn.disabled:hover{background:none;color:#9a9a95}
 .cad-chevron{font-size:11px;opacity:.75}
@@ -69,7 +79,7 @@ input,select,textarea,button{font-family:inherit}
 .modal-close:hover{background:#eeede8;color:#1a1a18}
 .modal-card-body{padding:22px 26px 28px}
 
-.nav-sep{height:1px;background:#333230;margin:10px 4px}
+.nav-sep{height:1px;background:#eeede8;margin:10px 4px}
 .nav-label{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6f6e69;padding:8px 12px 6px}
 
 .main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden}
@@ -259,9 +269,9 @@ iframe.active{display:block}
   body{flex-direction:column}
   .mobile-topbar{
     display:flex;align-items:center;gap:12px;
-    background:#1a1a18;color:#fff;padding:12px 16px;flex-shrink:0;
+    background:#fff;color:#1a1a18;border-bottom:1px solid #d4d3ce;padding:12px 16px;flex-shrink:0;
   }
-  .mobile-topbar button{background:none;border:none;color:#fff;font-size:20px;padding:4px 8px;cursor:pointer;line-height:1}
+  .mobile-topbar button{background:none;border:none;color:#1a1a18;font-size:20px;padding:4px 8px;cursor:pointer;line-height:1}
   .mobile-topbar h1{font-size:14px;font-weight:800}
   .sidebar{
     position:fixed;top:0;left:0;height:100vh;z-index:300;
@@ -293,10 +303,25 @@ iframe.active{display:block}
 <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar(false)"></div>
 
 <div class="sidebar" id="sidebarEl">
-  <div class="sidebar-header">
-    <div class="eyebrow">Gestora Smart · Protótipo</div>
-    <h1>Comissionamento</h1>
+  <div class="sidebar-header" id="sidebarHeader">
+    <div class="brand-logo-crop" id="brandLogoCrop">
+      <img id="brandLogoImg" alt="Logo" style="position:absolute;top:-31px;left:2px;height:104px;width:auto;">
+    </div>
+    <img class="brand-logo-mini" id="brandLogoMini" alt="Logo">
   </div>
+  <script>
+  (function () {
+    fetch('/api/settings/public')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.empresa_logo) return;
+        document.getElementById('brandLogoImg').src = d.empresa_logo;
+        document.getElementById('brandLogoMini').src = d.empresa_logo;
+        document.getElementById('sidebarHeader').classList.add('logo-loaded');
+      })
+      .catch(function () {});
+  })();
+  </script>
 
   <div class="sidebar-nav" id="profileNav">
     <div class="nav-label">Visão geral</div>
@@ -318,7 +343,7 @@ iframe.active{display:block}
   </div>
 
   <div style="padding:10px 8px 0">
-    <button onclick="trocarModulo()" title="Trocar módulo" style="width:100%;display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;font-size:12px;font-weight:500;color:#9a9a95;border:1px dashed #333230;background:transparent;cursor:pointer;transition:background .15s;font-family:'Inter',sans-serif" onmouseover="this.style.background='#232320'" onmouseout="this.style.background='transparent'">
+    <button onclick="trocarModulo()" title="Trocar módulo" style="width:100%;display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;font-size:12px;font-weight:500;color:#4a5868;border:1px dashed #d4d3ce;background:transparent;cursor:pointer;transition:background .15s;font-family:'Inter',sans-serif" onmouseover="this.style.background='#f5f4f0'" onmouseout="this.style.background='transparent'">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
       <span>Trocar módulo</span>
     </button>
@@ -326,15 +351,15 @@ iframe.active{display:block}
   <!-- Conta + Sair — mesmo modelo do menu do Faturamento (Layout.jsx), lendo
        localStorage['user'] (mesma origem, já preenchido pelo login do app
        principal — não precisa de login próprio aqui). -->
-  <div style="border-top:1px solid #333230;padding:10px;margin-top:10px">
-    <div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:#232320;margin-bottom:4px">
+  <div style="border-top:1px solid #d4d3ce;padding:10px;margin-top:10px">
+    <div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:#f5f4f0;margin-bottom:4px">
       <div id="contaAvatar" style="width:28px;height:28px;border-radius:50%;background:#123d2b;color:#1E9B6B;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">?</div>
       <div style="flex:1;min-width:0">
-        <p id="contaNome" style="color:#fff;font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</p>
-        <p id="contaRole" style="color:#9a9a95;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</p>
+        <p id="contaNome" style="color:#1a1a18;font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</p>
+        <p id="contaRole" style="color:#888;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</p>
       </div>
     </div>
-    <button onclick="sairDaConta()" style="width:100%;display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:500;color:#9a9a95;background:transparent;border:none;cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif" onmouseover="this.style.background='rgba(239,68,68,.12)';this.style.color='#EF4444'" onmouseout="this.style.background='transparent';this.style.color='#9a9a95'">
+    <button onclick="sairDaConta()" style="width:100%;display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:500;color:#4a5868;background:transparent;border:none;cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif" onmouseover="this.style.background='rgba(239,68,68,.12)';this.style.color='#EF4444'" onmouseout="this.style.background='transparent';this.style.color='#4a5868'">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
       Sair da conta
     </button>
