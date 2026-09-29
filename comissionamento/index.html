@@ -2456,33 +2456,26 @@ function cadRenderList() {
       </tr>`).join('')}</tbody></table>`;
 }
 
+// Base FIXA (não mais derivada de location.href) — pedido do Diego
+// (29/09/2026: "meu medo é algum hacker pegar esse link e tentar hackear de
+// alguma forma", queria o link mais curto/discreto, sem "/comissionamento"
+// à vista). O link é pra circular fora daqui, então precisa ser sempre o
+// mesmo endereço público, direto no domínio real — não o que a aba do
+// admin tiver em location.href no momento (evita também o bug antigo do
+// "?v=..." de cache-busting do iframe grudando no meio da URL gerada).
+// gestorasmart.com.br (sem "sistema.") ficaria ainda mais curto, mas esse
+// domínio passa hoje por um serviço externo (Cloudflare) que não chega
+// nesse servidor — fica pendente até decidir o que fazer lá.
+const PUBLIC_LINK_BASE = 'https://sistema.gestorasmart.com.br/cadastro/';
+
 function cadGerarLink() {
   const tipo = document.getElementById('cad_link_categoria').value;
-  // location.href aqui pode vir como ".../comissionamento/?v=1727..." (o
-  // cache-busting do iframe em ComissionamentoDashboard.jsx) ou como
-  // ".../comissionamento/index.html" (acesso direto) — o replace antigo só
-  // tratava o 2º caso. No 1º, o "?v=..." sobrava colado no meio da URL
-  // gerada (querystring com "cadastro_publico.html" dentro do valor), e o
-  // link "gerado" na prática abria só "/comissionamento/" de novo — o bug
-  // que o Diego reportou (28/09/2026: "gerar link ele me volta pro
-  // sistema"). Corrigido tirando query/hash primeiro e depois o último
-  // segmento do caminho, cobrindo os dois formatos.
-  const base = location.href.split(/[?#]/)[0].replace(/[^/]*$/, '');
-  // Link "bonito" (sem .html nem querystring à vista) — pedido do Diego
-  // (29/09/2026: "quero algo mais profissional" sobre o link antigo, que
-  // terminava em "cadastro_publico.html?tipo=indicador"). O nginx reescreve
-  // "/comissionamento/cadastro/<tipo>" internamente pro arquivo real com a
-  // querystring que cadastro_publico.html já sabe ler — ver sistema-gestora
-  // no droplet. Também não manda mais "comercial": quem vai vincular o
-  // parceiro ao executivo agora é o próprio parceiro, no formulário público
-  // (campo "Vinculado a qual executivo" já existe lá) — não faz sentido a
-  // equipe interna escolher isso de antemão ao só gerar o link.
   // Prazo de preenchimento (opcional, pedido do Diego 29/09/2026) — vai como
   // querystring de verdade (?prazo=...), então sobrevive ao rewrite do nginx
   // (que só reescreve internamente, no servidor — o navegador continua
   // enxergando exatamente a URL que ele abriu, prazo incluso).
   const prazo = document.getElementById('cad_link_prazo').value;
-  let url = base + 'cadastro/' + tipo;
+  let url = PUBLIC_LINK_BASE + tipo;
   if (prazo) url += '?prazo=' + encodeURIComponent(prazo);
   document.getElementById('cad_invite_link').value = url;
 }
