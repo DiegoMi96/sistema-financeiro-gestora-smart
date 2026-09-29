@@ -36,7 +36,7 @@ input,select,textarea,button{font-family:inherit}
    aparência crua do navegador (achado do Diego, 29/09/2026, comparando com o
    filtro de Cadastro de Parceiros). Regra de base pega qualquer campo, atual ou
    futuro — as regras mais específicas (.cad-card etc.) continuam válidas por cima. */
-input[type=text],input[type=number],input[type=month],select,textarea{background:#F5F5F5;border:1px solid #d4d3ce;border-radius:6px;padding:9px 11px;font-size:13px;color:#1a1a18;outline:none}
+input[type=text],input[type=number],input[type=month],input[type=date],select,textarea{background:#F5F5F5;border:1px solid #d4d3ce;border-radius:6px;padding:9px 11px;font-size:13px;color:#1a1a18;outline:none}
 
 .sidebar{
   width:230px;flex-shrink:0;
@@ -938,14 +938,20 @@ iframe.active{display:block}
       <div class="cad-card">
         <p class="cad-card-title">Enviar para quem vai ingressar</p>
         <p class="cad-invite-hint">Escolha a categoria, gere o link e envie para a pessoa preencher os próprios dados — inclusive a quem ela fica vinculada. Assim que ela salvar, o cadastro já aparece direto em "Novo Cadastro" — sem precisar de código nenhum.</p>
-        <div style="margin-bottom:18px">
-          <label class="cad-lbl">Categoria</label>
-          <select id="cad_link_categoria">
-            <option value="indicador">Indicador</option>
-            <option value="indicador_n2">Indicador N2</option>
-            <option value="dealer">Dealer</option>
-            <option value="projeto">Projeto Especial</option>
-          </select>
+        <div class="cad-grid" style="margin-bottom:18px">
+          <div>
+            <label class="cad-lbl">Categoria</label>
+            <select id="cad_link_categoria">
+              <option value="indicador">Indicador</option>
+              <option value="indicador_n2">Indicador N2</option>
+              <option value="dealer">Dealer</option>
+              <option value="projeto">Projeto Especial</option>
+            </select>
+          </div>
+          <div>
+            <label class="cad-lbl">Prazo para preenchimento <span style="text-transform:none;letter-spacing:0;font-weight:400">(opcional)</span></label>
+            <input type="date" id="cad_link_prazo">
+          </div>
         </div>
         <button class="cad-btn" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px" onclick="cadGerarLink()">🔗 Gerar link de cadastro</button>
         <div class="cad-link-result">
@@ -1166,6 +1172,7 @@ function cadAbrirModal(qual) {
   document.getElementById('cadDropdownMenu').classList.remove('open');
   document.getElementById(CAD_MODAL_ID[qual]).classList.add('open');
   if (qual === 'novo') { cadEditando = null; cadModalModoNovo(); renderCadastro(); cadClearForm(); cadCategoriaChanged(); }
+  if (qual === 'link') { document.getElementById('cad_link_prazo').value = ''; document.getElementById('cad_invite_link').value = ''; }
   if (qual === 'vendedor') { document.getElementById('cadv_nome').value = ''; ['cadv_obj', 'cadv_m1', 'cadv_m2', 'cadv_sm'].forEach(id => document.getElementById(id).value = ''); }
 }
 
@@ -2470,7 +2477,14 @@ function cadGerarLink() {
   // parceiro ao executivo agora é o próprio parceiro, no formulário público
   // (campo "Vinculado a qual executivo" já existe lá) — não faz sentido a
   // equipe interna escolher isso de antemão ao só gerar o link.
-  document.getElementById('cad_invite_link').value = base + 'cadastro/' + tipo;
+  // Prazo de preenchimento (opcional, pedido do Diego 29/09/2026) — vai como
+  // querystring de verdade (?prazo=...), então sobrevive ao rewrite do nginx
+  // (que só reescreve internamente, no servidor — o navegador continua
+  // enxergando exatamente a URL que ele abriu, prazo incluso).
+  const prazo = document.getElementById('cad_link_prazo').value;
+  let url = base + 'cadastro/' + tipo;
+  if (prazo) url += '?prazo=' + encodeURIComponent(prazo);
+  document.getElementById('cad_invite_link').value = url;
 }
 
 function cadCopiarLink() {
