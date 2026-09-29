@@ -93,8 +93,14 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
    29/09/2026: "deixa o cadeado lá antes do seus dados". Vira uma fileira
    compacta (ícone ao lado do texto) em vez de empilhado, já que agora fica
    colado no topo do formulário, não sozinho no fim da página. */
-.hint{display:flex;align-items:center;justify-content:center;gap:8px;font-size:11.5px;color:#8a8a85;line-height:1.5;text-align:center;margin:24px auto 0;max-width:440px}
-.hint svg{flex-shrink:0}
+/* align-items:center alinhava o cadeado ao centro do BLOCO inteiro de texto
+   — com 2 linhas (achado do Diego, 29/09/2026, no celular: o texto quebra
+   e o cadeado sobra "flutuando" entre as duas linhas, sem casar com
+   nenhuma). flex-start alinha com a primeira linha, e o svg ganha um
+   pequeno ajuste fino pra casar com a altura-x do texto (ícone maior que
+   a fonte). */
+.hint{display:flex;align-items:flex-start;justify-content:center;gap:8px;font-size:11.5px;color:#8a8a85;line-height:1.5;text-align:center;margin:24px auto 0;max-width:440px}
+.hint svg{flex-shrink:0;margin-top:2px}
 
 /* Prazo de preenchimento (opcional, via ?prazo=AAAA-MM-DD no link gerado em
    "Enviar Link de Cadastro") — pedido do Diego, 29/09/2026: quer poder
