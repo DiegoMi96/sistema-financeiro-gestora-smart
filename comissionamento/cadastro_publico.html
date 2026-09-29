@@ -93,7 +93,7 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
    29/09/2026: "deixa o cadeado lá antes do seus dados". Vira uma fileira
    compacta (ícone ao lado do texto) em vez de empilhado, já que agora fica
    colado no topo do formulário, não sozinho no fim da página. */
-.hint{display:flex;align-items:center;justify-content:center;gap:8px;font-size:11.5px;color:#8a8a85;line-height:1.5;text-align:center;margin:0 auto 18px;max-width:440px}
+.hint{display:flex;align-items:center;justify-content:center;gap:8px;font-size:11.5px;color:#8a8a85;line-height:1.5;text-align:center;margin:0 auto 4px;max-width:440px}
 .hint svg{flex-shrink:0}
 
 /* Prazo de preenchimento (opcional, via ?prazo=AAAA-MM-DD no link gerado em
@@ -142,17 +142,16 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
     <h1>Cadastro de Parceiro</h1>
   </div>
 
-  <div class="hint" id="privacyHint">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-    <span>Seus dados são usados só para o cadastro no programa de parceiros da Gestora Smart.</span>
-  </div>
-
   <div class="prazo-notice" id="prazoNotice">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 7v5l3 3"/></svg>
     <span>Prazo para preenchimento: até <b id="prazoData"></b></span>
   </div>
 
   <div class="card" id="form_card">
+    <div class="hint" id="privacyHint">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <span>Seus dados são usados só para o cadastro no programa de parceiros da Gestora Smart.</span>
+    </div>
     <div class="section-title"><span class="section-num">1</span> Seus dados</div>
     <div class="grid">
       <div>
