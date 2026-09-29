@@ -66,10 +66,19 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
 .err::before{content:'⚠';flex-shrink:0}
 .err:empty{display:none}
 
-#done{display:none;text-align:center;padding:44px 28px}
-.done-icon{width:56px;height:56px;border-radius:50%;background:#eaf5f0;color:#166B4A;font-size:26px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
-#done .title{font-weight:800;font-size:18px;margin-bottom:8px}
-#done .sub{color:#666;font-size:13.5px;line-height:1.6;max-width:360px;margin:0 auto}
+/* Tela de sucesso — trocado o "✓" em texto (renderiza torto/desalinhado
+   dependendo da fonte do aparelho, visível no print do Diego 29/09/2026)
+   por um SVG desenhado com stroke, com o traço animando ao aparecer. */
+#done{display:none;text-align:center;padding:48px 28px 40px}
+.done-icon{width:64px;height:64px;border-radius:50%;background:#eaf5f0;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;animation:done-pop .4s cubic-bezier(.34,1.56,.64,1) both}
+.done-icon svg{width:30px;height:30px}
+.done-icon svg path{stroke:#166B4A;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;fill:none;stroke-dasharray:24;stroke-dashoffset:24;animation:done-draw .35s .25s ease-out forwards}
+#done .title{font-weight:800;font-size:19px;margin-bottom:10px}
+#done .sub{color:#666;font-size:13.5px;line-height:1.6;max-width:340px;margin:0 auto}
+#done .back-note{margin-top:26px;padding-top:22px;border-top:1px solid #eeede8;font-size:12px;color:#999}
+@keyframes done-pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes done-draw{to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion:reduce){.done-icon,.done-icon svg path{animation:none;stroke-dashoffset:0}}
 
 .hint{display:flex;align-items:flex-start;gap:10px;font-size:11.5px;color:#8a8a85;line-height:1.6;padding:0 4px}
 .hint svg{flex-shrink:0;margin-top:1px}
@@ -210,9 +219,10 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
   </div>
 
   <div class="card" id="done">
-    <div class="done-icon">✓</div>
+    <div class="done-icon"><svg viewBox="0 0 24 24"><path d="M4 12l6 6L20 6"/></svg></div>
     <p class="title">Cadastro concluído!</p>
-    <p class="sub">Seus dados já foram registrados. Nossa equipe vai confirmar tudo em breve — pode fechar esta página.</p>
+    <p class="sub">Seus dados já foram registrados. Nossa equipe vai confirmar tudo em breve.</p>
+    <p class="back-note">Pode fechar esta página com tranquilidade.</p>
   </div>
 
   <div class="hint">
