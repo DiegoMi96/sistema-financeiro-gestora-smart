@@ -421,7 +421,12 @@ const DEF_CONFIG={
 };
 const LS={
   get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d}},
-  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+  // Antes engolia qualquer erro em silêncio (ex.: localStorage cheio) — quem
+  // chamava mostrava "Salvo ✓" mesmo quando a gravação tinha falhado de
+  // verdade (achado do Diego, 29/09/2026, no Vendedor: "já tinha salvo e
+  // não ficou salvo"). Agora devolve true/false pra quem chama poder avisar
+  // direito.
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){console.error('LS.set falhou ('+k+'):',e);return false}}
 };
 
 // ─── PERSISTÊNCIA DO CICLO (backend) ───────────────
@@ -636,7 +641,8 @@ function saveMes(){
     aud:document.getElementById('i_aud').value?parseNum(document.getElementById('i_aud').value):null,
     trei:+document.getElementById('i_trei').value||0,
   };
-  LS.set('go1_m',mdata);COM_API.salvarCiclo('gestor_operacoes',mdata);renderCiclo();showToast('Lançamento salvo ✓');
+  if(!LS.set('go1_m',mdata)){showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.','#b83232');return;}
+  COM_API.salvarCiclo('gestor_operacoes',mdata);renderCiclo();showToast('Lançamento salvo ✓');
 }
 
 // ─── CICLO ─────────────────────────────────────────────
@@ -739,7 +745,8 @@ async function importCiclo(e){
       if(treiCol>=0&&row[treiCol]!=='')d.trei=+row[treiCol]||0;
       if(Object.keys(d).length){mdata[mesId]={...mdata[mesId]||{},...d};updated++;}
     });
-    LS.set('go1_m',mdata);COM_API.salvarCiclo('gestor_operacoes',mdata);renderCiclo();
+    if(!LS.set('go1_m',mdata)){showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.','#b83232');return;}
+    COM_API.salvarCiclo('gestor_operacoes',mdata);renderCiclo();
     showToast(`↑ ${updated} mês(es) importado(s)`);
     e.target.value='';
   }catch(err){showToast('Erro: '+err.message,'#b83232');}
@@ -817,7 +824,7 @@ function buildConfig(){
 function addFaixaSat(){config.satFaixas.push({min:98,max:100,bonus:500});buildConfig();}
 function addFaixaEfic(){config.eficFaixas.push({max:6000,bonus:50});buildConfig();}
 function addFaixaAud(){config.audFaixas.push({max:4000,bonus:50});buildConfig();}
-function saveConfig(){LS.set('go1_cfg',config);updateCalc();showToast('Salvo ✓');}
+function saveConfig(){if(!LS.set('go1_cfg',config)){showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.','#b83232');return;}updateCalc();showToast('Salvo ✓');}
 </script>
 </body>
 </html>

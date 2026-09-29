@@ -429,7 +429,12 @@ const DEF_EXTRAS={auditorias:[],sistemas:[]};
 
 const LS={
   get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d}},
-  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+  // Antes engolia qualquer erro em silêncio (ex.: localStorage cheio) — quem
+  // chamava mostrava "Salvo ✓" mesmo quando a gravação tinha falhado de
+  // verdade (achado do Diego, 29/09/2026, no Vendedor: "já tinha salvo e
+  // não ficou salvo"). Agora devolve true/false pra quem chama poder avisar
+  // direito.
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){console.error('LS.set falhou ('+k+'):',e);return false}}
 };
 
 // ─── PERSISTÊNCIA DO CICLO (backend) ───────────────
@@ -508,7 +513,7 @@ const br2=v=>(typeof v==='number'?v:0).toLocaleString('pt-BR',{minimumFractionDi
 const brFmt=v=>(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const parseNum=s=>+String(s).replace(/\./g,'').replace(',','.')||0;
 const fmtMes=s=>{if(!s)return'';const[y,m]=s.split('-');const ms=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];return ms[+m-1]+'/'+y;};
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+function showToast(msg,color){const t=document.getElementById('toast');t.textContent=msg;t.style.background=color||'';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
 
 function calcMonth(resultado, meta){
   const divTaxa=config.divTaxa/100;
@@ -593,7 +598,8 @@ function saveMes(){
     resultado:parseNum(document.getElementById('i_resultado').value)||0,
     meta:getMeta(mes)
   };
-  LS.set('da1_m',mdata);COM_API.salvarCiclo('diretor_adm',mdata);renderCiclo();showToast('Lançamento salvo ✓');
+  if(!LS.set('da1_m',mdata)){showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.','#b83232');return;}
+  COM_API.salvarCiclo('diretor_adm',mdata);renderCiclo();showToast('Lançamento salvo ✓');
 }
 
 // ─── CICLO COMPLETO ───────────────────────────────────
@@ -674,7 +680,8 @@ async function importCiclo(event){
       if(real!==null){if(!mdata[mes.id])mdata[mes.id]={};mdata[mes.id].resultado=real;updated++;}
       if(proj!==null){mes.proj=proj;}
     });
-    LS.set('da1_m',mdata);COM_API.salvarCiclo('diretor_adm',mdata);renderCiclo();
+    if(!LS.set('da1_m',mdata)){showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.','#b83232');return;}
+    COM_API.salvarCiclo('diretor_adm',mdata);renderCiclo();
     showToast(`↑ ${updated} mês(es) atualizado(s)`);
     event.target.value='';
   }catch(err){showToast('Erro ao importar: '+err.message,'#b83232');}
@@ -723,7 +730,7 @@ function saveAuditoria(){
   const obs=document.getElementById('aud_obs').value;
   if(!val)return;
   extras.auditorias.push({ano,val,obs,data:new Date().toLocaleDateString('pt-BR')});
-  LS.set('da1_ext',extras);
+  if(!LS.set('da1_ext',extras)){showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.','#b83232');return;}
   document.getElementById('aud_val').value='';
   document.getElementById('aud_obs').value='';
   renderAuditorias();showToast('Auditoria registrada ✓');
@@ -752,7 +759,7 @@ function addSistema(){
   const val=parseNum(document.getElementById('sis_val').value)||0;
   if(!nome||!val)return;
   extras.sistemas.push({nome,data,val});
-  LS.set('da1_ext',extras);
+  if(!LS.set('da1_ext',extras)){showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.','#b83232');return;}
   document.getElementById('sis_nome').value='';document.getElementById('sis_val').value='';
   renderSistemas();showToast('Sistema registrado ✓');
 }
@@ -789,7 +796,8 @@ function saveConfig(){
   config.gatilhoA=+document.getElementById('r_gatilhoA').value||95;
   config.valorA=parseNum(document.getElementById('r_valorA').value)||1200;
   document.getElementById('gatilhoA_label').textContent=config.gatilhoA+'%';
-  LS.set('da1_cfg',config);updateCalc();showToast('Configurações salvas ✓');
+  if(!LS.set('da1_cfg',config)){showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.','#b83232');return;}
+  updateCalc();showToast('Configurações salvas ✓');
 }
 function buildFaixasConfig(){
   document.getElementById('faixasBody').innerHTML=config.faixas.map((f,i)=>`

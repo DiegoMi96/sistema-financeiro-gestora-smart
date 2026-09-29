@@ -222,7 +222,12 @@ const DEF_PP={
 
 const LS={
   get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d}},
-  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+  // Antes engolia qualquer erro em silêncio (ex.: localStorage cheio) — quem
+  // chamava mostrava "Salvo ✓" mesmo quando a gravação tinha falhado de
+  // verdade (achado do Diego, 29/09/2026, no Vendedor: "já tinha salvo e
+  // não ficou salvo"). Agora devolve true/false pra quem chama poder avisar
+  // direito.
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){console.error('LS.set falhou ('+k+'):',e);return false}}
 };
 
 // ─── PERSISTÊNCIA DO EXTRATO (backend) ─────────────
@@ -458,7 +463,8 @@ function saveEdit(id,mes){
     bonus:+document.getElementById(`ef_bonus_${id}`).value||0,
     obs:document.getElementById(`ef_obs_${id}`).value||'',
   };
-  LS.set('dp1_m',mdata);editingId=null;
+  if(!LS.set('dp1_m',mdata)){showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.','#b83232');return;}
+  editingId=null;
   renderProjetos();
   showToast('Salvo ✓');
 }
@@ -635,8 +641,9 @@ function regraSalvar(){
   proj.taxaMargem=(+document.getElementById('rg_taxaMargem').value||0)/100;
   proj.taxaAtivacao=(+document.getElementById('rg_taxaAtivacao').value||0)/100;
   proj.cancelRate=+document.getElementById('rg_cancelRate').value||0;
-  LS.set('dp1_projetos',projetos);
-  LS.set('dp1_pp',projetosPrecos);
+  const ok1=LS.set('dp1_projetos',projetos);
+  const ok2=LS.set('dp1_pp',projetosPrecos);
+  if(!ok1||!ok2){showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.','#b83232');return;}
   regraFecharModal();
   renderRegrasLista();
   renderProjetos();

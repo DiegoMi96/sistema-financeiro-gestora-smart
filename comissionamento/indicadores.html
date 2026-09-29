@@ -156,7 +156,12 @@ const DEF_RULES={taxa:2.00};
 
 const LS={
   get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d}},
-  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+  // Antes engolia qualquer erro em silêncio (ex.: localStorage cheio) — quem
+  // chamava mostrava "Salvo ✓" mesmo quando a gravação tinha falhado de
+  // verdade (achado do Diego, 29/09/2026, no Vendedor: "já tinha salvo e
+  // não ficou salvo"). Agora devolve true/false pra quem chama poder avisar
+  // direito.
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){console.error('LS.set falhou ('+k+'):',e);return false}}
 };
 
 // ─── PERSISTÊNCIA DO EXTRATO (backend) ─────────────
@@ -354,7 +359,8 @@ function saveEdit(id,mes){
     bonus:+document.getElementById(`ef_bonus_${id}`).value||0,
     obs:document.getElementById(`ef_obs_${id}`).value||''
   };
-  LS.set('ind1_m',mdata);editingId=null;renderInd();
+  if(!LS.set('ind1_m',mdata)){showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.','#b83232');return;}
+  editingId=null;renderInd();
   showToast('Salvo ✓');
 }
 
@@ -407,8 +413,9 @@ function saveRules(){
   renderInd();
 }
 function saveConfig(){
-  LS.set('ind1_list',indicadores);
-  LS.set('ind1_rules',rules);
+  const ok1=LS.set('ind1_list',indicadores);
+  const ok2=LS.set('ind1_rules',rules);
+  if(!ok1||!ok2){showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.','#b83232');return;}
   renderInd();
   showToast('Configurações salvas ✓');
 }

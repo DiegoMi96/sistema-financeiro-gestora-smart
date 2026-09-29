@@ -380,7 +380,12 @@ const DEF_EXTRAS = { canais: [], reajustes: [], produtos: [], newsKickoffPago: f
 
 const LS = {
   get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
-  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  // Antes engolia qualquer erro em silêncio (ex.: localStorage cheio) — quem
+  // chamava mostrava "Salvo ✓" mesmo quando a gravação tinha falhado de
+  // verdade (achado do Diego, 29/09/2026, no Vendedor: "já tinha salvo e
+  // não ficou salvo"). Agora devolve true/false pra quem chama poder avisar
+  // direito.
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch(e) { console.error('LS.set falhou ('+k+'):', e); return false; } },
 };
 
 // ─── PERSISTÊNCIA DO CICLO (backend) ───────────────
@@ -441,7 +446,7 @@ const brFmt = v => (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, 
 const parseNum = s => +String(s).replace(/\./g, '').replace(',', '.') || 0;
 const brInt = v => Math.round(v || 0).toLocaleString('pt-BR');
 const fmtMes = s => { if (!s) return ''; const [y, m] = s.split('-'); const ms = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']; return ms[+m - 1] + '/' + y; };
-function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2200); }
+function showToast(msg, color) { const t = document.getElementById('toast'); t.textContent = msg; t.style.background = color || ''; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2200); }
 
 // Faixas "bateu a faixa, levou o valor" — só a maior faixa atingida paga (não acumulativo).
 function faixaMaior(faixas, valor) {
@@ -530,7 +535,7 @@ function saveMes() {
     sat: document.getElementById('i_sat').value === '' ? null : +document.getElementById('i_sat').value,
     news: document.getElementById('i_news').checked,
   };
-  LS.set('dc1_m', mdata);
+  if (!LS.set('dc1_m', mdata)) { showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.', '#b83232'); return; }
   COM_API.salvarCiclo('diretor_comercial', mdata);
   renderCiclo();
   showToast('Lançamento salvo ✓');
@@ -579,7 +584,7 @@ function addCanal() {
   const vol = +document.getElementById('canal_vol').value || 0;
   if (!nome || !data) { showToast('Informe nome e data de abertura'); return; }
   extras.canais.push({ id: 'c' + Date.now(), nome, data, vol, marcosPagos: {} });
-  LS.set('dc1_ext', extras);
+  if (!LS.set('dc1_ext', extras)) { showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.', '#b83232'); return; }
   document.getElementById('canal_nome').value = ''; document.getElementById('canal_vol').value = '';
   renderCanais(); showToast('Canal registrado ✓');
 }
@@ -590,7 +595,7 @@ function pagarMarcoCanal(id, marco) {
   const c = extras.canais.find(x => x.id === id); if (!c) return;
   const mes = document.getElementById('mesInput').value || new Date().toISOString().slice(0, 7);
   c.marcosPagos[marco] = mes;
-  LS.set('dc1_ext', extras);
+  if (!LS.set('dc1_ext', extras)) { showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.', '#b83232'); return; }
   renderCanais(); renderCiclo();
   showToast(`Marco ${marco} do canal registrado ✓`);
 }
@@ -626,7 +631,7 @@ function saveReajuste() {
   const bonus = faixaMaior(faixas, valor);
   const mes = document.getElementById('mesInput').value || new Date().toISOString().slice(0, 7);
   extras.reajustes.push({ ano, valor, bonus, mes, data: new Date().toLocaleDateString('pt-BR') });
-  LS.set('dc1_ext', extras);
+  if (!LS.set('dc1_ext', extras)) { showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.', '#b83232'); return; }
   document.getElementById('reaj_val').value = '';
   renderReajustes(); renderCiclo();
   showToast('Reajuste registrado ✓');
@@ -649,7 +654,7 @@ function addProduto() {
   const val = parseNum(document.getElementById('prod_val').value) || 0;
   if (!nome || !val) return;
   extras.produtos.push({ nome, data, val });
-  LS.set('dc1_ext', extras);
+  if (!LS.set('dc1_ext', extras)) { showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.', '#b83232'); return; }
   document.getElementById('prod_nome').value = ''; document.getElementById('prod_val').value = '';
   renderProdutos(); renderCiclo();
   showToast('Produto registrado ✓');
@@ -700,7 +705,7 @@ function pagarMarcoBase(i) {
   config.marcosBase[i].pago = true;
   config.marcosBase[i].dataPag = hoje;
   config.marcosBase[i].dataPagMes = mes;
-  LS.set('dc1_cfg', config);
+  if (!LS.set('dc1_cfg', config)) { showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.', '#b83232'); return; }
   renderBaseConquistada(); renderCiclo();
   showToast('Marco de base registrado ✓');
 }
@@ -713,7 +718,7 @@ function loadConfig() {
 function saveConfig() {
   config.newsKickoff = +document.getElementById('r_newsKickoff').value || 800;
   config.newsManutencao = +document.getElementById('r_newsManutencao').value || 200;
-  LS.set('dc1_cfg', config);
+  if (!LS.set('dc1_cfg', config)) { showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.', '#b83232'); return; }
   document.getElementById('news_val_label').textContent = brFmt(config.newsManutencao);
   updateCalc();
   showToast('Configurações salvas ✓');

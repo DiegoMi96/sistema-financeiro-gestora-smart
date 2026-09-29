@@ -1203,7 +1203,7 @@ function cadSalvarVendedor() {
 
   const vendedores = CLS.get('gs5_v', CONS_DEFAULTS.vendedores);
   vendedores.push({ id: 'v' + Date.now(), nome, g: { obj, m1, m2, sm } });
-  LS_set('gs5_v', vendedores);
+  if (!LS_set('gs5_v', vendedores)) { showCadToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.', true); return; }
 
   // O iframe do Vendedor já carregou a lista antiga na memória dele (variável
   // local, não repassada por referência) — recarrega ele pra pegar o novo
@@ -1825,7 +1825,7 @@ function consManualSalvar() {
   ['vendedor', 'dealer', 'indicador', 'projeto', 'gestor', 'diretor', 'diretorComercial'].forEach(k => {
     all[mes][k] = +document.getElementById('cons_manual_' + k).value || 0;
   });
-  LS_set('cons_hist_manual', all);
+  if (!LS_set('cons_hist_manual', all)) { showCadToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.', true); return; }
   showCadToast('Lançamento manual salvo para ' + fmtMesC(mes));
 }
 function consManualRemover() {
@@ -1833,7 +1833,7 @@ function consManualRemover() {
   if (mesAprovado(mes)) { alert('Este mês já foi aprovado — não é possível alterar. Desaprove antes, se precisar.'); return; }
   const all = CLS.get('cons_hist_manual', {});
   delete all[mes];
-  LS_set('cons_hist_manual', all);
+  if (!LS_set('cons_hist_manual', all)) { showCadToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.', true); return; }
   showCadToast('Lançamento manual removido de ' + fmtMesC(mes));
 }
 
@@ -1892,7 +1892,7 @@ function consAprovarMes(mesParam) {
   if (!confirm(`Aprovar o comissionamento de ${fmtMesC(mes)}?\n\nDepois de aprovado, os valores deste mês não podem mais ser editados em nenhum perfil nem reprocessados pelo Importar — só desaprovando (ação administrativa) ou excluindo os dados.`)) return;
   const a = aprovacoesGet();
   a[mes] = { aprovado: true, aprovadoEm: new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) };
-  LS_set(APROV_KEY, a);
+  if (!LS_set(APROV_KEY, a)) { showCadToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.', true); return; }
   renderConsAprovacao(mes);
   consRefreshAllFrames();
   renderImportHistorico();
@@ -1904,7 +1904,7 @@ function consDesaprovarMes(mesParam) {
   if (!confirm(`Desaprovar o comissionamento de ${fmtMesC(mes)}?\n\nEsta é uma ação administrativa — normalmente não deveria ser feita depois que o mês já foi fechado. Os valores voltam a poder ser editados e reprocessados.`)) return;
   const a = aprovacoesGet();
   delete a[mes];
-  LS_set(APROV_KEY, a);
+  if (!LS_set(APROV_KEY, a)) { showCadToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.', true); return; }
   renderConsAprovacao(mes);
   consRefreshAllFrames();
   renderImportHistorico();
@@ -1917,15 +1917,17 @@ function consExcluirMes(mesParam) {
   // Vendedor/Dealer/Indicador guardam uma entrada por pessoa+mês (chave termina
   // em "_mes"); Gestor/Diretor Adm/Diretor Comercial guardam uma entrada por
   // mês direto (são perfis de uma pessoa só, sem lista de gente).
+  let ok = true;
+  const set = (k, v) => { if (!LS_set(k, v)) ok = false; };
   ['gs5_m', 'dp1_m', 'ind1_m'].forEach(key => {
     const store = CLS.get(key, {});
     Object.keys(store).forEach(k => { if (k.endsWith('_' + mes)) delete store[k]; });
-    LS_set(key, store);
+    set(key, store);
   });
   ['go1_m', 'da1_m', 'dc1_m'].forEach(key => {
     const store = CLS.get(key, {});
     delete store[mes];
-    LS_set(key, store);
+    set(key, store);
   });
   // Sem isso, "Excluir" deixava pra trás a fonte bruta que alimenta as Regras
   // de Comissão (soma/contagem de ativação, volume de pedidos do Hilario/
@@ -1935,14 +1937,15 @@ function consExcluirMes(mesParam) {
   // ser isso mesmo, tudo.
   const fontes = fontesDealerGet();
   Object.keys(fontes).forEach(id => { delete fontes[id][mes]; });
-  LS_set(FONTES_DEALER_KEY, fontes);
+  set(FONTES_DEALER_KEY, fontes);
   // Lançamento manual desse mês também é "dado calculado" — some junto.
   const manual = CLS.get('cons_hist_manual', {});
   delete manual[mes];
-  LS_set('cons_hist_manual', manual);
+  set('cons_hist_manual', manual);
   const a = aprovacoesGet();
   delete a[mes];
-  LS_set(APROV_KEY, a);
+  set(APROV_KEY, a);
+  if (!ok) { showCadToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.', true); return; }
   renderConsolidado();
   renderConsAprovacao(mes);
   consRefreshAllFrames();
@@ -2322,6 +2325,14 @@ function cadSalvar() {
     pendente,
   };
 
+  // Cada ramo abaixo pode fazer mais de uma gravação (ex: trocar de
+  // categoria mexe em 2 ou 3 chaves) — só mostra "salvo" se TODAS as
+  // gravações realmente funcionaram (achado do Diego, 29/09/2026, no
+  // Vendedor: "já tinha salvo e não ficou salvo" — LS_set engolia erro
+  // de gravação em silêncio e o toast de sucesso aparecia do mesmo jeito).
+  let ok = true;
+  const set = (k, v) => { if (!LS_set(k, v)) ok = false; };
+
   if (cadEditando) {
     const keyAntiga = CAD_KEY[cadEditando.tipo];
     const listAntiga = CLS.get(keyAntiga, cadDefaults(cadEditando.tipo));
@@ -2332,30 +2343,31 @@ function cadSalvar() {
     if (keyNova === keyAntiga) {
       // Mesma lista de armazenamento (ex: Indicador → Indicador N2) — só atualiza.
       if (idx !== -1) listAntiga[idx] = { ...original, ...dados };
-      LS_set(keyAntiga, listAntiga);
+      set(keyAntiga, listAntiga);
     } else {
       // Cresceu de categoria (ex: Indicador N2 → Dealer) — muda de lista,
       // mantendo o mesmo id pra não perder o vínculo com lançamentos antigos.
       if (idx !== -1) listAntiga.splice(idx, 1);
-      LS_set(keyAntiga, listAntiga);
+      set(keyAntiga, listAntiga);
       const listNova = CLS.get(keyNova, cadDefaults(tipo));
       listNova.push({ ...original, ...dados, id: cadEditando.id });
-      LS_set(keyNova, listNova);
+      set(keyNova, listNova);
 
       // Saiu de Projeto Especial: não precisa mais da entrada de preços.
       if (cadEditando.tipo === 'projeto' && tipo !== 'projeto') {
         const pp = CLS.get('dp1_pp', {});
         delete pp[cadEditando.id];
-        LS_set('dp1_pp', pp);
+        set('dp1_pp', pp);
       }
       // Entrou em Projeto Especial: precisa da entrada de preços por operadora.
       if (tipo === 'projeto' && cadEditando.tipo !== 'projeto') {
         const pp = CLS.get('dp1_pp', {});
         pp[cadEditando.id] = { ALGAR: 0, ARQIA: 0, VIVO: 0, CLARO: 0, TIM: 0 };
-        LS_set('dp1_pp', pp);
+        set('dp1_pp', pp);
       }
     }
 
+    if (!ok) { showCadToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.', true); return; }
     cadEditando = null;
     cadModalModoNovo();
     cadClearForm();
@@ -2368,16 +2380,17 @@ function cadSalvar() {
   const list = CLS.get(key, cadDefaults(tipo));
   const entry = { id: CAD_PREFIX[tipo] + Date.now(), ...dados };
   list.push(entry);
-  LS_set(key, list);
+  set(key, list);
 
   // Projeto Especial precisa de uma entrada em dp1_pp (preços por operadora)
   // pra não quebrar a tela de Configurações do perfil.
   if (tipo === 'projeto') {
     const pp = CLS.get('dp1_pp', {});
     pp[entry.id] = { ALGAR: 0, ARQIA: 0, VIVO: 0, CLARO: 0, TIM: 0 };
-    LS_set('dp1_pp', pp);
+    set('dp1_pp', pp);
   }
 
+  if (!ok) { showCadToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.', true); return; }
   cadClearForm();
   cadRenderList();
   showCadToast(`${nome} cadastrado(a) como ${CAD_LABEL_SING[tipo]} ✓`);
@@ -2487,15 +2500,20 @@ function cadCopiarLink() {
   navigator.clipboard?.writeText(el.value).then(() => showCadToast('Link copiado ✓')).catch(() => document.execCommand('copy'));
 }
 
-function showCadToast(msg) {
+function showCadToast(msg, isError) {
   const t = document.createElement('div');
-  t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#1a1a18;color:#fff;font-size:12px;font-weight:600;padding:10px 18px;border-radius:8px;z-index:999;box-shadow:0 4px 14px rgba(0,0,0,.2)';
+  t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:' + (isError ? '#b83232' : '#1a1a18') + ';color:#fff;font-size:12px;font-weight:600;padding:10px 18px;border-radius:8px;z-index:999;box-shadow:0 4px 14px rgba(0,0,0,.2)';
   t.textContent = msg;
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 2600);
 }
 
-function LS_set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+// Antes engolia qualquer erro em silêncio (ex.: localStorage cheio) — quem
+// chamava mostrava o toast de sucesso mesmo quando a gravação tinha falhado
+// de verdade (achado do Diego, 29/09/2026, no Vendedor: "já tinha salvo e
+// não ficou salvo"). Agora devolve true/false pra quem chama poder avisar
+// direito — aplicado nos fluxos mais críticos (Cadastro de Parceiros).
+function LS_set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { console.error('LS_set falhou (' + k + '):', e); return false; } }
 
 function renderCadastro() {
   cadPopulateComercial();
