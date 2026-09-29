@@ -239,6 +239,14 @@ iframe.active{display:block}
 .cad-card input[type=text],.cad-card select,.cad-card textarea{background:#F5F5F5;border:1px solid #d4d3ce;border-radius:6px;padding:9px 11px;font-size:13px;font-family:'Inter',sans-serif;color:#1a1a18;width:100%;outline:none}
 .cad-card input:focus,.cad-card select:focus,.cad-card textarea:focus{border-color:#1a1a18;background:#fff}
 .cad-card textarea{resize:vertical;min-height:64px}
+/* Resultado do link gerado (Enviar Link de Cadastro) — um "input group"
+   com o link à esquerda e o botão Copiar já grudado, em vez da fileira
+   solta de botão+campo+botão de antes (pedido do Diego, 29/09/2026:
+   "vamos melhorar o layout"). */
+.cad-link-result{display:flex;align-items:stretch;margin-top:16px;border:1px solid #d4d3ce;border-radius:8px;overflow:hidden}
+.cad-card .cad-link-result input[type=text]{flex:1;min-width:0;border:none;border-radius:0;background:#F5F5F5;color:#4a5868;font-size:12.5px}
+.cad-link-copy{background:#1a1a18;color:#fff;border:none;padding:0 20px;font-size:12.5px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap;transition:background .15s}
+.cad-link-copy:hover{background:#333230}
 .cad-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:6px}
 .cad-btn{background:#1a1a18;color:#fff;border:none;border-radius:6px;padding:10px 22px;font-size:12.5px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer}
 .cad-btn:hover{background:#333230}
@@ -929,26 +937,20 @@ iframe.active{display:block}
     <div class="modal-card-body">
       <div class="cad-card">
         <p class="cad-card-title">Enviar para quem vai ingressar</p>
-        <p class="cad-invite-hint">Escolha a categoria e o comercial responsável, gere o link e envie para a pessoa preencher os próprios dados. Assim que ela salvar, o cadastro já aparece direto em "Novo Cadastro" — sem precisar de código nenhum.</p>
-        <div class="cad-grid" style="margin-bottom:18px">
-          <div>
-            <label class="cad-lbl">Categoria</label>
-            <select id="cad_link_categoria">
-              <option value="indicador">Indicador</option>
-              <option value="indicador_n2">Indicador N2</option>
-              <option value="dealer">Dealer</option>
-              <option value="projeto">Projeto Especial</option>
-            </select>
-          </div>
-          <div>
-            <label class="cad-lbl">Vinculado a qual executivo</label>
-            <select id="cad_link_comercial"></select>
-          </div>
+        <p class="cad-invite-hint">Escolha a categoria, gere o link e envie para a pessoa preencher os próprios dados — inclusive a quem ela fica vinculada. Assim que ela salvar, o cadastro já aparece direto em "Novo Cadastro" — sem precisar de código nenhum.</p>
+        <div style="margin-bottom:18px">
+          <label class="cad-lbl">Categoria</label>
+          <select id="cad_link_categoria">
+            <option value="indicador">Indicador</option>
+            <option value="indicador_n2">Indicador N2</option>
+            <option value="dealer">Dealer</option>
+            <option value="projeto">Projeto Especial</option>
+          </select>
         </div>
-        <div class="cad-invite-row">
-          <button class="cad-btn-outline" onclick="cadGerarLink()">🔗 Gerar link de cadastro</button>
-          <input type="text" id="cad_invite_link" readonly placeholder="Clique em “Gerar link” para criar o link do parceiro…">
-          <button class="cad-btn-outline" onclick="cadCopiarLink()">Copiar link</button>
+        <button class="cad-btn" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px" onclick="cadGerarLink()">🔗 Gerar link de cadastro</button>
+        <div class="cad-link-result">
+          <input type="text" id="cad_invite_link" readonly placeholder="Clique em “Gerar link de cadastro” para criar o link do parceiro…">
+          <button class="cad-link-copy" onclick="cadCopiarLink()">Copiar</button>
         </div>
       </div>
     </div>
@@ -1164,7 +1166,6 @@ function cadAbrirModal(qual) {
   document.getElementById('cadDropdownMenu').classList.remove('open');
   document.getElementById(CAD_MODAL_ID[qual]).classList.add('open');
   if (qual === 'novo') { cadEditando = null; cadModalModoNovo(); renderCadastro(); cadClearForm(); cadCategoriaChanged(); }
-  if (qual === 'link') renderCadastroLink();
   if (qual === 'vendedor') { document.getElementById('cadv_nome').value = ''; ['cadv_obj', 'cadv_m1', 'cadv_m2', 'cadv_sm'].forEach(id => document.getElementById(id).value = ''); }
 }
 
@@ -1205,7 +1206,6 @@ function cadSalvarVendedor() {
 
   cadFecharModal('vendedor');
   cadPopulateComercial();
-  renderCadastroLink();
   showCadToast(`Vendedor ${nome} criado ✓ — ajuste as metas dele na aba "Metas" do perfil Vendedor.`);
 }
 
@@ -2449,19 +2449,8 @@ function cadRenderList() {
       </tr>`).join('')}</tbody></table>`;
 }
 
-function renderCadastroLink() {
-  const vendedores = CLS.get('gs5_v', CONS_DEFAULTS.vendedores);
-  const sel = document.getElementById('cad_link_comercial');
-  const atual = sel.value;
-  sel.innerHTML = '<option value="">Selecione…</option>' + vendedores.map(v => `<option value="${v.nome}">${v.nome}</option>`).join('');
-  if (atual) sel.value = atual;
-}
-
 function cadGerarLink() {
   const tipo = document.getElementById('cad_link_categoria').value;
-  const comercial = document.getElementById('cad_link_comercial').value;
-  const params = new URLSearchParams({ tipo });
-  if (comercial) params.set('comercial', comercial);
   // location.href aqui pode vir como ".../comissionamento/?v=1727..." (o
   // cache-busting do iframe em ComissionamentoDashboard.jsx) ou como
   // ".../comissionamento/index.html" (acesso direto) — o replace antigo só
@@ -2472,7 +2461,16 @@ function cadGerarLink() {
   // sistema"). Corrigido tirando query/hash primeiro e depois o último
   // segmento do caminho, cobrindo os dois formatos.
   const base = location.href.split(/[?#]/)[0].replace(/[^/]*$/, '');
-  document.getElementById('cad_invite_link').value = base + 'cadastro_publico.html?' + params.toString();
+  // Link "bonito" (sem .html nem querystring à vista) — pedido do Diego
+  // (29/09/2026: "quero algo mais profissional" sobre o link antigo, que
+  // terminava em "cadastro_publico.html?tipo=indicador"). O nginx reescreve
+  // "/comissionamento/cadastro/<tipo>" internamente pro arquivo real com a
+  // querystring que cadastro_publico.html já sabe ler — ver sistema-gestora
+  // no droplet. Também não manda mais "comercial": quem vai vincular o
+  // parceiro ao executivo agora é o próprio parceiro, no formulário público
+  // (campo "Vinculado a qual executivo" já existe lá) — não faz sentido a
+  // equipe interna escolher isso de antemão ao só gerar o link.
+  document.getElementById('cad_invite_link').value = base + 'cadastro/' + tipo;
 }
 
 function cadCopiarLink() {
