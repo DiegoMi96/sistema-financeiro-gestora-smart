@@ -27,6 +27,17 @@ body{font-family:'Inter',sans-serif;background:var(--gs-bg);color:var(--gs-text)
    estavam assim). Regra de base cobre isso pra qualquer campo, atual ou futuro. */
 input,select,textarea,button{font-family:inherit}
 
+/* Mesmo motivo do bloco acima, mas pra cor de fundo/borda: as regras existentes
+   (.cad-card, .cad-toolbar, .imp-hist-hdr) só cobriam input[type=text], deixando
+   select/month/number de fora sempre que o campo caía fora de um desses containers
+   OU era um tipo diferente de texto dentro deles — foi assim que o seletor
+   "Executivo" e os campos de Mês (Visão do Executivo, Importar) e vários campos
+   numéricos (lançamento manual, ajuda de custo, metas do vendedor) ficaram com a
+   aparência crua do navegador (achado do Diego, 29/09/2026, comparando com o
+   filtro de Cadastro de Parceiros). Regra de base pega qualquer campo, atual ou
+   futuro — as regras mais específicas (.cad-card etc.) continuam válidas por cima. */
+input[type=text],input[type=number],input[type=month],select,textarea{background:#F5F5F5;border:1px solid #d4d3ce;border-radius:6px;padding:9px 11px;font-size:13px;color:#1a1a18;outline:none}
+
 .sidebar{
   width:230px;flex-shrink:0;
   background:#fff;color:#1a1a18;
