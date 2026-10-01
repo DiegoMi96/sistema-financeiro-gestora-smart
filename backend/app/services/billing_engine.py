@@ -624,9 +624,15 @@ class BillingEngineService:
                     return found
             return None
 
-        col_id    = _find("ID_CNPJCPF", "CNPJ", "ID_CNPJ", "CPF/CNPJ")
+        # 30/09/2026: planilha de fretes de Setembro/2026 veio com um 3º
+        # formato (nenhum provedor identificado nos anteriores) — colunas
+        # "ID_CNPJ/CPF"/"CPF/CNPJ" (id) e "VALOR_FRETE" (valor), causando o
+        # mesmo ValueError de "colunas não encontradas" que o Allcom já tinha
+        # causado antes. Mesmo padrão de correção: só acrescenta os nomes
+        # novos à lista de busca, nunca remove os existentes.
+        col_id    = _find("ID_CNPJCPF", "CNPJ", "ID_CNPJ", "CPF/CNPJ", "ID_CNPJ/CPF")
         col_cli   = _find("DESTINATARIO", "CLIENTE", "NOME")
-        col_valor = _find("VALOR TOTAL", "VALOR")
+        col_valor = _find("VALOR TOTAL", "VALOR", "VALOR_FRETE", "VALOR FRETE")
         if col_id is None or col_valor is None:
             raise ValueError(
                 f"Planilha de fretes: não encontrei as colunas de identificação/valor "
