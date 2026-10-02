@@ -40,22 +40,25 @@ def _normalizar_status(s):
 
 
 # ── Rodadas de reajuste anual (cumulativas, compostas) ─────────────────────
-# Cada entrada é {ano_da_rodada: ano_corte_elegibilidade}. Um cliente com
-# "Data de ativação" com ano < ano_corte (ou sem data) recebe o % daquela
-# rodada, lido da coluna "Reajuste <ano_da_rodada>" da planilha "Base de
-# Reajuste". Rodadas cujo cliente é elegível se COMPÕEM (multiplicativo):
-# Mensalidade × (1+pct_2025) × (1+pct_2026) × ...
+# Cada entrada é {ano_da_coluna: ano_corte_elegibilidade}. A coluna
+# "Reajuste <ano>" da planilha "Base de Reajuste" vale para quem tem "Data de
+# ativação" com ano < ano_corte (ou sem data). Rodadas cujo cliente é elegível
+# se COMPÕEM (multiplicativo): Mensalidade × (1+pct_2024) × (1+pct_2025) × ...
 # NUNCA remova ou substitua uma entrada existente — isso apagaria o reajuste
 # daquele ano pra todo mundo. Ao abrir uma rodada nova, só ACRESCENTE uma
-# linha. Padrão: reajuste do ano X considera ativação até dezembro de X-1
-# (corte = X). Corrigido com o Diego (02/09/2026) — a versão anterior deste
-# arquivo tinha o corte de 2026 errado (2027 em vez de 2026), o que deu
-# reajuste indevido pra quem ativou em 2026 no ciclo de agosto/2026:
-#   • Reajuste 2025: ativação até dez/2024 → corte 2025
-#   • Reajuste 2026: ativação até dez/2025 → corte 2026
+# linha.
+# 02/10/2026 — convenção confirmada com o Diego: "Reajuste <ano>" vale para
+# ativações ATÉ O ÚLTIMO MÊS (dezembro) DAQUELE ANO, ou seja, corte = ano + 1:
+#   • Reajuste 2024: ativação até dez/2024 → corte 2025  (os 5,23% de hoje;
+#     linhas ativadas em 2025 NÃO tiveram reajuste)
+#   • Reajuste 2025: ativação até dez/2025 → corte 2026  (ainda sem % lançado)
+# Antes desta data a convenção era "ano da coluna = corte" (coluna 2025 = até
+# dez/2024); o histórico de erros dessa mudança de leitura está nos commits
+# de reajuste de 02/09 e 02/10/2026.
 REAJUSTE_RODADAS = {
-    2025: 2025,   # ano de ativação < 2025 recebe o reajuste 2025
-    2026: 2026,   # ano de ativação < 2026 recebe o reajuste 2026
+    2024: 2025,   # ano de ativação < 2025 (até dez/2024) recebe o reajuste 2024
+    2025: 2026,   # ano de ativação < 2026 (até dez/2025) recebe o reajuste 2025
+    2026: 2027,   # ano de ativação < 2027 (até dez/2026) recebe o reajuste 2026
 }
 
 
@@ -524,13 +527,11 @@ class BillingEngineService:
                 col_reaj_legado = next((c for c in df.columns if "reajuste" in str(c).lower()), None)
                 if col_reaj_legado is None:
                     return {}
-                # 02/10/2026: planilha com coluna única "Reajuste" (sem ano) é a
-                # rodada 2025 (5,23%, ativação até dez/2024) — confirmado com o
-                # Diego: não houve reajuste para linhas ativadas em 2025. Antes
-                # caía na rodada mais recente (2026) e reajustava também quem
-                # ativou em 2025. Uma rodada 2026 futura virá com cabeçalho
-                # "Reajuste 2026", que o ramo acima já trata.
-                cols_reaj = [(2025, col_reaj_legado)]
+                # 02/10/2026: planilha com coluna única "Reajuste" (sem ano) é o
+                # Reajuste 2024 (5,23%, ativação até dez/2024) — não houve
+                # reajuste para linhas ativadas em 2025. Uma rodada futura virá
+                # com o ano no cabeçalho ("Reajuste 2025"...), tratada acima.
+                cols_reaj = [(2024, col_reaj_legado)]
 
             df[col_id] = df[col_id].astype(str).str.strip()
             result: dict = {}
