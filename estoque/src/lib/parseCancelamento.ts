@@ -20,7 +20,11 @@ export function buildCancelamentoSnapshot(rows: RawRow[]): CancelamentoSnapshot 
     if (!dataSolicitacao || !prazo) continue;
 
     const dataAtivacao = parseFlexibleDate(row["Data de ativação"]);
-    const dataCancelamento = parseFlexibleDate(row["Cancelamento"]);
+    // "Cancelamento" traz só a data (cancelado) ou "<data> - SUBSTITUIÇÃO".
+    // parseFlexibleDate lê o prefixo da data nos dois casos.
+    const cancelamentoTexto = String(row["Cancelamento"] ?? "");
+    const dataCancelamento = parseFlexibleDate(cancelamentoTexto);
+    const substituida = ehSubstituicao(cancelamentoTexto);
 
     linhas.push({
       msisdn,
@@ -32,22 +36,36 @@ export function buildCancelamentoSnapshot(rows: RawRow[]): CancelamentoSnapshot 
       dataAtivacao: dataAtivacao ? toISODate(dataAtivacao) : null,
       fidelidade: String(row["Fidelidade"] ?? "").trim(),
       dataCancelamento: dataCancelamento ? toISODate(dataCancelamento) : null,
+      substituida: Boolean(dataCancelamento) && substituida,
     });
   }
 
-  // Uma linha com "Cancelamento" preenchido já foi concluída — não é mais
-  // backlog pendente. Fica registrada em `linhas` (pra dar visibilidade de
-  // quantas foram concluídas), mas sai de todo o agrupamento/soma de pendentes.
+  // Uma linha com "Cancelamento" preenchido já saiu do backlog — concluída ou
+  // substituída. Fica registrada em `linhas` (pra dar visibilidade), mas sai de
+  // todo o agrupamento/soma de pendentes.
   const pendentes = linhas.filter((l) => !l.dataCancelamento);
+  const totalSubstituidas = linhas.filter((l) => l.substituida).length;
   const operadoras = agruparPorOperadora(pendentes);
 
   return {
     geradoEm: new Date().toISOString(),
     totalLinhas: pendentes.length,
+    // Substituídas também contam em Concluídos (pedido do Thalles, 02/10/2026);
+    // o card "Substituídas" mostra o subconjunto.
     totalConcluidos: linhas.length - pendentes.length,
+    totalSubstituidas,
     operadoras,
     linhas,
   };
+}
+
+// Tolerante a acento/caixa ("Substituição", "SUBSTITUICAO", "substituído"...).
+function ehSubstituicao(texto: string): boolean {
+  return texto
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .includes("substitu");
 }
 
 // Agrupamos por mês (não por dia exato) — a lista de lotes fica muito longa

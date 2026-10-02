@@ -14,6 +14,7 @@ export type CancelamentoResumoViewModel = {
   atualizadoEm: string | null;
   totalLinhas: number;
   totalConcluidos: number;
+  totalSubstituidas: number;
   porStatus: { status: string; total: number }[];
   vencidos: number; // dias restantes < 0
   vencendoEm7Dias: number; // 0 <= dias restantes <= 7
@@ -21,7 +22,15 @@ export type CancelamentoResumoViewModel = {
 
 export function buildCancelamentoResumo(snapshot: CancelamentoSnapshot | null): CancelamentoResumoViewModel {
   if (!snapshot) {
-    return { atualizadoEm: null, totalLinhas: 0, totalConcluidos: 0, porStatus: [], vencidos: 0, vencendoEm7Dias: 0 };
+    return {
+      atualizadoEm: null,
+      totalLinhas: 0,
+      totalConcluidos: 0,
+      totalSubstituidas: 0,
+      porStatus: [],
+      vencidos: 0,
+      vencendoEm7Dias: 0,
+    };
   }
 
   const hoje = hojeLocal();
@@ -45,6 +54,7 @@ export function buildCancelamentoResumo(snapshot: CancelamentoSnapshot | null): 
     atualizadoEm: snapshot.geradoEm,
     totalLinhas: snapshot.totalLinhas,
     totalConcluidos: snapshot.totalConcluidos,
+    totalSubstituidas: snapshot.totalSubstituidas,
     porStatus,
     vencidos,
     vencendoEm7Dias,

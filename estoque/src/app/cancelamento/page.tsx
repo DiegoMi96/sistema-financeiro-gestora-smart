@@ -104,6 +104,7 @@ function CancelamentoPageContent() {
           <StatCard titulo="Vencendo em 7 dias" valor={vm.vencendoEm7Dias} destaque="amber" />
           <StatCard titulo="Vencidos" valor={vm.vencidos} destaque="red" />
           <StatCard titulo="Concluídos" valor={vm.totalConcluidos} destaque="green" />
+          <StatCard titulo="Substituídas" valor={vm.totalSubstituidas} destaque="blue" />
         </div>
 
         {geral.meses.length > 0 && (
@@ -170,7 +171,7 @@ function StatCard({
 }: {
   titulo: string;
   valor: number;
-  destaque?: "amber" | "red" | "green";
+  destaque?: "amber" | "red" | "green" | "blue";
 }) {
   return (
     <Card>
@@ -185,7 +186,9 @@ function StatCard({
                 ? "text-amber-600 dark:text-amber-400"
                 : destaque === "green"
                   ? "text-emerald-600 dark:text-emerald-400"
-                  : "")
+                  : destaque === "blue"
+                    ? "text-sky-600 dark:text-sky-400"
+                    : "")
           }
         >
           {fmt(valor)}

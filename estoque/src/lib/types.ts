@@ -122,7 +122,14 @@ export type CancelamentoLinha = {
   prazo: string; // ISO yyyy-mm-dd — data-limite prevista
   dataAtivacao: string | null; // ISO yyyy-mm-dd — pode faltar em arquivos antigos
   fidelidade: string; // MULTA FIXA / SEM MULTA / MULTA NO VALOR DO CONTRATO / outros
-  dataCancelamento: string | null; // ISO yyyy-mm-dd — preenchido quando o cancelamento foi concluído
+  // ISO yyyy-mm-dd — preenchido quando a linha saiu do backlog: cancelamento
+  // concluído OU substituição (ver `substituida`). Os filtros de "pendente"
+  // dependem só deste campo.
+  dataCancelamento: string | null;
+  // Coluna "Cancelamento" no formato "<data> - SUBSTITUIÇÃO": a linha não foi
+  // cancelada, foi trocada por outra — sai do backlog e aparece no card próprio
+  // "Substituídas" (também entra no total de Concluídos).
+  substituida: boolean;
 };
 
 export type CancelamentoLote = {
@@ -145,7 +152,8 @@ export type OperadoraCancelamento = {
 export type CancelamentoSnapshot = {
   geradoEm: string;
   totalLinhas: number; // pendentes — exclui linhas já com Cancelamento concluído
-  totalConcluidos: number; // linhas com dataCancelamento preenchido
+  totalConcluidos: number; // saíram do backlog (cancelamento concluído + substituídas)
+  totalSubstituidas: number; // subconjunto de totalConcluidos: saíram por substituição
   operadoras: OperadoraCancelamento[]; // agrupamento considera só pendentes
   linhas: CancelamentoLinha[]; // todas — pendentes e concluídas
 };
