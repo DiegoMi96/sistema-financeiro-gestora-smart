@@ -129,13 +129,35 @@ class BillingEngineService:
         rows_iter = ws.iter_rows(values_only=True)
         header = list(next(rows_iter))
 
+        # 02/10/2026: a base de Setembro/2026 veio com as colunas "Data ..."
+        # gravadas como TEXTO "dd/mm/aaaa" (ex.: "30/09/2026") em vez de data
+        # do Excel. O restante do motor só entende o formato ISO que o str() de
+        # um datetime produz, então toda data virava NaT: nenhuma linha ficou
+        # com ativação/cancelamento/suspensão (dias proporcionais e elegibilidade
+        # de reajuste erradas). Converte o texto dd/mm/aaaa para o mesmo ISO
+        # aqui, uma única vez, antes de gravar o CSV. Data do Excel (datetime)
+        # passa direto como sempre — só acrescenta, não muda o caminho antigo.
+        _date_br = re.compile(r"^(\d{2})/(\d{2})/(\d{4})(?: (\d{2}:\d{2}:\d{2}))?$")
+        _date_idx = [i for i, h in enumerate(header) if isinstance(h, str) and h.startswith("Data")]
+
+        def _fix_dates(row):
+            if not _date_idx:
+                return row
+            row = list(row)
+            for i in _date_idx:
+                if i < len(row) and isinstance(row[i], str):
+                    m = _date_br.match(row[i].strip())
+                    if m:
+                        row[i] = f"{m.group(3)}-{m.group(2)}-{m.group(1)} {m.group(4) or '00:00:00'}"
+            return row
+
         n = 0
         with open(csv_path, "w", newline="", encoding="utf-8") as f:
             writer = _csv.writer(f)
             writer.writerow(header)
             batch = []
             for row in rows_iter:
-                batch.append(row)
+                batch.append(_fix_dates(row))
                 n += 1
                 if len(batch) >= 50_000:
                     writer.writerows(batch)
