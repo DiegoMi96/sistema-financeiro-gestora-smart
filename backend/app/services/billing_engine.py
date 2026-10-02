@@ -582,6 +582,17 @@ class BillingEngineService:
             cols = list(raw.columns)
             # Coluna de valor numérico da multa: última coluna com nome inteiro
             multa_num_col = next((c for c in reversed(cols) if isinstance(c, int)), None)
+            # 01/10/2026: a planilha de Setembro veio com o cabeçalho "Valor da
+            # multa" (texto) em vez de uma coluna de nome inteiro. Sem achar a
+            # coluna, o código caía em pd.to_numeric(0).fillna(...) (escalar não
+            # tem .fillna), o AttributeError era engolido pelo except abaixo e o
+            # arquivo inteiro virava vazio — sem cancelamento nem multa no ciclo.
+            # Só acrescenta a busca por nome (ignorando caixa/espaços); a regra
+            # antiga (coluna de nome inteiro) continua valendo quando existir.
+            _norm = {str(c).strip().lower(): c for c in cols}
+            if multa_num_col is None:
+                multa_num_col = _norm.get("valor da multa")
+            col_status = _norm.get("status")
             out = pd.DataFrame()
             out["ID"]            = raw[cols[0]].astype(str).str.strip()
             out["clientes"]      = raw[cols[1]] if len(cols) > 1 else None
@@ -590,8 +601,8 @@ class BillingEngineService:
             out["Mensalidade"]   = pd.to_numeric(raw["Mensalidade"] if "Mensalidade" in cols else 0, errors="coerce").fillna(0)
             out["Data de cancel"]= pd.to_datetime(raw["Data de cancel"] if "Data de cancel" in cols else None, errors="coerce", dayfirst=True)
             out["Data ativação"] = pd.to_datetime(raw["Data ativação"] if "Data ativação" in cols else None, errors="coerce", dayfirst=True)
-            out["VALOR DA MULTA"]= pd.to_numeric(raw[multa_num_col] if multa_num_col is not None else 0, errors="coerce").fillna(0)
-            out["_tipo"]         = raw["STATUS"].fillna("Cancelamento") if "STATUS" in cols else "Cancelamento"
+            out["VALOR DA MULTA"]= pd.to_numeric(raw[multa_num_col] if multa_num_col is not None else pd.Series(0, index=raw.index), errors="coerce").fillna(0)
+            out["_tipo"]         = raw[col_status].fillna("Cancelamento") if col_status is not None else "Cancelamento"
             out = out.dropna(subset=["ID"])
             return out
         except Exception:
