@@ -524,7 +524,13 @@ class BillingEngineService:
                 col_reaj_legado = next((c for c in df.columns if "reajuste" in str(c).lower()), None)
                 if col_reaj_legado is None:
                     return {}
-                cols_reaj = [(max(REAJUSTE_RODADAS), col_reaj_legado)]
+                # 02/10/2026: planilha com coluna única "Reajuste" (sem ano) é a
+                # rodada 2025 (5,23%, ativação até dez/2024) — confirmado com o
+                # Diego: não houve reajuste para linhas ativadas em 2025. Antes
+                # caía na rodada mais recente (2026) e reajustava também quem
+                # ativou em 2025. Uma rodada 2026 futura virá com cabeçalho
+                # "Reajuste 2026", que o ramo acima já trata.
+                cols_reaj = [(2025, col_reaj_legado)]
 
             df[col_id] = df[col_id].astype(str).str.strip()
             result: dict = {}
