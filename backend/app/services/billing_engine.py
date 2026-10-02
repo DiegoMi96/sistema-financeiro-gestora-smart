@@ -533,13 +533,29 @@ class BillingEngineService:
                 # com o ano no cabeçalho ("Reajuste 2025"...), tratada acima.
                 cols_reaj = [(2024, col_reaj_legado)]
 
-            df[col_id] = df[col_id].astype(str).str.strip()
+            # 02/10/2026 (modelo padrão da Base de Reajuste): linhas em branco da
+            # planilha (formatadas até a linha 2000) não podem virar a chave
+            # "nan", e o ID é normalizado para "ss_<só dígitos>" — aceita o ID
+            # Smart (ss_...) ou o CNPJ/CPF cru, com ou sem pontuação. Um ID já
+            # no formato ss_<dígitos> não muda.
+            df = df.dropna(subset=[col_id]).copy()
+            df["_cid"] = df[col_id].apply(_sanitize_id)
+            df = df.dropna(subset=["_cid"])
             result: dict = {}
             for ano, col in cols_reaj:
-                sub = df[[col_id, col]].dropna(subset=[col_id])
+                if ano not in REAJUSTE_RODADAS:
+                    print(f"⚠️ Reajuste: coluna '{col}' IGNORADA — o ano {ano} não está em "
+                          f"REAJUSTE_RODADAS (rodadas ativas: {sorted(REAJUSTE_RODADAS)})", flush=True)
+                sub = df[["_cid", col]]
                 pct = pd.to_numeric(sub[col], errors="coerce").fillna(0)
-                for cid, p in zip(sub[col_id], pct):
-                    result.setdefault(cid, {})[ano] = float(p)
+                for cid, p in zip(sub["_cid"], pct):
+                    atual = result.setdefault(cid, {})
+                    # CNPJ repetido na planilha: uma linha em branco/zero não pode
+                    # apagar o percentual que outra linha já trouxe.
+                    if float(p) != 0 or ano not in atual:
+                        atual[ano] = float(p)
+            resumo = {ano: sum(1 for v in result.values() if v.get(ano)) for ano, _ in cols_reaj}
+            print(f"📂 Reajuste: {len(result)} clientes na planilha; com percentual por ano: {resumo}", flush=True)
             return result
         except Exception:
             return {}
