@@ -380,6 +380,9 @@ class BillingLine(Base):
 
     # Cálculos
     reajuste_pct         = Column(Float, default=0.0)
+    # Taxa de cada rodada aplicada à linha (04/10/2026). NULL nos ciclos antigos.
+    reajuste_2024_pct    = Column(Float)
+    reajuste_2025_pct    = Column(Float)
     mensalidade_reaj     = Column(Float, default=0.0)
     dias                 = Column(Integer, default=0)
     mensalidade_cobrada  = Column(Float, default=0.0)

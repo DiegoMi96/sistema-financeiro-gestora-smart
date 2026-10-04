@@ -121,6 +121,8 @@ def _run_migrations():
         ("billing_lines", "id_pedido",             "VARCHAR(255)"),
         ("billing_lines", "id_contrato",           "VARCHAR(255)"),
         ("billing_lines", "franquia_mb",           "FLOAT"),
+        ("billing_lines", "reajuste_2024_pct",     "FLOAT"),
+        ("billing_lines", "reajuste_2025_pct",     "FLOAT"),
         ("itau_boletos",  "description",            "TEXT"),
         ("asaas_payments_sync", "invoice_number",   "VARCHAR(50)"),
         ("billing_cycles", "error_message",         "TEXT"),

@@ -39,11 +39,11 @@ def _normalizar_status(s):
     return {"Cancelado": "Cancelamento"}.get(s, s)
 
 
-# ── Rodadas de reajuste anual (cumulativas, compostas) ─────────────────────
+# ── Rodadas de reajuste anual (cumulativas, somadas) ───────────────────────
 # Cada entrada é {ano_da_coluna: ano_corte_elegibilidade}. A coluna
 # "Reajuste <ano>" da planilha "Base de Reajuste" vale para quem tem "Data de
 # ativação" com ano < ano_corte (ou sem data). Rodadas cujo cliente é elegível
-# se COMPÕEM (multiplicativo): Mensalidade × (1+pct_2024) × (1+pct_2025) × ...
+# se SOMAM (decisão 04/10/2026): Mensalidade × (1 + pct_2024 + pct_2025 + ...)
 # NUNCA remova ou substitua uma entrada existente — isso apagaria o reajuste
 # daquele ano pra todo mundo. Ao abrir uma rodada nova, só ACRESCENTE uma
 # linha.
@@ -782,13 +782,24 @@ class BillingEngineService:
         # seu próprio % — lido da coluna daquele ano na planilha — só pra quem é
         # elegível por data de ativação NAQUELA rodada. Rodadas aplicáveis se
         # compõem (multiplicativo), então um cliente pode levar 2025 e 2026 juntos.
-        fator_reaj = pd.Series(1.0, index=df.index)
+        # 04/10/2026: as taxas das rodadas se SOMAM (decisão do Diego, igual à
+        # planilha manual): mensalidade × (1 + taxa2024 + taxa2025). Antes se
+        # multiplicavam ((1+a)×(1+b)); só muda quem tem as duas taxas (dif. de
+        # a×b, ~0,2%). Cada rodada também fica numa coluna própria
+        # (_reajuste_2024_pct / _reajuste_2025_pct) para o Excel exportado.
+        soma_reaj = pd.Series(0.0, index=df.index)
+        df["_reajuste_2024_pct"] = 0.0
+        df["_reajuste_2025_pct"] = 0.0
         for ano_rodada, ano_corte in REAJUSTE_RODADAS.items():
             pct_map_rodada = {cid: pcts.get(ano_rodada, 0) for cid, pcts in reajuste_map.items() if ano_rodada in pcts}
             pct_rodada = df["ID_CPF/CNPJ"].map(pct_map_rodada).fillna(0).astype(float)
             mask_elegivel = da.isna() | (da.dt.year < ano_corte)
-            fator_reaj *= (1 + pct_rodada.where(mask_elegivel, 0.0))
-        df["_reajuste_pct"] = fator_reaj - 1
+            pct_aplicado = pct_rodada.where(mask_elegivel, 0.0)
+            soma_reaj += pct_aplicado
+            if ano_rodada in (2024, 2025):
+                df[f"_reajuste_{ano_rodada}_pct"] = pct_aplicado
+        fator_reaj = 1.0 + soma_reaj
+        df["_reajuste_pct"] = soma_reaj
         df["_dias"]              = dias.astype(int)
         df["_mensalidade_reaj"]  = df["Mensalidade"] * fator_reaj
         raw = df["_mensalidade_reaj"] / td * df["_dias"]
@@ -868,6 +879,7 @@ class BillingEngineService:
 
             # Desistência: cobra apenas multa, mensalidade = 0
             is_desistencia = "desist" in tipo.lower()
+            r24 = r25 = 0.0
 
             if is_desistencia:
                 mc   = 0.0
@@ -890,7 +902,10 @@ class BillingEngineService:
                 fator = 1.0
                 for ano_rodada, ano_corte in REAJUSTE_RODADAS.items():
                     if ano_ativ is None or ano_ativ < ano_corte:
-                        fator *= (1 + pcts_cli.get(ano_rodada, 0))
+                        p_ = pcts_cli.get(ano_rodada, 0)
+                        fator += p_   # taxas se somam (04/10/2026), ver _calcular
+                        if ano_rodada == 2024: r24 = p_
+                        if ano_rodada == 2025: r25 = p_
                 reaj = fator - 1
                 mr_  = float(r["Mensalidade"]) * fator
                 mc   = _roundup2(mr_ / td * dias) if td > 0 else 0
@@ -904,7 +919,8 @@ class BillingEngineService:
                          "Status": "Cancelamento",
                          "_data_ativacao": r.get("Data ativação"),
                          "_data_cancelamento": r.get("Data de cancel"),
-                         "_reajuste_pct": reaj, "_dias": dias, "_mensalidade_reaj": mr_,
+                         "_reajuste_pct": reaj, "_reajuste_2024_pct": r24, "_reajuste_2025_pct": r25,
+                         "_dias": dias, "_mensalidade_reaj": mr_,
                          "_mensalidade_cobr": mc, "_ativacao": 0, "_excedente": 0,
                          "_multa": multa, "_sms": sms_c, "_total": round(mc + multa + sms_c, 2)})
         return pd.DataFrame(rows)

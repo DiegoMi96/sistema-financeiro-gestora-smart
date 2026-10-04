@@ -20,7 +20,7 @@ def _fmt_date(d):
 
 
 # ════════════════════════════════════════════════════════════════
-#  FORMATO MODELO — 32 colunas (A–AF) · exato do Pasta4.xlsx
+#  FORMATO MODELO — 33 colunas (A–AG) · Pasta4.xlsx + Reajuste 2024/2025 (04/10/2026)
 # ════════════════════════════════════════════════════════════════
 
 HEADERS_32 = [
@@ -48,28 +48,29 @@ HEADERS_32 = [
     "Data de início da suspensão",   # V   22
     "Consumo total (KB)",            # W   23
     # ── calculadas pelo sistema (fundo amarelo) ──────────────────
-    "Reajuste",                      # X   24
-    "Reajuste 2025",                 # Y   25
-    "Excedente",                     # Z   26
-    "Multa Cancelamento",            # AA  27
-    "SMS",                           # AB  28
-    "Dias",                          # AC  29
-    "Mensalidade",                   # AD  30
-    "Ativação",                      # AE  31
-    "TOTAL",                         # AF  32
+    "Reajuste 2024",                 # X   24  (%)
+    "Reajuste 2025",                 # Y   25  (%)
+    "Reajuste",                      # Z   26  (R$ — mensalidade reajustada)
+    "Excedente",                     # AA  27
+    "Multa Cancelamento",            # AB  28
+    "SMS",                           # AC  29
+    "Dias",                          # AD  30
+    "Mensalidade",                   # AE  31
+    "Ativação",                      # AF  32
+    "Total",                         # AG  33
 ]
 
-# Colunas calculadas (24–32) → fundo amarelo
-_CALC_COLS = set(range(24, 33))
+# Colunas calculadas (24–33) → fundo amarelo
+_CALC_COLS = set(range(24, 34))
 
 # Colunas monetárias (BRL)
-_MONEY_COLS = {4, 13, 17, 25, 26, 27, 28, 30, 31, 32}
+_MONEY_COLS = {4, 13, 17, 26, 27, 28, 29, 31, 32, 33}
 
 # Colunas com número inteiro / sem casas
-_INT_COLS = {29}
+_INT_COLS = {30}
 
 # Colunas percentual
-_PCT_COLS = {24}
+_PCT_COLS = {24, 25}
 
 HDR_FILL  = PatternFill("solid", fgColor="FFD9D9D9")
 CALC_FILL = PatternFill("solid", fgColor="FFFFFF00")   # amarelo
@@ -101,6 +102,14 @@ def _row_from_line(line) -> list:
     id_smart = _g(line, "id_smart") or ""
     cpf_cnpj = id_smart.replace("ss_", "").replace("SS_", "")
 
+    # Taxas por rodada. Ciclos antigos (colunas NULL): a taxa única que existia
+    # era a rodada 2024 (até dez/2024) — mostra ela em "Reajuste 2024".
+    r24 = _g(line, "reajuste_2024_pct")
+    r25 = _g(line, "reajuste_2025_pct")
+    if r24 is None and r25 is None:
+        r24 = _g(line, "reajuste_pct")
+        r25 = 0
+
     cred_kb    = _g(line, "credito_simcard_kb") or 0
     # Crédito corrigido: converte KB → MB (valor que o sistema usa para calcular excedente)
     cred_mb    = round(cred_kb / 1024, 4) if cred_kb else None
@@ -130,21 +139,22 @@ def _row_from_line(line) -> list:
         _fmt_date(_g(line, "data_fim_suspensao")),          # U   21 Data de término da suspensão
         _fmt_date(_g(line, "data_inicio_suspensao")),       # V   22 Data de início da suspensão
         _g(line, "consumo_total_kb"),                       # W   23 Consumo total (KB)
-        _g(line, "reajuste_pct"),                           # X   24 Reajuste (%)
-        _g(line, "mensalidade_reaj"),                       # Y   25 Reajuste 2025
-        _g(line, "excedente_cobrado"),                      # Z   26 Excedente
-        _g(line, "multa_cobrada"),                          # AA  27 Multa Cancelamento
-        _g(line, "sms_cobrado"),                            # AB  28 SMS
-        _g(line, "dias"),                                   # AC  29 Dias
-        _g(line, "mensalidade_cobrada"),                    # AD  30 Mensalidade (calculada)
-        _g(line, "ativacao_cobrada"),                       # AE  31 Ativação
-        _g(line, "total_linha"),                            # AF  32 TOTAL
+        r24,                                                # X   24 Reajuste 2024 (%)
+        r25,                                                # Y   25 Reajuste 2025 (%)
+        _g(line, "mensalidade_reaj"),                       # Z   26 Reajuste (R$)
+        _g(line, "excedente_cobrado"),                      # AA  27 Excedente
+        _g(line, "multa_cobrada"),                          # AB  28 Multa Cancelamento
+        _g(line, "sms_cobrado"),                            # AC  29 SMS
+        _g(line, "dias"),                                   # AD  30 Dias
+        _g(line, "mensalidade_cobrada"),                    # AE  31 Mensalidade (calculada)
+        _g(line, "ativacao_cobrada"),                       # AF  32 Ativação
+        _g(line, "total_linha"),                            # AG  33 Total
     ]
 
 
 def generate_faturamento_excel(cycle, lines) -> io.BytesIO:
     """
-    Gera Excel com 32 colunas no formato modelo.
+    Gera Excel com 33 colunas no formato modelo.
     `lines` pode ser lista de ORM objects, RowMapping ou iterável de cursor.
     Usa write_only + singletons de estilo para suportar 692k+ linhas sem timeout.
     """
@@ -180,7 +190,7 @@ def generate_faturamento_excel(cycle, lines) -> io.BytesIO:
             is_calc  = col_idx in _CALC_COLS
             is_money = col_idx in _MONEY_COLS
             is_pct   = col_idx in _PCT_COLS
-            is_right = col_idx in _INT_COLS or col_idx == 29
+            is_right = col_idx in _INT_COLS
 
             if is_money or is_pct or is_calc or is_right:
                 c = WriteOnlyCell(ws, value=val)
@@ -202,7 +212,7 @@ def generate_faturamento_excel(cycle, lines) -> io.BytesIO:
                 row_cells.append(val)   # valor direto — sem objeto Cell
         ws.append(row_cells)
 
-    # Larguras das 32 colunas (A–AF)
+    # Larguras das 33 colunas (A–AG)
     widths = [
         22,  # A   Nome do pedido
         18,  # B   ID do pedido
@@ -227,15 +237,16 @@ def generate_faturamento_excel(cycle, lines) -> io.BytesIO:
         22,  # U   Data término suspensão
         22,  # V   Data início suspensão
         16,  # W   Consumo total (KB)
-        10,  # X   Reajuste
-        14,  # Y   Reajuste 2025
-        12,  # Z   Excedente
-        16,  # AA  Multa Cancelamento
-        10,  # AB  SMS
-        8,   # AC  Dias
-        14,  # AD  Mensalidade (calc)
-        12,  # AE  Ativação
-        14,  # AF  TOTAL
+        11,  # X   Reajuste 2024
+        11,  # Y   Reajuste 2025
+        14,  # Z   Reajuste (R$)
+        12,  # AA  Excedente
+        16,  # AB  Multa Cancelamento
+        10,  # AC  SMS
+        8,   # AD  Dias
+        14,  # AE  Mensalidade (calc)
+        12,  # AF  Ativação
+        14,  # AG  Total
     ]
     for i, w in enumerate(widths, 1):
         ws.column_dimensions[get_column_letter(i)].width = w
@@ -296,7 +307,7 @@ def generate_client_excel_fast(cycle, lines, low_memory: bool = False) -> io.Byt
     fmt_def = wb.add_format({})
 
     # Larguras e formatos de coluna via set_column (aplicado a células sem formato explícito)
-    _WIDTHS = [22,18,14,14,22,18,14,22,18,30,12,24,18,18,16,18,14,14,20,20,22,22,16,10,14,12,16,10,8,14,12,14]
+    _WIDTHS = [22,18,14,14,22,18,14,22,18,30,12,24,18,18,16,18,14,14,20,20,22,22,16,11,11,14,12,16,10,8,14,12,14]
     for i, w in enumerate(_WIDTHS):
         col_1idx = i + 1
         if col_1idx in _MONEY_COLS:

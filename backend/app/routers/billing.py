@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, BackgroundTasks
 from sqlalchemy.orm import Session
-from sqlalchemy import text
+from sqlalchemy import text, String as SAString
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import date, timezone
@@ -9,6 +9,7 @@ import os
 import tempfile
 import uuid
 import json
+import logging
 
 from app.database import get_db
 from app.models import (
@@ -19,6 +20,32 @@ from app.routers.auth import get_current_user
 from app.core.permissions import require_permission, get_permission
 
 router = APIRouter(prefix="/billing", tags=["Faturamento"])
+logger = logging.getLogger(__name__)
+
+# 01/10/2026: um ciclo inteiro (~692k linhas) quebrava com
+# StringDataRightTruncation quando um único campo de uma única linha vinha
+# maior que o limite da coluna (ex.: célula de frete com mais de um CNPJ
+# concatenado). Em vez de deixar o INSERT em lote derrubar o ciclo todo,
+# cortamos o valor pro limite da coluna e registramos um aviso — a linha
+# entra no ciclo (sem travar o faturamento), e o dado truncado fica visível
+# no log pra investigar a origem depois.
+_BILLING_LINE_MAXLEN = {
+    c.name: c.type.length
+    for c in BillingLine.__table__.columns
+    if isinstance(c.type, SAString) and c.type.length
+}
+
+
+def _clip_lengths(kwargs: dict) -> dict:
+    for field, maxlen in _BILLING_LINE_MAXLEN.items():
+        v = kwargs.get(field)
+        if isinstance(v, str) and len(v) > maxlen:
+            logger.warning(
+                "BillingLine.%s truncado de %d para %d chars (valor original: %r)",
+                field, len(v), maxlen, v,
+            )
+            kwargs[field] = v[:maxlen]
+    return kwargs
 
 
 def _task_state_path(task_id: str) -> str:
@@ -77,7 +104,7 @@ def _bg_excel_export(task_id: str, cycle_id: int) -> None:
                         bl.credito_simcard_kb, bl.credito_contrato,
                         bl.tipo_fidelidade, bl.multa_contrato,
                         bl.dias_pre_ativacao, bl.porcentagem_consumo, bl.consumo_total_kb,
-                        bl.reajuste_pct, bl.mensalidade_reaj, bl.dias,
+                        bl.reajuste_pct, bl.reajuste_2024_pct, bl.reajuste_2025_pct, bl.mensalidade_reaj, bl.dias,
                         bl.mensalidade_cobrada, bl.ativacao_cobrada, bl.excedente_cobrado,
                         bl.multa_cobrada, bl.sms_cobrado, bl.total_linha,
                         COALESCE(bl.apelido, bcs.nome_cliente) AS client_nome
@@ -133,7 +160,7 @@ def _bg_excel_pregenerate(cycle_id: int) -> None:
                         bl.credito_simcard_kb, bl.credito_contrato,
                         bl.tipo_fidelidade, bl.multa_contrato,
                         bl.dias_pre_ativacao, bl.porcentagem_consumo, bl.consumo_total_kb,
-                        bl.reajuste_pct, bl.mensalidade_reaj, bl.dias,
+                        bl.reajuste_pct, bl.reajuste_2024_pct, bl.reajuste_2025_pct, bl.mensalidade_reaj, bl.dias,
                         bl.mensalidade_cobrada, bl.ativacao_cobrada, bl.excedente_cobrado,
                         bl.multa_cobrada, bl.sms_cobrado, bl.total_linha,
                         COALESCE(bl.apelido, bcs.nome_cliente) AS client_nome
@@ -469,7 +496,7 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
             except: return None
 
         def _inv_line(row):
-            return BillingLine(
+            return BillingLine(**_clip_lengths(dict(
                 cycle_id=cycle_id,
                 id_smart=row.get("ID_CPF/CNPJ"),
                 iccid=str(row.get("ICCID", "") or ""),
@@ -514,6 +541,8 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
                 porcentagem_consumo=_fpct(row, "Porcentagem de consumo"),
                 consumo_total_kb=_f(row, "Consumo total (KB)"),
                 reajuste_pct=_f(row, "_reajuste_pct"),
+                reajuste_2024_pct=_f(row, "_reajuste_2024_pct"),
+                reajuste_2025_pct=_f(row, "_reajuste_2025_pct"),
                 mensalidade_reaj=_f(row, "_mensalidade_reaj"),
                 dias=_i(row, "_dias"),
                 mensalidade_cobrada=_f(row, "_mensalidade_cobr"),
@@ -522,10 +551,10 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
                 multa_cobrada=_f(row, "_multa"),
                 sms_cobrado=_f(row, "_sms"),
                 total_linha=_f(row, "_total"),
-            )
+            )))
 
         def _extra_line(row):
-            return BillingLine(
+            return BillingLine(**_clip_lengths(dict(
                 cycle_id=cycle_id,
                 id_smart=row.get("ID_CPF/CNPJ"),
                 iccid="",
@@ -536,12 +565,14 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
                 data_cancelamento=_safe_date(row.get("_data_cancelamento")),
                 dias=int(row.get("_dias", 0) or 0),
                 reajuste_pct=float(row.get("_reajuste_pct", 0) or 0),
+                reajuste_2024_pct=float(row.get("_reajuste_2024_pct", 0) or 0),
+                reajuste_2025_pct=float(row.get("_reajuste_2025_pct", 0) or 0),
                 mensalidade_reaj=float(row.get("_mensalidade_reaj", 0) or 0),
                 mensalidade_cobrada=float(row.get("_mensalidade_cobr", 0) or 0),
                 multa_cobrada=float(row.get("_multa", 0) or 0),
                 sms_cobrado=float(row.get("_sms", 0) or 0),
                 total_linha=float(row.get("_total", 0) or 0),
-            )
+            )))
 
         # ── Loop em chunks — insere no banco e acumula agregações ──────────────
         # Acumuladores (apenas totais por cliente — minúsculos vs 830 MB do df)
@@ -1821,7 +1852,7 @@ def export_client_excel(
                 bl.credito_simcard_kb, bl.franquia_mb, bl.credito_contrato,
                 bl.tipo_fidelidade, bl.multa_contrato,
                 bl.dias_pre_ativacao, bl.porcentagem_consumo, bl.consumo_total_kb,
-                bl.reajuste_pct, bl.mensalidade_reaj, bl.dias,
+                bl.reajuste_pct, bl.reajuste_2024_pct, bl.reajuste_2025_pct, bl.mensalidade_reaj, bl.dias,
                 bl.mensalidade_cobrada, bl.ativacao_cobrada, bl.excedente_cobrado,
                 bl.multa_cobrada, bl.sms_cobrado, bl.total_linha,
                 COALESCE(bl.apelido, bcs.nome_cliente) AS client_nome
