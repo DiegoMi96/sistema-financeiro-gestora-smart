@@ -109,6 +109,19 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
 .prazo-notice.show{display:flex}
 .prazo-notice svg{flex-shrink:0}
 
+/* Pop-up de ciência da Nota Fiscal (06/10/2026) */
+[hidden]{display:none!important}
+.modal-overlay{position:fixed;inset:0;background:rgba(26,26,24,.55);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50}
+.modal{background:#fff;border-radius:14px;max-width:420px;width:100%;padding:28px 26px 24px;box-shadow:0 20px 60px rgba(0,0,0,.25);text-align:center}
+.modal-icon{width:52px;height:52px;border-radius:50%;background:#eaf5f0;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:#166B4A}
+.modal h2{font-size:18px;font-weight:800;margin-bottom:10px;line-height:1.3}
+.modal p{font-size:14px;color:#444;line-height:1.6}
+.modal p.small{font-size:12.5px;color:#8a8a85;margin-top:10px}
+.modal-actions{display:flex;flex-direction:column;gap:10px;margin-top:22px}
+.btn-secondary{width:100%;background:#fff;color:#1a1a18;border:1px solid #d4d3ce;border-radius:9px;padding:13px 24px;font-size:14.5px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:background .12s,border-color .12s}
+.btn-secondary:hover{background:#f5f5f5;border-color:#b9b8b2}
+.btn:focus-visible,.btn-secondary:focus-visible{outline:3px solid rgba(30,155,107,.45);outline-offset:2px}
+
 @media (max-width:640px){
   .wrap{padding:24px 14px 48px}
   .card{padding:20px 16px;border-radius:12px}
@@ -156,15 +169,10 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
   <div class="card" id="form_card">
     <div class="section-title"><span class="section-num">1</span> Seus dados</div>
     <div class="grid">
-      <div>
-        <label class="lbl">Categoria <span class="req">*</span></label>
-        <select id="f_tipo">
-          <option value="indicador">Indicador</option>
-          <option value="indicador_n2">Indicador N2</option>
-          <option value="dealer">Dealer</option>
-          <option value="projeto">Projeto Especial</option>
-        </select>
-      </div>
+      <!-- 06/10/2026 (pedido do Diego): o parceiro não escolhe mais a categoria —
+           ela vem do link enviado (…/cadastro/<categoria>). O valor fica neste
+           campo oculto, então todo o resto do script segue igual. -->
+      <input type="hidden" id="f_tipo" value="indicador">
       <div>
         <label class="lbl">Nome completo <span class="req">*</span></label>
         <input type="text" id="f_nome" placeholder="Ex: João da Silva">
@@ -205,10 +213,6 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
         <label class="lbl">Ajuda de custo (R$/mês)</label>
         <input type="text" id="f_ajudacusto" placeholder="0,00">
       </div>
-      <div>
-        <label class="lbl">Apelido / ID no CRM <span class="req">*</span></label>
-        <input type="text" id="f_apelido" placeholder="Ex: joao.silva">
-      </div>
 
       <div class="full section-title"><span class="section-num">2</span> Endereço</div>
       <div class="full">
@@ -235,9 +239,9 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
       <div class="full section-title"><span class="section-num">3</span> Dados bancários</div>
       <div class="full">
         <div class="grid" style="margin-bottom:0">
-          <div><label class="lbl" style="font-weight:400;text-transform:none;letter-spacing:0">Banco</label><input type="text" id="f_conta_banco" placeholder="Ex: Sicredi"></div>
-          <div><label class="lbl" style="font-weight:400;text-transform:none;letter-spacing:0">Agência</label><input type="text" id="f_conta_agencia" placeholder="Ex: 0818"></div>
-          <div><label class="lbl" style="font-weight:400;text-transform:none;letter-spacing:0">Conta</label><input type="text" id="f_conta_numero" placeholder="Ex: 20974-7"></div>
+          <div><label class="lbl" style="font-weight:400;text-transform:none;letter-spacing:0">Banco <span class="req">*</span></label><input type="text" id="f_conta_banco" placeholder="Ex: Sicredi"></div>
+          <div><label class="lbl" style="font-weight:400;text-transform:none;letter-spacing:0">Agência <span class="req">*</span></label><input type="text" id="f_conta_agencia" placeholder="Ex: 0818"></div>
+          <div><label class="lbl" style="font-weight:400;text-transform:none;letter-spacing:0">Conta <span class="req">*</span></label><input type="text" id="f_conta_numero" placeholder="Ex: 20974-7"></div>
           <div><label class="lbl" style="font-weight:400;text-transform:none;letter-spacing:0">Chave PIX <span class="req">*</span></label><input type="text" id="f_conta_pix" placeholder="CPF, e-mail, celular ou aleatória"></div>
         </div>
       </div>
@@ -254,6 +258,29 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
     <p class="title">Cadastro concluído!</p>
     <p class="sub">Seus dados já foram registrados. Nossa equipe vai confirmar tudo em breve.</p>
     <p class="back-note">Pode fechar esta página com tranquilidade.</p>
+  </div>
+
+  <div class="modal-overlay" id="nfModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="nfTitle">
+      <div id="nfStepAsk">
+        <div class="modal-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></div>
+        <h2 id="nfTitle">Antes de concluir</h2>
+        <p>Você está ciente de que, para o recebimento de valores futuros, é necessário realizar o envio da <b>Nota Fiscal</b>?</p>
+        <div class="modal-actions">
+          <button type="button" class="btn" id="nfSim">Sim, estou ciente</button>
+          <button type="button" class="btn-secondary" id="nfNao">Não</button>
+        </div>
+      </div>
+      <div id="nfStepNo" hidden>
+        <div class="modal-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg></div>
+        <h2>Vamos te explicar antes</h2>
+        <p>Para concluir o cadastro é preciso estar ciente do envio da Nota Fiscal. Fale com <b id="nfExec">o seu executivo</b> na Gestora Smart: ele explica como funciona, e depois você conclui o cadastro.</p>
+        <p class="small">Seus dados ainda não foram enviados.</p>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="nfVoltar">Voltar ao cadastro</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="hint" id="privacyHint">
@@ -343,87 +370,157 @@ const CAD_DEFAULTS = {
   ],
 };
 
-function enviarCadastro() {
-  const errEl = document.getElementById('f_err');
-  errEl.style.display = 'none';
-  const nome = document.getElementById('f_nome').value.trim();
-  const cpf = document.getElementById('f_cpf').value.trim();
-  const comercial = document.getElementById('f_comercial').value;
-  const cidade = document.getElementById('f_cidade').value.trim();
-  const apelido = document.getElementById('f_apelido').value.trim();
-  const contaBanco = document.getElementById('f_conta_banco').value.trim();
-  const contaAgencia = document.getElementById('f_conta_agencia').value.trim();
-  const contaNumero = document.getElementById('f_conta_numero').value.trim();
-  const contaPix = document.getElementById('f_conta_pix').value.trim();
-  const conta = [
-    contaBanco && ('Banco ' + contaBanco),
-    contaAgencia && ('Ag. ' + contaAgencia),
-    contaNumero && ('Conta ' + contaNumero),
-    contaPix && ('Chave PIX: ' + contaPix),
-  ].filter(Boolean).join(', ');
-  const celular = document.getElementById('f_celular').value.trim();
-  const email = document.getElementById('f_email').value.trim();
-
-  // Formulário longo (17 campos, 3 seções) — sem rolar até o aviso, quem
-  // preenche pelo celular pode nem perceber que faltou algo lá em cima
-  // (achado ao revisar o mobile, 28/09/2026).
-  const mostrarErro = (msg) => {
-    errEl.textContent = msg;
-    errEl.style.display = 'flex';
-    errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+function lerCampos() {
+  const v = id => document.getElementById(id).value.trim();
+  return {
+    tipo: document.getElementById('f_tipo').value,
+    nome: v('f_nome'), cpf: v('f_cpf'), comercial: document.getElementById('f_comercial').value,
+    cidade: v('f_cidade'), celular: v('f_celular'), email: v('f_email'),
+    contaBanco: v('f_conta_banco'), contaAgencia: v('f_conta_agencia'),
+    contaNumero: v('f_conta_numero'), contaPix: v('f_conta_pix'),
   };
-  if (!nome) { mostrarErro('Informe seu nome completo.'); return; }
-  if (!cpf) { mostrarErro('Informe seu CPF.'); return; }
-  if (!comercial) { mostrarErro('Selecione a qual executivo você está vinculado(a).'); return; }
-  if (!cidade) { mostrarErro('Informe sua cidade.'); return; }
-  if (!apelido) { mostrarErro('Informe seu apelido / ID no CRM.'); return; }
-  if (!conta) { mostrarErro('Informe os dados da conta.'); return; }
-  if (!celular) { mostrarErro('Informe seu celular.'); return; }
-  if (!email) { mostrarErro('Informe seu e-mail.'); return; }
+}
 
-  const tipo = document.getElementById('f_tipo').value;
+function mostrarErro(msg) {
+  // Formulário longo — sem rolar até o aviso, quem preenche pelo celular pode
+  // nem perceber que faltou algo lá em cima (achado ao revisar o mobile, 28/09/2026).
+  const errEl = document.getElementById('f_err');
+  errEl.textContent = msg;
+  errEl.style.display = 'flex';
+  errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// Na ordem em que os campos aparecem na tela. Dados bancários: todos
+// obrigatórios (pedido do Diego, 06/10/2026). A categoria vem do link e o
+// apelido/ID no CRM é preenchido depois pela equipe, então não são pedidos aqui.
+function validarCampos(c) {
+  if (!c.nome) return 'Informe seu nome completo.';
+  if (!c.cpf) return 'Informe seu CPF.';
+  if (!c.comercial) return 'Selecione a qual executivo você está vinculado(a).';
+  if (!c.celular) return 'Informe seu celular.';
+  if (!c.email) return 'Informe seu e-mail.';
+  if (!c.cidade) return 'Informe sua cidade.';
+  if (!c.contaBanco) return 'Informe o banco.';
+  if (!c.contaAgencia) return 'Informe a agência.';
+  if (!c.contaNumero) return 'Informe o número da conta.';
+  if (!c.contaPix) return 'Informe sua chave PIX.';
+  return null;
+}
+
+function enviarCadastro() {
+  document.getElementById('f_err').style.display = 'none';
+  const erro = validarCampos(lerCampos());
+  if (erro) { mostrarErro(erro); return; }
+  abrirModalNF();
+}
+
+// ── Pop-up: ciência do envio de Nota Fiscal ─────────────────────────
+let nfFocoAnterior = null;
+
+function abrirModalNF() {
+  nfFocoAnterior = document.activeElement;
+  document.getElementById('nfStepAsk').hidden = false;
+  document.getElementById('nfStepNo').hidden = true;
+  document.getElementById('nfModal').hidden = false;
+  document.getElementById('nfSim').focus();
+}
+
+function fecharModalNF() {
+  document.getElementById('nfModal').hidden = true;
+  if (nfFocoAnterior && nfFocoAnterior.focus) nfFocoAnterior.focus();
+}
+
+document.getElementById('nfNao').addEventListener('click', function () {
+  const exec = document.getElementById('f_comercial').value;
+  document.getElementById('nfExec').textContent = exec ? exec : 'o seu executivo';
+  document.getElementById('nfStepAsk').hidden = true;
+  document.getElementById('nfStepNo').hidden = false;
+  document.getElementById('nfVoltar').focus();
+});
+document.getElementById('nfVoltar').addEventListener('click', fecharModalNF);
+document.getElementById('nfSim').addEventListener('click', function () {
+  fecharModalNF();
+  salvarCadastro();
+});
+document.addEventListener('keydown', function (e) {
+  const modal = document.getElementById('nfModal');
+  if (modal.hidden) return;
+  if (e.key === 'Escape') { fecharModalNF(); return; }
+  if (e.key === 'Tab') {
+    const foc = [...modal.querySelectorAll('button')].filter(b => b.offsetParent !== null);
+    if (!foc.length) return;
+    const first = foc[0], last = foc[foc.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+});
+
+let cadastroEnviado = false;
+
+function salvarCadastro() {
+  if (cadastroEnviado) return;   // duplo clique não pode gravar o parceiro duas vezes
+  const c = lerCampos();
+  if (validarCampos(c)) return;
+
+  const conta = [
+    'Banco ' + c.contaBanco,
+    'Ag. ' + c.contaAgencia,
+    'Conta ' + c.contaNumero,
+    'Chave PIX: ' + c.contaPix,
+  ].join(', ');
+
+  const tipo = c.tipo;
   const entry = {
     id: CAD_PREFIX[tipo] + Date.now(),
-    nome,
+    nome: c.nome,
     categoria: tipo,
     empresa: document.getElementById('f_empresa').value.trim(),
-    cpf,
+    cpf: c.cpf,
     cnpj: document.getElementById('f_cnpj').value.trim(),
-    celular,
+    celular: c.celular,
     telefone: document.getElementById('f_telefone').value.trim(),
-    email,
+    email: c.email,
     email2: document.getElementById('f_email2').value.trim(),
     endereco: document.getElementById('f_endereco').value.trim(),
     bairro: document.getElementById('f_bairro').value.trim(),
-    cidade,
+    cidade: c.cidade,
     estado: document.getElementById('f_estado').value.trim().toUpperCase(),
     cep: document.getElementById('f_cep').value.trim(),
-    comercial,
+    comercial: c.comercial,
     ajudaCusto: tipo === 'indicador_n2' ? (+document.getElementById('f_ajudacusto').value || 0) : 0,
-    apelido,
+    apelido: '',   // preenchido depois pela equipe (tela Cadastro de Parceiros)
     conta,
-    contaBanco,
-    contaAgencia,
-    contaNumero,
-    contaPix,
+    contaBanco: c.contaBanco,
+    contaAgencia: c.contaAgencia,
+    contaNumero: c.contaNumero,
+    contaPix: c.contaPix,
+    cienteNotaFiscal: true,                       // aceitou o aviso do pop-up
+    cienteNotaFiscalEm: new Date().toISOString(),
   };
 
-  const key = CAD_KEY[tipo];
-  let list;
-  try { list = JSON.parse(localStorage.getItem(key)) || CAD_DEFAULTS[tipo]; } catch { list = CAD_DEFAULTS[tipo]; }
-  if (!Array.isArray(list)) list = CAD_DEFAULTS[tipo];
-  list.push(entry);
-  localStorage.setItem(key, JSON.stringify(list));
+  try {
+    const key = CAD_KEY[tipo];
+    let list;
+    try { list = JSON.parse(localStorage.getItem(key)) || CAD_DEFAULTS[tipo]; } catch { list = CAD_DEFAULTS[tipo]; }
+    if (!Array.isArray(list)) list = CAD_DEFAULTS[tipo];
+    list.push(entry);
+    localStorage.setItem(key, JSON.stringify(list));
 
-  // Projeto Especial precisa de uma entrada em dp1_pp (preços por operadora)
-  // pra não quebrar a tela de Configurações do perfil.
-  if (tipo === 'projeto') {
-    let pp;
-    try { pp = JSON.parse(localStorage.getItem('dp1_pp')) || {}; } catch { pp = {}; }
-    pp[entry.id] = { ALGAR: 0, ARQIA: 0, VIVO: 0, CLARO: 0, TIM: 0 };
-    localStorage.setItem('dp1_pp', JSON.stringify(pp));
+    // Projeto Especial precisa de uma entrada em dp1_pp (preços por operadora)
+    // pra não quebrar a tela de Configurações do perfil.
+    if (tipo === 'projeto') {
+      let pp;
+      try { pp = JSON.parse(localStorage.getItem('dp1_pp')) || {}; } catch { pp = {}; }
+      pp[entry.id] = { ALGAR: 0, ARQIA: 0, VIVO: 0, CLARO: 0, TIM: 0 };
+      localStorage.setItem('dp1_pp', JSON.stringify(pp));
+    }
+  } catch (e) {
+    console.error('cadastro_publico: falha ao gravar', e);
+    mostrarErro('Não foi possível salvar o cadastro neste navegador (armazenamento cheio ou bloqueado). Abra o link em uma aba normal, fora do modo anônimo, ou fale com o seu executivo.');
+    return;
   }
 
+  cadastroEnviado = true;
   document.getElementById('form_card').style.display = 'none';
   document.getElementById('done').style.display = 'block';
   document.getElementById('prazoNotice').style.display = 'none';
