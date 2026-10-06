@@ -222,7 +222,7 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
 
       <div class="full section-title"><span class="section-num">2</span> Endereço</div>
       <div class="full">
-        <label class="lbl">Endereço (rua, número e complemento)</label>
+        <label class="lbl">Endereço (rua, número e complemento) <span class="req">*</span></label>
         <input type="text" id="f_endereco" placeholder="Ex: Rua das Flores, 123, Apto 45">
       </div>
       <div>
@@ -238,7 +238,7 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
         <input type="text" id="f_estado" style="text-transform:uppercase" placeholder="Ex: PR">
       </div>
       <div>
-        <label class="lbl">CEP</label>
+        <label class="lbl">CEP <span class="req">*</span></label>
         <input type="text" id="f_cep" placeholder="Ex: 80000-000" inputmode="numeric" autocomplete="postal-code">
       </div>
 
@@ -255,7 +255,6 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
     <div class="err" id="f_err"></div>
     <div class="actions">
       <button class="btn" onclick="enviarCadastro()">Concluir cadastro</button>
-      <p class="actions-hint">Leva menos de 2 minutos</p>
     </div>
   </div>
 
@@ -444,7 +443,7 @@ function lerCampos() {
     contaBanco: v('f_conta_banco'), contaAgencia: v('f_conta_agencia'),
     contaNumero: v('f_conta_numero'), contaPix: v('f_conta_pix'),
     cnpj: v('f_cnpj'), telefone: v('f_telefone'), email2: v('f_email2'),
-    estado: v('f_estado'), cep: v('f_cep'),
+    estado: v('f_estado'), cep: v('f_cep'), endereco: v('f_endereco'),
   };
 }
 
@@ -474,9 +473,11 @@ function validarCampos(c) {
   if (!c.email) return 'Informe seu e-mail.';
   if (!emailOk(c.email)) return 'Confira o e-mail, ele parece incompleto (ex.: nome@exemplo.com).';
   if (c.email2 && !emailOk(c.email2)) return 'Confira o e-mail secundário, ele parece incompleto, ou deixe em branco.';
-  if (c.cep && n(c.cep) !== 8) return 'O CEP precisa ter 8 números (80000-000), ou deixe em branco.';
-  if (c.estado && c.estado.length !== 2) return 'Informe o estado com 2 letras (ex.: PR), ou deixe em branco.';
+  if (!c.endereco) return 'Informe seu endereço (rua, número e complemento).';
   if (!c.cidade) return 'Informe sua cidade.';
+  if (c.estado && c.estado.length !== 2) return 'Informe o estado com 2 letras (ex.: PR), ou deixe em branco.';
+  if (!c.cep) return 'Informe seu CEP.';
+  if (n(c.cep) !== 8) return 'O CEP precisa ter 8 números (80000-000).';
   if (!c.contaBanco) return 'Informe o banco.';
   if (!c.contaAgencia) return 'Informe a agência.';
   if (!c.contaNumero) return 'Informe o número da conta.';
@@ -558,11 +559,11 @@ function salvarCadastro() {
     telefone: document.getElementById('f_telefone').value.trim(),
     email: c.email,
     email2: document.getElementById('f_email2').value.trim(),
-    endereco: document.getElementById('f_endereco').value.trim(),
+    endereco: c.endereco,
     bairro: document.getElementById('f_bairro').value.trim(),
     cidade: c.cidade,
     estado: document.getElementById('f_estado').value.trim().toUpperCase(),
-    cep: document.getElementById('f_cep').value.trim(),
+    cep: c.cep,
     comercial: c.comercial,
     ajudaCusto: tipo === 'indicador_n2' ? lerMoeda(document.getElementById('f_ajudacusto').value) : 0,
     apelido: '',   // preenchido depois pela equipe (tela Cadastro de Parceiros)
