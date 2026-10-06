@@ -299,26 +299,33 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
 </div>
 
 <script>
-const DEFAULT_VENDEDORES = ['Henrique Alves','Patrick Rodrigues','Décio Moraes','Julia Borsato','Vitória Karoline','Gabriela Geraud','Claudia Longano','Daiane Oliveira','Renato Araujo'];
-
-function getVendedores() {
-  try {
-    const raw = localStorage.getItem('gs5_v');
-    if (raw) {
-      const list = JSON.parse(raw);
-      if (Array.isArray(list) && list.length) return list.map(v => v.nome);
-    }
-  } catch {}
-  return DEFAULT_VENDEDORES;
-}
-
 const params = new URLSearchParams(location.search);
 
-function popularComercial() {
+// A lista de executivos vem do SERVIDOR (os mesmos vendedores do sistema — se criarem um
+// vendedor novo, ele aparece aqui sozinho). Nada fixo no código. (06/10/2026)
+async function popularComercial() {
   const sel = document.getElementById('f_comercial');
-  sel.innerHTML = '<option value="">Selecione…</option>' + getVendedores().map(n => `<option value="${n}">${n}</option>`).join('');
+  sel.disabled = true;
+  sel.innerHTML = '';
+  const op = (v, t) => { const o = document.createElement('option'); o.value = v; o.textContent = t; return o; };
+  sel.appendChild(op('', 'Carregando…'));
+  let nomes = [];
+  try {
+    const r = await fetch('/api/public/cadastro-parceiros/executivos', { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    nomes = (await r.json()).nomes || [];
+  } catch (e) {
+    console.error('cadastro_publico: falha ao carregar executivos', e);
+    sel.innerHTML = '';
+    sel.appendChild(op('', 'Não foi possível carregar — recarregue a página'));
+    return;
+  }
+  sel.innerHTML = '';
+  sel.appendChild(op('', nomes.length ? 'Selecione…' : 'Nenhum executivo disponível — fale com a Gestora Smart'));
+  nomes.forEach(n => sel.appendChild(op(n, n)));
+  sel.disabled = !nomes.length;
   const pre = params.get('comercial');
-  if (pre && [...sel.options].some(o => o.value === pre)) sel.value = pre;
+  if (pre && nomes.includes(pre)) sel.value = pre;
 }
 
 function tipoChanged() {
@@ -557,6 +564,8 @@ async function salvarCadastro() {
     });
     if (!r.ok) {
       let msg = 'Não foi possível enviar o cadastro agora. Seus dados continuam aqui: tente de novo em instantes.';
+      if (r.status === 429) msg = 'Muitos envios em pouco tempo. Aguarde alguns minutos e tente de novo — seus dados continuam aqui.';
+      if (r.status === 413) msg = 'Alguns campos estão grandes demais. Confira os dados e tente de novo.';
       try { const j = await r.json(); if ((r.status === 400 || r.status === 429) && typeof j.detail === 'string') msg = j.detail; } catch {}
       mostrarErro(msg);
       return;

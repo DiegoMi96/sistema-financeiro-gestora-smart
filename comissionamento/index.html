@@ -1213,6 +1213,7 @@ function cadSalvarVendedor() {
 
   cadFecharModal('vendedor');
   cadPopulateComercial();
+  cadSincronizarExecutivos();
   showCadToast(`Vendedor ${nome} criado ✓ — ajuste as metas dele na aba "Metas" do perfil Vendedor.`);
 }
 
@@ -2588,6 +2589,42 @@ async function cadSincronizarNovos() {
   }
 }
 
+// ─── LISTA DE EXECUTIVOS NO SERVIDOR ───────────────────────────────────
+// O formulário público do parceiro precisa mostrar os MESMOS vendedores daqui (e não uma
+// lista fixa no código). Os vendedores moram no navegador (gs5_v), então a cada mudança
+// publicamos só os NOMES no servidor, que o formulário lê. Só publica quando existe uma
+// lista SALVA neste navegador (gs5_v): um navegador que nunca salvou vendedores usaria a
+// lista-padrão e apagaria no servidor os vendedores criados em outra máquina. (06/10/2026)
+let execUltimaAssinatura = '';
+let execTimer = null;
+async function cadSincronizarExecutivos() {
+  let tok = null, bruto = null;
+  try { tok = localStorage.getItem('token'); bruto = localStorage.getItem('gs5_v'); } catch {}
+  if (!tok || !bruto) return;
+  let lista;
+  try { lista = JSON.parse(bruto); } catch { return; }
+  if (!Array.isArray(lista)) return;
+  const nomes = [...new Set(lista.map(v => (v && typeof v.nome === 'string' ? v.nome.trim() : '')).filter(Boolean))];
+  if (!nomes.length) return;
+  const assinatura = JSON.stringify(nomes);
+  if (assinatura === execUltimaAssinatura) return;
+  try {
+    const r = await fetch('/api/comissionamento/ciclo', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ perfil: 'executivos', dados: { nomes } }),
+    });
+    if (r.ok) execUltimaAssinatura = assinatura;
+  } catch {}
+}
+// O perfil Vendedor (iframe) também grava gs5_v: o navegador avisa as OUTRAS páginas pelo
+// evento "storage" — assim a lista no servidor acompanha mesmo sem passar por este arquivo.
+window.addEventListener('storage', function (e) {
+  if (e.key !== 'gs5_v') return;
+  clearTimeout(execTimer);
+  execTimer = setTimeout(cadSincronizarExecutivos, 600);
+});
+
 function renderCadastro() {
   cadPopulateComercial();
   cadRenderList();
@@ -3426,6 +3463,7 @@ try {
 ativarPainel(painelInicial);
 renderContaWidget();
 cadSincronizarNovos();
+cadSincronizarExecutivos();
 </script>
 
 </body>

@@ -13,12 +13,12 @@ import re
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, ValidationError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.comissionamento import CadastroParceiro
+from app.models.comissionamento import CadastroParceiro, ComissaoCiclo
 
 router = APIRouter(prefix="/public/cadastro-parceiros", tags=["cadastro-publico"])
 
@@ -132,6 +132,27 @@ def _validar_e_limpar(c: CadastroIn) -> dict:
     }
 
 
+def _nomes_executivos(db: Session) -> list:
+    """Lista de executivos que a tela Cadastro de Parceiros publica no servidor (mesmos
+    vendedores do sistema). Guardada em comissao_ciclos com perfil='executivos'."""
+    row = db.query(ComissaoCiclo).filter(ComissaoCiclo.perfil == "executivos").first()
+    bruto = (row.dados or {}).get("nomes", []) if row else []
+    nomes, vistos = [], set()
+    for n in bruto[:200] if isinstance(bruto, list) else []:
+        n = _limpa(n, 100)
+        if n and n.casefold() not in vistos:
+            vistos.add(n.casefold())
+            nomes.append(n)
+    return nomes
+
+
+@router.get("/executivos")
+def listar_executivos(response: Response, db: Session = Depends(get_db)):
+    """Público: só os NOMES dos executivos, para o formulário montar a lista de vínculo."""
+    response.headers["Cache-Control"] = "no-store"
+    return {"nomes": _nomes_executivos(db)}
+
+
 async def _ler_corpo_limitado(request: Request) -> bytes:
     declarado = request.headers.get("content-length")
     if declarado and declarado.isdigit() and int(declarado) > MAX_BODY_BYTES:
@@ -161,6 +182,15 @@ async def receber_cadastro(request: Request, db: Session = Depends(get_db)):
         dados = _validar_e_limpar(dados_in)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+    # O executivo tem que ser um dos vendedores do sistema (a lista vem do servidor, não do código).
+    nomes = _nomes_executivos(db)
+    if nomes:
+        por_nome = {n.casefold(): n for n in nomes}
+        achado = por_nome.get(dados["comercial"].casefold())
+        if not achado:
+            raise HTTPException(status_code=400, detail="Selecione o executivo na lista. Se ele não aparece, recarregue a página.")
+        dados["comercial"] = achado
 
     ip = (request.headers.get("x-real-ip") or (request.client.host if request.client else "") or "")[:64]
     agora = datetime.now(timezone.utc)
