@@ -189,11 +189,11 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
       </div>
       <div>
         <label class="lbl">CPF <span class="req">*</span></label>
-        <input type="text" id="f_cpf" placeholder="000.000.000-00">
+        <input type="text" id="f_cpf" placeholder="000.000.000-00" inputmode="numeric" autocomplete="off">
       </div>
       <div>
         <label class="lbl">CNPJ</label>
-        <input type="text" id="f_cnpj" placeholder="00.000.000/0001-00">
+        <input type="text" id="f_cnpj" placeholder="00.000.000/0001-00" inputmode="numeric" autocomplete="off">
       </div>
       <div>
         <label class="lbl">Vinculado a qual executivo <span class="req">*</span></label>
@@ -201,23 +201,23 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
       </div>
       <div>
         <label class="lbl">Celular <span class="req">*</span></label>
-        <input type="text" id="f_celular" placeholder="(41) 99999-9999">
+        <input type="text" id="f_celular" placeholder="(41) 99999-9999" inputmode="tel" autocomplete="tel">
       </div>
       <div>
         <label class="lbl">Telefone</label>
-        <input type="text" id="f_telefone" placeholder="(41) 3333-3333">
+        <input type="text" id="f_telefone" placeholder="(41) 3333-3333" inputmode="tel" autocomplete="off">
       </div>
       <div>
         <label class="lbl">E-mail <span class="req">*</span></label>
-        <input type="text" id="f_email" placeholder="nome@exemplo.com">
+        <input type="text" id="f_email" placeholder="nome@exemplo.com" inputmode="email" autocomplete="email" autocapitalize="off">
       </div>
       <div>
         <label class="lbl">E-mail secundário</label>
-        <input type="text" id="f_email2" placeholder="opcional">
+        <input type="text" id="f_email2" placeholder="opcional" inputmode="email" autocomplete="off" autocapitalize="off">
       </div>
       <div id="f_ajudacusto_wrap">
         <label class="lbl">Ajuda de custo (R$/mês)</label>
-        <input type="text" id="f_ajudacusto" placeholder="0,00">
+        <input type="text" id="f_ajudacusto" placeholder="0,00" inputmode="decimal" autocomplete="off">
       </div>
 
       <div class="full section-title"><span class="section-num">2</span> Endereço</div>
@@ -235,11 +235,11 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
       </div>
       <div>
         <label class="lbl">Estado (UF)</label>
-        <input type="text" id="f_estado" maxlength="2" style="text-transform:uppercase" placeholder="Ex: PR">
+        <input type="text" id="f_estado" style="text-transform:uppercase" placeholder="Ex: PR">
       </div>
       <div>
         <label class="lbl">CEP</label>
-        <input type="text" id="f_cep" placeholder="Ex: 80000-000">
+        <input type="text" id="f_cep" placeholder="Ex: 80000-000" inputmode="numeric" autocomplete="postal-code">
       </div>
 
       <div class="full section-title"><span class="section-num">3</span> Dados bancários</div>
@@ -376,6 +376,65 @@ const CAD_DEFAULTS = {
   ],
 };
 
+// ── Máscaras (06/10/2026, pedido do Diego: cada campo na formatação do exemplo) ──
+// Formata enquanto digita e mantém o cursor no lugar certo mesmo ao editar no meio.
+function aplicarPadrao(digitos, padrao) {
+  let out = '', i = 0;
+  for (const ch of padrao) {
+    if (i >= digitos.length) break;
+    out += ch === '#' ? digitos[i++] : ch;
+  }
+  return out;
+}
+const PADROES = {
+  f_cpf:      () => '###.###.###-##',
+  f_cnpj:     () => '##.###.###/####-##',
+  f_cep:      () => '#####-###',
+  f_celular:  d => d.length > 10 ? '(##) #####-####' : '(##) ####-####',
+  f_telefone: d => d.length > 10 ? '(##) #####-####' : '(##) ####-####',
+};
+const MAX_DIGITOS = { f_cpf: 11, f_cnpj: 14, f_cep: 8, f_celular: 11, f_telefone: 11 };
+
+Object.keys(PADROES).forEach(function (id) {
+  const el = document.getElementById(id);
+  el.addEventListener('input', function () {
+    const pos = el.selectionStart;
+    const antes = el.value.slice(0, pos).replace(/\D/g, '').length;   // dígitos à esquerda do cursor
+    const d = el.value.replace(/\D/g, '').slice(0, MAX_DIGITOS[id]);
+    el.value = aplicarPadrao(d, PADROES[id](d));
+    // devolve o cursor logo depois do mesmo nº de dígitos
+    let novo = 0, cont = 0;
+    while (novo < el.value.length && cont < antes) { if (/\d/.test(el.value[novo])) cont++; novo++; }
+    el.setSelectionRange(novo, novo);
+  });
+});
+
+// UF: só 2 letras, sempre maiúsculas
+document.getElementById('f_estado').addEventListener('input', function (e) {
+  e.target.value = e.target.value.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 2);
+});
+
+// Ajuda de custo (R$): só números e uma vírgula, até 2 casas; ao sair do campo
+// vira "1.500,00". Antes, quem digitava vírgula (como no exemplo "0,00") tinha
+// o valor lido como NaN e gravado como 0.
+function lerMoeda(txt) {
+  const n = parseFloat(String(txt || '').replace(/\./g, '').replace(',', '.'));
+  return isNaN(n) ? 0 : n;
+}
+(function () {
+  const el = document.getElementById('f_ajudacusto');
+  el.addEventListener('input', function () {
+    let v = el.value.replace(/[^\d,]/g, '');
+    const i = v.indexOf(',');
+    if (i !== -1) v = v.slice(0, i + 1) + v.slice(i + 1).replace(/,/g, '').slice(0, 2);
+    el.value = v;
+  });
+  el.addEventListener('blur', function () {
+    if (!el.value) return;
+    el.value = lerMoeda(el.value).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  });
+})();
+
 function lerCampos() {
   const v = id => document.getElementById(id).value.trim();
   return {
@@ -384,6 +443,8 @@ function lerCampos() {
     cidade: v('f_cidade'), celular: v('f_celular'), email: v('f_email'),
     contaBanco: v('f_conta_banco'), contaAgencia: v('f_conta_agencia'),
     contaNumero: v('f_conta_numero'), contaPix: v('f_conta_pix'),
+    cnpj: v('f_cnpj'), telefone: v('f_telefone'), email2: v('f_email2'),
+    estado: v('f_estado'), cep: v('f_cep'),
   };
 }
 
@@ -400,11 +461,21 @@ function mostrarErro(msg) {
 // obrigatórios (pedido do Diego, 06/10/2026). A categoria vem do link e o
 // apelido/ID no CRM é preenchido depois pela equipe, então não são pedidos aqui.
 function validarCampos(c) {
+  const n = t => t.replace(/\D/g, '').length;
+  const emailOk = e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
   if (!c.nome) return 'Informe seu nome completo.';
   if (!c.cpf) return 'Informe seu CPF.';
+  if (n(c.cpf) !== 11) return 'O CPF precisa ter 11 números (000.000.000-00).';
+  if (c.cnpj && n(c.cnpj) !== 14) return 'O CNPJ precisa ter 14 números (00.000.000/0001-00), ou deixe em branco.';
   if (!c.comercial) return 'Selecione a qual executivo você está vinculado(a).';
   if (!c.celular) return 'Informe seu celular.';
+  if (n(c.celular) < 10) return 'Informe o celular com DDD, ex.: (41) 99999-9999.';
+  if (c.telefone && n(c.telefone) < 10) return 'Informe o telefone com DDD, ex.: (41) 3333-3333, ou deixe em branco.';
   if (!c.email) return 'Informe seu e-mail.';
+  if (!emailOk(c.email)) return 'Confira o e-mail, ele parece incompleto (ex.: nome@exemplo.com).';
+  if (c.email2 && !emailOk(c.email2)) return 'Confira o e-mail secundário, ele parece incompleto, ou deixe em branco.';
+  if (c.cep && n(c.cep) !== 8) return 'O CEP precisa ter 8 números (80000-000), ou deixe em branco.';
+  if (c.estado && c.estado.length !== 2) return 'Informe o estado com 2 letras (ex.: PR), ou deixe em branco.';
   if (!c.cidade) return 'Informe sua cidade.';
   if (!c.contaBanco) return 'Informe o banco.';
   if (!c.contaAgencia) return 'Informe a agência.';
@@ -493,7 +564,7 @@ function salvarCadastro() {
     estado: document.getElementById('f_estado').value.trim().toUpperCase(),
     cep: document.getElementById('f_cep').value.trim(),
     comercial: c.comercial,
-    ajudaCusto: tipo === 'indicador_n2' ? (+document.getElementById('f_ajudacusto').value || 0) : 0,
+    ajudaCusto: tipo === 'indicador_n2' ? lerMoeda(document.getElementById('f_ajudacusto').value) : 0,
     apelido: '',   // preenchido depois pela equipe (tela Cadastro de Parceiros)
     conta,
     contaBanco: c.contaBanco,
