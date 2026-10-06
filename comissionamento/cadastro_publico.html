@@ -40,6 +40,11 @@ label.lbl .req{color:#b83232}
    grid único e homogêneo do topo ao fim. */
 .section-title{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;color:#1a1a18;padding-top:22px;margin-top:6px;margin-bottom:2px;border-top:1px solid #eeede8}
 .section-title:first-child{padding-top:0;margin-top:0;border-top:none}
+/* O título da seção 1 fica fora do grid; os das seções 2 e 3 ficam dentro e ganham
+   o espaçamento entre linhas do grid (16px) além dos 2px da própria margem. Sem
+   isto, "Seus dados" ficava colado no 1º campo e "Endereço"/"Dados bancários"
+   ficavam afastados (achado do Diego, 06/10/2026, medido: 2px x 18px). */
+.card > .section-title{margin-bottom:18px}
 .section-num{width:22px;height:22px;border-radius:50%;background:#1E9B6B;color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 
 input[type=text],select,textarea{
@@ -126,6 +131,7 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
   .wrap{padding:24px 14px 48px}
   .card{padding:20px 16px;border-radius:12px}
   .grid{grid-template-columns:1fr;gap:14px}
+  .card > .section-title{margin-bottom:16px}   /* 14px de gap do grid + 2px, igual às seções 2 e 3 */
   .brand{margin-bottom:22px}
   .header{margin-bottom:30px}
   .header h1{font-size:21px}
