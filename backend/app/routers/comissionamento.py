@@ -13,8 +13,10 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.comissionamento import ComissaoExtrato, ComissaoCiclo
+from app.models.comissionamento import ComissaoExtrato, ComissaoCiclo, CadastroParceiro
 from app.core.permissions import require_permission
+from app.routers.auth import get_current_user
+from datetime import datetime, timezone
 
 # Mesmo padrão do organograma: qualquer chamada exige login + a permissão do
 # módulo (já existe ponta a ponta desde a integração do card/rota React).
@@ -129,3 +131,51 @@ def salvar_ciclo(data: CicloIn, db: Session = Depends(get_db)):
 def buscar_ciclo(perfil: str, db: Session = Depends(get_db)):
     row = db.query(ComissaoCiclo).filter(ComissaoCiclo.perfil == perfil).first()
     return {"perfil": perfil, "dados": row.dados if row else {}}
+
+
+# ── Cadastros enviados pelo link público ─────────────────────────────────
+# O formulário público grava em app/routers/cadastro_publico.py. Aqui a tela
+# "Cadastro de Parceiros" busca os novos ao abrir e confirma depois de colocá-los
+# na lista. Nada é apagado: o servidor guarda o registro oficial.
+
+def _cadastro_out(c: CadastroParceiro) -> dict:
+    return {
+        "id": c.id,
+        "status": c.status,
+        "criado_em": c.criado_em.isoformat() if c.criado_em else None,
+        "ciente_nf_em": c.ciente_nf_em.isoformat() if c.ciente_nf_em else None,
+        "dados": c.dados,
+    }
+
+
+@router.get("/cadastros-parceiros")
+def listar_cadastros_parceiros(status: str = "novo", db: Session = Depends(get_db)):
+    """status: novo (ainda não puxados pela tela) | importado | todos."""
+    q = db.query(CadastroParceiro)
+    if status in ("novo", "importado"):
+        q = q.filter(CadastroParceiro.status == status)
+    return [_cadastro_out(c) for c in q.order_by(CadastroParceiro.id).limit(500).all()]
+
+
+class ConfirmarCadastrosIn(BaseModel):
+    ids: List[int]
+
+
+@router.post("/cadastros-parceiros/confirmar")
+def confirmar_cadastros_parceiros(
+    data: ConfirmarCadastrosIn,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    """A tela chama depois de gravar os cadastros na lista local. Idempotente."""
+    if not data.ids:
+        return {"confirmados": 0}
+    agora = datetime.now(timezone.utc)
+    n = (
+        db.query(CadastroParceiro)
+        .filter(CadastroParceiro.id.in_(data.ids[:500]), CadastroParceiro.status == "novo")
+        .update({"status": "importado", "importado_em": agora, "importado_por": getattr(user, "id", None)},
+                synchronize_session=False)
+    )
+    db.commit()
+    return {"confirmados": n}

@@ -23,6 +23,7 @@ from app.routers.clients        import router as clients_router
 from app.routers.organograma    import router as organograma_router, public_router as organograma_public_router
 from app.routers.sheets         import router as sheets_router
 from app.routers.comissionamento import router as comissionamento_router
+from app.routers.cadastro_publico import router as cadastro_publico_router
 
 # ── Cria enums de contestação antes do create_all (evita UniqueViolation) ──
 def _ensure_contestation_enums():
@@ -262,6 +263,7 @@ app.include_router(organograma_router)
 app.include_router(organograma_public_router)   # fotos do organograma (público — <img src>)
 app.include_router(sheets_router)
 app.include_router(comissionamento_router)
+app.include_router(cadastro_publico_router)   # recebe o formulário do link público (sem login, só escrita)
 
 
 @app.get("/health")

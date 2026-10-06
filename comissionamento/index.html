@@ -1132,7 +1132,7 @@ function ativarPainel(p) {
 
   if (p === 'consolidado') renderConsolidado();
   if (p === 'executivo') renderExecutivo();
-  if (p === 'cadastro') renderCadastro();
+  if (p === 'cadastro') { renderCadastro(); cadSincronizarNovos(); }
   if (p === 'importar') renderImportar();
 
   try { localStorage.setItem(PAINEL_KEY, p); } catch {}
@@ -2451,7 +2451,7 @@ function cadRenderList() {
       <tr>
         <td><span class="cad-tipo-pill ${CAD_PILL_CLASS[e._tipo]}">${CAD_LABEL_SING[e._tipo]}</span></td>
         <td>
-          <div style="font-weight:500">${e.nome}${e.pendente ? ' <span title="Faltam dados de contato/pagamento (CPF, cidade, celular, e-mail ou conta) — comissão calcula normal, mas não pague sem completar." style="display:inline-block;margin-left:6px;font-size:9px;font-weight:700;letter-spacing:.04em;color:#b8863f;background:#fbf1de;padding:2px 7px;border-radius:10px;vertical-align:middle">⚠ PENDENTE</span>' : ''}</div>
+          <div style="font-weight:500">${e.nome}${e.origem === 'link' && !e.apelido ? ' <span title="Veio pelo link de cadastro — falta preencher o apelido / ID no CRM (clique em Editar)." style="display:inline-block;font-size:10px;font-weight:700;color:#8a5a1a;background:#fbf3e6;border:1px solid #f0dbb0;border-radius:10px;padding:1px 7px;margin-left:6px;vertical-align:1px">completar apelido</span>' : ''}${e.pendente ? ' <span title="Faltam dados de contato/pagamento (CPF, cidade, celular, e-mail ou conta) — comissão calcula normal, mas não pague sem completar." style="display:inline-block;margin-left:6px;font-size:9px;font-weight:700;letter-spacing:.04em;color:#b8863f;background:#fbf1de;padding:2px 7px;border-radius:10px;vertical-align:middle">⚠ PENDENTE</span>' : ''}</div>
           ${e.empresa || e.apelido ? `<div class="cad-cell-sub">${[e.empresa, e.apelido].filter(Boolean).join(' · ')}</div>` : ''}
         </td>
         <td style="color:#888">${e.cpf || e.doc || e.cnpj || '<span style="color:#ccc">—</span>'}</td>
@@ -2514,6 +2514,79 @@ function showCadToast(msg, isError) {
 // não ficou salvo"). Agora devolve true/false pra quem chama poder avisar
 // direito — aplicado nos fluxos mais críticos (Cadastro de Parceiros).
 function LS_set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { console.error('LS_set falhou (' + k + '):', e); return false; } }
+
+
+// ─── CADASTROS RECEBIDOS PELO LINK PÚBLICO ─────────────────────────────
+// O formulário do parceiro (/cadastro/<categoria>) grava no SERVIDOR (caixa de
+// entrada). Aqui puxamos os novos ao abrir o sistema / a tela Cadastro de Parceiros,
+// colocamos nas mesmas listas de sempre (localStorage) e confirmamos ao servidor.
+// Só confirma depois que TODAS as gravações locais deram certo; se algo falhar, o
+// cadastro continua "novo" no servidor e entra de novo na próxima vez (o id 'srv<n>'
+// evita duplicar). O servidor guarda tudo para sempre — não se perde se o navegador
+// for limpo. (06/10/2026)
+let cadSyncRodando = false;
+async function cadSincronizarNovos() {
+  if (cadSyncRodando) return;
+  let tok = null;
+  try { tok = localStorage.getItem('token'); } catch {}
+  if (!tok) return;
+  cadSyncRodando = true;
+  try {
+    const hdr = { Authorization: 'Bearer ' + tok };
+    let lista;
+    try {
+      const r = await fetch('/api/comissionamento/cadastros-parceiros?status=novo', { headers: hdr });
+      if (!r.ok) return;
+      lista = await r.json();
+    } catch { return; }
+    if (!Array.isArray(lista) || !lista.length) return;
+
+    // Texto vindo de fora entra em telas que montam HTML: tira < > e aspas duplas.
+    const limpa = v => (typeof v === 'string' ? v.replace(/[<>]/g, '').replace(/"/g, '”') : v);
+    const PREFIXO = { indicador: 'i', indicador_n2: 'i', dealer: 'd', projeto: 'p' };
+    const listas = {};
+    let pp = null;
+    const ids = [];
+    let novos = 0;
+
+    for (const item of lista) {
+      const d = item.dados || {};
+      const tipo = d.categoria;
+      if (!CAD_KEY[tipo]) continue;
+      const key = CAD_KEY[tipo];
+      if (!(key in listas)) listas[key] = CLS.get(key, cadDefaults(tipo === 'indicador_n2' ? 'indicador' : tipo)).slice();
+      const id = PREFIXO[tipo] + 'srv' + item.id;
+      ids.push(item.id);
+      if (listas[key].some(e => e.id === id)) continue;
+      const entry = { id, origem: 'link', recebidoEm: item.criado_em, cienteNotaFiscal: true, cienteNotaFiscalEm: item.ciente_nf_em };
+      Object.keys(d).forEach(k => { entry[k] = limpa(d[k]); });
+      entry.id = id; entry.origem = 'link';
+      listas[key].push(entry);
+      novos++;
+      // Projeto Especial precisa de uma entrada em dp1_pp (preços por operadora)
+      // pra não quebrar a tela de Configurações do perfil.
+      if (tipo === 'projeto') {
+        if (!pp) pp = CLS.get('dp1_pp', {});
+        if (!pp[id]) pp[id] = { ALGAR: 0, ARQIA: 0, VIVO: 0, CLARO: 0, TIM: 0 };
+      }
+    }
+
+    let ok = true;
+    Object.keys(listas).forEach(k => { if (!LS_set(k, listas[k])) ok = false; });
+    if (pp && !LS_set('dp1_pp', pp)) ok = false;
+    if (!ok) { showCadToast('Chegaram cadastros pelo link, mas não deu para salvar neste navegador. Libere espaço e recarregue.', true); return; }
+
+    if (ids.length) {
+      try { await fetch('/api/comissionamento/cadastros-parceiros/confirmar', { method: 'POST', headers: { ...hdr, 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) }); } catch {}
+    }
+    if (novos) {
+      showCadToast(novos === 1 ? '1 novo cadastro recebido pelo link ✓' : novos + ' novos cadastros recebidos pelo link ✓');
+      renderCadastro();
+    }
+  } finally {
+    cadSyncRodando = false;
+  }
+}
 
 function renderCadastro() {
   cadPopulateComercial();
@@ -3352,6 +3425,7 @@ try {
 } catch {}
 ativarPainel(painelInicial);
 renderContaWidget();
+cadSincronizarNovos();
 </script>
 
 </body>
