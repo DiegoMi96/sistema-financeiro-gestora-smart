@@ -27,7 +27,6 @@ const IndicadoresPage          = lazy(() => import('./pages/controladoria/Indica
 const ControladoriaDashboard   = lazy(() => import('./pages/controladoria/ControladoriaDashboard'))
 const ComissionamentoDashboard = lazy(() => import('./pages/comissionamento/ComissionamentoDashboard'))
 const AcessosPage              = lazy(() => import('./pages/acessos/AcessosPage'))
-const DiagnosticoIAPage        = lazy(() => import('./pages/billing/DiagnosticoIAPage'))
 
 // staleTime padrão: 5 min — dados financeiros não mudam a cada 30s
 const queryClient = new QueryClient({
@@ -152,7 +151,6 @@ function AppRoutes() {
           <Route path="/faturamento/:cycleId"                     element={<PrivateRoute permission="can_view_fat_ciclo_detalhe"><BillingCyclePage /></PrivateRoute>} />
           <Route path="/faturamento/:cycleId/cliente/:idSmart"    element={<PrivateRoute permission="can_view_fat_cliente_detalhe"><ClientDetailPage /></PrivateRoute>} />
           <Route path="/ajustes"                                  element={<PrivateRoute permission="can_edit_billing"><AdjustmentsPage /></PrivateRoute>} />
-          <Route path="/diagnostico-ia"                           element={<PrivateRoute permission="can_view_fat_diagnostico_ia"><DiagnosticoIAPage /></PrivateRoute>} />
 
           <Route path="/contestacao"             element={<PrivateRoute permission="can_view_cont_ciclos"><ContestationPage /></PrivateRoute>} />
           <Route path="/contestacao/allcom"      element={<PrivateRoute permission="can_view_cont_allcom"><AllcomPage /></PrivateRoute>} />

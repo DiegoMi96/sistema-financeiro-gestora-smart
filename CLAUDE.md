@@ -129,7 +129,6 @@ GET  /billing/cycles/{id}/export/excel   → Excel (.xlsx)
 - **Gráfico de linhas: evolução por status** (Ativo/Pré-ativo/Suspenso/Cancelamento/Frete/Mensageria) com toggle Qtd ↔ Valor R$
 - Mini cards com totais do último mês por status
 - Status dos boletos Asaas (pie chart)
-- **Diagnóstico por IA** via Anthropic API com cache em `ai_analyses`
 
 #### AnalystDashboard
 - Alertas prioritários (vencidos críticos, vencendo hoje, ajustes pendentes)
@@ -147,12 +146,11 @@ GET  /analyst/alerts                  → alertas prioritários
 POST /analyst/payments                → registrar pagamento manual
 PUT  /analyst/due-date                → alterar vencimento
 GET  /analyst/payments/{cycle}/{id_smart} → histórico de pagamentos
-GET  /ai/diagnosis/{cycle_id}         → diagnóstico IA (com cache)
 ```
 
 #### Novos modelos
 - `payment_records` — pagamentos manuais fora do Asaas
-- `ai_analyses` — cache de diagnósticos por ciclo
+- `ai_analyses` — (tabela antiga do Diagnóstico IA, REMOVIDO em 07/10/2026; os dados ficam guardados, nenhum código usa)
 
 ---
 
@@ -172,7 +170,7 @@ GET  /ai/diagnosis/{cycle_id}         → diagnóstico IA (com cache)
 ### 🔴 Alta prioridade
 1. **Bug: ajuste manual** — `NotNullViolation` no campo `client_id` da tabela `billing_adjustments` ao criar ajuste via tela. Campo `client_id` nunca é populado durante o faturamento (identidade é por `id_smart`). Solução: tornar `client_id` nullable no model ou remover FK.
 2. **PDF por cliente** — `services/pdf_generator.py` implementado com ReportLab (v1.2). Endpoint `GET /billing/cycles/{id}/clients/{id_smart}/pdf` precisa ser criado no `billing.py`.
-3. **ANTHROPIC_API_KEY** — Diagnóstico IA está pronto mas retorna 503 sem a chave. Adicionar ao `.env` quando disponível.
+3. ~~Diagnóstico IA~~ — **removido em 07/10/2026** (pedido do Diego: deixava o sistema mais pesado, sem ganho na operação). Tela, rota, menu, endpoints `/ai/*` e o campo da chave em Configurações saíram; as tabelas `ai_analyses`/`operational_diagnoses` e a permissão `can_view_fat_diagnostico_ia` ficam dormentes no banco.
 
 ### 🟡 Média prioridade
 3. **Validar discrepância Ciclo 11** — diferença residual de ~R$27k entre sistema e Excel manual da Miranda. Investigação parcial feita: causa principal é normalização "Aguardando→Ativo" (regra confirmada correta). Diferença residual não totalmente explicada.
@@ -211,10 +209,10 @@ Permissões individuais no modelo `User` sobrescrevem o perfil padrão.
 ```
 backend/app/
 ├── main.py                    # entry point FastAPI + seed admin
-├── config.py                  # variáveis de ambiente (+ ANTHROPIC_API_KEY)
+├── config.py                  # variáveis de ambiente (ANTHROPIC_API_KEY ficou no código só por compatibilidade com o .env; ninguém usa)
 ├── models/
 │   ├── __init__.py            # todos os modelos principais + índices compostos
-│   └── extra.py               # PaymentRecord + AIAnalysis (v1.2)
+│   └── extra.py               # PaymentRecord + AIAnalysis (dormente) (v1.2)
 ├── core/
 │   ├── security.py            # JWT, hash de senha
 │   └── permissions.py         # permissões por perfil
@@ -223,7 +221,6 @@ backend/app/
 │   ├── billing.py             # faturamento completo
 │   ├── dashboard.py           # KPIs, histórico, evolução por status
 │   ├── analyst.py             # agenda semanal, alertas, pagamentos manuais, vencimentos
-│   └── ai_diagnosis.py        # diagnóstico por IA com cache
 └── services/
     ├── billing_engine.py      # motor de cálculo principal
     ├── excel_generator.py     # gerador de Excel com branding verde

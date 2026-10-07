@@ -15,7 +15,6 @@ import app.models.comissionamento  # ComissaoExtrato
 from app.routers import auth, billing, dashboard
 from app.routers.settings import router as settings_router
 from app.routers.analyst      import router as analyst_router
-from app.routers.ai_diagnosis import router as ai_router
 from app.services.asaas_client import router as asaas_router
 from app.routers.previsibilidade import router as previsibilidade_router
 from app.routers.contestation import router as contestation_router
@@ -253,7 +252,6 @@ app.include_router(auth.router)
 app.include_router(billing.router)
 app.include_router(dashboard.router)
 app.include_router(analyst_router)
-app.include_router(ai_router)
 app.include_router(asaas_router)
 app.include_router(settings_router)
 app.include_router(previsibilidade_router)

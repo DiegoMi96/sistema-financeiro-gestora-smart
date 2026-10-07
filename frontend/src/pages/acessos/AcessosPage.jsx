@@ -69,7 +69,6 @@ const PERM_SECTIONS = [
     ['can_view_fat_ciclo_detalhe',  'Detalhe do ciclo'],
     ['can_view_fat_cliente_detalhe','Detalhe do cliente'],
     ['can_edit_billing',            'Ajustes (visualizar e editar)'],
-    ['can_view_fat_diagnostico_ia', 'Diagnóstico IA'],
     ['can_approve_billing',         'Aprovar faturamento'],
     ['can_create_adjustment',       'Criar ajustes'],
     ['can_approve_adjustment',      'Aprovar ajustes (acima de R$3.000)'],

@@ -33,7 +33,7 @@ class SystemSetting(Base):
 
 
 # ── Helpers ───────────────────────────────────────────────────
-SENSITIVE = {"asaas_api_key", "anthropic_api_key"}
+SENSITIVE = {"asaas_api_key"}
 
 def _get(db: Session, key: str, default: str = "") -> str:
     row = db.query(SystemSetting).filter(SystemSetting.key == key).first()
@@ -59,7 +59,6 @@ def _mask(value: str) -> str:
 class SettingsOut(BaseModel):
     asaas_api_key:       str
     asaas_base_url:      str
-    anthropic_api_key:   str
     empresa_nome:        str
     empresa_cnpj:        str
     empresa_ie:          str
@@ -74,12 +73,10 @@ class SettingsOut(BaseModel):
     cnpj_categorias:     str
     parametros_calculo:  str
     asaas_configured:    bool
-    anthropic_configured: bool
 
 class SettingsIn(BaseModel):
     asaas_api_key:       Optional[str] = None
     asaas_base_url:      Optional[str] = None
-    anthropic_api_key:   Optional[str] = None
     empresa_nome:        Optional[str] = None
     empresa_cnpj:        Optional[str] = None
     empresa_ie:          Optional[str] = None
@@ -108,11 +105,9 @@ def get_settings(
     current_user: User = Depends(get_current_user),
 ):
     asaas_key      = _get(db, "asaas_api_key") or env_settings.ASAAS_API_KEY
-    anthropic_key  = _get(db, "anthropic_api_key") or (env_settings.ANTHROPIC_API_KEY or "")
     return SettingsOut(
         asaas_api_key       = _mask(asaas_key),
         asaas_base_url      = _get(db, "asaas_base_url") or env_settings.ASAAS_BASE_URL,
-        anthropic_api_key   = _mask(anthropic_key),
         empresa_nome        = _get(db, "empresa_nome")     or "Gestora Smart Sim Card, Hardware e Software Ltda",
         empresa_cnpj        = _get(db, "empresa_cnpj")     or "35.775.152/0001-40",
         empresa_ie          = _get(db, "empresa_ie")        or "",
@@ -138,7 +133,6 @@ def get_settings(
             "77268784104":    "Anuidade",
         }),
         asaas_configured    = bool(asaas_key),
-        anthropic_configured= bool(anthropic_key),
     )
 
 
