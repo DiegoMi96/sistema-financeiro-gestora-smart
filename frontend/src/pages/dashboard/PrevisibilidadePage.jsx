@@ -61,10 +61,26 @@ function KpiCard({ label, value, sub, color }) {
   )
 }
 
+const BANCO_STYLE = {
+  'Asaas': 'bg-blue-50 text-blue-700 border-blue-200',
+  'Itaú':  'bg-orange-50 text-orange-700 border-orange-200',
+}
+
+function BancoChip({ banco }) {
+  if (!banco) return null
+  return (
+    <span className={`inline-block px-1.5 py-0 rounded border text-[10px] font-semibold ${BANCO_STYLE[banco] || 'bg-gray-50 text-gray-600 border-gray-200'}`}>
+      {banco}
+    </span>
+  )
+}
+
 function PendingRow({ p }) {
   return (
     <tr className="gs-tr border-t border-gray-50">
-      <td className="gs-td pl-10 font-mono text-xs text-gray-600">{p.id_smart || <span className="text-gray-300">—</span>}</td>
+      <td className="gs-td pl-10 font-mono text-xs text-gray-600">
+        <span className="inline-flex items-center gap-1.5"><BancoChip banco={p.banco} />{p.id_smart || <span className="text-gray-300">—</span>}</span>
+      </td>
       <td className="gs-td text-xs text-gray-500 max-w-[180px] truncate">{p.nome || p.customer_id}</td>
       <td className="gs-td text-right">{fmt(p.valor)}</td>
       <td className="gs-td text-center">{fmtDate(p.vencimento)}</td>
@@ -90,12 +106,17 @@ function ScoreRow({ s, expanded, onToggle, pendingMap }) {
             : <span className="inline-block w-4" />
           }
         </td>
-        <td className="gs-td text-xs text-gray-500 max-w-[200px] truncate" title={s.nome}>{s.nome || s.customer_id}</td>
+        <td className="gs-td text-xs text-gray-500 max-w-[200px]" title={s.nome}>
+          <div className="truncate">{s.nome || s.customer_id}</div>
+          {s.bancos?.length > 0 && (
+            <div className="flex gap-1 mt-0.5">{s.bancos.map(b => <BancoChip key={b} banco={b} />)}</div>
+          )}
+        </td>
         <td className="gs-td font-mono text-xs text-gray-500">{s.cnpj || <span className="text-gray-300">—</span>}</td>
         <td className="gs-td text-center"><ScoreBadge score={s.score} /></td>
         <td className="gs-td text-center"><DiasBadge avg={s.avg_dias} /></td>
-        <td className="gs-td text-center text-xs text-gray-600">{s.qtd_pagamentos}</td>
-        <td className="gs-td text-center text-xs text-gray-500">{s.std_dias}d</td>
+        <td className="gs-td text-center text-xs text-gray-600">{s.sem_historico ? '—' : s.qtd_pagamentos}</td>
+        <td className="gs-td text-center text-xs text-gray-500">{s.sem_historico ? '—' : `${s.std_dias}d`}</td>
         <td className="gs-td text-xs text-gray-500">{s.previsao_padrao}</td>
         <td className="gs-td text-center text-xs">
           {hasPending
@@ -224,7 +245,7 @@ export default function PrevisibilidadePage() {
             {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
           </select>
         </div>
-        <p className="text-xs text-gray-400 self-end pb-1">Score calculado com base nos últimos 6 meses de pagamentos do Asaas.</p>
+        <p className="text-xs text-gray-400 self-end pb-1">Score calculado pelo CNPJ, com os últimos 6 meses de pagamentos do Asaas e do Itaú juntos.</p>
       </div>
 
       {/* KPIs */}
@@ -235,15 +256,17 @@ export default function PrevisibilidadePage() {
           ))}
         </div>
       ) : isError ? (
-        <div className="gs-card p-6 text-center text-red-500 text-sm">Erro ao carregar dados. Verifique a conexão com o Asaas.</div>
+        <div className="gs-card p-6 text-center text-red-500 text-sm">Erro ao carregar dados. Tente novamente em instantes.</div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <KpiCard label="Clientes analisados" value={kpis.total_clientes ?? 0} />
           <KpiCard label="Score A – Baixo risco"  value={`${kpis.pct_score_a ?? 0}%`}  color="text-green-600"  sub="Pagam no prazo / antes" />
           <KpiCard label="Score B – Médio risco"  value={`${kpis.pct_score_b ?? 0}%`}  color="text-orange-500" sub="Até 5 dias de atraso" />
           <KpiCard label="Score C – Alto risco"   value={`${kpis.pct_score_c ?? 0}%`}  color="text-red-600"    sub="Mais de 5 dias de atraso" />
-          <KpiCard label="Cobranças em aberto" value={kpis.total_pending ?? 0} />
-          <KpiCard label="Valor em aberto" value={fmt(kpis.valor_pending)} color="text-gray-700" />
+          <KpiCard label="Cobranças em aberto" value={kpis.total_pending ?? 0}
+            sub={kpis.sem_historico_qtd ? `${kpis.sem_historico_qtd} sem histórico (previsão pelo vencimento)` : undefined} />
+          <KpiCard label="Valor em aberto" value={fmt(kpis.valor_pending)} color="text-gray-700"
+            sub={Object.entries(kpis.valor_por_banco || {}).map(([b, v]) => `${b} ${fmt(v)}`).join(' · ') || undefined} />
         </div>
       )}
 

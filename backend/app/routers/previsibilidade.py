@@ -1,9 +1,16 @@
 """
 Router: Previsibilidade Comportamental
-Lê do banco local (asaas_payments_sync) — sem chamadas em tempo real ao Asaas.
+Lê do banco local (asaas_payments_sync + itau_boletos) — sem chamadas em tempo real ao Asaas.
+
+06/10/2026 — o comportamento de pagamento agora é por CNPJ/CPF, SEM IMPORTAR O BANCO:
+quando o emissor dos boletos mudou (mais de 200 boletos, R$ 1,77 mi, foram pro Itaú), a
+previsão antiga (só Asaas, agrupada por customer_id) simplesmente perdeu esses boletos e
+não conseguia usar o histórico deles. Agora o histórico do Asaas e do Itaú se junta pelo
+CNPJ do pagador, e as cobranças em aberto dos dois bancos entram na previsão.
 """
 import io
 import math
+import re
 from datetime import date, timedelta
 from typing import Optional
 
@@ -62,6 +69,184 @@ def _fmt_cnpj(raw: str) -> str:
     if len(d) == 11:
         return f"{d[:3]}.{d[3:6]}.{d[6:9]}-{d[9:]}"
     return raw or ""
+
+
+def _doc(raw: Optional[str]) -> str:
+    """Só os dígitos do CNPJ/CPF — chave que une o mesmo pagador em qualquer banco."""
+    return re.sub(r"\D", "", raw or "")
+
+
+def _meses_janela(year: int, month: int, months_back: int) -> list[tuple[int, int]]:
+    ref = date(year, month, 1)
+    out = []
+    for i in range(months_back):
+        m = ref.month - i
+        y = ref.year
+        while m <= 0:
+            m += 12
+            y -= 1
+        out.append((y, m))
+    return out
+
+
+def _load_itau(year: int, month: int, months_back: int = 6) -> list[dict]:
+    """Boletos do Itaú da mesma janela, no mesmo formato dos pagamentos do Asaas."""
+    months = _meses_janela(year, month, months_back)
+    conditions = " OR ".join(
+        f"(EXTRACT(YEAR FROM data_vencimento)={y} AND EXTRACT(MONTH FROM data_vencimento)={m})"
+        for y, m in months
+    )
+    db = SessionLocal()
+    try:
+        rows = db.execute(text(f"""
+            SELECT nosso_numero, pagador, cpf_cnpj, valor_titulo, data_vencimento,
+                   data_pagamento, status
+            FROM itau_boletos
+            WHERE status != 'cancelada' AND ({conditions})
+        """)).fetchall()
+    except Exception as e:                     # tabela ausente/erro: a previsão segue só com o Asaas
+        print(f"⚠️  previsibilidade: itau_boletos indisponível: {e}")
+        return []
+    finally:
+        db.close()
+    mapa = {"paga": "RECEIVED", "a vencer": "PENDING", "vencida": "OVERDUE"}
+    return [
+        {
+            "id": r.nosso_numero, "customer": None, "name": r.pagador, "cpfCnpj": r.cpf_cnpj,
+            "value": r.valor_titulo or 0,
+            "dueDate": r.data_vencimento.isoformat() if r.data_vencimento else None,
+            "paymentDate": r.data_pagamento.isoformat() if r.data_pagamento else None,
+            "creditDate": r.data_pagamento.isoformat() if r.data_pagamento else None,
+            "status": mapa.get((r.status or "").lower(), r.status or ""),
+            "banco": "Itaú",
+        }
+        for r in rows
+    ]
+
+
+def _chave_pagador(p: dict) -> str:
+    """CNPJ/CPF (só dígitos) — igual em qualquer banco. Sem documento, cai no id do Asaas."""
+    d = _doc(p.get("cpfCnpj"))
+    if d:
+        return d
+    if p.get("customer"):
+        return f"asaas:{p['customer']}"
+    return f"{(p.get('banco') or 'x').lower()}:{p.get('name') or p.get('id') or ''}"
+
+
+def _calcular(year: int, month: int) -> dict:
+    """Cálculo único da previsão (usado pela tela e pelo Excel).
+
+    - Histórico: boletos pagos (Asaas RECEIVED/CONFIRMED + Itaú 'paga') dos últimos 6 meses,
+      agrupados por CNPJ/CPF, qualquer banco. avg_dias = média de (vencimento - dia do crédito).
+    - Em aberto: Asaas PENDING + Itaú 'a vencer' com vencimento no mês escolhido.
+    - Sem histórico: previsão pelo vencimento (marcada como tal).
+    """
+    asaas = _load_payments(year, month, months_back=6)
+    for p in asaas:
+        p["banco"] = "Asaas"
+    itau = _load_itau(year, month, months_back=6)
+    todos = asaas + itau
+    prefix = f"{year}-{month:02d}"
+
+    # 1) histórico por pagador
+    dados: dict[str, dict] = {}
+    for p in todos:
+        if p.get("status") not in ("RECEIVED", "CONFIRMED"):
+            continue
+        due_date    = _parse_date(p.get("dueDate"))
+        credit_date = _parse_date(p.get("creditDate") or p.get("paymentDate"))
+        if not due_date or not credit_date:
+            continue
+        k = _chave_pagador(p)
+        d = dados.setdefault(k, {"diffs": [], "name": None, "cpfCnpj": None, "bancos": set()})
+        d["diffs"].append((due_date - credit_date).days)
+        d["bancos"].add(p["banco"])
+        if not d["name"] and p.get("name"):
+            d["name"] = p["name"]
+        if not d["cpfCnpj"] and p.get("cpfCnpj"):
+            d["cpfCnpj"] = p["cpfCnpj"]
+
+    # 2) em aberto do mês (Asaas PENDING + Itaú a vencer), sem contar o mesmo boleto duas vezes
+    itau_abertos = {
+        (_doc(p.get("cpfCnpj")), round(float(p.get("value") or 0), 2), (p.get("dueDate") or "")[:7])
+        for p in itau if p.get("status") == "PENDING" and (p.get("dueDate") or "").startswith(prefix)
+    }
+    abertos = []
+    for p in todos:
+        if p.get("status") != "PENDING" or not (p.get("dueDate") or "").startswith(prefix):
+            continue
+        if p["banco"] == "Asaas" and _doc(p.get("cpfCnpj")) and \
+           (_doc(p.get("cpfCnpj")), round(float(p.get("value") or 0), 2), prefix) in itau_abertos:
+            continue
+        abertos.append(p)
+
+    # 3) scores (só quem tem histórico)
+    scores: dict[str, dict] = {}
+    for k, info in dados.items():
+        diffs = info["diffs"]
+        avg = sum(diffs) / len(diffs)
+        sc, cl = _score(avg)
+        doc = _doc(info.get("cpfCnpj"))
+        scores[k] = {
+            "customer_id":     k,
+            "id_smart":        f"ss_{doc}" if doc else "",
+            "nome":            info.get("name") or "Não identificado",
+            "cnpj":            _fmt_cnpj(info.get("cpfCnpj") or ""),
+            "qtd_pagamentos":  len(diffs),
+            "avg_dias":        round(avg, 1),
+            "std_dias":        round(_std(diffs), 1),
+            "score":           sc,
+            "classificacao":   cl,
+            "previsao_padrao": _previsao_padrao(avg),
+            "bancos":          sorted(info["bancos"]),
+            "sem_historico":   False,
+        }
+
+    # 4) cobranças em aberto com a data prevista
+    pending_list = []
+    sem_hist: dict[str, dict] = {}
+    for p in abertos:
+        k = _chave_pagador(p)
+        due_date = _parse_date(p.get("dueDate"))
+        sc_info = scores.get(k)
+        doc = _doc(p.get("cpfCnpj"))
+        if sc_info:
+            delta = int(round(sc_info["avg_dias"]))
+            data_prevista = (due_date - timedelta(days=delta)).isoformat() if due_date else None
+            obs = f"Baseado em {sc_info['qtd_pagamentos']} pagamento(s) ({' + '.join(sc_info['bancos'])})"
+            sc = sc_info["score"]
+            sem = False
+        else:
+            data_prevista = due_date.isoformat() if due_date else None   # sem histórico: o vencimento
+            obs = "Sem histórico — previsão pelo vencimento"
+            sc = None
+            sem = True
+            r = sem_hist.setdefault(k, {
+                "customer_id": k, "id_smart": f"ss_{doc}" if doc else "",
+                "nome": p.get("name") or "Não identificado", "cnpj": _fmt_cnpj(p.get("cpfCnpj") or ""),
+                "qtd_pagamentos": 0, "avg_dias": None, "std_dias": 0, "score": None,
+                "classificacao": "Sem histórico", "previsao_padrao": "Sem histórico — previsão pelo vencimento",
+                "bancos": [], "sem_historico": True,
+            })
+            if p["banco"] not in r["bancos"]:
+                r["bancos"].append(p["banco"])
+        pending_list.append({
+            "customer_id":   k,
+            "id_smart":      f"ss_{doc}" if doc else "",
+            "nome":          p.get("name") or "Não identificado",
+            "cnpj":          _fmt_cnpj(p.get("cpfCnpj") or ""),
+            "valor":         p.get("value", 0),
+            "vencimento":    p.get("dueDate"),
+            "data_prevista": data_prevista,
+            "score":         sc,
+            "observacao":    obs,
+            "banco":         p["banco"],
+            "sem_historico": sem,
+        })
+
+    return {"scores": scores, "sem_hist": sem_hist, "pending": pending_list,
+            "total_registros": len(todos)}
 
 
 def _load_payments(year: int, month: int, months_back: int = 6) -> list[dict]:
@@ -125,106 +310,35 @@ async def get_previsibilidade_summary(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    all_payments = _load_payments(year, month, months_back=6)
-
-    if not all_payments:
+    r = _calcular(year, month)
+    if not r["total_registros"]:
         from fastapi import HTTPException
         raise HTTPException(status_code=503, detail="Sem dados no banco local. Aguarde o próximo sync (20 min).")
 
-    # pagamentos do mês selecionado
-    prefix = f"{year}-{month:02d}"
-
-    # 1. calcula diffs por customer_id (apenas RECEIVED/CONFIRMED)
-    customer_data: dict[str, dict] = {}
-    for p in all_payments:
-        if p.get("status") not in ("RECEIVED", "CONFIRMED"):
-            continue
-        cid = p.get("customer") or ""
-        if not cid:
-            continue
-        due_date    = _parse_date(p.get("dueDate"))
-        credit_date = _parse_date(p.get("creditDate") or p.get("paymentDate"))
-        if not due_date or not credit_date:
-            continue
-        diff = (due_date - credit_date).days
-        if cid not in customer_data:
-            customer_data[cid] = {
-                "diffs": [], "name": p.get("name"), "cpfCnpj": p.get("cpfCnpj")
-            }
-        customer_data[cid]["diffs"].append(diff)
-        if not customer_data[cid]["name"] and p.get("name"):
-            customer_data[cid]["name"] = p.get("name")
-
-    # 2. cobranças PENDING do mês selecionado
-    pending = [
-        p for p in all_payments
-        if p.get("status") == "PENDING"
-        and (p.get("dueDate") or "").startswith(prefix)
-    ]
-
-    # 3. monta scores
-    scores = []
-    for cid, info in customer_data.items():
-        diffs = info["diffs"]
-        avg   = sum(diffs) / len(diffs)
-        sc, cl = _score(avg)
-        scores.append({
-            "customer_id":     cid,
-            "id_smart":        "",
-            "nome":            info.get("name") or "Não identificado",
-            "cnpj":            _fmt_cnpj(info.get("cpfCnpj") or ""),
-            "qtd_pagamentos":  len(diffs),
-            "avg_dias":        round(avg, 1),
-            "std_dias":        round(_std(diffs), 1),
-            "score":           sc,
-            "classificacao":   cl,
-            "previsao_padrao": _previsao_padrao(avg),
-        })
-
+    scores_lista = list(r["scores"].values())
     order = {"C": 0, "B": 1, "A": 2}
-    scores.sort(key=lambda x: (order.get(x["score"], 9), x["avg_dias"]))
+    scores_lista.sort(key=lambda x: (order.get(x["score"], 9), x["avg_dias"]))
+    pending_list = r["pending"]
 
-    # 4. monta cobranças abertas com previsão
-    score_map = {s["customer_id"]: s for s in scores}
-    pending_list = []
-    for p in pending:
-        cid      = p.get("customer") or ""
-        due_date = _parse_date(p.get("dueDate"))
-        sc_info  = score_map.get(cid)
-        if sc_info:
-            delta = int(round(sc_info["avg_dias"]))
-            data_prevista = (due_date - timedelta(days=delta)).isoformat() if due_date else None
-            obs = f"Baseado em {sc_info['qtd_pagamentos']} pagamento(s)"
-            sc  = sc_info["score"]
-        else:
-            data_prevista = None
-            obs = "Sem histórico"
-            sc  = None
-
-        pending_list.append({
-            "customer_id":   cid,
-            "id_smart":      "",
-            "nome":          p.get("name") or "Não identificado",
-            "cnpj":          _fmt_cnpj(p.get("cpfCnpj") or ""),
-            "valor":         p.get("value", 0),
-            "vencimento":    p.get("dueDate"),
-            "data_prevista": data_prevista,
-            "score":         sc,
-            "observacao":    obs,
-        })
-
-    # 5. KPIs
-    total = len(scores)
+    # KPIs de score: só quem tem histórico. Quem está sem histórico aparece na tabela (para as
+    # cobranças em aberto dele não ficarem invisíveis), mas não entra nos percentuais.
+    total = len(scores_lista)
+    por_banco: dict[str, float] = {}
+    for p in pending_list:
+        por_banco[p["banco"]] = round(por_banco.get(p["banco"], 0) + (p["valor"] or 0), 2)
+    sem = [p for p in pending_list if p["sem_historico"]]
     kpis = {
         "total_clientes":  total,
-        "pct_score_a":     round(sum(1 for s in scores if s["score"] == "A") / total * 100, 1) if total else 0,
-        "pct_score_b":     round(sum(1 for s in scores if s["score"] == "B") / total * 100, 1) if total else 0,
-        "pct_score_c":     round(sum(1 for s in scores if s["score"] == "C") / total * 100, 1) if total else 0,
+        "pct_score_a":     round(sum(1 for s in scores_lista if s["score"] == "A") / total * 100, 1) if total else 0,
+        "pct_score_b":     round(sum(1 for s in scores_lista if s["score"] == "B") / total * 100, 1) if total else 0,
+        "pct_score_c":     round(sum(1 for s in scores_lista if s["score"] == "C") / total * 100, 1) if total else 0,
         "total_pending":   len(pending_list),
         "valor_pending":   round(sum(p["valor"] for p in pending_list), 2),
+        "valor_por_banco": por_banco,
+        "sem_historico_qtd":   len(sem),
+        "sem_historico_valor": round(sum(p["valor"] for p in sem), 2),
     }
-
-    return {"kpis": kpis, "scores": scores, "pending": pending_list}
+    return {"kpis": kpis, "scores": scores_lista + list(r["sem_hist"].values()), "pending": pending_list}
 
 
 # ── endpoint: export Excel ────────────────────────────────────────────────────
@@ -236,76 +350,32 @@ async def export_previsibilidade(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    all_payments = _load_payments(year, month, months_back=6)
-    prefix = f"{year}-{month:02d}"
-
-    customer_data: dict[str, dict] = {}
-    for p in all_payments:
-        if p.get("status") not in ("RECEIVED", "CONFIRMED"):
-            continue
-        cid = p.get("customer") or ""
-        if not cid:
-            continue
-        due_date    = _parse_date(p.get("dueDate"))
-        credit_date = _parse_date(p.get("creditDate") or p.get("paymentDate"))
-        if not due_date or not credit_date:
-            continue
-        diff = (due_date - credit_date).days
-        if cid not in customer_data:
-            customer_data[cid] = {"diffs": [], "ultima_ref": f"{month:02d}/{year}",
-                                   "name": p.get("name"), "cpfCnpj": p.get("cpfCnpj")}
-        customer_data[cid]["diffs"].append(diff)
-
-    scores: dict[str, dict] = {}
-    for cid, info in customer_data.items():
-        diffs = info["diffs"]
-        avg   = sum(diffs) / len(diffs)
-        sc, cl = _score(avg)
-        scores[cid] = {
-            "nome":            info.get("name") or "Não identificado",
-            "cnpj":            _fmt_cnpj(info.get("cpfCnpj") or ""),
-            "qtd_pagamentos":  len(diffs),
-            "avg_dias":        round(avg, 2),
-            "std_dias":        round(_std(diffs), 2),
-            "score":           sc,
-            "classificacao":   cl,
-            "previsao_padrao": _previsao_padrao(avg),
-            "ultima_ref":      info["ultima_ref"],
-        }
-
-    pending = [
-        p for p in all_payments
-        if p.get("status") == "PENDING"
-        and (p.get("dueDate") or "").startswith(prefix)
-    ]
+    r = _calcular(year, month)
+    ref = f"{month:02d}/{year}"
+    scores = {k: dict(v, ultima_ref=ref) for k, v in r["scores"].items()}
+    for v in scores.values():
+        v["avg_dias"] = round(v["avg_dias"], 2)
 
     previsao_rows = []
-    for p in pending:
-        cid      = p.get("customer") or ""
-        due_date = _parse_date(p.get("dueDate"))
-        valor    = p.get("value", 0)
-        if cid in scores:
-            sc_info   = scores[cid]
-            delta     = int(round(sc_info["avg_dias"]))
-            data_prev = (due_date - timedelta(days=delta)) if due_date else None
-            obs       = f"Previsão baseada em {sc_info['qtd_pagamentos']} pagamento(s)"
-            sc        = sc_info["score"]
-            dias_lbl  = f"{delta:+d} dias"
+    for p in r["pending"]:
+        due_date = _parse_date(p.get("vencimento"))
+        data_prev = _parse_date(p.get("data_prevista"))
+        sem = p["sem_historico"]
+        if sem:
+            dias_lbl = "—"
         else:
-            data_prev = None
-            obs       = "Sem histórico"
-            sc        = "—"
-            dias_lbl  = "—"
-
+            sc_info = r["scores"][p["customer_id"]]
+            dias_lbl = f"{int(round(sc_info['avg_dias'])):+d} dias"
         previsao_rows.append({
-            "nome":          p.get("name") or "Não identificado",
-            "cnpj":          _fmt_cnpj(p.get("cpfCnpj") or ""),
-            "valor":         valor,
+            "nome":          p.get("nome") or "Não identificado",
+            "cnpj":          p.get("cnpj") or "",
+            "valor":         p.get("valor", 0),
             "vencimento":    due_date,
             "data_prevista": data_prev,
-            "score":         sc,
+            "score":         "—" if sem else p["score"],
             "dias_label":    dias_lbl,
-            "obs":           obs,
+            "obs":           p["observacao"],
+            "banco":         p["banco"],
         })
 
     # ── gera Excel ────────────────────────────────────────────────────────────
@@ -354,7 +424,7 @@ async def export_previsibilidade(
     # Aba 1: Score por Cliente
     ws1 = wb.active
     ws1.title = "Score por Cliente"
-    headers1 = ["Nome", "CNPJ", "Qtd Pagamentos", "Média Dias", "Desvio Padrão", "Score", "Classificação", "Últ. Ref."]
+    headers1 = ["Nome", "CNPJ", "Qtd Pagamentos", "Média Dias", "Desvio Padrão", "Score", "Classificação", "Últ. Ref.", "Bancos (histórico)"]
     _write_title(ws1, f"Previsibilidade Comportamental — Score por Cliente — {month:02d}/{year}", len(headers1))
     _write_headers(ws1, 2, headers1)
 
@@ -362,7 +432,7 @@ async def export_previsibilidade(
         row = i + 3
         fill = _fill(BRANCO) if i % 2 == 0 else _fill(CINZA_CLARO)
         vals = [info["nome"], info["cnpj"], info["qtd_pagamentos"], info["avg_dias"],
-                info["std_dias"], info["score"], info["classificacao"], info["ultima_ref"]]
+                info["std_dias"], info["score"], info["classificacao"], info["ultima_ref"], " + ".join(info["bancos"])]
         for col, val in enumerate(vals, 1):
             c = ws1.cell(row, col, val)
             c.font = _cell_font(); c.fill = fill
@@ -371,12 +441,12 @@ async def export_previsibilidade(
             if col == 6 and val in ("A", "B", "C"):
                 c.font = Font(name="Arial", bold=True, size=10, color=_score_color(val))
 
-    for col, w in zip(range(1, len(headers1)+1), [35, 20, 16, 12, 14, 8, 20, 14]):
+    for col, w in zip(range(1, len(headers1)+1), [35, 20, 16, 12, 14, 8, 20, 14, 20]):
         ws1.column_dimensions[get_column_letter(col)].width = w
 
     # Aba 2: Previsão – Cobranças Abertas
     ws2 = wb.create_sheet("Previsão – Cobranças Abertas")
-    headers2 = ["Nome", "CNPJ", "Valor (R$)", "Vencimento", "Data Prevista", "Score", "Dias Antes/Após", "Observação"]
+    headers2 = ["Nome", "CNPJ", "Banco", "Valor (R$)", "Vencimento", "Data Prevista", "Score", "Dias Antes/Após", "Observação"]
     _write_title(ws2, f"Previsibilidade — Cobranças Abertas — {month:02d}/{year}", len(headers2))
     _write_headers(ws2, 2, headers2)
 
@@ -386,12 +456,13 @@ async def export_previsibilidade(
         cells = [
             (1, row_data["nome"],          None),
             (2, row_data["cnpj"],          None),
-            (3, row_data["valor"],         'R$ #,##0.00'),
-            (4, row_data["vencimento"],    "DD/MM/YYYY"),
-            (5, row_data["data_prevista"], "DD/MM/YYYY"),
-            (6, row_data["score"],         None),
-            (7, row_data["dias_label"],    None),
-            (8, row_data["obs"],           None),
+            (3, row_data["banco"],         None),
+            (4, row_data["valor"],         'R$ #,##0.00'),
+            (5, row_data["vencimento"],    "DD/MM/YYYY"),
+            (6, row_data["data_prevista"], "DD/MM/YYYY"),
+            (7, row_data["score"],         None),
+            (8, row_data["dias_label"],    None),
+            (9, row_data["obs"],           None),
         ]
         for col, val, fmt_str in cells:
             c = ws2.cell(row, col, val)
@@ -400,10 +471,10 @@ async def export_previsibilidade(
             c.border = borda
             if fmt_str:
                 c.number_format = fmt_str
-            if col == 6 and val in ("A", "B", "C"):
+            if col == 7 and val in ("A", "B", "C"):
                 c.font = Font(name="Arial", bold=True, size=10, color=_score_color(val))
 
-    for col, w in zip(range(1, len(headers2)+1), [35, 20, 14, 14, 18, 8, 16, 36]):
+    for col, w in zip(range(1, len(headers2)+1), [35, 20, 10, 14, 14, 18, 8, 16, 44]):
         ws2.column_dimensions[get_column_letter(col)].width = w
 
     buf = io.BytesIO()
