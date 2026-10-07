@@ -1434,22 +1434,44 @@ async def payment_planning(
             # pagamento cruzava de mês (ex.: vence 25/jan, paga 05/fev virava
             # offset -20 em vez dos +11 dias de atraso reais). HAVING COUNT>=3
             # evita aplicar o desvio com base em amostra pequena demais.
-            hist_rows = _db2.execute(text("""
-                SELECT
-                    customer_cpf_cnpj,
-                    ROUND(AVG(credit_date - due_date)::numeric, 1) AS avg_offset
-                FROM asaas_payments_sync
-                WHERE status IN ('RECEIVED', 'CONFIRMED')
-                  AND credit_date IS NOT NULL
-                  AND due_date IS NOT NULL
-                  AND due_date >= :hist_start
-                  AND due_date < :target_start
-                  AND customer_cpf_cnpj IS NOT NULL
-                GROUP BY customer_cpf_cnpj
-                HAVING COUNT(*) >= 3
+            # 07/10/2026 (pedido do Diego): o comportamento é do CNPJ, INDEPENDENTE DO BANCO.
+            # Com a troca do CNPJ emissor, 246 boletos (R$ 1,77 mi) foram pro Itaú e, aqui,
+            # entravam só pela data de vencimento; o histórico (só Asaas, agrupado pelo texto
+            # do documento) não era aplicado a eles. Agora o histórico junta Asaas + Itaú
+            # (boletos 'paga') pelos DÍGITOS do CNPJ/CPF e vale pros dois bancos.
+            # Mínimo de pagamentos: 3 -> 2. Teste retroativo (ago e set/2026): com mínimo 3, em
+            # agosto o erro semanal voltava a 46% (igual ao vencimento) por falta de amostra;
+            # com mínimo 2 fica em ~7% (agosto) e ~4% (setembro). Média (não mediana): acerta
+            # melhor a distribuição por semana.
+            hist_rows = _db2.execute(text(r"""
+                SELECT doc, ROUND(AVG(off)::numeric, 1) AS avg_offset
+                FROM (
+                    SELECT regexp_replace(customer_cpf_cnpj, '\D', '', 'g') AS doc,
+                           (credit_date - due_date) AS off
+                    FROM asaas_payments_sync
+                    WHERE status IN ('RECEIVED', 'CONFIRMED')
+                      AND credit_date IS NOT NULL
+                      AND due_date IS NOT NULL
+                      AND due_date >= :hist_start
+                      AND due_date < :target_start
+                      AND customer_cpf_cnpj IS NOT NULL
+                    UNION ALL
+                    SELECT regexp_replace(cpf_cnpj, '\D', '', 'g') AS doc,
+                           (data_pagamento - data_vencimento) AS off
+                    FROM itau_boletos
+                    WHERE status = 'paga'
+                      AND data_pagamento IS NOT NULL
+                      AND data_vencimento IS NOT NULL
+                      AND data_vencimento >= :hist_start
+                      AND data_vencimento < :target_start
+                      AND cpf_cnpj IS NOT NULL
+                ) h
+                WHERE doc <> ''
+                GROUP BY doc
+                HAVING COUNT(*) >= 2
             """), {"hist_start": hist_start, "target_start": target_start}).fetchall()
 
-            hist_offsets = {r.customer_cpf_cnpj: float(r.avg_offset or 0) for r in hist_rows}
+            hist_offsets = {r.doc: float(r.avg_offset or 0) for r in hist_rows}
 
             curr_rows = _db2.execute(text("""
                 SELECT customer_cpf_cnpj, value, net_value,
@@ -1474,6 +1496,8 @@ async def payment_planning(
     clientes_sem: set = set()
     valor_mes_seguinte     = 0.0
     clientes_mes_seguinte: set = set()
+    itau_qtd = itau_com_comp = 0
+    itau_valor = itau_valor_com_comp = 0.0
 
     # Asaas — planejado
     # Prioridade: 1) venc. planejado da Lista de Vencidos  2) offset histórico  3) due_date
@@ -1492,8 +1516,7 @@ async def payment_planning(
         cnpj_key  = _digits(cpf_cnpj)
 
         if cnpj_key and cnpj_key in planned_overrides:
-            if cpf_cnpj:
-                clientes_com.add(cpf_cnpj)
+            clientes_com.add(cnpj_key)
             venc_planejado = planned_overrides[cnpj_key]
             if venc_planejado.year == year and venc_planejado.month == month:
                 pred_day = max(1, min(venc_planejado.day, last_day))
@@ -1503,20 +1526,19 @@ async def payment_planning(
                 # deste mês (antes ficava travado aqui usando só o número do
                 # dia, ignorando pra qual mês o Diego tinha movido o boleto).
                 valor_mes_seguinte += valor
-                if cpf_cnpj:
-                    clientes_mes_seguinte.add(cpf_cnpj)
-        elif cpf_cnpj and cpf_cnpj in hist_offsets:
-            clientes_com.add(cpf_cnpj)
-            offset    = round(hist_offsets[cpf_cnpj])
+                clientes_mes_seguinte.add(cnpj_key)
+        elif cnpj_key and cnpj_key in hist_offsets:
+            clientes_com.add(cnpj_key)
+            offset    = round(hist_offsets[cnpj_key])
             pred_date = r.due_date + timedelta(days=offset)
             if pred_date.year == year and pred_date.month == month:
                 plan_por_dia[pred_date.day] = plan_por_dia.get(pred_date.day, 0) + valor
             else:
                 valor_mes_seguinte += valor
-                clientes_mes_seguinte.add(cpf_cnpj)
+                clientes_mes_seguinte.add(cnpj_key)
         else:
-            if cpf_cnpj:
-                clientes_sem.add(cpf_cnpj)
+            if cnpj_key:
+                clientes_sem.add(cnpj_key)
             pred_day = r.due_date.day
             plan_por_dia[pred_day] = plan_por_dia.get(pred_day, 0) + valor
 
@@ -1555,14 +1577,32 @@ async def payment_planning(
             if r.data_vencimento:
                 cnpj_key = _digits(r.cpf_cnpj)
                 valor_itau = r.valor_titulo or 0
+                itau_qtd += 1
+                itau_valor += valor_itau
                 if cnpj_key and cnpj_key in planned_overrides:
+                    clientes_com.add(cnpj_key)
                     venc_planejado = planned_overrides[cnpj_key]
                     if venc_planejado.year == year and venc_planejado.month == month:
                         d = max(1, min(venc_planejado.day, last_day))
                         plan_por_dia[d] = plan_por_dia.get(d, 0) + valor_itau
                     else:
                         valor_mes_seguinte += valor_itau
+                        clientes_mes_seguinte.add(cnpj_key)
+                elif cnpj_key and cnpj_key in hist_offsets:
+                    # Mesmo comportamento do CNPJ no Asaas/Itaú, independente do banco
+                    # (antes o Itaú entrava só pela data de vencimento — 07/10/2026).
+                    clientes_com.add(cnpj_key)
+                    itau_com_comp += 1
+                    itau_valor_com_comp += valor_itau
+                    pred_date = r.data_vencimento + timedelta(days=round(hist_offsets[cnpj_key]))
+                    if pred_date.year == year and pred_date.month == month:
+                        plan_por_dia[pred_date.day] = plan_por_dia.get(pred_date.day, 0) + valor_itau
+                    else:
+                        valor_mes_seguinte += valor_itau
+                        clientes_mes_seguinte.add(cnpj_key)
                 else:
+                    if cnpj_key:
+                        clientes_sem.add(cnpj_key)
                     d = max(1, min(r.data_vencimento.day, last_day))
                     plan_por_dia[d] = plan_por_dia.get(d, 0) + valor_itau
 
@@ -1631,6 +1671,14 @@ async def payment_planning(
         # escondido.
         "valor_previsto_mes_seguinte":     round(valor_mes_seguinte, 2),
         "clientes_previsto_mes_seguinte":  len(clientes_mes_seguinte),
+        # Quanto do Itaú está sendo previsto pelo comportamento do CNPJ (histórico dos
+        # dois bancos) e quanto ainda cai no vencimento por falta de histórico.
+        "itau": {
+            "boletos":                itau_qtd,
+            "valor":                  round(itau_valor, 2),
+            "boletos_por_comportamento": itau_com_comp,
+            "valor_por_comportamento":   round(itau_valor_com_comp, 2),
+        },
     }
 
 
