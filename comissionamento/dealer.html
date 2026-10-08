@@ -50,23 +50,12 @@ td.r{text-align:right;font-variant-numeric:tabular-nums}
 .rg-req{color:#b83232}
 .rg-modal-overlay{position:fixed;inset:0;background:rgba(20,20,18,.5);display:none;align-items:center;justify-content:center;z-index:200;padding:24px}
 .rg-modal-overlay.open{display:flex}
-.rg-modal-card{background:#faf9f6;border-radius:14px;max-width:680px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.3)}
-.rg-modal-hdr{display:flex;justify-content:space-between;align-items:center;padding:20px 26px;border-bottom:2px solid #1a1a18;background:#faf9f6;position:sticky;top:0}
-.rg-modal-hdr h2{font-size:18px;font-weight:800;color:#1a1a18}
 .rg-modal-close{background:none;border:none;font-size:15px;color:#888;cursor:pointer;width:30px;height:30px;border-radius:7px;line-height:1}
 .rg-modal-close:hover{background:#eeede8;color:#1a1a18}
-.rg-modal-body{padding:22px 26px 28px}
 .seg-toggle{display:flex;gap:6px;background:#eeede8;border-radius:9px;padding:4px;margin-bottom:16px;max-width:480px}
 .seg-btn{flex:1;background:none;border:none;border-radius:6px;padding:9px 12px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:#888;cursor:pointer;transition:background .15s,color .15s}
 .seg-btn:hover{color:#1a1a18}
 .seg-btn.active{background:#fff;color:#1a1a18;box-shadow:0 1px 3px rgba(0,0,0,.12)}
-.rg-versao{background:#f5f4f0;border:1px solid #d4d3ce;border-radius:8px;padding:12px 14px;margin-bottom:10px}
-.rg-versao-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px}
-.rg-versao-hdr label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#888}
-.rg-faixa-row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;margin-bottom:6px;align-items:center}
-.rg-faixa-row input{padding:6px 8px;font-size:12px}
-.rg-faixa-hdr{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;margin-bottom:4px}
-.rg-faixa-hdr span{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#888}
 .edit-panel{background:#f9fffe;border-top:2px solid #1E9B6B;padding:16px 20px}
 .edit-panel-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
 .edit-panel-title{font-size:11px;font-weight:700;color:#166B4A;text-transform:uppercase;letter-spacing:.08em}
@@ -145,6 +134,56 @@ tr.row-editing td{background:#f9fffe !important}
 #dealerTable .btn-export.disabled{background:#f5f4f0;color:#b5b4af;border-color:#e0dfdb;cursor:default}
 #dealerTable .btn-export.disabled:hover{background:#f5f4f0;border-color:#e0dfdb}
 @media (max-width:860px){.rs-search{min-width:0;flex:1 1 100%}}
+
+/* ─── Modal Regra de Comissão — layout novo (só este modal) ─── */
+#regraModal .rg-modal-card{max-width:780px;background:#fff;border-radius:14px}
+#regraModal .rg-modal-hdr{border-bottom:none;background:#fff;align-items:flex-start;padding:20px 24px 4px}
+#regraModal .rg-modal-hdr h2{font-size:20px;line-height:1.15}
+#regraModal .rg-sub{font-size:12px;color:#777;margin-top:4px}
+#regraModal .rg-modal-close{color:#555;display:flex;align-items:center;justify-content:center}
+#regraModal .rg-modal-body{padding:12px 24px 22px}
+.rg-sec{background:#fff;border:1px solid #e5e4df;border-radius:10px;padding:16px 18px;margin-bottom:12px}
+.rg-sec-t{font-size:14px;font-weight:800;color:#1a1a18}
+.rg-sec-s{font-size:11.5px;color:#888;margin:2px 0 14px;line-height:1.5}
+.rg-g2{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px}
+.rg-g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 16px}
+#regraModal .lbl{font-size:12px;font-weight:700;text-transform:none;letter-spacing:0;color:#1a1a18;margin-bottom:5px}
+#regraModal input[type=number],#regraModal input[type=month],#regraModal input[type=date],#regraModal select{background:#fff;border:1px solid #d4d3ce;border-radius:8px;height:36px;padding:0 12px;font-size:12.5px;width:100%}
+#regraModal input:focus,#regraModal select:focus{border-color:#1E9B6B}
+#regraModal select:disabled{background:#f5f4f0;color:#777}
+#regraModal .irow{gap:8px}
+#regraModal .ipfx{font-size:12px;color:#777}
+.rg-check{display:flex;align-items:flex-start;gap:9px;cursor:pointer;margin-top:12px}
+.rg-check input{width:auto !important;height:auto !important;margin-top:2px;accent-color:#166B4A}
+.rg-check .t{display:block;font-size:12.5px;font-weight:700;color:#1a1a18}
+.rg-check .d{display:block;font-size:11.5px;color:#888;margin-top:1px;line-height:1.45}
+.rg-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:4px;flex-wrap:wrap}
+.rg-foot-r{display:flex;gap:10px;margin-left:auto}
+.rg-b{height:38px;padding:0 20px;border-radius:8px;border:1px solid #d4d3ce;background:#fff;color:#1a1a18;font-size:12.5px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap}
+.rg-b:hover{background:#f5f4f0}
+.rg-b.ok{background:#166B4A;border-color:#166B4A;color:#fff;font-weight:700}
+.rg-b.ok:hover{background:#0d5233}
+.rg-b.del{border-color:#f0c4c4;color:#b83232;background:#fff}
+.rg-b.del:hover{background:#fceaea}
+.rg-ghost{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:8px;border:1px solid #1E9B6B;background:#fff;color:#166B4A;font-size:11.5px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer}
+.rg-ghost:hover{background:#eaf5f0}
+.rg-rm{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:8px;border:1px solid #f0c4c4;background:#fff;color:#b83232;font-size:11.5px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap}
+.rg-rm:hover{background:#fceaea}
+.rg-del{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:1px solid #f0c4c4;background:#fff;color:#b83232;cursor:pointer}
+.rg-del:hover{background:#fceaea}
+@media (max-width:700px){.rg-g2,.rg-g3{grid-template-columns:1fr}}
+.seg-toggle{display:flex;gap:6px;background:#f3f3f0;border-radius:10px;padding:4px;margin-bottom:16px;max-width:none}
+.seg-btn{flex:1;background:none;border:1px solid transparent;border-radius:8px;padding:9px 12px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:#777;cursor:pointer;transition:background .15s,color .15s}
+.seg-btn:hover{color:#1a1a18}
+.seg-btn.active{background:#fff;color:#166B4A;border-color:#1E9B6B;box-shadow:none}
+.rg-versao{background:#f0f8f4;border:1px solid #d6eadf;border-radius:10px;padding:14px 16px;margin-bottom:12px}
+.rg-versao-hdr{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.rg-versao-hdr label{font-size:12px;font-weight:700;color:#1a1a18;white-space:nowrap}
+.rg-versao-hdr input[type=month]{flex:1;min-width:140px}
+.rg-faixa-hdr,.rg-faixa-row{display:grid;grid-template-columns:1fr 1fr 1fr 42px;gap:10px;align-items:center}
+.rg-faixa-hdr{margin-bottom:6px}
+.rg-faixa-hdr span{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280}
+.rg-faixa-row{margin-bottom:8px}
 </style>
 </head>
 <body>
@@ -231,18 +270,21 @@ tr.row-editing td{background:#f9fffe !important}
 <div class="rg-modal-overlay" id="regraModal" onclick="if(event.target===this) regraFecharModal()">
   <div class="rg-modal-card">
     <div class="rg-modal-hdr">
-      <h2 id="regraModalTitulo">Nova Regra de Comissão</h2>
-      <button class="rg-modal-close" onclick="regraFecharModal()">✕</button>
+      <div>
+        <h2 id="regraModalTitulo">Nova Regra de Comissão</h2>
+        <p class="rg-sub">Configure como o valor da comissão será calculado para este dealer.</p>
+      </div>
+      <button class="rg-modal-close" onclick="regraFecharModal()" aria-label="Fechar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <div class="rg-modal-body">
-      <div class="card">
-        <div class="g2">
+      <div class="rg-sec">
+        <div class="rg-g2">
           <div>
             <label class="lbl">Dealer <span class="rg-req">*</span></label>
             <select id="rg_dealer"></select>
           </div>
           <div>
-            <label class="lbl">De onde vem o dado</label>
+            <label class="lbl">De onde vem o dado <span class="rg-req">*</span></label>
             <select id="rg_fonte">
               <option value="somaAtivacao">Soma do "Preço de ativação" (Inventário)</option>
               <option value="contagemAtivadas">Contagem de linhas ativadas (Inventário)</option>
@@ -250,11 +292,15 @@ tr.row-editing td{background:#f9fffe !important}
             </select>
           </div>
         </div>
-        <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:#444;margin-bottom:18px;cursor:pointer">
-          <input type="checkbox" id="rg_defasagem" style="width:auto"> Usar o dado do <strong>mês anterior</strong> (defasagem de 1 mês)
+        <label class="rg-check">
+          <input type="checkbox" id="rg_defasagem">
+          <span><span class="t">Usar o dado do mês anterior <span style="font-weight:400;color:#777">(defasagem de 1 mês)</span></span><span class="d">Considera os dados do mês anterior para o cálculo da comissão.</span></span>
         </label>
+      </div>
 
-        <label class="lbl">Como isso se transforma em valor</label>
+      <div class="rg-sec">
+        <p class="rg-sec-t">Como o valor é calculado</p>
+        <p class="rg-sec-s">Defina o formato da comissão e preencha as faixas de valores.</p>
         <div class="seg-toggle" id="rg_modo_toggle">
           <button type="button" class="seg-btn active" data-modo="percentual" onclick="regraSetModo('percentual')">Percentual</button>
           <button type="button" class="seg-btn" data-modo="valorFixo" onclick="regraSetModo('valorFixo')">Valor fixo por unidade</button>
@@ -263,45 +309,51 @@ tr.row-editing td{background:#f9fffe !important}
 
         <div id="rg_area_percentual">
           <label class="lbl">Percentual sobre o valor apurado</label>
-          <div class="irow" style="max-width:160px;margin-bottom:16px"><input type="number" id="rg_percentual" min="0" max="100" step="0.1" value="70"><span class="ipfx">%</span></div>
+          <div class="irow" style="max-width:160px"><input type="number" id="rg_percentual" min="0" max="100" step="0.1" value="70"><span class="ipfx">%</span></div>
         </div>
 
         <div id="rg_area_valorFixo" style="display:none">
           <label class="lbl">Valor fixo por unidade</label>
-          <div class="irow" style="max-width:160px;margin-bottom:16px"><span class="ipfx">R$</span><input type="number" id="rg_valorFixo" min="0" step="0.01" value="1.00"></div>
+          <div class="irow" style="max-width:160px"><span class="ipfx">R$</span><input type="number" id="rg_valorFixo" min="0" step="0.01" value="1.00"></div>
         </div>
 
         <div id="rg_area_faixas" style="display:none">
+          <p class="rg-sec-t" style="font-size:13px">Faixas de comissão</p>
+          <p class="rg-sec-s">Cadastre as faixas por período de vigência. Cada faixa define o gatilho, o multiplicador e o bônus.</p>
           <div id="rg_faixas_versoes"></div>
-          <button class="btn-ghost" type="button" onclick="regraFaixasAddVersao()" style="margin-bottom:16px">+ Nova versão (vigência)</button>
-          <div class="g2" style="margin-bottom:4px">
-            <div>
-              <label class="lbl">Sem bater nenhuma faixa: multiplicador</label>
-              <input type="number" id="rg_semFaixaMult" min="0" step="0.01" value="2">
-            </div>
-            <div>
-              <label class="lbl">Sem bater nenhuma faixa: bônus fixo</label>
-              <div class="irow"><span class="ipfx">R$</span><input type="number" id="rg_semFaixaBonus" min="0" step="0.01" value="0"></div>
-            </div>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:2px">
+            <button class="rg-ghost" type="button" onclick="regraFaixasAddVersao()">+ Nova versão (vigência)</button>
+            <span style="font-size:11.5px;color:#888">Crie um novo período de vigência com faixas diferentes.</span>
           </div>
         </div>
+      </div>
 
-        <div class="g2" style="margin-top:16px">
-          <div>
-            <label class="lbl">Desconto por linha cancelada</label>
-            <div class="irow"><span class="ipfx">R$</span><input type="number" id="rg_cancelTaxa" min="0" step="0.01" placeholder="deixe vazio pra usar a taxa genérica"></div>
+      <div class="rg-sec">
+        <p class="rg-sec-t">Regras adicionais</p>
+        <p class="rg-sec-s">Configurações complementares para o cálculo da comissão.</p>
+        <div class="rg-g3">
+          <div id="rg_sf_mult_box">
+            <label class="lbl">Sem bater nenhuma faixa: multiplicador</label>
+            <input type="number" id="rg_semFaixaMult" min="0" step="0.01" value="2">
+          </div>
+          <div id="rg_sf_bonus_box">
+            <label class="lbl">Sem bater nenhuma faixa: bônus fixo</label>
+            <div class="irow"><span class="ipfx">R$</span><input type="number" id="rg_semFaixaBonus" min="0" step="0.01" value="0"></div>
           </div>
           <div>
-            <label class="lbl">Ajuda de custo fixa (só referência, opcional)</label>
+            <label class="lbl">Desconto por linha cancelada</label>
+            <div class="irow"><span class="ipfx">R$</span><input type="number" id="rg_cancelTaxa" min="0" step="0.01" placeholder="vazio = taxa genérica"></div>
+          </div>
+          <div>
+            <label class="lbl">Ajuda de custo fixa <span style="font-weight:400;color:#888">(só referência)</span></label>
             <div class="irow"><span class="ipfx">R$</span><input type="number" id="rg_ajudaCustoFixa" min="0" step="0.01" placeholder="0,00"></div>
           </div>
         </div>
-
-        <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:#444;margin:18px 0 10px;cursor:pointer">
-          <input type="checkbox" id="rg_segundo_ativo" style="width:auto" onchange="document.getElementById('rg_segundo_area').style.display=this.checked?'grid':'none'">
-          + Adicionar um segundo componente (soma por cima do principal, ex.: R$/linha vendida além da ativação)
+        <label class="rg-check">
+          <input type="checkbox" id="rg_segundo_ativo" onchange="document.getElementById('rg_segundo_area').style.display=this.checked?'grid':'none'">
+          <span><span class="t">Adicionar um segundo componente</span><span class="d">Soma um valor adicional ao total da comissão (ex.: R$/linha vendida além da ativação).</span></span>
         </label>
-        <div class="g2" id="rg_segundo_area" style="display:none">
+        <div class="rg-g2" id="rg_segundo_area" style="display:none;margin-top:12px">
           <div>
             <label class="lbl">De onde vem o dado (2º componente)</label>
             <select id="rg_segundo_fonte">
@@ -316,14 +368,17 @@ tr.row-editing td{background:#f9fffe !important}
           </div>
         </div>
       </div>
-      <div style="display:flex;justify-content:space-between;margin-top:6px">
-        <button class="btn-del" id="rg_btn_remover" onclick="regraRemoverAtual()" style="display:none">Remover regra (voltar ao modelo padrão)</button>
-        <button class="btn" onclick="regraSalvar()" style="margin-left:auto">✓ Salvar regra</button>
+
+      <div class="rg-foot">
+        <button class="rg-b del" id="rg_btn_remover" onclick="regraRemoverAtual()" style="display:none">Remover regra (voltar ao modelo padrão)</button>
+        <div class="rg-foot-r">
+          <button class="rg-b" type="button" onclick="regraFecharModal()">Cancelar</button>
+          <button class="rg-b ok" onclick="regraSalvar()">Salvar regra</button>
+        </div>
       </div>
     </div>
   </div>
 </div>
-
 <div class="toast" id="toast"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -465,6 +520,7 @@ function regraSetModo(modo){
   document.getElementById('rg_area_percentual').style.display=modo==='percentual'?'block':'none';
   document.getElementById('rg_area_valorFixo').style.display=modo==='valorFixo'?'block':'none';
   document.getElementById('rg_area_faixas').style.display=modo==='faixas'?'block':'none';
+  ['rg_sf_mult_box','rg_sf_bonus_box'].forEach(i=>{document.getElementById(i).style.display=modo==='faixas'?'':'none';});
 }
 
 function regraFaixasRender(){
@@ -474,17 +530,17 @@ function regraFaixasRender(){
       <div class="rg-versao-hdr">
         <label>Vigente desde</label>
         <input type="month" value="${(v.desde||'').length>=7?v.desde.slice(0,7):''}" onchange="rgFaixasVigencia[${vi}].desde=this.value">
-        ${rgFaixasVigencia.length>1?`<button class="btn-del" type="button" onclick="regraFaixasRemoverVersao(${vi})" style="margin-left:auto">Remover versão</button>`:''}
+        ${rgFaixasVigencia.length>1?`<button class="rg-rm" type="button" onclick="regraFaixasRemoverVersao(${vi})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 10v6M14 10v6"/></svg>Remover este período</button>`:''}
       </div>
-      <div class="rg-faixa-hdr"><span>Gatilho</span><span>Multiplicador</span><span>Bônus R$</span><span></span></div>
+      <div class="rg-faixa-hdr"><span>Gatilho (a partir de)</span><span>Multiplicador</span><span>Bônus (R$)</span><span>Ações</span></div>
       ${v.faixas.map((fx,fi)=>`
         <div class="rg-faixa-row">
           <input type="number" placeholder="Gatilho" value="${fx.gatilho}" onchange="rgFaixasVigencia[${vi}].faixas[${fi}].gatilho=+this.value">
           <input type="number" placeholder="Multiplicador" step="0.1" value="${fx.mult}" onchange="rgFaixasVigencia[${vi}].faixas[${fi}].mult=+this.value">
           <input type="number" placeholder="Bônus R$" step="0.01" value="${fx.bonus}" onchange="rgFaixasVigencia[${vi}].faixas[${fi}].bonus=+this.value">
-          <button class="btn-del" type="button" onclick="regraFaixasRemoverLinha(${vi},${fi})">×</button>
+          <button class="rg-del" type="button" title="Remover faixa" onclick="regraFaixasRemoverLinha(${vi},${fi})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 10v6M14 10v6"/></svg></button>
         </div>`).join('')}
-      <button class="btn-ghost" type="button" onclick="regraFaixasAddLinha(${vi})" style="margin-top:6px">+ Faixa</button>
+      <button class="rg-ghost" type="button" onclick="regraFaixasAddLinha(${vi})" style="margin-top:4px">+ Adicionar faixa</button>
     </div>`).join('');
 }
 function regraFaixasAddVersao(){

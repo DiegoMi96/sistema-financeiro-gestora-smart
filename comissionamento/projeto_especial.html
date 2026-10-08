@@ -49,12 +49,8 @@ td.r{text-align:right;font-variant-numeric:tabular-nums}
 /* ─── Regras de Comissão (modal) ─── */
 .rg-modal-overlay{position:fixed;inset:0;background:rgba(20,20,18,.5);display:none;align-items:center;justify-content:center;z-index:200;padding:24px}
 .rg-modal-overlay.open{display:flex}
-.rg-modal-card{background:#faf9f6;border-radius:14px;max-width:680px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.3)}
-.rg-modal-hdr{display:flex;justify-content:space-between;align-items:center;padding:20px 26px;border-bottom:2px solid #1a1a18;background:#faf9f6;position:sticky;top:0}
-.rg-modal-hdr h2{font-size:18px;font-weight:800;color:#1a1a18}
 .rg-modal-close{background:none;border:none;font-size:15px;color:#888;cursor:pointer;width:30px;height:30px;border-radius:7px;line-height:1}
 .rg-modal-close:hover{background:#eeede8;color:#1a1a18}
-.rg-modal-body{padding:22px 26px 28px}
 .edit-panel{background:#f9fffe;border-top:2px solid #166B4A;padding:16px 20px}
 .edit-panel-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
 .edit-panel-title{font-size:11px;font-weight:700;color:#166B4A;text-transform:uppercase;letter-spacing:.08em}
@@ -119,6 +115,50 @@ tr.row-editing td{background:#f9fffe !important}
 #projetosTable .btn-export.disabled{background:#f5f4f0;color:#b5b4af;border-color:#e0dfdb;cursor:default}
 #projetosTable .btn-export.disabled:hover{background:#f5f4f0;border-color:#e0dfdb}
 @media (max-width:860px){.rs-search{min-width:0;flex:1 1 100%}}
+/* ─── Modal Regra de Comissão — layout novo (só este modal) ─── */
+#regraModal .rg-modal-card{max-width:760px;background:#fff;border-radius:14px}
+#regraModal .rg-modal-hdr{border-bottom:none;background:#fff;align-items:flex-start;padding:20px 24px 4px}
+#regraModal .rg-modal-hdr h2{font-size:20px;line-height:1.15}
+#regraModal .rg-sub{font-size:12px;color:#777;margin-top:4px}
+#regraModal .rg-modal-close{color:#555;display:flex;align-items:center;justify-content:center}
+#regraModal .rg-modal-body{padding:12px 24px 22px}
+.rg-sec{background:#fff;border:1px solid #e5e4df;border-radius:10px;padding:16px 18px;margin-bottom:12px}
+.rg-sec-t{font-size:14px;font-weight:800;color:#1a1a18}
+.rg-sec-s{font-size:11.5px;color:#888;margin:2px 0 14px;line-height:1.5}
+.rg-g2{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px}
+.rg-g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 16px}
+#regraModal .lbl{font-size:12px;font-weight:700;text-transform:none;letter-spacing:0;color:#1a1a18;margin-bottom:5px}
+#regraModal input[type=number],#regraModal input[type=month],#regraModal input[type=date],#regraModal select{background:#fff;border:1px solid #d4d3ce;border-radius:8px;height:36px;padding:0 12px;font-size:12.5px;width:100%}
+#regraModal input:focus,#regraModal select:focus{border-color:#1E9B6B}
+#regraModal select:disabled{background:#f5f4f0;color:#777}
+#regraModal .irow{gap:8px}
+#regraModal .ipfx{font-size:12px;color:#777}
+.rg-check{display:flex;align-items:flex-start;gap:9px;cursor:pointer;margin-top:12px}
+.rg-check input{width:auto !important;height:auto !important;margin-top:2px;accent-color:#166B4A}
+.rg-check .t{display:block;font-size:12.5px;font-weight:700;color:#1a1a18}
+.rg-check .d{display:block;font-size:11.5px;color:#888;margin-top:1px;line-height:1.45}
+.rg-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:4px;flex-wrap:wrap}
+.rg-foot-r{display:flex;gap:10px;margin-left:auto}
+.rg-b{height:38px;padding:0 20px;border-radius:8px;border:1px solid #d4d3ce;background:#fff;color:#1a1a18;font-size:12.5px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap}
+.rg-b:hover{background:#f5f4f0}
+.rg-b.ok{background:#166B4A;border-color:#166B4A;color:#fff;font-weight:700}
+.rg-b.ok:hover{background:#0d5233}
+.rg-b.del{border-color:#f0c4c4;color:#b83232;background:#fff}
+.rg-b.del:hover{background:#fceaea}
+.rg-ghost{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:8px;border:1px solid #1E9B6B;background:#fff;color:#166B4A;font-size:11.5px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer}
+.rg-ghost:hover{background:#eaf5f0}
+.rg-rm{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:8px;border:1px solid #f0c4c4;background:#fff;color:#b83232;font-size:11.5px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap}
+.rg-rm:hover{background:#fceaea}
+.rg-del{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:1px solid #f0c4c4;background:#fff;color:#b83232;cursor:pointer}
+.rg-del:hover{background:#fceaea}
+@media (max-width:700px){.rg-g2,.rg-g3{grid-template-columns:1fr}}
+.rg-hint{font-size:10.5px;color:#888;margin-top:6px;line-height:1.4}
+.rg-pp th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;padding:8px 10px;background:#f7f7f4;border-bottom:none}
+.rg-pp td{border-bottom:1px solid #f0efea}
+.rg-pp td .btn-ghost{height:24px;padding:0 8px !important;font-size:10px !important;border-radius:6px}
+.rg-pp td .btn-del{height:24px;padding:0 8px !important;font-size:10px !important;border-radius:6px}
+.rg-pp input[type=date]{width:150px}
+.rg-pp .rule-input{background:#fff;text-align:right;width:90px !important;height:32px}
 </style>
 </head>
 <body>
@@ -198,46 +238,56 @@ tr.row-editing td{background:#f9fffe !important}
 <div class="rg-modal-overlay" id="regraModal" onclick="if(event.target===this) regraFecharModal()">
   <div class="rg-modal-card">
     <div class="rg-modal-hdr">
-      <h2 id="regraModalTitulo">Regra de Comissão</h2>
-      <button class="rg-modal-close" onclick="regraFecharModal()">✕</button>
+      <div>
+        <h2 id="regraModalTitulo">Regra de Comissão</h2>
+        <p class="rg-sub">Configure como o valor da comissão será calculado para este projeto.</p>
+      </div>
+      <button class="rg-modal-close" onclick="regraFecharModal()" aria-label="Fechar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <div class="rg-modal-body">
-      <div class="card">
-        <div class="g2">
+      <div class="rg-sec">
+        <p class="rg-sec-t">Taxas e descontos</p>
+        <p class="rg-sec-s">Percentuais aplicados sobre a margem e a ativação, e o desconto por cancelamento.</p>
+        <div class="rg-g3">
           <div>
             <label class="lbl">Taxa de margem</label>
-            <div class="irow" style="max-width:140px"><input type="number" id="rg_taxaMargem" min="0" max="100" step="0.1"><span class="ipfx">%</span></div>
-            <p style="font-size:10px;color:#888;margin-top:6px">Aplicado sobre máx(0, Mensalidade − Valor Base)</p>
+            <div class="irow"><input type="number" id="rg_taxaMargem" min="0" max="100" step="0.1"><span class="ipfx">%</span></div>
+            <p class="rg-hint">Aplicado sobre máx(0, Mensalidade − Valor Base)</p>
           </div>
           <div>
             <label class="lbl">Taxa de ativação</label>
-            <div class="irow" style="max-width:140px"><input type="number" id="rg_taxaAtivacao" min="0" max="100" step="0.1"><span class="ipfx">%</span></div>
-            <p style="font-size:10px;color:#888;margin-top:6px">Aplicado sobre a soma do "Preço de ativação"</p>
+            <div class="irow"><input type="number" id="rg_taxaAtivacao" min="0" max="100" step="0.1"><span class="ipfx">%</span></div>
+            <p class="rg-hint">Aplicado sobre a soma do "Preço de ativação"</p>
+          </div>
+          <div>
+            <label class="lbl">Desconto por linha cancelada</label>
+            <div class="irow"><span class="ipfx">R$</span><input type="number" id="rg_cancelRate" min="0" step="0.01"><span class="ipfx">/ linha</span></div>
           </div>
         </div>
-        <div style="max-width:220px;margin-top:16px">
-          <label class="lbl">Desconto por linha cancelada</label>
-          <div class="irow"><span class="ipfx">R$</span><input type="number" id="rg_cancelRate" min="0" step="0.01"><span class="ipfx">/ linha</span></div>
-        </div>
       </div>
-      <div class="card">
-        <p class="card-title">Preço base por operadora</p>
-        <p style="font-size:11px;color:#888;margin-bottom:16px">Esses são os preços que constam como <strong>Valor Base</strong> na planilha importada — a margem por linha é <em>máx(0, Mensalidade − Valor Base)</em>, com a taxa de margem acima aplicada por cima. Operadora sem preço cadastrado aqui entra com margem 0. Toda vigência (mudança de preço ao longo do tempo) aparece como uma linha própria.</p>
-        <div style="overflow-x:auto">
+
+      <div class="rg-sec">
+        <p class="rg-sec-t">Preço base por operadora</p>
+        <p class="rg-sec-s">Esses são os preços que constam como <strong>Valor Base</strong> na planilha importada — a margem por linha é <em>máx(0, Mensalidade − Valor Base)</em>, com a taxa de margem acima aplicada por cima. Operadora sem preço cadastrado aqui entra com margem 0. Toda vigência (mudança de preço ao longo do tempo) aparece como uma linha própria.</p>
+        <div class="rg-pp" style="overflow-x:auto">
         <table style="width:100%;border-collapse:collapse;min-width:420px">
           <thead><tr>
-            <th style="font-size:9px;color:#888;font-weight:600;text-transform:uppercase;padding:5px 8px;border-bottom:.5px solid #d4d3ce;text-align:left">Operadora / Plano</th>
-            <th style="font-size:9px;color:#888;font-weight:600;text-transform:uppercase;padding:5px 8px;border-bottom:.5px solid #d4d3ce;text-align:left">Vigente desde</th>
-            <th style="font-size:9px;color:#888;font-weight:600;text-transform:uppercase;padding:5px 8px;border-bottom:.5px solid #d4d3ce;text-align:right">Preço</th>
-            <th style="border-bottom:.5px solid #d4d3ce"></th>
+            <th style="text-align:left">Operadora / Plano</th>
+            <th style="text-align:left">Vigente desde</th>
+            <th style="text-align:right">Preço</th>
+            <th></th>
           </tr></thead>
           <tbody id="rg_pp_tbody"></tbody>
         </table>
         </div>
-        <button class="btn-ghost btn-sm" style="width:100%;font-size:10px;margin-top:10px" onclick="ppAddOp(rgEditandoId)">+ Operadora</button>
+        <button class="rg-ghost" type="button" style="margin-top:10px" onclick="ppAddOp(rgEditandoId)">+ Operadora</button>
       </div>
-      <div style="display:flex;justify-content:flex-end;margin-top:6px">
-        <button class="btn" onclick="regraSalvar()">✓ Salvar regra</button>
+
+      <div class="rg-foot">
+        <div class="rg-foot-r">
+          <button class="rg-b" type="button" onclick="regraFecharModal()">Cancelar</button>
+          <button class="rg-b ok" onclick="regraSalvar()">Salvar regra</button>
+        </div>
       </div>
     </div>
   </div>
