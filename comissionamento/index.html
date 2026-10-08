@@ -136,15 +136,45 @@ iframe.active{display:block}
 
 /* ─── Visão Consolidada ─── */
 .cons-wrap{max-width:1040px;margin:0 auto;padding:36px 28px 80px}
-.cons-header{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:18px;border-bottom:2px solid #1a1a18;margin-bottom:22px}
+.cons-header{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:18px;border-bottom:1px solid #e5e4df;margin-bottom:22px}
 .cons-header .eyebrow{font-size:11px;color:#888;font-weight:500;margin-bottom:4px}
 .cons-header h1{font-size:24px;font-weight:800;color:#1a1a18;line-height:1}
 .cons-controls{display:flex;align-items:center;gap:12px}
 .cons-controls label{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#888;display:block;margin-bottom:4px}
-.cons-controls input[type=month]{background:#fff;border:1px solid #d4d3ce;border-radius:6px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:#1a1a18}
+.cons-controls input[type=month]{background:#fff;border:1px solid #d4d3ce;border-radius:8px;padding:9px 12px;font-size:13px;font-family:'Inter',sans-serif;color:#1a1a18;min-width:190px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
 .cons-grand{background:#fff;border:1px solid #d4d3ce;border-radius:10px;padding:22px 26px;margin-bottom:22px;display:flex;justify-content:space-between;align-items:center}
 .cons-grand-lbl{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#888}
 .cons-grand-val{font-size:34px;font-weight:800;color:#166B4A;font-variant-numeric:tabular-nums}
+.cons-grand-right{display:flex;align-items:center;gap:18px}
+.cons-var{border:1px solid #e5e4df;border-radius:8px;padding:8px 14px;min-width:132px;background:#fafaf8}
+.cons-var-lbl{font-size:10px;color:#888;margin-bottom:2px}
+.cons-var-pct{font-size:15px;font-weight:800;display:flex;align-items:center;gap:5px;font-variant-numeric:tabular-nums}
+.cons-var-pct.up{color:#166B4A}.cons-var-pct.down{color:#b83232}.cons-var-pct.flat{color:#888}
+.cons-var-abs{font-size:10.5px;color:#888;margin-top:1px;font-variant-numeric:tabular-nums}
+.cons-sub{font-size:11px;color:#999;margin:-12px 0 14px}
+.cons-bar-head,.cons-bar-row{display:grid;grid-template-columns:170px 1fr 110px 72px;align-items:center;gap:12px}
+.cons-bar-head span{white-space:nowrap}
+.cons-bar-head{font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#999;padding-bottom:8px;border-bottom:1px solid #eeede8;margin-bottom:10px}
+.cons-bar-head span:nth-child(3),.cons-bar-head span:nth-child(4){text-align:right}
+.cons-bar-pct{justify-self:end;font-size:10.5px;font-weight:700;color:#166B4A;background:#eaf5f0;border-radius:10px;padding:2px 8px;font-variant-numeric:tabular-nums}
+.cons-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+.cons-card-head .cons-chart-title{margin-bottom:2px}
+.cons-card-head .cons-sub{margin:0 0 12px}
+.cons-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cons-search{display:flex;align-items:center;gap:6px;border:1px solid #d4d3ce;border-radius:8px;padding:0 10px;background:#fff;height:34px;min-width:230px}
+.cons-search svg{flex-shrink:0;color:#888}
+.cons-search input{border:none;outline:none;background:transparent;font-size:12px;font-family:'Inter',sans-serif;color:#1a1a18;width:100%;padding:0}
+.cons-btn{display:inline-flex;align-items:center;gap:6px;border:1px solid #d4d3ce;border-radius:8px;background:#fff;height:34px;padding:0 12px;font-size:12px;font-weight:600;font-family:'Inter',sans-serif;color:#1a1a18;cursor:pointer}
+.cons-btn:hover{background:#f5f4f0}
+.cons-btn.on{border-color:#1E9B6B;color:#166B4A}
+.cons-pop{position:relative}
+.cons-pop-panel{display:none;position:absolute;right:0;top:40px;z-index:30;background:#fff;border:1px solid #d4d3ce;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.1);padding:12px;min-width:200px}
+.cons-pop-panel.open{display:block}
+.cons-pop-panel label{display:block;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#888;margin:0 0 4px}
+.cons-pop-panel select{width:100%;margin-bottom:10px;font-size:12px}
+.cons-pop-check{display:flex !important;align-items:center;gap:6px;text-transform:none !important;letter-spacing:0 !important;font-size:12px !important;font-weight:500 !important;color:#1a1a18 !important;margin-bottom:10px !important;cursor:pointer}
+.cons-pop-item{display:block;width:100%;text-align:left;border:none;background:none;padding:8px 10px;font-size:12px;font-family:'Inter',sans-serif;color:#1a1a18;cursor:pointer;border-radius:6px}
+.cons-pop-item:hover{background:#f5f4f0}
 .cons-grand-sub{font-size:11px;color:#999;margin-top:4px}
 
 
@@ -161,12 +191,12 @@ iframe.active{display:block}
 
 .cons-table-wrap{overflow-x:auto}
 .cons-table-wrap table{width:100%;border-collapse:collapse;min-width:860px}
-.cons-table-wrap th{font-size:9.5px;font-weight:700;color:var(--gs-text-muted);text-align:right;padding:8px 10px;border-bottom:2px solid var(--gs-text);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.cons-table-wrap th{font-size:9.5px;font-weight:700;color:var(--gs-text-muted);text-align:right;padding:8px 10px;border-bottom:1px solid #e5e4df;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
 .cons-table-wrap th:nth-child(-n+3){text-align:left}
 .cons-table-wrap td{padding:7px 10px;border-bottom:1px solid #eeede8;font-size:12px;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .cons-table-wrap td:nth-child(-n+3){text-align:left}
 .cons-table-wrap tr.cons-row-empty td{color:#ccc}
-.cons-table-wrap tr.cons-row-total td{font-weight:700;font-size:12px;padding:9px 10px;background:#eaf5f0;color:#166B4A;border-top:2px solid #1E9B6B}
+.cons-table-wrap tr.cons-row-total td{font-weight:700;font-size:12px;padding:10px 10px;background:#eaf5f0;color:#166B4A;border-top:1px solid #1E9B6B}
 .cons-table-wrap tr.cons-row-total td:last-child{font-size:15px}
 .cons-table-wrap tr.cons-row-total td:not(:first-child){text-align:right}
 .cons-table-wrap th:nth-child(n+4){text-align:center}
@@ -358,12 +388,16 @@ iframe.active{display:block}
   .main{height:calc(100vh - 47px)}
   .imp-row2{grid-template-columns:1fr}
   .modal-card{max-width:94vw}
-  .cons-bar-lbl{width:100px;font-size:10.5px}
-  .cons-bar-val{width:80px}
+  .cons-bar-lbl{font-size:10.5px}
+  .cons-bar-head,.cons-bar-row{grid-template-columns:100px 1fr 84px 52px;gap:8px}
+  .cons-search{min-width:0;flex:1 1 100%}
+  .cons-grand-right{flex-wrap:wrap}
 }
 @media (max-width:480px){
   .cons-header{flex-direction:column;align-items:flex-start;gap:10px}
   .cons-grand{flex-direction:column;align-items:flex-start;gap:6px}
+  .cons-bar-head,.cons-bar-row{grid-template-columns:84px 1fr 78px}
+  .cons-bar-head span:nth-child(4),.cons-bar-pct{display:none}
   .cad-grid{grid-template-columns:1fr !important}
 }
 </style>
@@ -490,7 +524,7 @@ iframe.active{display:block}
       <div class="cons-wrap">
         <div class="cons-header">
           <div>
-            <div class="eyebrow">Gestora Smart · Comissionamento</div>
+            <div class="eyebrow">Gestora Smart &rsaquo; Comissionamento</div>
             <h1>Visão Consolidada</h1>
             <div class="cons-gen-ts" id="cons_gen_ts"></div>
           </div>
@@ -507,21 +541,65 @@ iframe.active{display:block}
             <div class="cons-grand-lbl">Total geral do mês — todos os perfis</div>
             <div class="cons-grand-sub" id="cons_grand_sub">—</div>
           </div>
-          <div class="cons-grand-val" id="cons_grand_total">R$ 0,00</div>
+          <div class="cons-grand-right">
+            <div class="cons-grand-val" id="cons_grand_total">R$ 0,00</div>
+            <div class="cons-var" id="cons_var" style="display:none"></div>
+          </div>
         </div>
 
         <div class="cons-chart-card">
-          <div class="cons-chart-title">Comparativo por perfil · do maior para o menor</div>
+          <div class="cons-chart-title">Comparativo por perfil</div>
+          <div class="cons-sub">Do maior para o menor · valor total do mês (R$)</div>
+          <div class="cons-bar-head"><span>Perfil</span><span></span><span>Valor</span><span>% do total</span></div>
           <div id="cons_chart"></div>
         </div>
 
         <div class="cons-chart-card">
-          <div class="cons-chart-title">Detalhamento consolidado do mês</div>
+          <div class="cons-card-head">
+            <div>
+              <div class="cons-chart-title">Detalhamento consolidado do mês</div>
+              <div class="cons-sub">Todos os perfis de comissionamento</div>
+            </div>
+            <div class="cons-tools">
+              <label class="cons-search">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                <input type="search" id="cons_busca" placeholder="Buscar por nome ou categoria..." oninput="consRenderTabelas()">
+              </label>
+              <div class="cons-pop">
+                <button type="button" class="cons-btn" id="cons_btn_filtros" onclick="consTogglePop('cons_pop_filtros')">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 5h18M6 12h12M10 19h4"/></svg>Filtros
+                </button>
+                <div class="cons-pop-panel" id="cons_pop_filtros">
+                  <label for="cons_f_cat">Perfil</label>
+                  <select id="cons_f_cat" onchange="consRenderTabelas()">
+                    <option value="">Todos os perfis</option>
+                    <option value="vendedor">1 – Vendedor</option>
+                    <option value="dealer">2 – Dealer</option>
+                    <option value="indicador">3 – Indicador</option>
+                    <option value="projeto">4 – Proj. Especial</option>
+                  </select>
+                  <label class="cons-pop-check"><input type="checkbox" id="cons_f_vazias" onchange="consRenderTabelas()"> Ocultar sem lançamento</label>
+                  <button type="button" class="cons-pop-item" onclick="consLimparFiltros()">Limpar filtros</button>
+                </div>
+              </div>
+              <div class="cons-pop">
+                <button type="button" class="cons-btn" onclick="consTogglePop('cons_pop_exp')">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Exportar
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
+                <div class="cons-pop-panel" id="cons_pop_exp" style="min-width:170px;padding:6px">
+                  <button type="button" class="cons-pop-item" onclick="consExportar('xlsx')">Excel (.xlsx)</button>
+                  <button type="button" class="cons-pop-item" onclick="consExportar('csv')">CSV</button>
+                </div>
+              </div>
+            </div>
+          </div>
           <div class="cons-table-wrap" id="cons_tabela_wrap"></div>
         </div>
 
         <div class="cons-chart-card">
-          <div class="cons-chart-title">Detalhamento consolidado do mês · Diretoria e Gestores</div>
+          <div class="cons-chart-title">Detalhamento consolidado do mês — Diretoria e Gestores</div>
+          <div class="cons-sub">Comissões por categoria</div>
           <div class="cons-table-wrap" id="cons_tabela_diretoria_wrap"></div>
         </div>
 
@@ -2006,6 +2084,60 @@ function consExcluirMes(mesParam) {
   showCadToast('Dados do mês excluídos');
 }
 
+// Contexto da última renderização — busca/filtro/exportar só refazem a TABELA
+// (não recalculam nenhum valor).
+let CONS_CTX = null;
+function consLinhasVisiveis() {
+  if (!CONS_CTX) return [];
+  const q = norm((document.getElementById('cons_busca') || {}).value || '');
+  const cat = (document.getElementById('cons_f_cat') || {}).value || '';
+  const ocultar = !!(document.getElementById('cons_f_vazias') || {}).checked;
+  return CONS_CTX.linhasTabela.filter(r =>
+    (!cat || r.cat === cat) && (!ocultar || r.hasData) &&
+    (!q || norm(r.nome + ' ' + CONS_CTX.CAT[r.cat].label).includes(q)));
+}
+function consRenderTabelas() {
+  if (!CONS_CTX) return;
+  document.getElementById('cons_tabela_wrap').innerHTML = CONS_CTX.tabelaHtml(consLinhasVisiveis());
+  const filtrando = !!((document.getElementById('cons_f_cat') || {}).value || (document.getElementById('cons_f_vazias') || {}).checked);
+  document.getElementById('cons_btn_filtros').classList.toggle('on', filtrando);
+}
+function consTogglePop(id) {
+  document.querySelectorAll('.cons-pop-panel').forEach(el => { if (el.id !== id) el.classList.remove('open'); });
+  document.getElementById(id).classList.toggle('open');
+}
+document.addEventListener('click', e => { if (!e.target.closest('.cons-pop')) document.querySelectorAll('.cons-pop-panel.open').forEach(el => el.classList.remove('open')); });
+function consLimparFiltros() {
+  document.getElementById('cons_f_cat').value = '';
+  document.getElementById('cons_f_vazias').checked = false;
+  document.getElementById('cons_busca').value = '';
+  consRenderTabelas();
+}
+function consExportar(fmt) {
+  if (!CONS_CTX) return;
+  document.querySelectorAll('.cons-pop-panel.open').forEach(el => el.classList.remove('open'));
+  const cab = ['ID', 'Categoria', 'Executivo', 'Simcard', 'Bonificação', 'Equipamento', 'Smart GPS', 'Desc. Canc.', 'Desc. Frete', 'Total'];
+  const montar = linhas => {
+    const rows = linhas.map((r, i) => [r._id || i + 1, CONS_CTX.CAT[r.cat].label, r.nome, r.simcard || 0, r.bonificacao || 0, r.equipamento || 0, r.gps || 0, -(r.descCanc || 0), -(r.descFrete || 0), r.total || 0]);
+    const tot = c => linhas.reduce((a, r) => a + (r[c] || 0), 0);
+    rows.push(['', '', 'Total', tot('simcard'), tot('bonificacao'), tot('equipamento'), tot('gps'), -tot('descCanc'), -tot('descFrete'), tot('total')]);
+    return [cab, ...rows];
+  };
+  const principal = montar(consLinhasVisiveis()), diretoria = montar(CONS_CTX.linhasDiretoria);
+  const nome = `comissionamento_consolidado_${CONS_CTX.mes}`;
+  if (fmt === 'xlsx') {
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(principal), 'Consolidado');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(diretoria), 'Diretoria e Gestores');
+    XLSX.writeFile(wb, nome + '.xlsx');
+  } else {
+    const csv = [...principal, [], ...diretoria].map(l => l.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = nome + '.csv'; a.click(); URL.revokeObjectURL(a.href);
+  }
+}
+
 function renderConsolidado() {
   let mes = document.getElementById('cons_mes').value;
   if (!mes) {
@@ -2033,6 +2165,22 @@ function renderConsolidado() {
   const grand = vendedorTotal + dealerTotal + projetoTotal + gestorOps.total + diretorAdm.total + diretorCom.total + indicadorTotal;
   document.getElementById('cons_grand_total').textContent = 'R$ ' + br2c(grand);
   document.getElementById('cons_grand_sub').textContent = fmtMesC(mes) + ' · soma de todos os perfis de comissionamento';
+  // Variação contra o mês anterior (mesma função do histórico — só lê, não grava).
+  const [anoC, mesC] = mes.split('-').map(Number);
+  const mesPrev = mesC === 1 ? `${anoC - 1}-12` : `${anoC}-${String(mesC - 1).padStart(2, '0')}`;
+  const prevTotal = Object.values(consTotalPorPerfil(mesPrev)).reduce((a, v) => a + (v || 0), 0);
+  const varEl = document.getElementById('cons_var');
+  if (prevTotal > 0) {
+    const diff = grand - prevTotal, pct = diff / prevTotal * 100;
+    const dir = Math.abs(diff) < 0.005 ? 'flat' : (diff > 0 ? 'up' : 'down');
+    const seta = dir === 'up' ? '&uarr;' : dir === 'down' ? '&darr;' : '&rarr;';
+    varEl.innerHTML = `<div class="cons-var-lbl">Variação vs. ${fmtMesC(mesPrev).toLowerCase()}</div>
+      <div class="cons-var-pct ${dir}"><span>${seta}</span>${diff > 0 ? '+' : ''}${pct.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</div>
+      <div class="cons-var-abs">R$ ${br2c(Math.abs(diff))}</div>`;
+    varEl.style.display = '';
+  } else {
+    varEl.style.display = 'none';
+  }
   document.getElementById('cons_gen_ts').textContent = 'Gerado em ' + new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 
   // Um único array por grupo alimenta o KPI de status e o gráfico comparativo
@@ -2061,6 +2209,7 @@ function renderConsolidado() {
       <span class="cons-bar-lbl">${g.nome}</span>
       <span class="cons-bar-track"><span class="cons-bar-fill" style="width:${pct}%;background:${color}"></span></span>
       <span class="cons-bar-val">R$ ${br2c(g.total)}</span>
+      <span class="cons-bar-pct">${(grand > 0 ? g.total / grand * 100 : 0).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</span>
     </div>`;
   }).join('');
 
@@ -2082,16 +2231,16 @@ function renderConsolidado() {
     // Diretoria/Gestores: cinza claro pras 3, em vez da cor de marca de cada
     // um — pedido do Diego ("cinza bem clarinho"). Texto escuro pra manter
     // contraste legível (o cinza claro não lê bem com texto branco).
-    gestor: { label: '1 – Gestor Op.', color: '#e5e4df', text: '#55617a' },
-    diretor: { label: '2 – Diretor Adm.', color: '#e5e4df', text: '#55617a' },
-    diretorComercial: { label: '3 – Diretor Com.', color: '#e5e4df', text: '#55617a' },
+    gestor: { label: '5 – Gestor Op.', color: '#dbe7f7', text: '#2c4a7c' },
+    diretor: { label: '6 – Diretor Adm.', color: '#e5e4df', text: '#55617a' },
+    diretorComercial: { label: '7 – Diretor Com.', color: '#e5e4df', text: '#55617a' },
   };
   const linhasTabela = [
     ...vendedorRows.map(r => ({ cat: 'vendedor', ...r })),
     ...dealerRows.map(r => ({ cat: 'dealer', ...r })),
     ...indicadorRows.map(r => ({ cat: 'indicador', ...r })),
     ...projetoRows.map(r => ({ cat: 'projeto', ...r })),
-  ];
+  ].map((r, i) => ({ ...r, _id: i + 1 })); // ID fixo mesmo quando a busca/filtro esconde linhas
   const linhasDiretoria = [
     { cat: 'gestor', nome: 'Gestor de Operações', ...gestorOps },
     { cat: 'diretor', nome: 'Diretor Administrativo', ...diretorAdm },
@@ -2101,6 +2250,7 @@ function renderConsolidado() {
   const somaColDe = linhas => campo => linhas.reduce((a, r) => a + (r[campo] || 0), 0);
   const tabelaHtml = linhas => {
     const somaCol = somaColDe(linhas);
+    if (!linhas.length) return '<div class="cons-panel-empty">Nenhuma linha encontrada para esse filtro.</div>';
     return `
     <table>
       <thead><tr>
@@ -2111,7 +2261,7 @@ function renderConsolidado() {
       <tbody>
         ${linhas.map((r, i) => `
           <tr class="${r.hasData ? '' : 'cons-row-empty'}">
-            <td>${i + 1}</td>
+            <td>${r._id || i + 1}</td>
             <td><span class="cons-cat-pill" style="background:${CAT[r.cat].color};color:${CAT[r.cat].text || '#fff'}">${CAT[r.cat].label}</span></td>
             <td>${r.nome}</td>
             <td>${valOrDash(r.simcard)}</td>
@@ -2135,7 +2285,8 @@ function renderConsolidado() {
       </tbody>
     </table>`;
   };
-  document.getElementById('cons_tabela_wrap').innerHTML = tabelaHtml(linhasTabela);
+  CONS_CTX = { tabelaHtml, linhasTabela, linhasDiretoria, CAT, mes };
+  consRenderTabelas();
   document.getElementById('cons_tabela_diretoria_wrap').innerHTML = tabelaHtml(linhasDiretoria);
 
   renderConsHistorico(mes);

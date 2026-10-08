@@ -726,3 +726,13 @@ Pedido do Diego: a Visão Consolidada não deve refazer a conta, só copiar o qu
 - **Escopo**: só Dealer e Projeto Especial. Vendedor (`consVendedorTotais`) e Indicador seguem com cálculo próprio na Consolidada — mesma ideia pode ser aplicada depois, se o Diego quiser.
 - **Garantia por construção**: com o mesmo lançamento (`d`), a Consolidada e a aba do perfil mostram o mesmo valor, porque usam a mesma função. Testado: Hilario R$983,85 (aba = Consolidada); resultado idêntico com e sem a reserva.
 - **Ione**: com cancelamento 272 e a regra sem taxa própria (usa a genérica R$2,00) a **aba Dealer também** calcula R$486,00 — se a aba dela mostrava R$1.030,00 era porque o lançamento de cancelamento (`d.cancel`) estava zerado/desatualizado naquela tela. Decisão pendente do Diego: Ione deve ou não ter desconto de cancelamento (R$0,00 na regra dela = sem desconto).
+
+## Visão Consolidada — novo layout (2026-10-08)
+Pedido do Diego (mockup): Consolidada com a cara do modelo. **Só visual/interação — nenhum cálculo mudou** (os totais continuam vindo das mesmas funções).
+- **Cabeçalho**: "Gestora Smart › Comissionamento", linha divisória fina (era preta grossa), seletor de mês mais largo/arredondado.
+- **Total geral**: ganhou o quadro **"Variação vs. mês anterior"** (seta ↑/↓, % e valor em R$). Calculado com `consTotalPorPerfil(mês anterior)` (mesma função do histórico); se o mês anterior não tem nada, o quadro some. Verde = subiu, vermelho = caiu.
+- **Comparativo por perfil**: cabeçalho de colunas (Perfil / Valor / % do total) e pílula com o **% de cada perfil sobre o total**. Barras continuam na escala de verde.
+- **Detalhamento**: barra com **busca** (nome ou categoria), **Filtros** (perfil + "ocultar sem lançamento", botão fica destacado quando há filtro) e **Exportar** (Excel `.xlsx` com 2 abas — Consolidado e Diretoria e Gestores — ou CSV). Busca/filtro só refazem a tabela e **recalculam a linha de Total pro que está visível**; o ID de cada linha é fixo. Exportar leva o que está na tela (filtrado) + a tabela da Diretoria.
+- **Tabela da Diretoria**: categorias renumeradas **5 – Gestor Op. (azul claro) / 6 – Diretor Adm. / 7 – Diretor Com. (cinza claro)**, seguindo a numeração dos perfis do mockup.
+- **Formato**: as pílulas novas (% do total e variação) usam **1 casa decimal**, como no mockup do Diego (a regra antiga "% sempre sem casa decimal" é do restante do sistema).
+- Código: `consRenderTabelas`/`consLinhasVisiveis`/`consExportar`/`consTogglePop`/`consLimparFiltros` em `index.html`; contexto da última renderização em `CONS_CTX`.
