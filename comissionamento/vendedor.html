@@ -645,7 +645,7 @@ function getRawFor(vid,mes){return rawStore[`${vid}_${mes}`]||{};}
 function buildMetas(){
   document.getElementById('metasBody').innerHTML=vendedores.map((v,i)=>`
     <tr>
-      <td><input type="text" value="${v.nome}" style="max-width:200px" onchange="vendedores[${i}].nome=this.value"></td>
+      <td><input type="text" value="${v.nome}" style="max-width:200px" onchange="vendedores[${i}].nome=this.value;buildCelulas()"></td>
       <td class="r"><div class="irow" style="justify-content:flex-end"><span class="ipfx">R$</span><input type="text" class="rule-input" value="${br2(v.salarioFixo||0)}"
         onblur="vendedores[${i}].salarioFixo=parseNum(this.value);this.value=br2(vendedores[${i}].salarioFixo)"
         onfocus="this.value=String(vendedores[${i}].salarioFixo||0)"></div></td>
@@ -664,11 +664,11 @@ function buildMetas(){
       <td><button class="btn-del" onclick="removeVend(${i})">×</button></td>
     </tr>`).join('');
 }
-function addVend(){vendedores.push({id:'v'+Date.now(),nome:'Novo Vendedor',g:{obj:1000,m1:1200,m2:1500,sm:2000},salarioFixo:0});buildMetas();}
+function addVend(){vendedores.push({id:'v'+Date.now(),nome:'Novo Vendedor',g:{obj:1000,m1:1200,m2:1500,sm:2000},salarioFixo:0});buildMetas();buildCelulas();}
 function removeVend(i){if(vendedores.length<=1)return;const vid=vendedores[i].id;vendedores.splice(i,1);celulas.forEach(c=>{c.vendedorIds=c.vendedorIds.filter(x=>x!==vid);});LS.set('gs5_celulas',celulas);buildMetas();buildCelulas();}
 function saveMetas(){
   if(!LS.set('gs5_v',vendedores)){showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.','#b83232');return;}
-  renderResumo();showToast('Metas salvas ✓');
+  renderResumo();buildCelulas();showToast('Metas salvas ✓');
 }
 
 // ─── CÉLULAS ───────────────────────────────────────
