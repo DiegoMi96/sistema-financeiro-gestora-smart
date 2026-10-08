@@ -516,7 +516,8 @@ iframe.active{display:block}
 .imp-hist-table td.v{font-variant-numeric:tabular-nums}
 .imp-hist-table td.a{text-align:right}
 .imp-hist-table th:last-child{text-align:right}
-@media (max-width:900px){.imp-top,.imp-row2{grid-template-columns:1fr}.imp-hist-hdr{flex-wrap:wrap}}
+@media (max-width:1150px){.imp-row3{grid-template-columns:1fr 1fr}}
+@media (max-width:900px){.imp-top,.imp-row3{grid-template-columns:1fr}.imp-hist-hdr{flex-wrap:wrap}}
 .imp-header .eyebrow{font-size:11px;color:#888;font-weight:500;margin-bottom:4px}
 .imp-header h1{font-size:24px;font-weight:800;color:#1a1a18;line-height:1}
 .imp-dropzone{border:1.5px dashed #d4d3ce;border-radius:8px;padding:16px;text-align:center;cursor:pointer;background:#fafaf8;margin-bottom:10px;transition:border-color .15s,background .15s}
@@ -530,7 +531,7 @@ iframe.active{display:block}
 .imp-result{margin-top:14px}
 .imp-result-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888;margin:14px 0 6px}
 .imp-result-title:first-child{margin-top:0}
-.imp-row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:stretch;margin-bottom:14px}
+.imp-row3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:stretch;margin-bottom:14px}
 .imp-hist-hdr{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:12px}
 .imp-hist-hdr>div:first-child{flex:1;min-width:0}
 .imp-ano{flex-shrink:0}
@@ -540,7 +541,7 @@ iframe.active{display:block}
 .imp-hist-badge.aberto{color:#b45309;background:#fbf1de}
 .imp-hist-badge.vazio{color:#aaa;background:#f5f4f0}
 .imp-hist-actions{display:flex;gap:6px;flex-shrink:0}
-.imp-card-hdr{margin-bottom:12px;min-height:62px}
+.imp-card-hdr{margin-bottom:12px;min-height:84px}
 .imp-card .imp-dropzone{flex:1;display:flex;flex-direction:column;justify-content:center}
 .imp-card-heading{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px}
 .imp-card-heading h3{font-size:14px;font-weight:800;color:#1a1a18;margin:0}
@@ -930,28 +931,7 @@ iframe.active{display:block}
           <div id="cons_aprov_actions" class="imp-aprov-a"></div>
         </div>
 
-        <details class="imp-box imp-manual" id="cons_manual_wrap">
-          <summary>
-            <span class="imp-chev"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></span>
-            <span class="imp-manual-tx"><span class="imp-manual-t">Lançamento manual do mês (histórico anterior ao importar)<span class="imp-opc">Opcional</span></span><span class="imp-manual-s">Preencha só quando este mês não tiver dado processado pelo Importar — o total aqui substitui o cálculo detalhado (sem quebrar por vendedor/dealer/etc, só o total do perfil).</span></span>
-          </summary>
-          <div id="cons_manual_lock" style="display:none" class="imp-lock">Este mês já foi aprovado — desaprove no bloco de aprovação acima antes de alterar o lançamento manual.</div>
-          <div class="cad-grid" style="grid-template-columns:repeat(3,1fr)">
-            <div><label class="cad-lbl">Vendedor</label><input type="number" id="cons_manual_vendedor" step="0.01" placeholder="0,00"></div>
-            <div><label class="cad-lbl">Dealer</label><input type="number" id="cons_manual_dealer" step="0.01" placeholder="0,00"></div>
-            <div><label class="cad-lbl">Indicador</label><input type="number" id="cons_manual_indicador" step="0.01" placeholder="0,00"></div>
-            <div><label class="cad-lbl">Projeto Especial</label><input type="number" id="cons_manual_projeto" step="0.01" placeholder="0,00"></div>
-            <div><label class="cad-lbl">Gestor de Operações</label><input type="number" id="cons_manual_gestor" step="0.01" placeholder="0,00"></div>
-            <div><label class="cad-lbl">Diretor Administrativo</label><input type="number" id="cons_manual_diretor" step="0.01" placeholder="0,00"></div>
-            <div><label class="cad-lbl">Diretor Comercial</label><input type="number" id="cons_manual_diretorComercial" step="0.01" placeholder="0,00"></div>
-          </div>
-          <div class="cad-actions">
-            <button class="cad-btn" style="background:#fceaea;color:#b83232" onclick="consManualRemover()">Remover lançamento manual</button>
-            <button class="cad-btn" onclick="consManualSalvar()">Salvar lançamento manual</button>
-          </div>
-        </details>
-
-        <div class="imp-row2">
+        <div class="imp-row3">
           <div class="imp-card">
             <div class="imp-card-hdr">
               <div class="imp-card-heading"><h3>Vendas do mês</h3><span class="imp-card-badge" style="background:#ecfeff;color:#0e7490">Volume</span></div>
@@ -980,9 +960,6 @@ iframe.active{display:block}
             <button class="imp-go" onclick="impProcessarClientes()">Carregar clientes</button>
             <div id="imp_clientes_result" class="imp-result"></div>
           </div>
-        </div>
-
-        <div class="imp-row2">
           <div class="imp-card">
             <div class="imp-card-hdr">
               <div class="imp-card-heading"><h3>Inventário</h3><span class="imp-card-badge" style="background:#eaf5f0;color:#166B4A">Margem / Ativação</span></div>
@@ -997,6 +974,9 @@ iframe.active{display:block}
             <button class="imp-go" onclick="impProcessarInventario()">Processar inventário</button>
             <div id="imp_inventario_result" class="imp-result"></div>
           </div>
+        </div>
+
+        <div class="imp-row3">
           <div class="imp-card">
             <div class="imp-card-hdr">
               <div class="imp-card-heading"><h3>Cancelamentos</h3><span class="imp-card-badge" style="background:#fceaea;color:#b83232">Desconto</span></div>
@@ -1011,9 +991,6 @@ iframe.active{display:block}
             <button class="imp-go" onclick="impProcessarCancelamentos()">Processar cancelamentos</button>
             <div id="imp_cancel_result" class="imp-result"></div>
           </div>
-        </div>
-
-        <div class="imp-row2">
           <div class="imp-card">
             <div class="imp-card-hdr">
               <div class="imp-card-heading"><h3>Equipamentos</h3><span class="imp-card-badge" style="background:#fdf3e0;color:#b8863f">Comissão</span></div>
@@ -1057,6 +1034,27 @@ iframe.active{display:block}
           </div>
           <div id="imp_hist_lista"></div>
         </div>
+
+        <details class="imp-box imp-manual" id="cons_manual_wrap">
+          <summary>
+            <span class="imp-chev"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></span>
+            <span class="imp-manual-tx"><span class="imp-manual-t">Lançamento manual do mês (histórico anterior ao importar)<span class="imp-opc">Opcional</span></span><span class="imp-manual-s">Preencha só quando este mês não tiver dado processado pelo Importar — o total aqui substitui o cálculo detalhado (sem quebrar por vendedor/dealer/etc, só o total do perfil).</span></span>
+          </summary>
+          <div id="cons_manual_lock" style="display:none" class="imp-lock">Este mês já foi aprovado — desaprove no bloco de aprovação acima antes de alterar o lançamento manual.</div>
+          <div class="cad-grid" style="grid-template-columns:repeat(3,1fr)">
+            <div><label class="cad-lbl">Vendedor</label><input type="number" id="cons_manual_vendedor" step="0.01" placeholder="0,00"></div>
+            <div><label class="cad-lbl">Dealer</label><input type="number" id="cons_manual_dealer" step="0.01" placeholder="0,00"></div>
+            <div><label class="cad-lbl">Indicador</label><input type="number" id="cons_manual_indicador" step="0.01" placeholder="0,00"></div>
+            <div><label class="cad-lbl">Projeto Especial</label><input type="number" id="cons_manual_projeto" step="0.01" placeholder="0,00"></div>
+            <div><label class="cad-lbl">Gestor de Operações</label><input type="number" id="cons_manual_gestor" step="0.01" placeholder="0,00"></div>
+            <div><label class="cad-lbl">Diretor Administrativo</label><input type="number" id="cons_manual_diretor" step="0.01" placeholder="0,00"></div>
+            <div><label class="cad-lbl">Diretor Comercial</label><input type="number" id="cons_manual_diretorComercial" step="0.01" placeholder="0,00"></div>
+          </div>
+          <div class="cad-actions">
+            <button class="cad-btn" style="background:#fceaea;color:#b83232" onclick="consManualRemover()">Remover lançamento manual</button>
+            <button class="cad-btn" onclick="consManualSalvar()">Salvar lançamento manual</button>
+          </div>
+        </details>
       </div>
     </div>
 
@@ -2166,6 +2164,7 @@ function consManualSalvar() {
   });
   if (!LS_set('cons_hist_manual', all)) { showCadToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.', true); return; }
   showCadToast('Lançamento manual salvo para ' + fmtMesC(mes));
+  renderImportHistorico(); // o histórico fica logo acima — atualiza na hora
 }
 function consManualRemover() {
   const mes = document.getElementById('imp_ref_mes').value;
@@ -2174,6 +2173,7 @@ function consManualRemover() {
   delete all[mes];
   if (!LS_set('cons_hist_manual', all)) { showCadToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.', true); return; }
   showCadToast('Lançamento manual removido de ' + fmtMesC(mes));
+  renderImportHistorico();
 }
 
 // ─── APROVAÇÃO DO COMISSIONAMENTO ──────────────────────────────────────
