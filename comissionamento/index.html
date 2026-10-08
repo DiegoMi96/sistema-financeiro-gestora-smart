@@ -465,43 +465,87 @@ iframe.active{display:block}
 .cad-del-btn{background:#fceaea;color:#b83232;border:1px solid #f5c6c6;border-radius:4px;padding:4px 9px;font-size:11px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer}
 
 /* ─── Importar ─── */
-.imp-wrap{max-width:1040px;margin:0 auto;padding:36px 28px 80px}
-.imp-header{padding-bottom:18px;border-bottom:2px solid #1a1a18;margin-bottom:24px}
+.imp-wrap{max-width:1340px;margin:0 auto;padding:36px 28px 80px}
+.imp-header{padding-bottom:14px;border-bottom:1px solid #e5e4df;margin-bottom:20px}
+.imp-sub{font-size:12px;color:#777;margin-top:8px;line-height:1.5}
+.imp-top{display:grid;grid-template-columns:5fr 7fr;gap:14px;margin-bottom:14px}
+.imp-box{background:#fff;border:1px solid #e5e4df;border-radius:10px;padding:16px 18px;margin-bottom:14px}
+.imp-top .imp-box{margin-bottom:0}
+.imp-box-t{font-size:14px;font-weight:800;color:#1a1a18;margin-bottom:10px}
+.imp-hint{font-size:11px;color:#888;margin-top:8px;line-height:1.5}
+.imp-how{background:#f0f8f4;border:1px solid #cfe6da;border-radius:10px;padding:16px 18px}
+.imp-how-t{font-size:14px;font-weight:800;color:#1a1a18;margin-bottom:6px}
+.imp-how-s{font-size:12px;color:#4a5868;line-height:1.65}
+.imp-aprov{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.imp-aprov .imp-box-t{margin-bottom:4px}
+.imp-aprov-s{font-size:12px;color:#555;line-height:1.5;max-width:760px}
+.imp-aprov-a{display:flex;gap:8px;flex-wrap:wrap}
+.imp-go{background:#166B4A;color:#fff;border:none;border-radius:8px;height:36px;padding:0 18px;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;width:100%}
+.imp-go:hover{background:#0d5233}
+.imp-aprov-a .imp-go{width:auto}
+.imp-hb{height:30px;padding:0 12px;border-radius:8px;border:1px solid #d4d3ce;background:#fff;color:#1a1a18;font-size:11px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap}
+.imp-hb:hover{background:#f5f4f0}
+.imp-hb.ok{border-color:#1E9B6B;color:#166B4A}
+.imp-hb.ok:hover{background:#eaf5f0}
+.imp-hb.del{border-color:#f0c4c4;color:#b83232}
+.imp-hb.del:hover{background:#fceaea}
+.imp-aprov-a .imp-hb{height:34px;font-size:12px}
+.imp-manual{padding:0}
+.imp-manual summary{list-style:none;cursor:pointer;display:flex;gap:12px;align-items:flex-start;padding:14px 18px}
+.imp-manual summary::-webkit-details-marker{display:none}
+.imp-chev{display:inline-flex;margin-top:4px;transition:transform .15s;color:#555;transform:rotate(-90deg)}
+.imp-manual[open] .imp-chev{transform:rotate(0)}
+.imp-manual-t{display:block;font-size:13px;font-weight:800;color:#1a1a18}
+.imp-opc{margin-left:8px;font-size:9.5px;font-weight:700;background:#eeede8;color:#666;border-radius:10px;padding:2px 9px;vertical-align:1px}
+.imp-manual-s{display:block;font-size:11.5px;color:#888;margin-top:2px;line-height:1.5}
+.imp-manual>.cad-grid,.imp-manual>.cad-actions,.imp-manual>.imp-lock{margin-left:18px;margin-right:18px}
+.imp-manual>.cad-grid{gap:12px 16px;margin-top:4px}
+.imp-manual>.cad-actions{margin-bottom:16px}
+.imp-manual input[type=number]{background:#fff;border:1px solid #d4d3ce;border-radius:8px;height:36px;padding:0 12px;font-size:12.5px;width:100%}
+.imp-manual input:focus{border-color:#1E9B6B}
+.imp-lock{font-size:11.5px;color:#b8863f;background:#fbf1de;border-radius:6px;padding:8px 12px;margin-bottom:14px}
+.imp-card{background:#fff;border:1px solid #e5e4df;border-radius:10px;padding:16px 18px;display:flex;flex-direction:column}
+.imp-ano{display:flex;align-items:center;gap:8px}
+.imp-ano .cad-lbl{margin:0}
+.imp-ano select{height:36px;border:1px solid #d4d3ce;border-radius:8px;padding:0 12px;font-size:12px;background:#fff;width:auto;color:#1a1a18}
+.imp-hist-table{width:100%;border-collapse:collapse}
+.imp-hist-table th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#888;text-align:left;padding:9px 12px;background:#f7f7f4}
+.imp-hist-table td{padding:7px 12px;border-bottom:1px solid #f0efea;font-size:12px;color:#1a1a18}
+.imp-hist-table tr:last-child td{border-bottom:none}
+.imp-hist-table td.m{font-weight:600}
+.imp-hist-table td.v{font-variant-numeric:tabular-nums}
+.imp-hist-table td.a{text-align:right}
+.imp-hist-table th:last-child{text-align:right}
+@media (max-width:900px){.imp-top,.imp-row2{grid-template-columns:1fr}.imp-hist-hdr{flex-wrap:wrap}}
 .imp-header .eyebrow{font-size:11px;color:#888;font-weight:500;margin-bottom:4px}
 .imp-header h1{font-size:24px;font-weight:800;color:#1a1a18;line-height:1}
-.imp-dropzone{border:1.5px dashed #d4d3ce;border-radius:8px;padding:18px;text-align:center;cursor:pointer;background:#f5f4f0;margin-bottom:12px;transition:border-color .15s,background .15s}
+.imp-dropzone{border:1.5px dashed #d4d3ce;border-radius:8px;padding:16px;text-align:center;cursor:pointer;background:#fafaf8;margin-bottom:10px;transition:border-color .15s,background .15s}
 .imp-dropzone:hover{border-color:#1E9B6B;background:#eaf5f0}
-.imp-dz-icon{font-size:22px;display:block;margin-bottom:4px}
-.imp-dz-label{font-size:12px;color:#888;font-weight:500}
-.imp-dz-sub{font-size:10.5px;color:#bbb;margin-top:3px}
-.imp-status{font-size:11px;padding:8px 12px;border-radius:6px;margin-bottom:12px}
+.imp-dz-label{font-size:12px;color:#444;font-weight:600}
+.imp-dz-sub{font-size:11px;color:#999;margin-top:3px;line-height:1.45}
+.imp-status{font-size:11px;padding:0 12px;min-height:36px;display:flex;align-items:center;border-radius:8px;margin-bottom:10px;line-height:1.4}
 .imp-status.st-idle{background:#f5f4f0;color:#888}
 .imp-status.st-ok{background:#eaf5f0;color:#166B4A}
 .imp-status.st-err{background:#fceaea;color:#b83232}
 .imp-result{margin-top:14px}
 .imp-result-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888;margin:14px 0 6px}
 .imp-result-title:first-child{margin-top:0}
-.imp-row2{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:stretch;margin-bottom:20px}
-.imp-row2 .cad-card{margin-bottom:0;display:flex;flex-direction:column}
-.imp-hist-divider{border-top:1px solid #d4d3ce;margin:8px 0 22px}
-.imp-hist-hdr{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
-.imp-hist-hdr select{background:#F5F5F5;border:1px solid #d4d3ce;border-radius:6px;padding:6px 9px;font-size:12.5px;color:#1a1a18}
-.imp-hist-row{display:flex;align-items:center;gap:14px;padding:10px 4px;border-bottom:1px solid #eeede8}
-.imp-hist-row:last-child{border-bottom:none}
-.imp-hist-mes{width:150px;flex-shrink:0;font-weight:600;font-size:12.5px}
-.imp-hist-badge{font-size:10px;font-weight:700;letter-spacing:.04em;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.imp-row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:stretch;margin-bottom:14px}
+.imp-hist-hdr{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:12px}
+.imp-hist-hdr>div:first-child{flex:1;min-width:0}
+.imp-ano{flex-shrink:0}
+.imp-hist-badge{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:.04em;padding:3px 10px;border-radius:20px;white-space:nowrap}
+.imp-hist-badge::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor}
 .imp-hist-badge.aprovado{color:#166B4A;background:#e7f2ec}
 .imp-hist-badge.aberto{color:#b45309;background:#fbf1de}
 .imp-hist-badge.vazio{color:#aaa;background:#f5f4f0}
-.imp-hist-total{flex:1;text-align:right;font-size:12.5px;font-variant-numeric:tabular-nums;color:#1a1a18;padding-right:10px}
 .imp-hist-actions{display:flex;gap:6px;flex-shrink:0}
-.imp-hist-actions button{font-size:11px;padding:5px 10px}
-.imp-card-hdr{display:flex;gap:12px;align-items:flex-start;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #eeede8}
-.imp-card-icon{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.imp-card-hdr{margin-bottom:12px;min-height:62px}
+.imp-card .imp-dropzone{flex:1;display:flex;flex-direction:column;justify-content:center}
 .imp-card-heading{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px}
-.imp-card-heading h3{font-size:13px;font-weight:700;color:#1a1a18;margin:0}
+.imp-card-heading h3{font-size:14px;font-weight:800;color:#1a1a18;margin:0}
 .imp-card-badge{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:2px 8px;border-radius:4px;white-space:nowrap}
-.imp-card-sub{font-size:11px;color:#888;line-height:1.5}
+.imp-card-sub{font-size:11.5px;color:#777;line-height:1.5}
 
 /* ─── Responsivo (tablet/celular) ───────────────────
    Sidebar vira um menu retrátil (fixed, fora do fluxo) abaixo de 860px, com
@@ -859,28 +903,39 @@ iframe.active{display:block}
       <div class="imp-wrap">
         <div class="imp-header">
           <h1>Importar</h1>
+          <p class="imp-sub">Centralize e importe os arquivos do sistema. Selecione o mês de referência e carregue as planilhas nos módulos abaixo.</p>
         </div>
 
-        <div class="cad-card">
-          <label class="cad-lbl">Mês do Comissionamento</label>
-          <input type="month" id="imp_ref_mes" onchange="renderImportar()" style="max-width:180px">
-          <p style="font-size:11px;color:#888;margin-top:10px;line-height:1.6">Sempre o mês do <strong>pagamento/ciclo que está fechando</strong> (ex.: se é o comissionamento de Setembro, selecione Setembro aqui) — nunca o mês da planilha em si. O sistema já desconta os meses de defasagem sozinho pra achar a "Data de ativação" certa (ex.: ativação considera 2 meses antes deste campo); selecionar um mês adiantado "pra compensar" faz o desconto dobrar e erra a conta.</p>
-        </div>
-
-        <div class="cad-card" id="cons_aprov_box" style="margin-bottom:22px">
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
-            <div>
-              <p class="cad-card-title" style="margin-bottom:6px">Aprovação do comissionamento do mês</p>
-              <div id="cons_aprov_status" style="font-size:12.5px;color:#444;line-height:1.5"></div>
+        <div class="imp-top">
+          <div class="imp-box">
+            <p class="imp-box-t">Mês do comissionamento</p>
+            <div class="ex-month">
+              <svg class="ic-cal" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+              <input type="month" id="imp_ref_mes" onchange="renderImportar()">
+              <svg class="ic-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
             </div>
-            <div id="cons_aprov_actions" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+            <p class="imp-hint">Selecione o mês de referência para importação e cálculo das comissões.</p>
+          </div>
+          <div class="imp-how">
+            <p class="imp-how-t">Como funciona?</p>
+            <p class="imp-how-s">Sempre o mês do <strong>pagamento/ciclo que está fechando</strong> (ex.: se é o comissionamento de Setembro, selecione Setembro aqui) — nunca o mês da planilha em si. O sistema já desconta os meses de defasagem sozinho pra achar a "Data de ativação" certa (ex.: ativação considera 2 meses antes deste campo); selecionar um mês adiantado "pra compensar" faz o desconto dobrar e erra a conta.</p>
           </div>
         </div>
 
-        <details class="cad-card" id="cons_manual_wrap" style="margin-bottom:22px">
-          <summary style="cursor:pointer;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888">✎ Lançamento manual do mês (histórico anterior ao Importar)</summary>
-          <p style="font-size:11px;color:#888;margin:10px 0 14px">Preencha só quando este mês não tiver dado processado pelo Importar — o total aqui substitui o cálculo detalhado (sem quebrar por vendedor/dealer/etc, só o total do perfil).</p>
-          <div id="cons_manual_lock" style="display:none;font-size:11.5px;color:#b8863f;background:#fbf1de;border-radius:6px;padding:8px 12px;margin-bottom:14px">🔒 Este mês já foi aprovado — desaprove no bloco de aprovação acima antes de alterar o lançamento manual.</div>
+        <div class="imp-box imp-aprov" id="cons_aprov_box">
+          <div>
+            <p class="imp-box-t">Aprovação do comissionamento do mês</p>
+            <div id="cons_aprov_status" class="imp-aprov-s"></div>
+          </div>
+          <div id="cons_aprov_actions" class="imp-aprov-a"></div>
+        </div>
+
+        <details class="imp-box imp-manual" id="cons_manual_wrap">
+          <summary>
+            <span class="imp-chev"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></span>
+            <span class="imp-manual-tx"><span class="imp-manual-t">Lançamento manual do mês (histórico anterior ao importar)<span class="imp-opc">Opcional</span></span><span class="imp-manual-s">Preencha só quando este mês não tiver dado processado pelo Importar — o total aqui substitui o cálculo detalhado (sem quebrar por vendedor/dealer/etc, só o total do perfil).</span></span>
+          </summary>
+          <div id="cons_manual_lock" style="display:none" class="imp-lock">Este mês já foi aprovado — desaprove no bloco de aprovação acima antes de alterar o lançamento manual.</div>
           <div class="cad-grid" style="grid-template-columns:repeat(3,1fr)">
             <div><label class="cad-lbl">Vendedor</label><input type="number" id="cons_manual_vendedor" step="0.01" placeholder="0,00"></div>
             <div><label class="cad-lbl">Dealer</label><input type="number" id="cons_manual_dealer" step="0.01" placeholder="0,00"></div>
@@ -897,136 +952,109 @@ iframe.active{display:block}
         </details>
 
         <div class="imp-row2">
-          <div class="cad-card">
+          <div class="imp-card">
             <div class="imp-card-hdr">
-              <div class="imp-card-icon" style="background:#ecfeff">📦</div>
-              <div>
-                <div class="imp-card-heading"><h3>Vendas do mês</h3><span class="imp-card-badge" style="background:#ecfeff;color:#0e7490">Volume</span></div>
-                <p class="imp-card-sub">Soma Quantidade por Vendedor · só Tipo=simcard, ignora Cancelado</p>
-              </div>
+              <div class="imp-card-heading"><h3>Vendas do mês</h3><span class="imp-card-badge" style="background:#ecfeff;color:#0e7490">Volume</span></div>
+              <p class="imp-card-sub">Soma Quantidade por Vendedor · só Tipo=simcard, ignora Cancelado</p>
             </div>
             <div class="imp-dropzone" onclick="document.getElementById('imp_f_pedidos').click()">
-              <span class="imp-dz-icon">📁</span>
               <div class="imp-dz-label">Clique ou arraste a planilha de Pedidos</div>
               <div class="imp-dz-sub">Colunas: Vendedor, Tipo, Quantidade, Status</div>
             </div>
             <input type="file" id="imp_f_pedidos" accept=".xlsx,.xls,.csv" style="display:none" onchange="impHandleFile(event,'pedidos')">
             <div id="imp_pedidos_status" class="imp-status st-idle">Aguardando arquivo…</div>
-            <button class="cad-btn" onclick="impProcessarPedidos()">Processar volume</button>
+            <button class="imp-go" onclick="impProcessarPedidos()">Processar volume</button>
             <div id="imp_pedidos_result" class="imp-result"></div>
           </div>
-
-          <div class="cad-card">
+          <div class="imp-card">
             <div class="imp-card-hdr">
-              <div class="imp-card-icon" style="background:#eff6ff">🗂️</div>
-              <div>
-                <div class="imp-card-heading"><h3>Clientes atualizado</h3><span class="imp-card-badge" style="background:#eff6ff;color:#1d4ed8">Vínculo</span></div>
-                <p class="imp-card-sub">Gera Cliente → Vendedor/Dealer/Indicador/Projeto Especial · importe antes do Inventário e das Cobranças</p>
-              </div>
+              <div class="imp-card-heading"><h3>Clientes atualizado</h3><span class="imp-card-badge" style="background:#eff6ff;color:#1d4ed8">Vínculo</span></div>
+              <p class="imp-card-sub">Gera Cliente → Vendedor/Dealer/Indicador/Projeto Especial · importe antes do Inventário e das Cobranças</p>
             </div>
             <div class="imp-dropzone" onclick="document.getElementById('imp_f_clientes').click()">
-              <span class="imp-dz-icon">📁</span>
               <div class="imp-dz-label">Clique ou arraste a planilha de Clientes</div>
               <div class="imp-dz-sub">Colunas: CPF, CNPJ, Vendedor</div>
             </div>
             <input type="file" id="imp_f_clientes" accept=".xlsx,.xls,.csv" style="display:none" onchange="impHandleFile(event,'clientes')">
             <div id="imp_clientes_status" class="imp-status st-idle">Aguardando arquivo…</div>
-            <button class="cad-btn" onclick="impProcessarClientes()">Carregar clientes</button>
+            <button class="imp-go" onclick="impProcessarClientes()">Carregar clientes</button>
             <div id="imp_clientes_result" class="imp-result"></div>
           </div>
         </div>
 
         <div class="imp-row2">
-          <div class="cad-card">
+          <div class="imp-card">
             <div class="imp-card-hdr">
-              <div class="imp-card-icon" style="background:#eaf5f0">📊</div>
-              <div>
-                <div class="imp-card-heading"><h3>Inventário</h3><span class="imp-card-badge" style="background:#eaf5f0;color:#166B4A">Margem / Ativação</span></div>
-                <p class="imp-card-sub">Vendedor (ativação) · Dealer e Projeto Especial (margem) · Indicador (ativações do mês)</p>
-              </div>
+              <div class="imp-card-heading"><h3>Inventário</h3><span class="imp-card-badge" style="background:#eaf5f0;color:#166B4A">Margem / Ativação</span></div>
+              <p class="imp-card-sub">Vendedor (ativação) · Dealer e Projeto Especial (margem) · Indicador (ativações do mês)</p>
             </div>
             <div class="imp-dropzone" onclick="document.getElementById('imp_f_inventario').click()">
-              <span class="imp-dz-icon">📁</span>
               <div class="imp-dz-label">Clique ou arraste o Inventário</div>
               <div class="imp-dz-sub">Arquivo grande · pode levar alguns segundos</div>
             </div>
             <input type="file" id="imp_f_inventario" accept=".xlsx,.xls,.csv" style="display:none" onchange="impHandleFile(event,'inventario')">
             <div id="imp_inventario_status" class="imp-status st-idle">Aguardando arquivo…</div>
-            <button class="cad-btn" onclick="impProcessarInventario()">Processar inventário</button>
+            <button class="imp-go" onclick="impProcessarInventario()">Processar inventário</button>
             <div id="imp_inventario_result" class="imp-result"></div>
           </div>
-
-          <div class="cad-card">
+          <div class="imp-card">
             <div class="imp-card-hdr">
-              <div class="imp-card-icon" style="background:#fceaea">🚫</div>
-              <div>
-                <div class="imp-card-heading"><h3>Cancelamentos</h3><span class="imp-card-badge" style="background:#fceaea;color:#b83232">Desconto</span></div>
-                <p class="imp-card-sub">Planilha completa (sem separar por perfil) · classifica Dealer/Projeto Especial sozinho</p>
-              </div>
+              <div class="imp-card-heading"><h3>Cancelamentos</h3><span class="imp-card-badge" style="background:#fceaea;color:#b83232">Desconto</span></div>
+              <p class="imp-card-sub">Planilha completa (sem separar por perfil) · classifica Dealer/Projeto Especial sozinho</p>
             </div>
             <div class="imp-dropzone" onclick="document.getElementById('imp_f_cancel').click()">
-              <span class="imp-dz-icon">📁</span>
               <div class="imp-dz-label">Clique ou arraste a planilha de cancelamentos</div>
               <div class="imp-dz-sub">Colunas: Vendedor/Executivo — 1 linha por cancelamento</div>
             </div>
             <input type="file" id="imp_f_cancel" accept=".xlsx,.xls,.csv" style="display:none" onchange="impHandleFile(event,'cancel')">
             <div id="imp_cancel_status" class="imp-status st-idle">Aguardando arquivo…</div>
-            <button class="cad-btn" onclick="impProcessarCancelamentos()">Processar cancelamentos</button>
+            <button class="imp-go" onclick="impProcessarCancelamentos()">Processar cancelamentos</button>
             <div id="imp_cancel_result" class="imp-result"></div>
           </div>
         </div>
 
         <div class="imp-row2">
-          <div class="cad-card">
+          <div class="imp-card">
             <div class="imp-card-hdr">
-              <div class="imp-card-icon" style="background:#fdf3e0">🔧</div>
-              <div>
-                <div class="imp-card-heading"><h3>Equipamentos</h3><span class="imp-card-badge" style="background:#fdf3e0;color:#b8863f">Comissão</span></div>
-                <p class="imp-card-sub">Planilha de recebíveis (Asaas) · filtra Descrição por "equipamento" · comissão = 2% do valor recebido, sem filtro de mês</p>
-              </div>
+              <div class="imp-card-heading"><h3>Equipamentos</h3><span class="imp-card-badge" style="background:#fdf3e0;color:#b8863f">Comissão</span></div>
+              <p class="imp-card-sub">Planilha de recebíveis (Asaas) · filtra Descrição por "equipamento" · comissão = 2% do valor recebido, sem filtro de mês</p>
             </div>
             <div class="imp-dropzone" onclick="document.getElementById('imp_f_equipamentos').click()">
-              <span class="imp-dz-icon">📁</span>
               <div class="imp-dz-label">Clique ou arraste a planilha de Equipamentos</div>
               <div class="imp-dz-sub">Export do Asaas · colunas: Nome, CPF ou CNPJ, Data de Pagamento, Valor, Situação, Descrição</div>
             </div>
             <input type="file" id="imp_f_equipamentos" accept=".xlsx,.xls,.csv" style="display:none" onchange="impHandleFile(event,'equipamentos')">
             <div id="imp_equipamentos_status" class="imp-status st-idle">Aguardando arquivo…</div>
-            <button class="cad-btn" onclick="impProcessarEquipamentos()">Processar equipamentos</button>
+            <button class="imp-go" onclick="impProcessarEquipamentos()">Processar equipamentos</button>
             <div id="imp_equipamentos_result" class="imp-result"></div>
           </div>
-
-          <div class="cad-card">
+          <div class="imp-card">
             <div class="imp-card-hdr">
-              <div class="imp-card-icon" style="background:#fdf3e0">📡</div>
-              <div>
-                <div class="imp-card-heading"><h3>Smart GPS</h3><span class="imp-card-badge" style="background:#fdf3e0;color:#b8863f">Comissão</span></div>
-                <p class="imp-card-sub">Planilha própria de Smart GPS (comissão já calculada por fora) · cruza por CPF/CNPJ · soma direto o valor da coluna P</p>
-              </div>
+              <div class="imp-card-heading"><h3>Smart GPS</h3><span class="imp-card-badge" style="background:#fdf3e0;color:#b8863f">Comissão</span></div>
+              <p class="imp-card-sub">Planilha própria de Smart GPS (comissão já calculada por fora) · cruza por CPF/CNPJ · soma direto o valor da coluna P</p>
             </div>
             <div class="imp-dropzone" onclick="document.getElementById('imp_f_smartgps').click()">
-              <span class="imp-dz-icon">📁</span>
               <div class="imp-dz-label">Clique ou arraste a planilha de Smart GPS</div>
               <div class="imp-dz-sub">Colunas: CPF ou CNPJ, Situação ("Recebida") · a comissão já calculada precisa estar na coluna P</div>
             </div>
             <input type="file" id="imp_f_smartgps" accept=".xlsx,.xls,.csv" style="display:none" onchange="impHandleFile(event,'smartgps')">
             <div id="imp_smartgps_status" class="imp-status st-idle">Aguardando arquivo…</div>
-            <button class="cad-btn" onclick="impProcessarSmartGPS()">Processar Smart GPS</button>
+            <button class="imp-go" onclick="impProcessarSmartGPS()">Processar Smart GPS</button>
             <div id="imp_smartgps_result" class="imp-result"></div>
           </div>
         </div>
 
-        <div class="imp-hist-divider"></div>
-
-        <div class="cad-card">
+        <div class="imp-box imp-hist">
           <div class="imp-hist-hdr">
-            <p class="cad-card-title" style="margin-bottom:0">Histórico de importações</p>
             <div>
-              <label class="cad-lbl" style="display:inline;margin-right:6px">Ano</label>
-              <select id="imp_hist_ano" onchange="renderImportHistorico()" style="width:auto;display:inline-block"></select>
+              <p class="imp-box-t">Histórico de importações</p>
+              <p class="imp-hint" style="margin-top:3px">Todo mês que já teve algum lançamento (Importar ou manual). Aprovar/desaprovar/excluir aqui tem o mesmo efeito que o bloco de aprovação acima — é só um atalho pra não precisar trocar de mês toda vez.</p>
+            </div>
+            <div class="imp-ano">
+              <label class="cad-lbl">Ano</label>
+              <select id="imp_hist_ano" onchange="renderImportHistorico()"></select>
             </div>
           </div>
-          <p style="font-size:11px;color:#888;margin:8px 0 14px">Todo mês que já teve algum lançamento (Importar ou manual). Aprovar/desaprovar/excluir aqui tem o mesmo efeito que o bloco de aprovação acima — é só um atalho pra não precisar trocar de mês toda vez.</p>
           <div id="imp_hist_lista"></div>
         </div>
       </div>
@@ -2166,13 +2194,13 @@ function renderConsAprovacao(mes) {
   const statusEl = document.getElementById('cons_aprov_status');
   const actionsEl = document.getElementById('cons_aprov_actions');
   if (a && a.aprovado) {
-    statusEl.innerHTML = `<span style="color:#166B4A;font-weight:700">🔒 Aprovado</span> em ${a.aprovadoEm} — os valores deste mês ficam travados em todos os perfis, mesmo que a regra de alguém mude depois.`;
+    statusEl.innerHTML = `<span style="color:#166B4A;font-weight:700">Aprovado</span> em ${a.aprovadoEm} — os valores deste mês ficam travados em todos os perfis, mesmo que a regra de alguém mude depois.`;
     actionsEl.innerHTML = `
-      <button class="cad-btn-outline" onclick="consDesaprovarMes()">Desaprovar (ação administrativa)</button>
-      <button class="cad-del-btn" onclick="consExcluirMes()">Excluir dados do mês</button>`;
+      <button class="imp-hb" onclick="consDesaprovarMes()">Desaprovar (ação administrativa)</button>
+      <button class="imp-hb del" onclick="consExcluirMes()">Excluir dados do mês</button>`;
   } else {
     statusEl.innerHTML = `<span style="color:#b45309;font-weight:700">Aberto</span> — ainda pode editar valores e reprocessar pelo Importar normalmente.`;
-    actionsEl.innerHTML = `<button class="cad-btn" onclick="consAprovarMes()">✓ Aprovar comissionamento do mês</button>`;
+    actionsEl.innerHTML = `<button class="imp-go" onclick="consAprovarMes()">Aprovar comissionamento do mês</button>`;
   }
 }
 
@@ -3841,11 +3869,11 @@ function renderImportHistorico() {
     const temDado = total > 0 || !!consManualGet(mesStr);
     let badge, acoes;
     if (aprov && aprov.aprovado) {
-      badge = `<span class="imp-hist-badge aprovado">🔒 Aprovado</span>`;
-      acoes = `<button class="cad-btn-outline" onclick="consDesaprovarMes('${mesStr}')">Desaprovar</button><button class="cad-del-btn" onclick="consExcluirMes('${mesStr}')">Excluir</button>`;
+      badge = `<span class="imp-hist-badge aprovado">Aprovado</span>`;
+      acoes = `<button class="imp-hb" onclick="consDesaprovarMes('${mesStr}')">Desaprovar</button><button class="imp-hb del" onclick="consExcluirMes('${mesStr}')">Excluir</button>`;
     } else if (temDado) {
       badge = `<span class="imp-hist-badge aberto">Aberto</span>`;
-      acoes = `<button class="cad-btn" onclick="consAprovarMes('${mesStr}')">Aprovar</button><button class="cad-del-btn" onclick="consExcluirMes('${mesStr}')">Excluir</button>`;
+      acoes = `<button class="imp-hb ok" onclick="consAprovarMes('${mesStr}')">Aprovar</button><button class="imp-hb del" onclick="consExcluirMes('${mesStr}')">Excluir</button>`;
     } else {
       badge = `<span class="imp-hist-badge vazio">Sem lançamento</span>`;
       acoes = '';
@@ -3853,14 +3881,15 @@ function renderImportHistorico() {
     // Meses futuros (além do mês corrente, só no ano atual) não têm porque
     // mostrar ação nenhuma ainda — ninguém aprova ou exclui o que nem existe.
     if (ano === hoje.getFullYear() && m > mesLimite && !temDado) acoes = '';
-    linhas.push(`<div class="imp-hist-row">
-      <div class="imp-hist-mes">${fmtMesC(mesStr)}</div>
-      ${badge}
-      <div class="imp-hist-total">${temDado ? 'R$ ' + br2c(total) : '<span style="color:#ccc">—</span>'}</div>
-      <div class="imp-hist-actions">${acoes}</div>
-    </div>`);
+    linhas.push(`<tr>
+      <td class="m">${fmtMesC(mesStr)}</td>
+      <td>${badge}</td>
+      <td class="v">${temDado ? 'R$ ' + br2c(total) : '<span style="color:#ccc">—</span>'}</td>
+      <td class="a"><div class="imp-hist-actions" style="justify-content:flex-end">${acoes}</div></td>
+    </tr>`);
   }
-  document.getElementById('imp_hist_lista').innerHTML = linhas.join('');
+  document.getElementById('imp_hist_lista').innerHTML =
+    `<table class="imp-hist-table"><thead><tr><th>Mês</th><th>Status</th><th>Valor total</th><th>Ações</th></tr></thead><tbody>${linhas.join('')}</tbody></table>`;
 }
 
 // Reabre no painel em que o usuário estava antes do F5 (ou Visão Consolidada,
