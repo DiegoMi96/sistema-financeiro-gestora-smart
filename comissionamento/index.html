@@ -583,16 +583,6 @@ iframe.active{display:block}
                   <button type="button" class="cons-pop-item" onclick="consLimparFiltros()">Limpar filtros</button>
                 </div>
               </div>
-              <div class="cons-pop">
-                <button type="button" class="cons-btn" onclick="consTogglePop('cons_pop_exp')">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Exportar
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
-                </button>
-                <div class="cons-pop-panel" id="cons_pop_exp" style="min-width:170px;padding:6px">
-                  <button type="button" class="cons-pop-item" onclick="consExportar('xlsx')">Excel (.xlsx)</button>
-                  <button type="button" class="cons-pop-item" onclick="consExportar('csv')">CSV</button>
-                </div>
-              </div>
             </div>
           </div>
           <div class="cons-table-wrap" id="cons_tabela_wrap"></div>
@@ -2114,31 +2104,6 @@ function consLimparFiltros() {
   document.getElementById('cons_busca').value = '';
   consRenderTabelas();
 }
-function consExportar(fmt) {
-  if (!CONS_CTX) return;
-  document.querySelectorAll('.cons-pop-panel.open').forEach(el => el.classList.remove('open'));
-  const cab = ['ID', 'Categoria', 'Executivo', 'Simcard', 'Bonificação', 'Equipamento', 'Smart GPS', 'Desc. Canc.', 'Desc. Frete', 'Total'];
-  const montar = linhas => {
-    const rows = linhas.map((r, i) => [r._id || i + 1, CONS_CTX.CAT[r.cat].label, r.nome, r.simcard || 0, r.bonificacao || 0, r.equipamento || 0, r.gps || 0, -(r.descCanc || 0), -(r.descFrete || 0), r.total || 0]);
-    const tot = c => linhas.reduce((a, r) => a + (r[c] || 0), 0);
-    rows.push(['', '', 'Total', tot('simcard'), tot('bonificacao'), tot('equipamento'), tot('gps'), -tot('descCanc'), -tot('descFrete'), tot('total')]);
-    return [cab, ...rows];
-  };
-  const principal = montar(consLinhasVisiveis()), diretoria = montar(CONS_CTX.linhasDiretoria);
-  const nome = `comissionamento_consolidado_${CONS_CTX.mes}`;
-  if (fmt === 'xlsx') {
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(principal), 'Consolidado');
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(diretoria), 'Diretoria e Gestores');
-    XLSX.writeFile(wb, nome + '.xlsx');
-  } else {
-    const csv = [...principal, [], ...diretoria].map(l => l.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\n');
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }));
-    a.download = nome + '.csv'; a.click(); URL.revokeObjectURL(a.href);
-  }
-}
-
 function renderConsolidado() {
   let mes = document.getElementById('cons_mes').value;
   if (!mes) {
