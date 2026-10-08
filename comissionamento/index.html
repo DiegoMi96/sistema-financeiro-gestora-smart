@@ -2179,7 +2179,13 @@ function renderConsolidado() {
       <div class="cons-var-abs">R$ ${br2c(Math.abs(diff))}</div>`;
     varEl.style.display = '';
   } else {
-    varEl.style.display = 'none';
+    // Sem lançamento no mês anterior não há base de comparação — mostra o
+    // quadro mesmo assim (com "—") em vez de sumir, pra não parecer que a
+    // variação não existe.
+    varEl.innerHTML = `<div class="cons-var-lbl">Variação vs. ${fmtMesC(mesPrev).toLowerCase()}</div>
+      <div class="cons-var-pct flat"><span>—</span></div>
+      <div class="cons-var-abs">sem lançamento no mês anterior</div>`;
+    varEl.style.display = '';
   }
   document.getElementById('cons_gen_ts').textContent = 'Gerado em ' + new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 
