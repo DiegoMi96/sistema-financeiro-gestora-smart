@@ -700,7 +700,7 @@ function renderEditPanel(vid,mes){
   const panel=document.getElementById('panel_'+vid);if(!panel)return;
   panel.innerHTML=`
     <div class="edit-panel-header">
-      <span class="edit-panel-title">✏ ${vend.nome} · ${fmtMes(mes)}</span>
+      <span class="edit-panel-title">${vend.nome} · ${fmtMes(mes)}</span>
       <span style="font-size:10px;color:#888">Obj: ${vend.g.obj.toLocaleString('pt-BR')} | M1: ${vend.g.m1.toLocaleString('pt-BR')} | M2: ${vend.g.m2.toLocaleString('pt-BR')} | SM: ${vend.g.sm.toLocaleString('pt-BR')}</span>
     </div>
     <div class="edit-fields">
