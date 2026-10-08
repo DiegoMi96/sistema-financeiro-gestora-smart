@@ -89,6 +89,45 @@ td.r{text-align:right;font-variant-numeric:tabular-nums}
 #resumoTable .btn-export:hover{background:#eff6ff;border-color:#1d4ed8}
 #resumoTable .btn-export.disabled{background:#f5f4f0;color:#b5b4af;border-color:#e0dfdb;cursor:default}
 #resumoTable .btn-export.disabled:hover{background:#f5f4f0;border-color:#e0dfdb}
+ #tab-metas .card{border-radius:12px;padding:22px 24px;margin-bottom:18px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+.mt-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.mt-title{font-size:15px;font-weight:800;color:#1a1a18}
+.mt-sub{font-size:11.5px;color:#888;line-height:1.55;margin:-6px 0 16px}
+.mt-acts{display:flex;gap:8px;flex-wrap:wrap}
+.mt-btn{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:8px;font-size:12px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;border:.5px solid #d4d3ce;background:#fff;color:#1a1a18;white-space:nowrap}
+.mt-btn:hover{background:#f5f4f0}
+.mt-btn.primary{background:#166B4A;border-color:#166B4A;color:#fff}
+.mt-btn.primary:hover{background:#0d5233}
+.mt-btn.danger{color:#b83232;border-color:#f0c4c4}
+.mt-btn.danger:hover{background:#fceaea}
+.mt-btn.sm{height:30px;padding:0 10px;font-size:11px}
+#metasTable th{text-align:center;font-size:10px;letter-spacing:.06em;padding:8px 8px}
+#metasTable th:first-child{text-align:left}
+#metasTable td{padding:8px 8px;border-bottom:.5px solid #f0efea}
+#metasTable td.c{text-align:center}
+#metasTable .rule-input{background:#fff;text-align:center;height:34px;width:100%;max-width:130px;border-radius:8px;padding:0 10px;font-size:13px;border:.5px solid #d4d3ce}
+#metasTable .rule-input:focus{border-color:#1E9B6B}
+#metasTable .irow{justify-content:center}
+.mt-nome{display:flex;align-items:center;gap:10px}
+.mt-nome input{border:.5px solid transparent !important;background:transparent !important;font-weight:600;font-size:12.5px;padding:4px 6px !important;border-radius:6px;min-width:150px;max-width:210px}
+.mt-nome input:hover{border-color:#e0dfdb !important}
+.mt-nome input:focus{border-color:#1E9B6B !important;background:#fff !important}
+.mt-del{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:.5px solid #f0c4c4;background:#fff;color:#b83232;cursor:pointer}
+.mt-del:hover{background:#fceaea}
+.mt-aliq{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.mt-aliq label.lbl{font-size:10px;letter-spacing:.06em}
+.mt-aliq .irow input{background:#fff;height:38px;border-radius:8px;font-size:13px}
+.mt-cel{background:#fff;border:.5px solid #d4d3ce;border-radius:10px;padding:14px 16px;margin-bottom:12px}
+.mt-cel-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+.mt-cel-top input{font-weight:800;font-size:13px;background:transparent !important;border:.5px solid transparent !important;border-radius:6px;padding:4px 6px !important;max-width:300px}
+.mt-cel-top input:hover{border-color:#e0dfdb !important}
+.mt-cel-top input:focus{border-color:#1E9B6B !important;background:#fff !important}
+.mt-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.mt-chip{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;background:#fff;border:.5px solid #d4d3ce;border-radius:8px;padding:6px 11px;cursor:pointer;color:#1a1a18}
+.mt-chip:hover{background:#f9f9f6}
+.mt-chip.on{background:#eaf5f0;border-color:#1E9B6B;color:#0d5233;font-weight:600}
+.mt-chip input{width:auto;accent-color:#166B4A}
+.mt-foot{font-size:10.5px;color:#888}
 .rs-empty{padding:22px;text-align:center;color:#aaa;font-size:12px;font-style:italic}
 #tab-regras table th,#tab-regras table td{text-align:center}
 .rule-input{background:#F5F5F5;border:.5px solid #d4d3ce;border-radius:5px;padding:5px 7px;font-size:12px;font-family:'Inter',sans-serif;color:#1a1a18;text-align:right;outline:none}
@@ -121,6 +160,7 @@ tr.row-editing td{background:#f9fffe !important}
 
 /* ─── Responsivo (tablet/celular) ─── */
 @media (max-width:860px){
+  .mt-aliq{grid-template-columns:1fr 1fr}
   .rs-search{min-width:0;flex:1 1 100%}
   .page{padding:24px 16px 60px}
   .g2{grid-template-columns:1fr}
@@ -216,21 +256,22 @@ tr.row-editing td{background:#f9fffe !important}
 <!-- ═══ VISÃO DO EXECUTIVO ═══ -->
 <div id="tab-metas" class="tab-panel">
   <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <p class="card-title" style="margin-bottom:0">Painel de metas · atualização trimestral</p>
-      <div style="display:flex;gap:8px"><button class="btn-ghost" onclick="addVend()">+ Vendedor</button><button class="btn" onclick="saveMetas()">Salvar metas</button></div>
+    <div class="mt-head">
+      <p class="mt-title">Painel de metas · atualização trimestral</p>
+      <div class="mt-acts"><button class="mt-btn" onclick="addVend()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Vendedor</button><button class="mt-btn primary" onclick="saveMetas()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/></svg>Salvar metas</button></div>
     </div>
-    <table><thead><tr><th>Vendedor</th><th class="r">Salário Fixo</th><th class="r">Objetivo</th><th class="r">Meta 1</th><th class="r">Meta 2</th><th class="r">Super Meta</th><th style="width:40px"></th></tr></thead>
+    <div style="overflow-x:auto">
+    <table id="metasTable" style="min-width:760px"><thead><tr><th>Vendedor</th><th>Salário Fixo</th><th>Objetivo</th><th>Meta 1</th><th>Meta 2</th><th>Super Meta</th><th style="width:60px">Ação</th></tr></thead>
     <tbody id="metasBody"></tbody></table>
+    </div>
   </div>
-  <hr style="border:none;border-top:1px solid #d4d3ce;margin:22px 0">
 
   <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <p class="card-title" style="margin-bottom:0">Alíquotas do Bônus de Célula</p>
+    <div class="mt-head" style="margin-bottom:10px">
+      <p class="mt-title">Alíquotas do Bônus de Célula</p>
     </div>
-    <p style="font-size:11px;color:#888;margin-bottom:14px">Percentual sobre o Salário Fixo de cada vendedor da célula — vale só a faixa mais alta batida (não acumula), aplicada sobre o volume combinado da célula (vendedores + parceiros vinculados a eles) contra a soma das metas individuais de cada vendedor da célula.</p>
-    <div class="g4" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+    <p class="mt-sub">Percentual sobre o Salário Fixo de cada vendedor da célula — vale só a faixa mais alta batida (não acumula), aplicada sobre o volume combinado da célula (vendedores + parceiros vinculados a eles) contra a soma das metas individuais de cada vendedor da célula.</p>
+    <div class="mt-aliq">
       <div><label class="lbl">Objetivo</label><div class="irow"><input type="number" id="ca_objetivo" min="0" max="100" step="0.1" oninput="saveCelulaAliquotas()"><span class="ipfx">%</span></div></div>
       <div><label class="lbl">Meta 1</label><div class="irow"><input type="number" id="ca_meta1" min="0" max="100" step="0.1" oninput="saveCelulaAliquotas()"><span class="ipfx">%</span></div></div>
       <div><label class="lbl">Meta 2</label><div class="irow"><input type="number" id="ca_meta2" min="0" max="100" step="0.1" oninput="saveCelulaAliquotas()"><span class="ipfx">%</span></div></div>
@@ -238,9 +279,9 @@ tr.row-editing td{background:#f9fffe !important}
     </div>
   </div>
   <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <p class="card-title" style="margin-bottom:0">Células</p>
-      <button class="btn-ghost" onclick="addCelula()">+ Célula</button>
+    <div class="mt-head">
+      <p class="mt-title">Células</p>
+      <button class="mt-btn" onclick="addCelula()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Célula</button>
     </div>
     <div id="celulasBody"></div>
   </div>
@@ -765,23 +806,23 @@ function getRawFor(vid,mes){return rawStore[`${vid}_${mes}`]||{};}
 function buildMetas(){
   document.getElementById('metasBody').innerHTML=vendedores.map((v,i)=>`
     <tr>
-      <td><input type="text" value="${v.nome}" style="max-width:200px" onchange="vendedores[${i}].nome=this.value;buildCelulas()"></td>
-      <td class="r"><div class="irow" style="justify-content:flex-end"><span class="ipfx">R$</span><input type="text" class="rule-input" value="${br2(v.salarioFixo||0)}"
+      <td><div class="mt-nome"><span class="rs-av">${rsIniciais(v.nome)}</span><input type="text" value="${v.nome}" onchange="vendedores[${i}].nome=this.value;buildMetas();buildCelulas()"></div></td>
+      <td class="c"><div class="irow"><span class="ipfx">R$</span><input type="text" class="rule-input" value="${br2(v.salarioFixo||0)}"
         onblur="vendedores[${i}].salarioFixo=parseNum(this.value);this.value=br2(vendedores[${i}].salarioFixo)"
         onfocus="this.value=String(vendedores[${i}].salarioFixo||0)"></div></td>
-      <td class="r"><input type="text" class="rule-input" value="${brInt(v.g.obj)}"
+      <td class="c"><input type="text" class="rule-input" value="${brInt(v.g.obj)}"
         onblur="vendedores[${i}].g.obj=parseNum(this.value);this.value=brInt(vendedores[${i}].g.obj)"
         onfocus="this.value=String(vendedores[${i}].g.obj)"></td>
-      <td class="r"><input type="text" class="rule-input" value="${brInt(v.g.m1)}"
+      <td class="c"><input type="text" class="rule-input" value="${brInt(v.g.m1)}"
         onblur="vendedores[${i}].g.m1=parseNum(this.value);this.value=brInt(vendedores[${i}].g.m1)"
         onfocus="this.value=String(vendedores[${i}].g.m1)"></td>
-      <td class="r"><input type="text" class="rule-input" value="${brInt(v.g.m2)}"
+      <td class="c"><input type="text" class="rule-input" value="${brInt(v.g.m2)}"
         onblur="vendedores[${i}].g.m2=parseNum(this.value);this.value=brInt(vendedores[${i}].g.m2)"
         onfocus="this.value=String(vendedores[${i}].g.m2)"></td>
-      <td class="r"><input type="text" class="rule-input" value="${brInt(v.g.sm)}"
+      <td class="c"><input type="text" class="rule-input" value="${brInt(v.g.sm)}"
         onblur="vendedores[${i}].g.sm=parseNum(this.value);this.value=brInt(vendedores[${i}].g.sm)"
         onfocus="this.value=String(vendedores[${i}].g.sm)"></td>
-      <td><button class="btn-del" onclick="removeVend(${i})">×</button></td>
+      <td class="c"><button class="mt-del" onclick="removeVend(${i})" title="Remover vendedor"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 10v6M14 10v6"/></svg></button></td>
     </tr>`).join('');
 }
 function addVend(){vendedores.push({id:'v'+Date.now(),nome:'Novo Vendedor',g:{obj:1000,m1:1200,m2:1500,sm:2000},salarioFixo:0});buildMetas();buildCelulas();}
@@ -812,20 +853,20 @@ function buildCelulas(){
   const mes=document.getElementById('mesInput')?.value;
   document.getElementById('celulasBody').innerHTML=celulas.map((c,ci)=>{
     const desemp=mes?celulaDesempenho(c,mes):null;
-    return `<div style="background:#f5f4f0;border:.5px solid #d4d3ce;border-radius:8px;padding:12px 14px;margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <input type="text" value="${c.nome}" style="font-weight:700;font-size:12px;background:transparent;border:none;border-bottom:.5px solid #e0dfdb;border-radius:0;padding:2px 4px;max-width:280px" onchange="celulas[${ci}].nome=this.value;LS.set('gs5_celulas',celulas)">
-        <button class="btn-del" onclick="removeCelula(${ci})">Remover célula</button>
+    return `<div class="mt-cel">
+      <div class="mt-cel-top">
+        <input type="text" value="${c.nome}" onchange="celulas[${ci}].nome=this.value;LS.set('gs5_celulas',celulas)">
+        <button class="mt-btn danger sm" onclick="removeCelula(${ci})"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 10v6M14 10v6"/></svg>Remover célula</button>
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+      <div class="mt-chips">
         ${vendedores.map(v=>{
           const marcado=c.vendedorIds.includes(v.id);
-          return `<label style="display:flex;align-items:center;gap:5px;font-size:11px;background:${marcado?'#eaf5f0':'#fff'};border:.5px solid ${marcado?'#1E9B6B':'#d4d3ce'};border-radius:6px;padding:4px 8px;cursor:pointer">
-            <input type="checkbox" style="width:auto" ${marcado?'checked':''} onchange="toggleVendedorCelula(${ci},'${v.id}',this.checked)">${v.nome}
+          return `<label class="mt-chip ${marcado?'on':''}">
+            <input type="checkbox" ${marcado?'checked':''} onchange="toggleVendedorCelula(${ci},'${v.id}',this.checked)">${v.nome}
           </label>`;
         }).join('')}
       </div>
-      ${desemp?`<div style="font-size:10px;color:#888">Volume combinado: ${desemp.volume.toLocaleString('pt-BR')} · Metas: ${desemp.obj.toLocaleString('pt-BR')}/${desemp.m1.toLocaleString('pt-BR')}/${desemp.m2.toLocaleString('pt-BR')}/${desemp.sm.toLocaleString('pt-BR')} · Alíquota batida: ${(desemp.aliquota*100).toFixed(0)}%</div>`:''}
+      ${desemp?`<div class="mt-foot">Volume combinado: ${desemp.volume.toLocaleString('pt-BR')} · Metas: ${desemp.obj.toLocaleString('pt-BR')}/${desemp.m1.toLocaleString('pt-BR')}/${desemp.m2.toLocaleString('pt-BR')}/${desemp.sm.toLocaleString('pt-BR')} · Alíquota batida: ${(desemp.aliquota*100).toFixed(0)}%</div>`:''}
     </div>`;
   }).join('');
 }

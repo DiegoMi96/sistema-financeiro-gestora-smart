@@ -751,3 +751,11 @@ Pedido do Diego (mockup). **Só visual/interação em `vendedor.html` — `calcV
 - **Botões de ação padronizados** com a barra de busca/Filtros: lápis (34×34, ícone SVG) e **Extrair** (34 de altura, ícone de download SVG), borda arredondada de 8px. Extrair mantém o azul universal de exportação dos perfis; desabilitado fica cinza. Cadeado (mês aprovado) e ✕ (fechar edição) também viraram SVG. Estilos escopados em `#resumoTable` — não afetam o painel de edição nem outras telas.
 - **Largura da página do Vendedor**: `max-width` 1100 → **1340px** (só nesta página), porque a tabela nova (avatar + nome em uma linha + setas de ordenação + coluna Ação) precisa de ~1290px e rolava pro lado. Em tela menor continua rolando horizontalmente.
 - Cache-bust do iframe do Vendedor: `?b=27`.
+
+## Vendedor — novo layout da aba "Metas" (2026-10-08)
+Pedido do Diego (mockup). **Só visual — nenhuma regra, cálculo ou gravação mudou** (`saveMetas`, `saveCelulaAliquotas`, `toggleVendedorCelula` etc. intactos). O selo "1 – Vendedor" que aparece no mockup **não** foi incluído (o Diego confirmou que deve ficar removido).
+- **Painel de metas**: título em negrito, botões "+ Vendedor" (com ícone) e "Salvar metas" (verde, com ícone de disquete). Tabela com **avatar + nome (editável direto)**, "R$" ao lado do Salário Fixo, campos de Objetivo/Meta 1/Meta 2/Super Meta brancos e centralizados, cabeçalho "Ação" e **lixeira vermelha** no lugar do "×".
+- **Alíquotas do Bônus de Célula**: mesmos 4 campos, agora em cartão próprio com campos brancos; **o texto explicativo foi mantido como estava** ("Percentual sobre o Salário Fixo…") — o mockup tinha outra frase ("Bônus Pool") que não foi adotada para não mudar a regra descrita.
+- **Células**: cada célula num cartão branco, nome editável, botão "Remover célula" vermelho com ícone, vendedores como **chips** (marcado = verde com negrito), linha de rodapé com volume/metas/alíquota batida.
+- Títulos mantidos como já eram ("Painel de metas · atualização trimestral", "Alíquotas do Bônus de Célula", "Células").
+- Cache-bust do iframe do Vendedor: `?b=28`.
