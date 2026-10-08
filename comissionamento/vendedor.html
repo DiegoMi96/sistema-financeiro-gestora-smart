@@ -115,8 +115,10 @@ td.r{text-align:right;font-variant-numeric:tabular-nums}
 .mt-del{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:.5px solid #f0c4c4;background:#fff;color:#b83232;cursor:pointer}
 .mt-del:hover{background:#fceaea}
 .mt-aliq{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
-.mt-aliq label.lbl{font-size:10px;letter-spacing:.06em}
-.mt-aliq .irow input{background:#fff;height:38px;border-radius:8px;font-size:13px}
+.mt-aliq label.lbl{font-size:10px;letter-spacing:.06em;text-align:center}
+.mt-aliq .irow{position:relative}
+.mt-aliq .irow input{background:#fff;height:38px;border-radius:8px;font-size:13px;text-align:center;padding:0 30px}
+.mt-aliq .irow .ipfx{position:absolute;right:12px;pointer-events:none}
 .mt-cel{background:#fff;border:.5px solid #d4d3ce;border-radius:10px;padding:14px 16px;margin-bottom:12px}
 .mt-cel-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
 .mt-cel-top input{font-weight:800;font-size:13px;background:transparent !important;border:.5px solid transparent !important;border-radius:6px;padding:4px 6px !important;max-width:300px}

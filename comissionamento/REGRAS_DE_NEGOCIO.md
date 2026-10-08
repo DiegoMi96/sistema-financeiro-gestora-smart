@@ -759,3 +759,4 @@ Pedido do Diego (mockup). **Só visual — nenhuma regra, cálculo ou gravação
 - **Células**: cada célula num cartão branco, nome editável, botão "Remover célula" vermelho com ícone, vendedores como **chips** (marcado = verde com negrito), linha de rodapé com volume/metas/alíquota batida.
 - Títulos mantidos como já eram ("Painel de metas · atualização trimestral", "Alíquotas do Bônus de Célula", "Células").
 - Cache-bust do iframe do Vendedor: `?b=28`.
+- **Alíquotas do Bônus de Célula centralizadas** (2026-10-08): rótulo e número centralizados na caixa; o "%" passou pra **dentro** da caixa (à direita, sem clique) pra o rótulo ficar exatamente no centro do campo. Cache-bust do iframe do Vendedor: `?b=29`.
