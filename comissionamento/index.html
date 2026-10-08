@@ -352,6 +352,47 @@ iframe.active{display:block}
 .cad-tipo-pill.dealer{background:#eaf5f0;color:#166B4A}
 .cad-tipo-pill.projeto{background:#eff6ff;color:#1d4ed8}
 .cad-empty{padding:28px;text-align:center;color:#bbb;font-size:12.5px}
+/* ─── Cadastro de Parceiros — layout novo ─── */
+#frame-cadastro .cad-page-wrap{max-width:1340px}
+#frame-cadastro .cad-page-hdr{border-bottom:none;padding-bottom:0;margin-bottom:20px;align-items:flex-start;gap:16px}
+.cad-sub{font-size:13px;color:#777;margin-top:8px;line-height:1.5;max-width:640px}
+#frame-cadastro .cad-page-hdr .cad-btn{border-radius:8px;padding:11px 18px;gap:10px;white-space:nowrap}
+#cadDropdownMenu{min-width:300px;padding:8px}
+#cadDropdownMenu .cad-dropdown-item{padding:10px 14px}
+#cadDropdownMenu .cad-dropdown-item .t{display:block;font-size:13px;font-weight:700;color:#1a1a18}
+#cadDropdownMenu .cad-dropdown-item .d{display:block;font-size:11.5px;font-weight:400;color:#888;margin-top:2px}
+#cadDropdownMenu .cad-dropdown-item:hover{background:#eaf5f0}
+#cadDropdownMenu .cad-dropdown-item:hover .t{color:#166B4A}
+#frame-cadastro .cad-stats-row{grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:22px}
+#frame-cadastro .cad-stat-card{border:1px solid #e5e4df;border-radius:12px;padding:18px 20px}
+#frame-cadastro .cad-stat-val{font-size:30px;margin:6px 0 8px}
+.cad-stat-cap{font-size:11.5px;color:#888}
+.cad-list-card{background:#fff;border:1px solid #e5e4df;border-radius:12px;padding:22px 24px}
+.cad-list-card .cad-list-hdr h2{font-size:18px;font-weight:800;color:#1a1a18;margin:0}
+.cad-list-sub{font-size:12.5px;color:#888;margin:4px 0 18px}
+.cad-list-card .cad-list-hdr{display:block}
+.cad-search{position:relative;flex:1;min-width:240px;display:flex;align-items:center}
+.cad-search svg{position:absolute;left:12px;color:#888;pointer-events:none}
+.cad-search input[type=text]{width:100%;padding-left:36px !important;background:#fff !important;border-radius:8px !important;height:40px}
+#frame-cadastro .cad-toolbar select{background:#fff;border-radius:8px;height:40px;min-width:190px}
+#frame-cadastro .cad-toolbar{gap:12px;margin-bottom:16px}
+.cad-limpar{background:#fff;border:1px solid #d4d3ce;border-radius:8px;height:40px;padding:0 16px;font-size:12.5px;font-weight:600;font-family:'Inter',sans-serif;color:#1a1a18;cursor:pointer;white-space:nowrap}
+.cad-limpar:hover{background:#f5f4f0}
+.cad-list-card .cad-table-wrap{border:1px solid #eeede8;border-radius:10px}
+.cad-list-card .cad-table-wrap th{background:#f7f7f4;padding:11px 14px}
+.cad-list-card .cad-table-wrap td{padding:12px 14px}
+.cad-st{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:4px 11px;border-radius:12px;white-space:nowrap}
+.cad-st.pend{background:#fef3e2;color:#b45309}
+.cad-st.ok{background:#eaf5f0;color:#166B4A}
+.cad-acoes{display:inline-flex;gap:8px}
+.cad-acoes .cad-btn-outline,.cad-acoes .cad-del-btn{height:32px;border-radius:8px;padding:0 13px;font-size:11.5px;margin:0 !important;display:inline-flex;align-items:center}
+.cad-acoes .cad-btn-outline{border-width:1px}
+.cad-pager{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:18px;font-size:12.5px;color:#888}
+.cad-pager .pg{display:flex;gap:8px}
+.cad-pager button{min-width:38px;height:38px;border:1px solid #d4d3ce;background:#fff;border-radius:8px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;color:#1a1a18;cursor:pointer}
+.cad-pager button:hover:not(:disabled){background:#f5f4f0}
+.cad-pager button.on{background:#166B4A;border-color:#166B4A;color:#fff}
+.cad-pager button:disabled{opacity:.4;cursor:default}
 .cad-del-btn{background:#fceaea;color:#b83232;border:1px solid #f5c6c6;border-radius:4px;padding:4px 9px;font-size:11px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer}
 
 /* ─── Importar ─── */
@@ -706,36 +747,42 @@ iframe.active{display:block}
         <div class="cad-page-hdr">
           <div>
             <h1>Cadastro de Parceiros</h1>
+            <p class="cad-sub">Gerencie todos os parceiros cadastrados no sistema. Cadastre manualmente ou envie um link para preenchimento.</p>
           </div>
-          <button class="cad-btn" id="cadTriggerBtn" onclick="cadToggleMenu(event)">+ Cadastrar<span class="cad-chevron">⌄</span></button>
+          <button class="cad-btn" id="cadTriggerBtn" onclick="cadToggleMenu(event)">+ Cadastrar<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>
         </div>
 
         <div class="cad-dropdown-menu" id="cadDropdownMenu">
-          <button class="cad-dropdown-item" onclick="cadAbrirModal('novo')">Novo Cadastro</button>
-          <button class="cad-dropdown-item" onclick="cadAbrirModal('link')">Enviar Link</button>
-          <button class="cad-dropdown-item" onclick="cadAbrirModal('vendedor')">Novo Vendedor</button>
+          <button class="cad-dropdown-item" onclick="cadAbrirModal('novo')"><span class="t">Novo Cadastro</span><span class="d">Cadastrar parceiro manualmente</span></button>
+          <button class="cad-dropdown-item" onclick="cadAbrirModal('link')"><span class="t">Enviar Link</span><span class="d">Gerar link para preenchimento</span></button>
+          <button class="cad-dropdown-item" onclick="cadAbrirModal('vendedor')"><span class="t">Novo Vendedor</span><span class="d">Criar vendedor com metas padrão</span></button>
         </div>
 
         <div class="cad-stats-row" id="cad_stats_row"></div>
 
-        <div class="cad-list-hdr">
-          <h2>Todos os parceiros cadastrados</h2>
+        <div class="cad-list-card">
+          <div class="cad-list-hdr">
+            <h2>Todos os parceiros cadastrados</h2>
+            <p class="cad-list-sub">Visualize, pesquise e filtre todos os parceiros do sistema.</p>
+          </div>
+          <div class="cad-toolbar">
+            <label class="cad-search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input type="text" id="cad_search" placeholder="Buscar por nome, empresa, cidade ou apelido…" oninput="cadPagina=1;cadRenderList()"></label>
+            <select id="cad_filtro_categoria" onchange="cadPagina=1;cadRenderList()">
+              <option value="">Todas as categorias</option>
+              <option value="indicador">Indicador</option>
+              <option value="indicador_n2">Indicador N2</option>
+              <option value="dealer">Dealer</option>
+              <option value="projeto">Projeto Especial</option>
+            </select>
+            <label class="cad-toolbar-check">
+              <input type="checkbox" id="cad_filtro_pendente" onchange="cadPagina=1;cadRenderList()">
+              Só pendentes
+            </label>
+            <button type="button" class="cad-limpar" onclick="cadLimparFiltros()">Limpar filtros</button>
+          </div>
+          <div class="cad-table-wrap" id="cad_table_wrap_pagina"></div>
+          <div class="cad-pager" id="cad_pager"></div>
         </div>
-        <div class="cad-toolbar">
-          <input type="text" id="cad_search" placeholder="Buscar por nome, empresa, cidade ou apelido…" oninput="cadRenderList()">
-          <select id="cad_filtro_categoria" onchange="cadRenderList()">
-            <option value="">Todas as categorias</option>
-            <option value="indicador">Indicador</option>
-            <option value="indicador_n2">Indicador N2</option>
-            <option value="dealer">Dealer</option>
-            <option value="projeto">Projeto Especial</option>
-          </select>
-          <label class="cad-toolbar-check">
-            <input type="checkbox" id="cad_filtro_pendente" onchange="cadRenderList()">
-            Só pendentes
-          </label>
-        </div>
-        <div class="cad-table-wrap" id="cad_table_wrap_pagina"></div>
       </div>
     </div>
 
@@ -1260,7 +1307,7 @@ function cadToggleMenu(e) {
   if (menu.classList.contains('open')) { menu.classList.remove('open'); return; }
   const r = document.getElementById('cadTriggerBtn').getBoundingClientRect();
   menu.style.top = (r.bottom + 6) + 'px';
-  menu.style.left = (r.right - 200) + 'px';
+  menu.style.left = (r.right - 300) + 'px';
   menu.classList.add('open');
 }
 
@@ -2626,8 +2673,21 @@ function cadRemover(tipo, id) {
   cadRenderList();
 }
 
+// Paginação da lista (só apresentação — os dados e filtros são os mesmos).
+let cadPagina = 1;
+const CAD_POR_PAGINA = 10;
+function cadIrPagina(n) { cadPagina = n; cadRenderList(); }
+function cadLimparFiltros() {
+  document.getElementById('cad_search').value = '';
+  document.getElementById('cad_filtro_categoria').value = '';
+  document.getElementById('cad_filtro_pendente').checked = false;
+  cadPagina = 1;
+  cadRenderList();
+}
+
 function cadRenderList() {
   const wrap = document.getElementById('cad_table_wrap_pagina');
+  const pager = document.getElementById('cad_pager');
   const statsWrap = document.getElementById('cad_stats_row');
   // Cada chave de armazenamento (ind1_list/dp1_dealers/dp1_projetos) só pode
   // ser lida uma vez — "indicador" e "indicador_n2" apontam pra mesma lista,
@@ -2645,9 +2705,9 @@ function cadRenderList() {
     tipo, qtd: todos.filter(e => e._tipo === tipo).length,
   })).filter(c => c.qtd > 0);
   statsWrap.innerHTML = `
-    <div class="cad-stat-card"><div class="cad-stat-lbl">Total de parceiros</div><div class="cad-stat-val">${todos.length}</div></div>
-    <div class="cad-stat-card ${totalPendentes ? 'warn' : ''}"><div class="cad-stat-lbl">Dados pendentes</div><div class="cad-stat-val">${totalPendentes}</div></div>
-    ${porCategoria.map(c => `<div class="cad-stat-card"><div class="cad-stat-lbl">${CAD_LABEL_SING[c.tipo]}</div><div class="cad-stat-val">${c.qtd}</div></div>`).join('')}
+    <div class="cad-stat-card"><div class="cad-stat-lbl">Total de parceiros</div><div class="cad-stat-val">${todos.length}</div><div class="cad-stat-cap">Todos os parceiros cadastrados</div></div>
+    <div class="cad-stat-card ${totalPendentes ? 'warn' : ''}"><div class="cad-stat-lbl">Dados pendentes</div><div class="cad-stat-val">${totalPendentes}</div><div class="cad-stat-cap">Necessitam de complementação</div></div>
+    ${porCategoria.map(c => `<div class="cad-stat-card"><div class="cad-stat-lbl">${CAD_LABEL_SING[c.tipo]}</div><div class="cad-stat-val">${c.qtd}</div><div class="cad-stat-cap">Parceiros da categoria</div></div>`).join('')}
   `;
 
   // dobraAcento: busca "acacio" tem que achar "Acácio" — nome próprio
@@ -2666,15 +2726,32 @@ function cadRenderList() {
     return true;
   });
 
-  if (!todos.length) { wrap.innerHTML = '<div class="cad-empty">Nenhum cadastro ainda.</div>'; return; }
-  if (!filtrados.length) { wrap.innerHTML = '<div class="cad-empty">Nenhum parceiro encontrado com esse filtro.</div>'; return; }
+  if (!todos.length) { wrap.innerHTML = '<div class="cad-empty">Nenhum cadastro ainda.</div>'; pager.innerHTML = ''; return; }
+  if (!filtrados.length) { wrap.innerHTML = '<div class="cad-empty">Nenhum parceiro encontrado com esse filtro.</div>'; pager.innerHTML = ''; return; }
+
+  // Paginação: a página atual nunca passa do total (ex.: depois de remover o
+  // último da última página).
+  const totalPag = Math.max(1, Math.ceil(filtrados.length / CAD_POR_PAGINA));
+  if (cadPagina > totalPag) cadPagina = totalPag;
+  if (cadPagina < 1) cadPagina = 1;
+  const ini = (cadPagina - 1) * CAD_POR_PAGINA;
+  const pagina = filtrados.slice(ini, ini + CAD_POR_PAGINA);
+  const botoes = Array.from({ length: totalPag }, (_, i) => i + 1)
+    .map(n => `<button type="button" class="${n === cadPagina ? 'on' : ''}" onclick="cadIrPagina(${n})">${n}</button>`).join('');
+  pager.innerHTML = `<span>Mostrando ${ini + 1} a ${ini + pagina.length} de ${filtrados.length} parceiro${filtrados.length !== 1 ? 's' : ''}</span>
+    <div class="pg">
+      <button type="button" ${cadPagina <= 1 ? 'disabled' : ''} onclick="cadIrPagina(${cadPagina - 1})" aria-label="Página anterior">&lsaquo;</button>
+      ${totalPag > 1 ? botoes : `<button type="button" class="on">1</button>`}
+      <button type="button" ${cadPagina >= totalPag ? 'disabled' : ''} onclick="cadIrPagina(${cadPagina + 1})" aria-label="Próxima página">&rsaquo;</button>
+    </div>`;
+
   wrap.innerHTML = `<table><thead><tr>
-      <th>Categoria</th><th>Nome</th><th>Documento</th><th>Cidade</th><th>Contato</th><th>Comercial</th><th>Ajuda de Custo</th><th style="width:140px"></th>
-    </tr></thead><tbody>${filtrados.map(e => `
+      <th>Categoria</th><th>Nome / Empresa</th><th>Documento</th><th>Cidade</th><th>Contato</th><th>Comercial</th><th>Ajuda de Custo</th><th>Status</th><th>Ações</th>
+    </tr></thead><tbody>${pagina.map(e => `
       <tr>
         <td><span class="cad-tipo-pill ${CAD_PILL_CLASS[e._tipo]}">${CAD_LABEL_SING[e._tipo]}</span></td>
         <td>
-          <div style="font-weight:500">${e.nome}${e.origem === 'link' && !e.apelido ? ' <span title="Veio pelo link de cadastro — falta preencher o apelido / ID no CRM (clique em Editar)." style="display:inline-block;font-size:10px;font-weight:700;color:#8a5a1a;background:#fbf3e6;border:1px solid #f0dbb0;border-radius:10px;padding:1px 7px;margin-left:6px;vertical-align:1px">completar apelido</span>' : ''}${e.pendente ? ' <span title="Faltam dados de contato/pagamento (CPF, cidade, celular, e-mail ou conta) — comissão calcula normal, mas não pague sem completar." style="display:inline-block;margin-left:6px;font-size:9px;font-weight:700;letter-spacing:.04em;color:#b8863f;background:#fbf1de;padding:2px 7px;border-radius:10px;vertical-align:middle">⚠ PENDENTE</span>' : ''}</div>
+          <div style="font-weight:500">${e.nome}${e.origem === 'link' && !e.apelido ? ' <span title="Veio pelo link de cadastro — falta preencher o apelido / ID no CRM (clique em Editar)." style="display:inline-block;font-size:10px;font-weight:700;color:#8a5a1a;background:#fbf3e6;border:1px solid #f0dbb0;border-radius:10px;padding:1px 7px;margin-left:6px;vertical-align:1px">completar apelido</span>' : ''}</div>
           ${e.empresa || e.apelido ? `<div class="cad-cell-sub">${[e.empresa, e.apelido].filter(Boolean).join(' · ')}</div>` : ''}
         </td>
         <td style="color:#888">${e.cpf || e.doc || e.cnpj || '<span style="color:#ccc">—</span>'}</td>
@@ -2685,9 +2762,12 @@ function cadRenderList() {
         </td>
         <td style="color:#888">${e.comercial || '<span style="color:#ccc">—</span>'}</td>
         <td style="color:#888">${e.ajudaCusto ? 'R$ ' + (+e.ajudaCusto).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '<span style="color:#ccc">—</span>'}</td>
+        <td><span class="cad-st ${e.pendente ? 'pend' : 'ok'}" ${e.pendente ? 'title="Faltam dados de contato/pagamento (CPF, cidade, celular, e-mail ou conta) — comissão calcula normal, mas não pague sem completar."' : ''}>${e.pendente ? 'Pendente' : 'Completo'}</span></td>
         <td style="white-space:nowrap">
-          <button class="cad-btn-outline" onclick="cadEditar('${e._tipo}','${e.id}')" style="padding:4px 9px;font-size:11px;margin-right:4px">Editar</button>
-          <button class="cad-del-btn" onclick="cadRemover('${e._tipo}','${e.id}')">Remover</button>
+          <div class="cad-acoes">
+            <button class="cad-btn-outline" onclick="cadEditar('${e._tipo}','${e.id}')">Editar</button>
+            <button class="cad-del-btn" onclick="cadRemover('${e._tipo}','${e.id}')">Remover</button>
+          </div>
         </td>
       </tr>`).join('')}</tbody></table>`;
 }

@@ -792,3 +792,12 @@ Pedido do Diego: seguir nas 3 telas o modelo de layout do Vendedor (aba Resumo).
 - **Não mexido**: abas de configuração (Regras de Comissão do Dealer/Projeto Especial, Configurações do Indicador) — seguem como estavam.
 - Cache-bust dos iframes: Vendedor `?b=32`, Dealer `?b=24`, Indicadores `?b=20`, Projeto Especial `?b=35`.
 - **Removido o ícone de gráfico (barras) de todos os rodapés de total** (Vendedor, Dealer, Indicador, Projeto Especial) — pedido do Diego, 2026-10-08. O rodapé fica só com o texto ("Total do time", "Total Dealers", "Total do mês", "Total Projetos Especiais", ou "Total (filtrado)"). Cache-bust: Vendedor `?b=33`, Dealer `?b=25`, Indicadores `?b=21`, Projeto Especial `?b=36`.
+
+## Cadastro de Parceiros — novo layout (2026-10-08)
+Pedido do Diego ("melhore a parte de cadastro de parceiros", com mockup). **Só apresentação — os dados, filtros, formulários, modais, geração de link e a regra de pendência não mudaram.** Seguindo as decisões já tomadas: **sem ícones decorativos** nos cartões/menu e **sem botão Exportar** (o mockup tinha; o Diego já recusou Exportar na Consolidada e no Vendedor).
+- **Cabeçalho**: título + subtítulo ("Gerencie todos os parceiros…"), sem a linha preta; botão **"+ Cadastrar"** com seta; o menu agora mostra **título + descrição** em cada opção (Novo Cadastro / Enviar Link / Novo Vendedor), mais largo (300px).
+- **Cartões de resumo** (Total de parceiros, Dados pendentes, Indicador, Dealer, Projeto Especial): número grande + legenda ("Todos os parceiros cadastrados", "Necessitam de complementação", "Parceiros da categoria"). Contam sempre a base inteira, sem aplicar busca/filtro.
+- **Lista num cartão** com título e subtítulo; barra com **busca (ícone de lupa)**, categoria, "Só pendentes" e **"Limpar filtros"**.
+- **Tabela**: coluna **Status** nova (**Pendente** em âmbar — com o motivo no tooltip — ou **Completo** em verde), que substitui o selo "⚠ PENDENTE" ao lado do nome (o selo "completar apelido" de quem veio pelo link continua). Cabeçalho "Nome / Empresa" e "Ações"; botões Editar/Remover mais compactos.
+- **Paginação**: 10 parceiros por página, "Mostrando 1 a 10 de 11 parceiros" e botões ‹ 1 2 ›; voltar pra página 1 ao buscar/filtrar; a página atual nunca passa do total (ex.: depois de remover o último da última página).
+- Página do Cadastro com `max-width` 1340px (como os perfis).
