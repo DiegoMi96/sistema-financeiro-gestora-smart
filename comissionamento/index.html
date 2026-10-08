@@ -119,6 +119,27 @@ input[type=text],input[type=number],input[type=month],input[type=date],select,te
 .modal-close{background:none;border:none;font-size:15px;color:#888;cursor:pointer;width:30px;height:30px;border-radius:7px;line-height:1}
 .modal-close:hover{background:#eeede8;color:#1a1a18}
 .modal-card-body{padding:22px 26px 28px}
+/* ─── Modal Novo/Editar Cadastro — layout novo (só este modal) ─── */
+#cadModalNovo .modal-card{max-width:900px;background:#fff;border-radius:18px}
+#cadModalNovo .modal-card-hdr{border-bottom:none;background:#fff;align-items:flex-start;padding:26px 30px 6px}
+#cadModalNovo .modal-card-hdr h2{font-size:26px;line-height:1.15}
+#cadModalNovo .mn-sub{font-size:13.5px;color:#777;margin-top:6px}
+#cadModalNovo .modal-close{color:#555;display:flex;align-items:center;justify-content:center}
+#cadModalNovo .modal-card-body{padding:16px 30px 28px}
+.mn-sec{background:#fff;border:1px solid #e5e4df;border-radius:12px;padding:20px 22px 8px;margin-bottom:16px}
+.mn-sec-hdr{margin-bottom:16px}
+.mn-sec-t{font-size:16px;font-weight:800;color:#1a1a18}
+.mn-sec-s{font-size:12.5px;color:#888;margin-top:2px}
+#cadModalNovo .cad-grid{gap:16px 20px;margin-bottom:12px}
+#cadModalNovo .cad-lbl{font-size:12.5px;font-weight:700;letter-spacing:0;text-transform:none;color:#1a1a18;margin-bottom:6px}
+#cadModalNovo .cad-lbl .req{font-weight:600}
+#cadModalNovo input[type=text],#cadModalNovo input[type=number],#cadModalNovo select{background:#fff;border:1px solid #d4d3ce;border-radius:8px;height:42px;padding:0 14px;font-size:13.5px;width:100%}
+#cadModalNovo input:focus,#cadModalNovo select:focus{border-color:#1E9B6B}
+.mn-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:6px}
+.mn-cancel{background:#fff;border:1px solid #d4d3ce;border-radius:10px;height:46px;padding:0 26px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;color:#1a1a18;cursor:pointer}
+.mn-cancel:hover{background:#f5f4f0}
+.mn-foot .cad-btn{background:#166B4A;border-radius:10px;height:46px;padding:0 30px;font-size:14px;font-weight:700}
+.mn-foot .cad-btn:hover{background:#0d5233}
 
 .nav-sep{height:1px;background:#eeede8;margin:10px 4px}
 .nav-label{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6f6e69;padding:8px 12px 6px}
@@ -983,12 +1004,15 @@ iframe.active{display:block}
 <div class="modal-overlay" id="cadModalNovo" onclick="if(event.target===this) cadFecharModal('novo')">
   <div class="modal-card">
     <div class="modal-card-hdr">
-      <h2 id="cadModalNovoTitulo">Novo Cadastro</h2>
-      <button class="modal-close" onclick="cadFecharModal('novo')">✕</button>
+      <div>
+        <h2 id="cadModalNovoTitulo">Novo Cadastro</h2>
+        <p class="mn-sub" id="cadModalNovoSubtitulo">Cadastre um novo parceiro preenchendo as informações abaixo.</p>
+      </div>
+      <button class="modal-close" onclick="cadFecharModal('novo')" aria-label="Fechar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <div class="modal-card-body">
-      <div class="cad-card">
-        <p class="cad-card-title" id="cadModalNovoSubtitulo">Novo cadastro</p>
+      <div class="mn-sec">
+        <div class="mn-sec-hdr"><p class="mn-sec-t">Dados do Parceiro</p><p class="mn-sec-s">Informações principais da empresa ou pessoa.</p></div>
         <div class="cad-grid">
           <div>
             <label class="cad-lbl">Categoria <span class="req">*</span></label>
@@ -1019,6 +1043,11 @@ iframe.active{display:block}
             <label class="cad-lbl">Vinculado a qual executivo <span class="req">*</span></label>
             <select id="cad_comercial"></select>
           </div>
+        </div>
+      </div>
+      <div class="mn-sec">
+        <div class="mn-sec-hdr"><p class="mn-sec-t">Contato</p><p class="mn-sec-s">Canais de comunicação do parceiro.</p></div>
+        <div class="cad-grid">
           <div>
             <label class="cad-lbl">Celular <span class="req" title="Sem isso o cadastro fica marcado como pendente">(recomendado)</span></label>
             <input type="text" id="cad_celular" placeholder="(41) 99999-9999">
@@ -1039,12 +1068,15 @@ iframe.active{display:block}
             <label class="cad-lbl">Ajuda de custo (R$/mês)</label>
             <input type="number" id="cad_ajudacusto" min="0" step="0.01" placeholder="0,00">
           </div>
-          <div>
+          <div class="full">
             <label class="cad-lbl">Apelido / ID no CRM <span class="req" title="Recomendado quando o nome na planilha de Importar é diferente do nome de exibição">(recomendado)</span></label>
             <input type="text" id="cad_apelido" placeholder="Ex: joao.silva">
           </div>
-
-          <div class="full cad-section-title">Endereço</div>
+        </div>
+      </div>
+      <div class="mn-sec">
+        <div class="mn-sec-hdr"><p class="mn-sec-t">Endereço</p><p class="mn-sec-s">Endereço completo do parceiro.</p></div>
+        <div class="cad-grid">
           <div class="full">
             <label class="cad-lbl">Endereço (rua, número e complemento)</label>
             <input type="text" id="cad_endereco" placeholder="Ex: Rua das Flores, 123, Apto 45">
@@ -1065,21 +1097,21 @@ iframe.active{display:block}
             <label class="cad-lbl">CEP</label>
             <input type="text" id="cad_cep" placeholder="Ex: 80000-000">
           </div>
-
-          <div class="full cad-section-title">Conta bancária</div>
-          <div class="full">
+        </div>
+      </div>
+      <div class="mn-sec">
+        <div class="mn-sec-hdr"><p class="mn-sec-t">Conta bancária</p><p class="mn-sec-s">Dados para pagamento, se aplicável.</p></div>
             <p id="cad_conta_legado_hint" style="display:none;font-size:11px;color:#b8863f;background:#fbf1de;border-radius:6px;padding:7px 10px;margin-bottom:12px;line-height:1.5"></p>
-            <div class="cad-grid" style="margin-bottom:0">
-              <div><label class="cad-lbl" style="font-weight:400">Banco</label><input type="text" id="cad_conta_banco" placeholder="Ex: Sicredi"></div>
-              <div><label class="cad-lbl" style="font-weight:400">Agência</label><input type="text" id="cad_conta_agencia" placeholder="Ex: 0818"></div>
-              <div><label class="cad-lbl" style="font-weight:400">Conta</label><input type="text" id="cad_conta_numero" placeholder="Ex: 20974-7"></div>
-              <div><label class="cad-lbl" style="font-weight:400">Chave PIX <span class="req" title="Sem isso o cadastro fica marcado como pendente">(recomendado)</span></label><input type="text" id="cad_conta_pix" placeholder="CPF, e-mail, celular ou aleatória"></div>
-            </div>
-          </div>
+        <div class="cad-grid">
+              <div><label class="cad-lbl">Banco</label><input type="text" id="cad_conta_banco" placeholder="Ex: Sicredi"></div>
+              <div><label class="cad-lbl">Agência</label><input type="text" id="cad_conta_agencia" placeholder="Ex: 0818"></div>
+              <div><label class="cad-lbl">Conta</label><input type="text" id="cad_conta_numero" placeholder="Ex: 20974-7"></div>
+              <div><label class="cad-lbl">Chave PIX <span class="req" title="Sem isso o cadastro fica marcado como pendente">(recomendado)</span></label><input type="text" id="cad_conta_pix" placeholder="CPF, e-mail, celular ou aleatória"></div>
         </div>
-        <div class="cad-actions">
-          <button class="cad-btn" id="cadModalNovoBtnSalvar" onclick="cadSalvar()">✓ Cadastrar</button>
-        </div>
+      </div>
+      <div class="mn-foot">
+        <button class="mn-cancel" onclick="cadFecharModal('novo')">Cancelar</button>
+        <button class="cad-btn" id="cadModalNovoBtnSalvar" onclick="cadSalvar()">Cadastrar parceiro</button>
       </div>
     </div>
   </div>
@@ -2490,14 +2522,14 @@ let cadEditando = null;
 
 function cadModalModoNovo() {
   document.getElementById('cadModalNovoTitulo').textContent = 'Novo Cadastro';
-  document.getElementById('cadModalNovoSubtitulo').textContent = 'Novo cadastro';
-  document.getElementById('cadModalNovoBtnSalvar').textContent = '✓ Cadastrar';
+  document.getElementById('cadModalNovoSubtitulo').textContent = 'Cadastre um novo parceiro preenchendo as informações abaixo.';
+  document.getElementById('cadModalNovoBtnSalvar').textContent = 'Cadastrar parceiro';
   document.getElementById('cad_categoria').disabled = false;
 }
 function cadModalModoEdicao(nome) {
   document.getElementById('cadModalNovoTitulo').textContent = 'Editar Cadastro';
-  document.getElementById('cadModalNovoSubtitulo').textContent = 'Editando ' + nome;
-  document.getElementById('cadModalNovoBtnSalvar').textContent = '✓ Salvar alterações';
+  document.getElementById('cadModalNovoSubtitulo').textContent = 'Atualize as informações de ' + nome + '.';
+  document.getElementById('cadModalNovoBtnSalvar').textContent = 'Salvar alterações';
 }
 
 function cadEditar(tipo, id) {
