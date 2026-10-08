@@ -816,7 +816,7 @@ iframe.active{display:block}
     <iframe id="frame-vendedor" src="vendedor.html?b=25" title="Vendedor"></iframe>
     <iframe id="frame-dealer" src="dealer.html?b=22" title="Dealer"></iframe>
     <iframe id="frame-indicadores" src="indicadores.html?b=17" title="Indicador"></iframe>
-    <iframe id="frame-projeto_especial" src="projeto_especial.html?b=32" title="Projeto Especial"></iframe>
+    <iframe id="frame-projeto_especial" src="projeto_especial.html?b=33" title="Projeto Especial"></iframe>
     <iframe id="frame-gestor_operacoes" src="gestor_operacoes.html?b=12" title="Gestor de Operações"></iframe>
     <iframe id="frame-diretor_adm" src="diretor_adm.html?b=10" title="Diretor Administrativo"></iframe>
     <iframe id="frame-diretor_comercial" src="diretor_comercial.html?b=10" title="Diretor Comercial"></iframe>
@@ -3130,7 +3130,10 @@ function impProcessarInventario() {
       // linhas da entidade — independente de ter preço de operadora mapeado.
       projLinhasAgg[ent.id] = (projLinhasAgg[ent.id] || 0) + 1;
       const pp = ppProjetos[ent.id] || {};
-      const hist = pp[opEsp] || pp[opGeral];
+      // Preço base lido pela coluna "Operadora" (a específica só entra de reserva
+      // se a operadora geral não estiver na tabela) — o CRM marca como "ARQIA 2OP"
+      // linhas que são ARQIA normal (Imperio), e isso pagava o preço errado.
+      const hist = pp[opGeral] || pp[opEsp];
       let preco = hist ? impPrecoVigente(hist, r['Data de ativação']) : null;
       // Linha unitária "fora do padrão" (BL/alto consumo etc.): se a margem
       // bruta dessa linha (mensalidade − valor base da tabela) passar de
@@ -3141,7 +3144,7 @@ function impProcessarInventario() {
         // Operadora sem valor base cadastrado — margem dessa linha é 0 (não a
         // mensalidade inteira), confirmado com o Diego. Só conta como
         // "sem preço" pro aviso, não entra na soma da margem.
-        semPrecoProjeto[opEsp || opGeral || '(sem operadora)'] = (semPrecoProjeto[opEsp || opGeral || '(sem operadora)'] || 0) + 1;
+        semPrecoProjeto[opGeral || opEsp || '(sem operadora)'] = (semPrecoProjeto[opGeral || opEsp || '(sem operadora)'] || 0) + 1;
       } else {
         // Margem bruta da linha (nunca negativa — confirmado na planilha real:
         // quando Valor Base > Mensalidade, a linha não desconta, fica em 0).

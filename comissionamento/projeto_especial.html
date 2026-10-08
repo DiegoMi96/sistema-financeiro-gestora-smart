@@ -504,7 +504,8 @@ function peLinhaExtra(headers,row,proj,pp,mesRefAtiv){
   const get=nome=>{const i=headers.indexOf(nome);return i>=0?row[i]:undefined;};
   const mensalidade=Number(get('Mensalidade'))||0;
   const opEsp=get('Operadora específica'),opGeral=get('Operadora');
-  const hist=pp[opEsp]||pp[opGeral];
+  // Mesma regra do motor (index.html): lê pela coluna "Operadora"; a específica só é reserva.
+  const hist=pp[opGeral]||pp[opEsp];
   const dataAtivacao=get('Data de ativação');
   let valorBase=hist?pePrecoVigente(hist,dataAtivacao):null;
   // Linha unitária "fora do padrão": margem bruta > R$5,00 vira Valor Base =
