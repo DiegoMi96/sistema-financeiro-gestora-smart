@@ -745,3 +745,9 @@ Pedido do Diego (mockup). **Só visual/interação em `vendedor.html` — `calcV
 - **Tabela**: avatar com iniciais (verde claro — sem roxo), **colunas ordenáveis** (Vendedor, Linhas, Faixa, Volume, Ativação, Equipamento, Bônus Célula, −Frete, Total; clique alterna crescente → decrescente → ordem original; Alcance/Desafio/Smart GPS não ordenam, como no mockup), cabeçalho "Ação", ícone de lápis em SVG, rodapé com ícone de gráfico.
 - **Decisões do Diego**: **sem** ícone de olho (mantém só o lápis ✏ de editar), **sem** botão Exportar na barra, **sem** botão de colunas. O "↓ Extrair" por vendedor continua como era.
 - Cache-bust do iframe do Vendedor: `?b=25` → `?b=26`.
+
+### Vendedor — ajustes de acabamento (2026-10-08)
+- **Nome em uma linha só** (nome e sobrenome lado a lado, `white-space:nowrap`) — antes quebrava em duas linhas.
+- **Botões de ação padronizados** com a barra de busca/Filtros: lápis (34×34, ícone SVG) e **Extrair** (34 de altura, ícone de download SVG), borda arredondada de 8px. Extrair mantém o azul universal de exportação dos perfis; desabilitado fica cinza. Cadeado (mês aprovado) e ✕ (fechar edição) também viraram SVG. Estilos escopados em `#resumoTable` — não afetam o painel de edição nem outras telas.
+- **Largura da página do Vendedor**: `max-width` 1100 → **1340px** (só nesta página), porque a tabela nova (avatar + nome em uma linha + setas de ordenação + coluna Ação) precisa de ~1290px e rolava pro lado. Em tela menor continua rolando horizontalmente.
+- Cache-bust do iframe do Vendedor: `?b=27`.
