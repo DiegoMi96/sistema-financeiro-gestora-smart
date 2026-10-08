@@ -736,3 +736,12 @@ Pedido do Diego (mockup): Consolidada com a cara do modelo. **Só visual/intera�
 - **Tabela da Diretoria**: categorias renumeradas **5 – Gestor Op. (azul claro) / 6 – Diretor Adm. / 7 – Diretor Com. (cinza claro)**, seguindo a numeração dos perfis do mockup.
 - **Formato**: as pílulas novas (% do total e variação) usam **1 casa decimal**, como no mockup do Diego (a regra antiga "% sempre sem casa decimal" é do restante do sistema).
 - Código: `consRenderTabelas`/`consLinhasVisiveis`/`consTogglePop`/`consLimparFiltros` em `index.html`; contexto da última renderização em `CONS_CTX`.
+
+## Vendedor — novo layout do "Resumo do time" (2026-10-08)
+Pedido do Diego (mockup). **Só visual/interação em `vendedor.html` — `calcVend` e todos os valores continuam iguais.**
+- **Cabeçalho**: "Gestora Smart › Sistema de Comissionamento"; **removido o badge "1 – Vendedor"** só nesta página (o mockup não tem).
+- **Mês do comissionamento**: rótulo em caixa normal e seletor com ícone de calendário + seta (o `input type=month` nativo continua por baixo, clicável).
+- **Barra de ferramentas**: **busca** por vendedor e **Filtros** (faixa F1..Fn + "ocultar sem lançamento"). Busca/filtro só escondem linhas; a linha **Total passa a somar só o que está visível** e vira "Total (filtrado)".
+- **Tabela**: avatar com iniciais (verde claro — sem roxo), **colunas ordenáveis** (Vendedor, Linhas, Faixa, Volume, Ativação, Equipamento, Bônus Célula, −Frete, Total; clique alterna crescente → decrescente → ordem original; Alcance/Desafio/Smart GPS não ordenam, como no mockup), cabeçalho "Ação", ícone de lápis em SVG, rodapé com ícone de gráfico.
+- **Decisões do Diego**: **sem** ícone de olho (mantém só o lápis ✏ de editar), **sem** botão Exportar na barra, **sem** botão de colunas. O "↓ Extrair" por vendedor continua como era.
+- Cache-bust do iframe do Vendedor: `?b=25` → `?b=26`.
