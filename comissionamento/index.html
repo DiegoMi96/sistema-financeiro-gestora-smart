@@ -1677,11 +1677,19 @@ function consDealerProjetoTotais(mes) {
   const dealerRows = dealers.map(dl => {
     const d = mdata[`d_${dl.id}_${mes}`] || {};
     const margin = d.margin || 0, novas = d.novas || 0, bonus = d.bonus || 0;
-    const cancelDesc = (d.cancel || 0) * (rules.cancelRate || 0);
-    const total = margin + getBL(novas) + bonus - cancelDesc;
+    // Mesma regra da aba Dealer (dealer.html calcDealer) e da Visão do Executivo
+    // (calcParceiroExec): dealer com Regra de Comissão usa a taxa de cancelamento
+    // da PRÓPRIA regra (senão a genérica) e não recebe Bateu-Levou, que é do
+    // modelo padrão. Antes a Consolidada usava sempre a genérica e somava o
+    // Bateu-Levou — Hilario (R$1,00/linha) saía com o desconto em dobro.
+    const regra = regraDealer(dl.id);
+    const cancelRate = regra ? (regra.cancelamento ? regra.cancelamento.taxa : (rules.cancelRate || 0)) : (rules.cancelRate || 0);
+    const bl = regra ? 0 : getBL(novas);
+    const cancelDesc = (d.cancel || 0) * cancelRate;
+    const total = margin + bl + bonus - cancelDesc;
     return {
       nome: dl.nome, total, hasData: !!(margin || novas || bonus || d.cancel),
-      simcard: margin + getBL(novas), bonificacao: bonus, equipamento: 0, gps: 0, descCanc: cancelDesc, descFrete: 0,
+      simcard: margin + bl, bonificacao: bonus, equipamento: 0, gps: 0, descCanc: cancelDesc, descFrete: 0,
     };
   });
   const projetoRows = projetos.map(pj => {
