@@ -3024,11 +3024,22 @@ function impProcessarClientes() {
   if (!impRows.clientes) { alert('Selecione a planilha de Clientes primeiro.'); return; }
   const mapa = {};
   let semDoc = 0;
+  // Cliente pode ter CPF E CNPJ preenchidos (ex.: sócio + empresa) e o
+  // Inventário/Cobranças pode trazer qualquer um dos dois — registra os dois
+  // pra não perder a linha (Movitracker Paraná, 51 linhas do Renato, ficava
+  // de fora porque só o CNPJ era guardado e o Inventário vinha pelo CPF).
+  // O documento principal (CNPJ, ou CPF se não tem CNPJ) sempre vale; o CPF
+  // "extra" de uma empresa só preenche o que nenhum cliente reivindicou.
+  const secundarios = [];
   impRows.clientes.forEach(r => {
-    const doc = onlyDigits(r['CNPJ']) || onlyDigits(r['CPF']);
+    const cnpj = onlyDigits(r['CNPJ']), cpf = onlyDigits(r['CPF']);
+    const doc = cnpj || cpf;
     if (!doc) { semDoc++; return; }
-    mapa['ss_' + doc] = (r['Vendedor'] || '').toString().trim();
+    const resp = (r['Vendedor'] || '').toString().trim();
+    mapa['ss_' + doc] = resp;
+    if (cnpj && cpf) secundarios.push([cpf, resp]);
   });
+  secundarios.forEach(([cpf, resp]) => { if (!mapa['ss_' + cpf] && resp) mapa['ss_' + cpf] = resp; });
   LS_set('imp_clientes_map', mapa);
   document.getElementById('imp_clientes_result').innerHTML =
     `<div class="imp-status st-ok">${Object.keys(mapa).length.toLocaleString('pt-BR')} clientes carregados e prontos para cruzar com o Inventário${semDoc ? ' (' + semDoc + ' sem CPF nem CNPJ, ignorados)' : ''}.</div>`;
