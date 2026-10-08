@@ -165,6 +165,19 @@ input[type=text],input[type=number],input[type=month],input[type=date],select,te
 .ml-copy{background:#e3f2ec;color:#166B4A;border:none;margin:4px;border-radius:6px;padding:0 16px;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap}
 .ml-copy:hover{background:#cfe9dd}
 .ml-note{font-size:11px;color:#777;margin-top:8px;line-height:1.5}
+/* ─── Modal Novo Vendedor — layout novo (só este modal) ─── */
+#cadModalVendedor .modal-card{max-width:640px;background:#fff;border-radius:14px}
+#cadModalVendedor .modal-card-hdr{border-bottom:none;background:#fff;align-items:flex-start;padding:20px 24px 4px}
+#cadModalVendedor .modal-card-hdr h2{font-size:20px;line-height:1.15}
+#cadModalVendedor .mn-sub{font-size:12px;color:#777;margin-top:4px}
+#cadModalVendedor .modal-close{color:#555;display:flex;align-items:center;justify-content:center}
+#cadModalVendedor .modal-card-body{padding:12px 24px 22px}
+#cadModalVendedor .mv-nome{margin-bottom:14px}
+#cadModalVendedor .cad-grid{gap:12px 16px;margin-bottom:10px}
+#cadModalVendedor .cad-lbl{font-size:12px;font-weight:700;letter-spacing:0;text-transform:none;color:#1a1a18;margin-bottom:5px}
+#cadModalVendedor input[type=text],#cadModalVendedor input[type=number]{background:#fff;border:1px solid #d4d3ce;border-radius:8px;height:36px;padding:0 12px;font-size:12.5px;width:100%}
+#cadModalVendedor input:focus{border-color:#1E9B6B}
+
 
 
 .nav-sep{height:1px;background:#eeede8;margin:10px 4px}
@@ -1192,20 +1205,26 @@ iframe.active{display:block}
 <div class="modal-overlay" id="cadModalVendedor" onclick="if(event.target===this) cadFecharModal('vendedor')">
   <div class="modal-card">
     <div class="modal-card-hdr">
-      <h2>Novo Vendedor</h2>
-      <button class="modal-close" onclick="cadFecharModal('vendedor')">✕</button>
+      <div>
+        <h2>Novo Vendedor</h2>
+        <p class="mn-sub">Cadastre um vendedor definindo suas metas trimestrais.</p>
+      </div>
+      <button class="modal-close" onclick="cadFecharModal('vendedor')" aria-label="Fechar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <div class="modal-card-body">
-      <div class="cad-card">
-        <p class="cad-card-title">Dados do vendedor</p>
-        <p class="cad-invite-hint">Cria o vendedor com metas trimestrais padrão — ajuste os valores reais depois em <strong>Vendedor → aba Metas</strong>. É a esse vendedor que Indicadores, Dealers e Projetos Especiais são vinculados no campo "Comercial".</p>
-        <div class="cad-grid" style="margin-bottom:4px">
-          <div class="full">
-            <label class="cad-lbl">Nome completo <span class="req">*</span></label>
-            <input type="text" id="cadv_nome" placeholder="Ex: Maria Fernandes">
-          </div>
+      <div class="ml-how">
+        <p class="ml-how-t">Como funciona?</p>
+        <p class="ml-how-s">Cria o vendedor com metas trimestrais padrão — ajuste os valores reais depois em <strong>Vendedor → aba Metas</strong>. É a esse vendedor que Indicadores, Dealers e Projetos Especiais são vinculados no campo "Comercial".</p>
+      </div>
+      <div class="mv-nome">
+        <label class="cad-lbl">Nome completo <span class="req">*</span></label>
+        <input type="text" id="cadv_nome" placeholder="Ex: Maria Fernandes">
+      </div>
+      <div class="mn-sec">
+        <div class="mn-sec-hdr"><p class="mn-sec-t">Metas trimestrais</p><p class="mn-sec-s">Defina as metas padrão que poderão ser ajustadas posteriormente. Campo em branco usa o valor sugerido.</p></div>
+        <div class="cad-grid">
           <div>
-            <label class="cad-lbl">Objetivo (metas trimestrais)</label>
+            <label class="cad-lbl">Objetivo (meta trimestral)</label>
             <input type="number" id="cadv_obj" placeholder="1000">
           </div>
           <div>
@@ -1217,13 +1236,14 @@ iframe.active{display:block}
             <input type="number" id="cadv_m2" placeholder="1500">
           </div>
           <div>
-            <label class="cad-lbl">Super Meta</label>
+            <label class="cad-lbl">Super meta</label>
             <input type="number" id="cadv_sm" placeholder="2000">
           </div>
         </div>
-        <div class="cad-actions">
-          <button class="cad-btn" onclick="cadSalvarVendedor()">✓ Criar vendedor</button>
-        </div>
+      </div>
+      <div class="mn-foot">
+        <button class="mn-cancel" onclick="cadFecharModal('vendedor')">Cancelar</button>
+        <button class="cad-btn" onclick="cadSalvarVendedor()">Criar vendedor</button>
       </div>
     </div>
   </div>
