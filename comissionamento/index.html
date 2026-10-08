@@ -1674,9 +1674,25 @@ function consDealerProjetoTotais(mes) {
   const blTiers = CLS.get('dp1_bl', CONS_DEFAULTS.blTiers);
   const rules = CLS.get('dp1_rules', CONS_DEFAULTS.dealerRules);
   const getBL = novas => { let t = 0; [...blTiers].sort((a, b) => a.threshold - b.threshold).forEach(tt => { if (novas >= tt.threshold) t += tt.bonus; }); return t; };
+  // Dealer e Projeto Especial: a conta é a DO PRÓPRIO PERFIL (calcDealer /
+  // calcProjeto, expostas pelos iframes) — a Consolidada só copia o resultado,
+  // em vez de refazer a fórmula (que já divergiu uma vez: Hilario saía com o
+  // desconto de cancelamento em dobro). Se o iframe não estiver carregado, cai
+  // na cópia local logo abaixo (mesma regra, mantida como reserva).
+  const dealerWin = document.getElementById('frame-dealer')?.contentWindow;
+  const projWin = document.getElementById('frame-projeto_especial')?.contentWindow;
   const dealerRows = dealers.map(dl => {
     const d = mdata[`d_${dl.id}_${mes}`] || {};
     const margin = d.margin || 0, novas = d.novas || 0, bonus = d.bonus || 0;
+    let doPerfil = null;
+    try { if (typeof dealerWin?.calcDealer === 'function') doPerfil = dealerWin.calcDealer(d, dl.id); } catch (e) { doPerfil = null; }
+    if (doPerfil && typeof doPerfil.total === 'number') {
+      return {
+        nome: dl.nome, total: doPerfil.total, hasData: !!(margin || novas || bonus || d.cancel),
+        simcard: (doPerfil.margin || 0) + ((doPerfil.bl && doPerfil.bl.total) || 0), bonificacao: doPerfil.bonus || 0,
+        equipamento: 0, gps: 0, descCanc: doPerfil.cancelDesc || 0, descFrete: 0,
+      };
+    }
     // Mesma regra da aba Dealer (dealer.html calcDealer) e da Visão do Executivo
     // (calcParceiroExec): dealer com Regra de Comissão usa a taxa de cancelamento
     // da PRÓPRIA regra (senão a genérica) e não recebe Bateu-Levou, que é do
@@ -1695,6 +1711,15 @@ function consDealerProjetoTotais(mes) {
   const projetoRows = projetos.map(pj => {
     const d = mdata[`p_${pj.id}_${mes}`] || {};
     const margin = d.margin || 0, ativacao = d.ativacao || 0, bonus = d.bonus || 0;
+    let doPerfil = null;
+    try { if (typeof projWin?.calcProjeto === 'function') doPerfil = projWin.calcProjeto(d, pj); } catch (e) { doPerfil = null; }
+    if (doPerfil && typeof doPerfil.total === 'number') {
+      return {
+        nome: pj.nome, total: doPerfil.total, hasData: !!(margin || ativacao || bonus || d.cancel),
+        simcard: (doPerfil.margin || 0) + (doPerfil.ativacao || 0), bonificacao: doPerfil.bonus || 0,
+        equipamento: 0, gps: 0, descCanc: doPerfil.cancelDesc || 0, descFrete: 0,
+      };
+    }
     // Cancelamento do Projeto Especial é próprio de cada projeto (pj.cancelRate),
     // não mais a taxa genérica de dp1_rules — cada parceiro tem sua regra.
     const cancelDesc = (d.cancel || 0) * (pj.cancelRate || 0);
