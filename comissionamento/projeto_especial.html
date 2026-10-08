@@ -259,6 +259,11 @@ function mesAprovado(mes){try{const a=JSON.parse(localStorage.getItem('aprovacoe
 // iframe — `rawStore` é `let`, não vira propriedade de window sozinho.
 function getRawFor(id,mes){return rawStore[`projeto_${id}_${mes}`]||{};}
 let projetosPrecos=LS.get('dp1_pp',DEF_PP);
+// Mesma garantia do shell: se dp1_pp existe sem os preços dos projetos de semente
+// (p1/p3), preenche com a semente — sem sobrescrever o que já tem preço.
+(function(){let m=false;if(!projetosPrecos||typeof projetosPrecos!=='object'){projetosPrecos={};m=true;}
+Object.keys(DEF_PP).forEach(id=>{const a=projetosPrecos[id];const ok=a&&Object.values(a).some(h=>Array.isArray(h)&&h.length);if(!ok){projetosPrecos[id]=JSON.parse(JSON.stringify(DEF_PP[id]));m=true;}});
+if(m)LS.set('dp1_pp',projetosPrecos);})();
 let projetos=LS.get('dp1_projetos',DEF_PROJETOS);
 let mdata=LS.get('dp1_m',{});
 let rawStore={};

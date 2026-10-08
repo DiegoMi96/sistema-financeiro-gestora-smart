@@ -816,7 +816,7 @@ iframe.active{display:block}
     <iframe id="frame-vendedor" src="vendedor.html?b=25" title="Vendedor"></iframe>
     <iframe id="frame-dealer" src="dealer.html?b=22" title="Dealer"></iframe>
     <iframe id="frame-indicadores" src="indicadores.html?b=17" title="Indicador"></iframe>
-    <iframe id="frame-projeto_especial" src="projeto_especial.html?b=31" title="Projeto Especial"></iframe>
+    <iframe id="frame-projeto_especial" src="projeto_especial.html?b=32" title="Projeto Especial"></iframe>
     <iframe id="frame-gestor_operacoes" src="gestor_operacoes.html?b=12" title="Gestor de Operações"></iframe>
     <iframe id="frame-diretor_adm" src="diretor_adm.html?b=10" title="Diretor Administrativo"></iframe>
     <iframe id="frame-diretor_comercial" src="diretor_comercial.html?b=10" title="Diretor Comercial"></iframe>
@@ -1321,6 +1321,25 @@ const DEF_PP_PROJETO = {
     VIVO: [{ desde: '2020-01-01', valor: 3.70 }], CLARO: [{ desde: '2020-01-01', valor: 3.90 }], TIM: [{ desde: '2020-01-01', valor: 3.00 }],
   },
 };
+// Garante os preços-base dos projetos de semente (p1/p3). Antes, ao cadastrar um
+// Projeto Especial com a chave dp1_pp ainda inexistente, ela nascia só com o
+// projeto novo ({novo:{ALGAR:0,...}}) e as sementes nunca mais carregavam —
+// os preços "sumiam". Só preenche o que está ausente/vazio/zerado; nunca
+// sobrescreve preço que alguém editou.
+function ppGarantirSementes() {
+  try {
+    let pp = CLS.get('dp1_pp', null);
+    let mudou = false;
+    if (!pp || typeof pp !== 'object') { pp = {}; mudou = true; }
+    Object.keys(DEF_PP_PROJETO).forEach(id => {
+      const atual = pp[id];
+      const temPreco = atual && Object.values(atual).some(h => Array.isArray(h) && h.length);
+      if (!temPreco) { pp[id] = JSON.parse(JSON.stringify(DEF_PP_PROJETO[id])); mudou = true; }
+    });
+    if (mudou) localStorage.setItem('dp1_pp', JSON.stringify(pp));
+  } catch (e) { console.error('ppGarantirSementes falhou:', e); }
+}
+ppGarantirSementes();
 function impPrecoVigente(historico, dataAtivacao) {
   if (!historico || !historico.length) return null;
   const d = dataAtivacao instanceof Date ? dataAtivacao : new Date(dataAtivacao);
@@ -2363,7 +2382,7 @@ function cadSalvar() {
       // Entrou em Projeto Especial: precisa da entrada de preços por operadora.
       if (tipo === 'projeto' && cadEditando.tipo !== 'projeto') {
         const pp = CLS.get('dp1_pp', {});
-        pp[cadEditando.id] = { ALGAR: 0, ARQIA: 0, VIVO: 0, CLARO: 0, TIM: 0 };
+        pp[cadEditando.id] = {};
         set('dp1_pp', pp);
       }
     }
@@ -2387,7 +2406,7 @@ function cadSalvar() {
   // pra não quebrar a tela de Configurações do perfil.
   if (tipo === 'projeto') {
     const pp = CLS.get('dp1_pp', {});
-    pp[entry.id] = { ALGAR: 0, ARQIA: 0, VIVO: 0, CLARO: 0, TIM: 0 };
+    pp[entry.id] = {};
     set('dp1_pp', pp);
   }
 
@@ -2568,7 +2587,7 @@ async function cadSincronizarNovos() {
       // pra não quebrar a tela de Configurações do perfil.
       if (tipo === 'projeto') {
         if (!pp) pp = CLS.get('dp1_pp', {});
-        if (!pp[id]) pp[id] = { ALGAR: 0, ARQIA: 0, VIVO: 0, CLARO: 0, TIM: 0 };
+        if (!pp[id]) pp[id] = {};
       }
     }
 
