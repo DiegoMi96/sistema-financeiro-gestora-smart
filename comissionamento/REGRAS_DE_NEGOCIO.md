@@ -791,3 +791,4 @@ Pedido do Diego: seguir nas 3 telas o modelo de layout do Vendedor (aba Resumo).
 - **Emojis removidos**: 💡 do aviso de comissão flat do Indicador e ✏ do título do painel de edição (Vendedor e Indicador). Mantidos os "✓" (símbolo de texto) em botões/avisos de salvar.
 - **Não mexido**: abas de configuração (Regras de Comissão do Dealer/Projeto Especial, Configurações do Indicador) — seguem como estavam.
 - Cache-bust dos iframes: Vendedor `?b=32`, Dealer `?b=24`, Indicadores `?b=20`, Projeto Especial `?b=35`.
+- **Removido o ícone de gráfico (barras) de todos os rodapés de total** (Vendedor, Dealer, Indicador, Projeto Especial) — pedido do Diego, 2026-10-08. O rodapé fica só com o texto ("Total do time", "Total Dealers", "Total do mês", "Total Projetos Especiais", ou "Total (filtrado)"). Cache-bust: Vendedor `?b=33`, Dealer `?b=25`, Indicadores `?b=21`, Projeto Especial `?b=36`.
