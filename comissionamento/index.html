@@ -205,19 +205,51 @@ iframe.active{display:block}
 .cons-table-wrap tr.cons-row-total td:nth-child(n+4){text-align:center}
 
 /* ─── Visão do Executivo ─── */
-.exec-hero{border-bottom:1px solid #d4d3ce;padding-bottom:16px;margin-bottom:18px}
+.ex-hidden{display:none !important}
+.ex-intro{font-size:12.5px;color:#666;line-height:1.6;max-width:780px;margin-bottom:18px}
+.ex-toolbar{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap;background:#fff;border:1px solid #e5e4df;border-radius:12px;padding:16px 20px;margin-bottom:22px}
+.ex-toolbar .grp{display:flex;gap:16px;flex-wrap:wrap}
+.ex-sel,.ex-month{position:relative;display:flex;align-items:center}
+.ex-sel select{appearance:none;-webkit-appearance:none;background:#fff;border:1px solid #d4d3ce;border-radius:8px;padding:10px 38px 10px 12px;font-size:13px;min-width:230px;font-family:'Inter',sans-serif;color:#1a1a18;cursor:pointer}
+.ex-sel>svg,.ex-month>svg{position:absolute;pointer-events:none;color:#1a1a18}
+.ex-sel>svg{right:13px;width:12px;height:12px}
+.ex-month{min-width:200px}
+.ex-month .ic-cal{left:12px}.ex-month .ic-chev{right:12px;width:12px;height:12px}
+.ex-month input[type=month]{background:#fff;border:1px solid #d4d3ce;border-radius:8px;padding:10px 34px 10px 38px;font-size:13px;width:100%;font-family:'Inter',sans-serif}
+.ex-month input[type=month]::-webkit-calendar-picker-indicator{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.ex-btn{display:inline-flex;align-items:center;gap:8px}
+.ex-card{background:#fff;border:1px solid #e5e4df;border-radius:12px;padding:20px 22px}
+.ex-card-t{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#1a1a18}
+.ex-card-s{font-size:12px;color:#888;margin:2px 0 14px;line-height:1.5}
+.ex-comp{margin-bottom:14px}
+.ex-comp-t{font-size:15px;font-weight:800;color:#1a1a18}
+.ex-comp .ex-card-s{margin-bottom:14px}
+#exec_composicao table th{text-align:left;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#888;background:#f7f7f4;padding:9px 12px}
+#exec_composicao table th:last-child{text-align:right}
+#exec_composicao table td{padding:9px 12px}
+#exec_composicao table td:first-child{font-weight:700}
+#exec_composicao table td.base{color:#555}
+.exec-hero{padding-bottom:6px;margin-bottom:14px}
 .exec-hero-periodo{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
-.exec-hero-nome{font-size:20px;font-weight:800;color:#1a1a18}
+.exec-hero-nome{font-size:26px;font-weight:800;color:#1a1a18;line-height:1.1}
 .exec-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px}
 .exec-cards .cad-card{display:flex;flex-direction:column}
 .exec-cards .cad-card>div{display:flex;flex-direction:column;flex:1}
 .exec-cards .exec-sum-footer{margin-top:auto}
+.exec-cards .ex-card{display:flex;flex-direction:column}
+.exec-cards .ex-card>div:not(.ex-card-s){display:flex;flex-direction:column;flex:1}
+.exec-cards td{padding:9px 0 !important}
+.exec-des{gap:8px}
+.exec-epd{padding:10px 10px}
+.exec-epd .dl{font-size:9px}
+.exec-epd .dv{font-size:15px}
+.exec-epd .ds{font-size:9px}
 .exec-cards table,#exec_composicao table{width:100%;border-collapse:collapse}
 .exec-cards td,#exec_composicao td{padding:6px 0;font-size:12px;border-bottom:1px solid #eeede8}
 .exec-cards td.r,#exec_composicao td.r{text-align:right;font-variant-numeric:tabular-nums}
 .exec-sum-footer{background:#eaf5f0;border:.5px solid #1E9B6B;border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;margin-top:10px}
 .exec-sum-footer span:first-child{font-size:10px;font-weight:700;color:#166B4A;text-transform:uppercase;letter-spacing:.04em}
-.exec-sum-footer span:last-child{font-weight:800;color:#166B4A}
+.exec-sum-footer span:last-child{font-weight:800;color:#166B4A;font-size:16px}
 .exec-fp{display:inline-flex;align-items:center;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;white-space:nowrap}
 .exec-f1{background:#fde8e8;color:#b91c1c}.exec-f2{background:#fef3c7;color:#b45309}
 .exec-f3{background:#dcfce7;color:#166B4A}.exec-f4{background:#bbf7d0;color:#065f46}
@@ -607,24 +639,31 @@ iframe.active{display:block}
       <div class="cad-page-wrap">
         <div class="cad-page-hdr">
           <div>
-            <div class="eyebrow">Gestora Smart · Comissionamento</div>
+            <div class="eyebrow">Gestora Smart &rsaquo; Comissionamento</div>
             <h1>Visão do Executivo</h1>
           </div>
         </div>
-        <p style="font-size:12px;color:#666;margin-bottom:18px;line-height:1.6;max-width:640px">Mesmo formato da planilha individual que hoje é montada e enviada por fora (Volume/Ativação/Bateu-Levou/Composição do Total, com o detalhamento linha a linha) — só que direto no sistema. Como o protótipo ainda não tem login por pessoa, o seletor abaixo simula "entrar como" aquele executivo.</p>
+        <p class="ex-intro">Visualize o resultado individual do executivo, com todos os componentes da comissão (Volume, Ativação, Bateu Levou, Equipamentos, Smart GPS e Frete), no mesmo formato da planilha, com detalhamento linha a linha.</p>
 
-        <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:18px">
-          <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <div class="ex-toolbar">
+          <div class="grp">
             <div>
               <label class="cad-lbl">Executivo</label>
-              <select id="exec_vid" style="min-width:200px" onchange="renderExecutivo()"></select>
+              <div class="ex-sel">
+                <select id="exec_vid" onchange="renderExecutivo()"></select>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+              </div>
             </div>
             <div>
               <label class="cad-lbl">Mês do Comissionamento</label>
-              <input type="month" id="exec_mes" style="max-width:160px" onchange="renderExecutivo()">
+              <div class="ex-month">
+                <svg class="ic-cal" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+                <input type="month" id="exec_mes" onchange="renderExecutivo()">
+                <svg class="ic-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+              </div>
             </div>
           </div>
-          <button class="cad-btn-outline" onclick="exportExecAtual()">↓ Baixar meu extrato</button>
+          <button class="cad-btn-outline ex-btn" onclick="exportExecAtual()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Baixar meu extrato</button>
         </div>
 
         <div id="exec_lock_note"></div>
@@ -634,29 +673,33 @@ iframe.active{display:block}
           <div class="exec-hero-nome" id="exec_nome"></div>
         </div>
 
-        <p class="cad-card-title" id="exec_cards_titulo" style="margin-bottom:10px">Como o total foi calculado</p>
+        <p id="exec_cards_titulo" class="ex-hidden"></p>
         <div class="exec-cards" id="exec_cards_row">
-          <div class="cad-card" style="margin-bottom:0">
-            <p class="cad-card-title">Volume</p>
+          <div class="ex-card">
+            <p class="ex-card-t">Volume</p>
+            <p class="ex-card-s">Resultado de vendas do mês</p>
             <div id="exec_volume"></div>
           </div>
-          <div class="cad-card" style="margin-bottom:0">
-            <p class="cad-card-title">Ativação</p>
+          <div class="ex-card">
+            <p class="ex-card-t">Ativação</p>
+            <p class="ex-card-s">Linhas ativadas no mês</p>
             <div id="exec_ativacao"></div>
           </div>
-          <div class="cad-card" style="margin-bottom:0">
-            <p class="cad-card-title">Desafio · Bateu Levou</p>
+          <div class="ex-card">
+            <p class="ex-card-t">Desafio · Bateu Levou</p>
+            <p class="ex-card-s">Bonificação por atingimento de meta</p>
             <div id="exec_desafio"></div>
           </div>
         </div>
 
-        <div class="cad-card">
-          <p class="cad-card-title">Composição do total</p>
+        <div class="ex-card ex-comp">
+          <p class="ex-comp-t">Composição do total</p>
+          <p class="ex-card-s">Detalhamento dos valores que compõem a comissão do mês.</p>
           <div id="exec_composicao"></div>
         </div>
 
-        <details class="cad-card">
-          <summary style="cursor:pointer;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888">🔎 Ver detalhamento linha a linha (Simcard, Equipamento, Frete)</summary>
+        <details class="ex-card">
+          <summary style="cursor:pointer;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888">Ver detalhamento linha a linha (Simcard, Equipamento, Frete)</summary>
           <div id="exec_detalhe" style="margin-top:14px"></div>
         </details>
       </div>
@@ -1547,6 +1590,13 @@ function populateExecSelect() {
   if (atual && [...sel.options].some(o => o.value === atual)) sel.value = atual;
 }
 
+// Composição do total no formato da planilha: Item | Base de cálculo | Valor.
+function execComposicao(rows, comBase) {
+  const cab = comBase ? '<th>Item</th><th>Base de cálculo</th><th>Valor</th>' : '<th>Item</th><th>Valor</th>';
+  return `<table><thead><tr>${cab}</tr></thead><tbody>${rows.map(([lbl, base, val]) => comBase
+    ? `<tr><td>${lbl}</td><td class="base">${base}</td><td class="r">${val}</td></tr>`
+    : `<tr><td>${lbl}</td><td class="r">${base}</td></tr>`).join('')}</tbody></table>`;
+}
 function execTabela(rows) {
   return `<table><tbody>${rows.map(([lbl, val, bold]) => `<tr><td>${lbl}</td><td class="r"${bold ? ' style="font-weight:700"' : ''}>${val}</td></tr>`).join('')}</tbody></table>`;
 }
@@ -1633,9 +1683,9 @@ function renderExecutivo() {
   const bloqueado = mesAprovado(mes);
 
   document.getElementById('exec_lock_note').innerHTML = bloqueado
-    ? `<div class="note" style="margin-top:0;margin-bottom:14px">🔒 Este mês já foi <strong>aprovado</strong> — os valores abaixo estão fechados e não vão mudar, mesmo se a regra de comissão for revisada depois.</div>`
+    ? `<div class="note" style="margin-top:0;margin-bottom:14px">Este mês já foi <strong>aprovado</strong> — os valores abaixo estão fechados e não vão mudar, mesmo se a regra de comissão for revisada depois.</div>`
     : '';
-  document.getElementById('exec_periodo').textContent = fmtMesC(mes) + (bloqueado ? ' · 🔒 Aprovado' : ' · aberto');
+  document.getElementById('exec_periodo').textContent = fmtMesC(mes) + (bloqueado ? ' · Aprovado' : ' · Aberto');
 
   if (tipo === 'vendedor') {
     const vendedores = CLS.get('gs5_v', CONS_DEFAULTS.vendedores);
@@ -1649,9 +1699,9 @@ function renderExecutivo() {
     document.getElementById('exec_cards_row').style.display = '';
 
     document.getElementById('exec_volume').innerHTML = execTabela([
-      ['Objetivo', v.g.obj.toLocaleString('pt-BR')],
+      ['Objetivo', v.g.obj.toLocaleString('pt-BR'), true],
       ['Volume realizado', c.linhas.toLocaleString('pt-BR'), true],
-      ['Alcance', c.alc.toFixed(0) + '%'],
+      ['Alcance', c.alc.toFixed(0) + '%', true],
       ['Faixa aplicada', `<span class="exec-fp ${FP[c.fx.n - 1]}">Faixa ${c.fx.n}</span>`],
       ['R$ por linha', 'R$' + c.fx.vol.toFixed(2).replace('.', ',')],
     ]) + `<div class="exec-sum-footer"><span>Comissão Volume</span><span>R$${br2c(c.volC)}</span></div>`;
@@ -1664,20 +1714,23 @@ function renderExecutivo() {
     document.getElementById('exec_desafio').innerHTML =
       `<div class="exec-des">${c.desafio.map((dd, i) => {
         const hit = c.linhas >= c.ths[i];
-        return `<div class="exec-epd ${hit ? 'exec-epd-hit' : 'exec-epd-miss'}"><div class="dl">${dd.lbl}${hit ? ' ✓' : ''}</div><div class="dv">${hit ? '+' : ''}R$${dd.val}</div><div class="ds">≥${c.ths[i].toLocaleString('pt-BR')}</div></div>`;
+        return `<div class="exec-epd ${hit ? 'exec-epd-hit' : 'exec-epd-miss'}"><div class="dl">${dd.lbl}</div><div class="dv">${hit ? '+' : ''}R$${dd.val}</div><div class="ds">≥${c.ths[i].toLocaleString('pt-BR')}</div></div>`;
       }).join('')}</div>` +
       `<div class="exec-sum-footer"><span>Desafio Mensal</span><span>R$${br2c(c.desC)}</span></div>`;
 
-    document.getElementById('exec_composicao').innerHTML = execTabela([
-      ['Volume', 'R$' + br2c(c.volC)],
-      ['Ativação', 'R$' + br2c(c.atvC)],
-      ['Desafio', c.desC > 0 ? 'R$' + br2c(c.desC) : '<span style="color:#ccc">—</span>'],
-      ['Bonificação Time', c.bonusCelula > 0 ? '<span style="color:#166B4A">+R$' + br2c(c.bonusCelula) + '</span>' : '<span style="color:#ccc">—</span>'],
-      ['Bônus extra', c.bonus > 0 ? '<span style="color:#166B4A">+R$' + br2c(c.bonus) + '</span>' : '<span style="color:#ccc">—</span>'],
-      ['Equipamento', c.eqC > 0 ? 'R$' + br2c(c.eqC) : '<span style="color:#ccc">—</span>'],
-      ['Smart GPS', c.gpsC > 0 ? 'R$' + br2c(c.gpsC) : '<span style="color:#ccc">—</span>'],
-      ['Desconto Frete', c.frDsc > 0 ? '<span style="color:#b83232">-R$' + br2c(c.frDsc) + '</span>' : '<span style="color:#ccc">—</span>'],
-    ]) + `<div class="exec-sum-footer" style="padding:12px 14px"><span style="font-size:11px">Total</span><span style="font-size:17px">R$${br2c(c.total)}</span></div>`;
+    const rg = CLS.get('gs5_r', CONS_DEFAULTS.vendedorRules);
+    const traco = '<span style="color:#ccc">—</span>';
+    const ultimoDesafio = c.desafio.map((dd, i) => c.linhas >= c.ths[i] ? dd.lbl : null).filter(Boolean).pop();
+    document.getElementById('exec_composicao').innerHTML = execComposicao([
+      ['Volume', c.linhas > 0 ? `${c.linhas.toLocaleString('pt-BR')} linhas × R$ ${br2c(c.fx.vol)}` : traco, 'R$' + br2c(c.volC)],
+      ['Ativação', c.atv > 0 ? `R$ ${br2c(c.atv)} × ${(c.fx.atv * 100).toFixed(0)}%` : traco, 'R$' + br2c(c.atvC)],
+      ['Desafio (Bateu Levou)', ultimoDesafio ? `${ultimoDesafio} atingida` : traco, c.desC > 0 ? 'R$' + br2c(c.desC) : traco],
+      ['Bonificação Time', c.bonusCelula > 0 ? 'Bônus de célula' : traco, c.bonusCelula > 0 ? '<span style="color:#166B4A">+R$' + br2c(c.bonusCelula) + '</span>' : traco],
+      ['Bônus extra', c.bonus > 0 ? 'Lançamento manual' : traco, c.bonus > 0 ? '<span style="color:#166B4A">+R$' + br2c(c.bonus) + '</span>' : traco],
+      ['Equipamento', c.eqC > 0 ? `R$ ${br2c(c.eq)} × ${rg.eqRate || 0}%` : traco, c.eqC > 0 ? 'R$' + br2c(c.eqC) : traco],
+      ['Smart GPS', c.gpsC > 0 ? `R$ ${br2c(c.gps)} × ${rg.gpsRate || 0}%` : traco, c.gpsC > 0 ? 'R$' + br2c(c.gpsC) : traco],
+      ['Desconto Frete', c.frDsc > 0 ? `Frete R$ ${br2c(c.frete)} − limite R$ ${br2c(rg.freteLimit || 0)}` : traco, c.frDsc > 0 ? '<span style="color:#b83232">-R$' + br2c(c.frDsc) + '</span>' : traco],
+    ], true) + `<div class="exec-sum-footer" style="padding:14px 16px;margin-top:14px"><span style="font-size:12px">Total</span><span style="font-size:20px">R$${br2c(c.total)}</span></div>`;
 
     // Dados brutos (Simcard/Equipamento/Placas) só existem na memória do
     // iframe do Vendedor — acessa via função exposta (getRawFor), já que
@@ -1701,9 +1754,9 @@ function renderExecutivo() {
   document.getElementById('exec_cards_titulo').style.display = 'none';
   document.getElementById('exec_cards_row').style.display = 'none';
 
-  document.getElementById('exec_composicao').innerHTML = execTabela(
-    c.composicao.length ? c.composicao : [['Sem lançamento neste mês', '<span style="color:#ccc">—</span>']]
-  ) + `<div class="exec-sum-footer" style="padding:12px 14px"><span style="font-size:11px">Total</span><span style="font-size:17px">R$${br2c(c.total)}</span></div>`;
+  document.getElementById('exec_composicao').innerHTML = execComposicao(
+    c.composicao.length ? c.composicao : [['Sem lançamento neste mês', '<span style="color:#ccc">—</span>']], false
+  ) + `<div class="exec-sum-footer" style="padding:14px 16px;margin-top:14px"><span style="font-size:12px">Total</span><span style="font-size:20px">R$${br2c(c.total)}</span></div>`;
 
   const info = EXEC_PERFIL_MAP[tipo];
   const frame = document.getElementById(info.frame).contentWindow;

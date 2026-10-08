@@ -769,3 +769,12 @@ Pedido do Diego (mockup), **exceto**: (1) sem o selo/seletor "1 – Vendedor" e 
 - Equipamentos: "Taxa atual" + "Estratégia / observação" com **contador `0/300`** e limite de 300 caracteres (novo; o texto já salvo não é cortado).
 - **Botão "Salvar configurações"** em largura total, verde, com o mesmo ícone de disquete do "Salvar metas". Os campos continuam gravando ao digitar, como antes.
 - Cache-bust do iframe do Vendedor: `?b=30`.
+
+## Visão do Executivo — novo layout (2026-10-08)
+Pedido do Diego (mockup), **sem** o selo/seletor "1 – Vendedor" e **sem emojis**. Em `index.html`. **Só apresentação — os valores continuam vindo de `calcVendExec` / `calcParceiroExec`.**
+- **Topo**: "Gestora Smart › Comissionamento", texto introdutório novo (o antigo falava em "protótipo sem login"), e uma **barra em cartão** com Executivo (seletor com seta), Mês (ícone de calendário + seta) e "Baixar meu extrato" (com ícone de download).
+- **Cabeçalho do executivo**: "OUT/2026 · ABERTO" (ou "APROVADO") + nome em destaque; sem a linha divisória.
+- **Cartões Volume / Ativação / Desafio · Bateu Levou**, cada um com título + subtítulo; valores principais em negrito, rodapé verde com a comissão e quadradinhos do Desafio (verde = atingido, cinza = não atingido; sem o "✓"). O título "Como o total foi calculado" saiu.
+- **Composição do total** com **3 colunas — Item | Base de cálculo | Valor**. A base é montada com os números reais: `1.050 linhas × R$ 0,30`, `R$ 100,00 × 10%` (ativação), `Meta 1 atingida` (maior faixa do Desafio batida), `Bônus de célula`, `Lançamento manual` (bônus extra), `R$ 480,00 × 2%` (equipamento), `R$ 6,00 × 100%` (GPS), `Frete R$ 300,00 − limite R$ 250,00`; sem valor = "—". Total em caixa verde maior.
+- **Parceiros** (Indicador/Dealer/Projeto Especial): mesma tabela, com 2 colunas (Item | Valor), pois não têm "base de cálculo" por componente.
+- Emojis removidos desta tela: 🔒 (nota de mês aprovado e rótulo do período) e 🔎 (detalhamento linha a linha).
