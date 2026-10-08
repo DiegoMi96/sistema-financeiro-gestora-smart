@@ -778,3 +778,4 @@ Pedido do Diego (mockup), **sem** o selo/seletor "1 – Vendedor" e **sem emojis
 - **Composição do total** com **3 colunas — Item | Base de cálculo | Valor**. A base é montada com os números reais: `1.050 linhas × R$ 0,30`, `R$ 100,00 × 10%` (ativação), `Meta 1 atingida` (maior faixa do Desafio batida), `Bônus de célula`, `Lançamento manual` (bônus extra), `R$ 480,00 × 2%` (equipamento), `R$ 6,00 × 100%` (GPS), `Frete R$ 300,00 − limite R$ 250,00`; sem valor = "—". Total em caixa verde maior.
 - **Parceiros** (Indicador/Dealer/Projeto Especial): mesma tabela, com 2 colunas (Item | Valor), pois não têm "base de cálculo" por componente.
 - Emojis removidos desta tela: 🔒 (nota de mês aprovado e rótulo do período) e 🔎 (detalhamento linha a linha).
+- **Vendedor — removida a linha "Gestora Smart › Sistema de Comissionamento"** acima do título (pedido do Diego, 2026-10-08). Só nesta página; os outros perfis seguem como estavam. Cache-bust do iframe do Vendedor: `?b=31`.
