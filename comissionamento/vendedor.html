@@ -130,6 +130,28 @@ td.r{text-align:right;font-variant-numeric:tabular-nums}
 .mt-chip.on{background:#eaf5f0;border-color:#1E9B6B;color:#0d5233;font-weight:600}
 .mt-chip input{width:auto;accent-color:#166B4A}
 .mt-foot{font-size:10.5px;color:#888}
+.rg-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:stretch;margin-bottom:18px}
+.rg-stack{display:flex;flex-direction:column;gap:18px}
+#tab-regras .card{border-radius:12px;padding:22px 24px;margin-bottom:0;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+.rg-head{margin-bottom:16px}
+.rg-title{font-size:16px;font-weight:800;color:#1a1a18}
+.rg-sub{font-size:12px;color:#888;margin-top:2px;line-height:1.5}
+#tab-regras .rg-table th{text-align:left;font-size:10px;letter-spacing:.06em;background:#f7f7f4;padding:9px 12px;border-bottom:none}
+#tab-regras .rg-table td{text-align:left;padding:9px 12px;border-bottom:.5px solid #f0efea;font-size:12.5px}
+.rg-in{display:flex;align-items:center;gap:8px}
+.rg-in .rule-input,.rg-field input[type=number]{background:#fff;text-align:left;height:36px;border-radius:8px;padding:0 10px;font-size:13px;border:.5px solid #d4d3ce}
+.rg-in .rule-input{width:96px}
+.rg-note{margin-top:14px;padding:10px 14px;background:#eef3fa;border-radius:8px;font-size:11.5px;color:#4a5b78}
+.rg-lbl{font-size:12.5px;font-weight:700;color:#1a1a18;margin-bottom:6px;display:block}
+.rg-field{margin-bottom:14px}
+.rg-field .irow input{flex:0 0 110px;width:110px;max-width:none}
+.rg-inline{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.rg-inline .rg-lbl{margin:0}
+.rg-obs{position:relative}
+.rg-obs textarea{background:#fff;border-radius:8px;min-height:92px;padding:10px 12px;font-size:12.5px;border:.5px solid #d4d3ce}
+.rg-obs .cnt{position:absolute;right:12px;bottom:8px;font-size:10.5px;color:#999;pointer-events:none}
+.rg-hint{font-size:11px;color:#888;margin-top:8px}
+.rg-save{width:100%;justify-content:center;height:46px;font-size:13px}
 .rs-empty{padding:22px;text-align:center;color:#aaa;font-size:12px;font-style:italic}
 #tab-regras table th,#tab-regras table td{text-align:center}
 .rule-input{background:#F5F5F5;border:.5px solid #d4d3ce;border-radius:5px;padding:5px 7px;font-size:12px;font-family:'Inter',sans-serif;color:#1a1a18;text-align:right;outline:none}
@@ -162,6 +184,7 @@ tr.row-editing td{background:#f9fffe !important}
 
 /* ─── Responsivo (tablet/celular) ─── */
 @media (max-width:860px){
+  .rg-grid{grid-template-columns:1fr}
   .mt-aliq{grid-template-columns:1fr 1fr}
   .rs-search{min-width:0;flex:1 1 100%}
   .page{padding:24px 16px 60px}
@@ -291,42 +314,38 @@ tr.row-editing td{background:#f9fffe !important}
 
 <!-- ═══ REGRAS ═══ -->
 <div id="tab-regras" class="tab-panel">
-  <div class="g2">
-    <div>
-      <div class="card">
-        <p class="card-title">Faixas de comissão · M2M / IoT</p>
-        <table><thead><tr><th>Faixa</th><th>Alcance</th><th class="r">R$/linha</th><th class="r">% Ativação</th></tr></thead>
-        <tbody id="faixaBody"></tbody></table>
-        <p style="font-size:10px;color:#aaa;margin-top:10px;font-style:italic">Metas definidas trimestralmente pelo gestor</p>
-      </div>
-      <div class="card">
-        <p class="card-title">Desafio · Bateu Levou</p>
-        <table><thead><tr><th>Gatilho</th><th class="r">Bonificação</th></tr></thead>
-        <tbody id="desafioBody"></tbody></table>
-        <div style="margin-top:10px;padding:8px 10px;background:#f5f4f0;border-radius:6px;font-size:11px;color:#888">Acumulativa — cada nível soma os anteriores.</div>
-      </div>
+  <div class="rg-grid">
+    <div class="card">
+      <div class="rg-head"><p class="rg-title">Faixas de Comissão · M2M / IoT</p><p class="rg-sub">Defina os percentuais de comissão por faixa de alcance.</p></div>
+      <table class="rg-table"><thead><tr><th>Faixa</th><th>Alcance</th><th>R$/linha</th><th>% Ativação</th></tr></thead>
+      <tbody id="faixaBody"></tbody></table>
+      <div class="rg-note">Metas definidas trimestralmente pelo gestor.</div>
     </div>
-    <div>
+    <div class="card">
+      <div class="rg-head"><p class="rg-title">Desafio · Bateu Levou</p><p class="rg-sub">Bonificação por atingimento de meta (acumulativa).</p></div>
+      <table class="rg-table"><thead><tr><th>Gatilho</th><th>Bonificação</th></tr></thead>
+      <tbody id="desafioBody"></tbody></table>
+      <div class="rg-note">Acumulativa — cada nível soma os anteriores.</div>
+    </div>
+    <div class="card">
+      <div class="rg-head"><p class="rg-title">Equipamentos</p><p class="rg-sub">Configure a taxa aplicada sobre o valor da venda.</p></div>
+      <div class="rg-field"><label class="rg-lbl">Taxa atual</label><div class="irow"><input type="number" id="r_eq" min="0" max="100" step="0.1" oninput="saveRules()"><span class="ipfx">% do valor da venda</span></div></div>
+      <label class="rg-lbl">Estratégia / observação</label>
+      <div class="rg-obs"><textarea id="r_eq_obs" rows="3" maxlength="300" placeholder="Ex: 2% fixo agora. Estratégia nova em andamento…" oninput="rgContaObs();saveRules()"></textarea><span class="cnt" id="r_eq_cnt">0/300</span></div>
+    </div>
+    <div class="rg-stack">
       <div class="card">
-        <p class="card-title">Equipamentos</p>
-        <div style="margin-bottom:10px"><label class="lbl">Taxa atual</label><div class="irow"><input type="number" id="r_eq" min="0" max="100" step="0.1" style="max-width:70px" oninput="saveRules()"><span class="ipfx">% do valor da venda</span></div></div>
-        <label class="lbl">Estratégia / observação</label>
-        <textarea id="r_eq_obs" rows="3" placeholder="Ex: 2% fixo agora. Estratégia nova em andamento…" oninput="saveRules()"></textarea>
+        <div class="rg-head" style="margin-bottom:12px"><p class="rg-title">Smart GPS · Placas</p><p class="rg-sub">Comissão importada já calculada. Multiplicador: 100 = valor direto.</p></div>
+        <div class="rg-inline"><label class="rg-lbl" for="r_gps">Multiplicador</label><div class="irow rg-field" style="margin:0"><input type="number" id="r_gps" min="0" max="200" step="1" oninput="saveRules()"><span class="ipfx">%</span></div></div>
       </div>
       <div class="card">
-        <p class="card-title">Smart GPS · Placas</p>
-        <p style="font-size:11px;color:#888;margin-bottom:10px">Comissão importada já calculada. Multiplicador: 100 = valor direto.</p>
-        <div class="irow"><input type="number" id="r_gps" min="0" max="200" step="1" style="max-width:70px" oninput="saveRules()"><span class="ipfx">%</span></div>
+        <div class="rg-head" style="margin-bottom:12px"><p class="rg-title">Frete</p><p class="rg-sub">Limite de subsídio por vendedor/mês.</p></div>
+        <div class="rg-inline"><label class="rg-lbl" for="r_frete">Limite subsidiado / vendedor / mês</label><div class="irow rg-field" style="margin:0"><span class="ipfx">R$</span><input type="number" id="r_frete" min="0" step="1" oninput="saveRules()"><span class="ipfx">/mês</span></div></div>
+        <p class="rg-hint">Excedente é descontado da comissão.</p>
       </div>
-      <div class="card">
-        <p class="card-title">Frete</p>
-        <label class="lbl">Limite subsidiado / vendedor / mês</label>
-        <div class="irow"><span class="ipfx">R$</span><input type="number" id="r_frete" min="0" step="1" style="max-width:90px" oninput="saveRules()"><span class="ipfx">/mês</span></div>
-        <p style="font-size:11px;color:#888;margin-top:7px">Excedente é descontado da comissão.</p>
-      </div>
-      <button class="btn" onclick="saveRules()" style="width:100%">Salvar configurações</button>
     </div>
   </div>
+  <button class="mt-btn primary rg-save" onclick="saveRules()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/></svg>Salvar configurações</button>
 </div>
 
 </div>
@@ -897,17 +916,22 @@ function buildFaixaTable(){
   const fpCls=['f1','f2','f3','f4','f5','f6'];
   document.getElementById('faixaBody').innerHTML=faixas.map((f,i)=>`
     <tr><td><span class="fp ${fpCls[i]}">Faixa ${f.n}</span></td><td>${f.range}</td>
-    <td class="r"><div style="display:flex;align-items:center;justify-content:flex-end;gap:4px"><span class="ipfx">R$</span><input type="number" class="rule-input" value="${f.vol.toFixed(2)}" step="0.01" style="width:60px" onchange="faixas[${i}].vol=+this.value;LS.set('gs5_f',faixas)"></div></td>
-    <td class="r"><div style="display:flex;align-items:center;justify-content:flex-end;gap:4px"><input type="number" class="rule-input" value="${(f.atv*100).toFixed(0)}" style="width:50px" onchange="faixas[${i}].atv=+this.value/100;LS.set('gs5_f',faixas)"><span class="ipfx">%</span></div></td></tr>`).join('');
+    <td><div class="rg-in"><span class="ipfx">R$</span><input type="number" class="rule-input" value="${f.vol.toFixed(2)}" step="0.01" onchange="faixas[${i}].vol=+this.value;LS.set('gs5_f',faixas)"></div></td>
+    <td><div class="rg-in"><input type="number" class="rule-input" value="${(f.atv*100).toFixed(0)}" onchange="faixas[${i}].atv=+this.value/100;LS.set('gs5_f',faixas)"><span class="ipfx">%</span></div></td></tr>`).join('');
 }
 function buildDesafioTable(){
   document.getElementById('desafioBody').innerHTML=desafio.map((d,i)=>`
     <tr><td><strong>${d.lbl}</strong></td>
-    <td class="r"><div style="display:flex;align-items:center;justify-content:flex-end;gap:4px"><span class="ipfx">R$</span><input type="number" class="rule-input" value="${d.val}" style="width:70px" onchange="desafio[${i}].val=+this.value;LS.set('gs5_d',desafio)"></div></td></tr>`).join('');
+    <td><div class="rg-in"><span class="ipfx">R$</span><input type="number" class="rule-input" value="${d.val}" onchange="desafio[${i}].val=+this.value;LS.set('gs5_d',desafio)"></div></td></tr>`).join('');
+}
+function rgContaObs(){
+  const t=document.getElementById('r_eq_obs'),c=document.getElementById('r_eq_cnt');
+  if(t&&c)c.textContent=t.value.length+'/300';
 }
 function loadRules(){
   document.getElementById('r_eq').value=rules.eqRate;
   document.getElementById('r_eq_obs').value=rules.eqObs||'';
+  rgContaObs();
   document.getElementById('r_gps').value=rules.gpsRate;
   document.getElementById('r_frete').value=rules.freteLimit;
 }

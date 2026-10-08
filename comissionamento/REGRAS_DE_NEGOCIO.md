@@ -760,3 +760,12 @@ Pedido do Diego (mockup). **Só visual — nenhuma regra, cálculo ou gravação
 - Títulos mantidos como já eram ("Painel de metas · atualização trimestral", "Alíquotas do Bônus de Célula", "Células").
 - Cache-bust do iframe do Vendedor: `?b=28`.
 - **Alíquotas do Bônus de Célula centralizadas** (2026-10-08): rótulo e número centralizados na caixa; o "%" passou pra **dentro** da caixa (à direita, sem clique) pra o rótulo ficar exatamente no centro do campo. Cache-bust do iframe do Vendedor: `?b=29`.
+
+## Vendedor — novo layout da aba "Regras & Config." (2026-10-08)
+Pedido do Diego (mockup), **exceto**: (1) sem o selo/seletor "1 – Vendedor" e (2) **sem os ícones decorativos** nos cabeçalhos dos cartões (percentual, troféu, engrenagem, pino, caminhão — "não fazem sentido"). **Só visual — as regras e a gravação (`saveRules`, `faixas`, `desafio`) não mudaram.**
+- 5 cartões em grade de 2 colunas: Faixas de Comissão · Desafio · Equipamentos · (Smart GPS + Frete empilhados). Cada um com título em negrito + subtítulo curto.
+- Tabelas com cabeçalho em faixa cinza clara, pílulas de Faixa 1–6 (vermelho → verde) e campos brancos com "R$"/"%" ao lado.
+- Notas informativas ("Metas definidas trimestralmente pelo gestor", "Acumulativa — cada nível soma os anteriores") em caixa azul-acinzentada, sem ícone.
+- Equipamentos: "Taxa atual" + "Estratégia / observação" com **contador `0/300`** e limite de 300 caracteres (novo; o texto já salvo não é cortado).
+- **Botão "Salvar configurações"** em largura total, verde, com o mesmo ícone de disquete do "Salvar metas". Os campos continuam gravando ao digitar, como antes.
+- Cache-bust do iframe do Vendedor: `?b=30`.
