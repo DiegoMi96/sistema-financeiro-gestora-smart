@@ -200,19 +200,19 @@ export default function AnalystCommissionPage() {
 
       {data?.analista && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="gs-card p-4">
+          <div className="gs-card px-4 py-2.5">
             <p className="gs-label">Analista</p>
-            <p className="gs-value text-lg">{data.analista.name}</p>
+            <p className="gs-value text-base">{data.analista.name}</p>
           </div>
-          <div className="gs-card p-4">
+          <div className="gs-card px-4 py-2.5">
             <p className="gs-label">Previsão do mês</p>
-            <p className="gs-value text-lg">{fmtBRL(totalPrevisao)}</p>
-            <p className="text-xs text-gray-400 mt-1">se todas as metas forem batidas</p>
+            <p className="gs-value text-base">{fmtBRL(totalPrevisao)}</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">se todas as metas forem batidas</p>
           </div>
-          <div className="gs-card p-4">
+          <div className="gs-card px-4 py-2.5">
             <p className="gs-label">Realizado até o momento</p>
-            <p className="gs-value text-lg text-green-700">{fmtBRL(totalLive)}</p>
-            <p className="text-xs text-gray-400 mt-1">só metas definidas e já atingidas</p>
+            <p className="gs-value text-base text-green-700">{fmtBRL(totalLive)}</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">só metas definidas e já atingidas</p>
           </div>
         </div>
       )}
