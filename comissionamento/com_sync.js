@@ -24,7 +24,7 @@
     'dc1_cfg', 'dc1_ext', 'dc1_m',
     'da1_cfg', 'da1_ext', 'da1_m',
     'go1_cfg', 'go1_ext', 'go1_m',
-    'aprovacoes_mes', 'cons_hist_manual', 'imp_clientes_map', 'regras_comissao'
+    'aprovacoes_mes', 'cons_hist_manual', 'cons_bonus_extra', 'imp_clientes_map', 'regras_comissao'
   ];
   var PENDING = '__com_pending';
   var origSet = Storage.prototype.setItem;

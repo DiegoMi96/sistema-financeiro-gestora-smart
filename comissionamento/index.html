@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<script src="com_sync.js?v=1" data-hydrate></script>
+<script src="com_sync.js?v=2" data-hydrate></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Comissionamento · Gestora Smart</title>
@@ -2015,6 +2015,27 @@ function consDealerProjetoTotais(mes) {
   return { dealerRows, projetoRows };
 }
 
+// Bonificação extra MANUAL da Diretoria/Gestores (por mês e por perfil), digitada direto na
+// tabela "Diretoria e Gestores" da Visão Consolidada e somada ao total de cada um — pedido
+// do Diego, 09/10/2026. Chaves: gestor | diretor | diretorComercial.
+function consBonusExtraDe(mes, cat) {
+  const v = Number((CLS.get('cons_bonus_extra', {})[mes] || {})[cat]) || 0;
+  return v > 0 ? v : 0;
+}
+function consSalvarBonusExtra(cat, raw) {
+  const mes = document.getElementById('cons_mes').value;
+  if (mesAprovado(mes)) { showCadToast('Mês aprovado — desaprove no Importar pra editar.', true); renderConsolidado(); return; }
+  let t = String(raw || '').trim();
+  if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.');
+  const v = Math.max(0, parseFloat(t) || 0);
+  const store = CLS.get('cons_bonus_extra', {});
+  store[mes] = { ...(store[mes] || {}), [cat]: v };
+  if (!v) delete store[mes][cat];
+  if (!Object.keys(store[mes]).length) delete store[mes];
+  if (!LS_set('cons_bonus_extra', store)) { showCadToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.', true); return; }
+  renderConsolidado();
+  showCadToast('Bonificação extra salva ✓');
+}
 function consGestorOpsTotal(mes) {
   const cfg = CLS.get('go1_cfg', CONS_DEFAULTS.gestorOpsCfg);
   const mdata = CLS.get('go1_m', {});
@@ -2046,10 +2067,11 @@ function consGestorOpsTotal(mes) {
   let extrasTotal = 0;
   ['inov', 'sgp', 'ian', 'iac'].forEach(k => { (extras[k] || []).forEach(e => { if (e.data === mes) extrasTotal += e.val; }); });
   const hasData = sat !== null || efic !== null || aud !== null || !!trei || extrasTotal > 0;
-  const total = satB + eficB + audB + treiB + extrasTotal;
+  const bonusExtra = consBonusExtraDe(mes, 'gestor');
+  const total = satB + eficB + audB + treiB + extrasTotal + bonusExtra;
   // Sem categoria própria pra métricas do Gestor (satisfação/eficiência/auditoria/
   // treinamento) — o total inteiro cai em "simcard" na visão consolidada.
-  return { total, hasData, simcard: total, bonificacao: 0, equipamento: 0, gps: 0, descCanc: 0, descFrete: 0 };
+  return { total, hasData: hasData || bonusExtra > 0, bonusExtra, simcard: total, bonificacao: 0, equipamento: 0, gps: 0, descCanc: 0, descFrete: 0 };
 }
 
 function consDiretorAdmTotal(mes) {
@@ -2068,10 +2090,11 @@ function consDiretorAdmTotal(mes) {
   let extrasTotal = 0;
   (extras.sistemas || []).forEach(s => { if (s.data === mes) extrasTotal += s.val; });
   (extras.auditorias || []).forEach(a => { if (brDateToMonthC(a.data) === mes) extrasTotal += a.val; });
-  const total = bonusA + bonusB + extrasTotal;
+  const bonusExtra = consBonusExtraDe(mes, 'diretor');
+  const total = bonusA + bonusB + extrasTotal + bonusExtra;
   // Sem categoria própria pra métricas do Diretor (dividendo/resultado) — o
   // total inteiro cai em "simcard" na visão consolidada.
-  return { total, hasData: d.resultado !== undefined || extrasTotal > 0, simcard: total, bonificacao: 0, equipamento: 0, gps: 0, descCanc: 0, descFrete: 0 };
+  return { total, hasData: d.resultado !== undefined || extrasTotal > 0 || bonusExtra > 0, bonusExtra, simcard: total, bonificacao: 0, equipamento: 0, gps: 0, descCanc: 0, descFrete: 0 };
 }
 
 // Mesmos defaults do diretor_comercial.html — só usados se ele ainda não
@@ -2117,10 +2140,11 @@ function consDiretorComercialTotal(mes) {
   if (extras.newsKickoffPago && extras.newsKickoffData === mes) extrasTotal += (cfg.newsKickoff || 0);
   (cfg.marcosBase || []).forEach(m => { if (m.pago && m.dataPagMes === mes) extrasTotal += m.bonus; });
 
-  const total = volumeBonus + crescBonus + hwBonus + satBonus + newsBonus + extrasTotal;
-  const hasData = mdata[mes] !== undefined || extrasTotal > 0;
+  const bonusExtra = consBonusExtraDe(mes, 'diretorComercial');
+  const total = volumeBonus + crescBonus + hwBonus + satBonus + newsBonus + extrasTotal + bonusExtra;
+  const hasData = mdata[mes] !== undefined || extrasTotal > 0 || bonusExtra > 0;
   // Sem categoria própria pra esse mix de bônus — tudo cai em "simcard".
-  return { total, hasData, simcard: total, bonificacao: 0, equipamento: 0, gps: 0, descCanc: 0, descFrete: 0 };
+  return { total, hasData, bonusExtra, simcard: total, bonificacao: 0, equipamento: 0, gps: 0, descCanc: 0, descFrete: 0 };
 }
 
 function consIndicadoresTotais(mes) {
@@ -2484,13 +2508,21 @@ function renderConsolidado() {
   // Diretoria e Gestores: mesma tabela, mas sem as colunas de simcard/GPS/descontos — cada
   // pessoa tem o valor na coluna da própria área (Operações / Comercial / Administrativo) e
   // o Total no fim (pedido do Diego, 09/10/2026).
+  // Célula editável da Bonificação Extra (manual). Travada em mês aprovado ou lançamento manual do mês.
+  const bonusExtraCelula = r => {
+    const v = r.bonusExtra || 0;
+    if (manual || mesAprovado(mes)) return v ? 'R$ ' + br2c(v) : '<span style="color:#ccc">—</span>';
+    return `<input type="text" inputmode="decimal" value="${v ? br2c(v) : ''}" placeholder="0,00" onfocus="this.select()"
+      onchange="consSalvarBonusExtra('${r.cat}', this.value)"
+      style="width:104px;padding:6px 8px;border:1px solid #d4d3ce;border-radius:6px;font-size:12px;text-align:right;font-family:inherit;background:#fff">`;
+  };
   const AREAS_DIRETORIA = [['operacoes', 'Operações'], ['comercial', 'Comercial'], ['administrativo', 'Administrativo']];
   const tabelaDiretoriaHtml = linhas => `
     <table>
       <thead><tr>
         <th>ID</th><th>Categoria</th><th>Executivo</th>
         ${AREAS_DIRETORIA.map(([, nome]) => `<th>${nome}</th>`).join('')}
-        <th>Total</th>
+        <th>Bonificação Extra</th><th>Total</th>
       </tr></thead>
       <tbody>
         ${linhas.map((r, i) => `
@@ -2498,12 +2530,14 @@ function renderConsolidado() {
             <td>${i + 1}</td>
             <td><span class="cons-cat-pill" style="background:${CAT[r.cat].color};color:${CAT[r.cat].text || '#fff'}">${CAT[r.cat].label}</span></td>
             <td>${r.executivo}</td>
-            ${AREAS_DIRETORIA.map(([k]) => `<td>${k === r.area ? valOrDash(r.total) : '<span style="color:#ccc">—</span>'}</td>`).join('')}
+            ${AREAS_DIRETORIA.map(([k]) => `<td>${k === r.area ? valOrDash(r.total - (r.bonusExtra || 0)) : '<span style="color:#ccc">—</span>'}</td>`).join('')}
+            <td>${bonusExtraCelula(r)}</td>
             <td style="font-weight:700">R$ ${br2c(r.total)}</td>
           </tr>`).join('')}
         <tr class="cons-row-total">
           <td colspan="3">Total</td>
-          ${AREAS_DIRETORIA.map(([k]) => `<td>R$ ${br2c(linhas.filter(r => r.area === k).reduce((a, r) => a + (r.total || 0), 0))}</td>`).join('')}
+          ${AREAS_DIRETORIA.map(([k]) => `<td>R$ ${br2c(linhas.filter(r => r.area === k).reduce((a, r) => a + ((r.total || 0) - (r.bonusExtra || 0)), 0))}</td>`).join('')}
+          <td>R$ ${br2c(somaColDe(linhas)('bonusExtra'))}</td>
           <td>R$ ${br2c(somaColDe(linhas)('total'))}</td>
         </tr>
       </tbody>
