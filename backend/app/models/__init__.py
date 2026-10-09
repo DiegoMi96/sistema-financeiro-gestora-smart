@@ -603,3 +603,25 @@ class ClientAttention(Base):
     __table_args__ = (
         UniqueConstraint("id_smart", "motivo", name="uq_attention_client_motivo"),
     )
+
+
+class AnalystCommissionConfig(Base):
+    """
+    Comissionamento dos analistas de contas a receber (aba "Comissionamento" do Faturamento).
+    Uma linha por (mês, dia de vencimento original): percentual da comissão e meta
+    de recebimento (R$). O mês sem configuração herda a mais recente anterior.
+    """
+    __tablename__ = "analyst_commission_config"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    year       = Column(Integer, nullable=False)
+    month      = Column(Integer, nullable=False)
+    dia        = Column(Integer, nullable=False)          # 10 | 15 | 20 | 25
+    percentual = Column(Float, nullable=False, default=0.0)
+    meta       = Column(Float, nullable=False, default=0.0)
+    updated_by = Column(String(150))
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("year", "month", "dia", name="uq_analyst_commission_month_dia"),
+    )

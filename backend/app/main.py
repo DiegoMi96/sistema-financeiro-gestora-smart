@@ -20,6 +20,7 @@ from app.routers.previsibilidade import router as previsibilidade_router
 from app.routers.contestation import router as contestation_router
 from app.routers.clients        import router as clients_router
 from app.routers.attention      import router as attention_router
+from app.routers.analyst_commission import router as analyst_commission_router
 from app.routers.organograma    import router as organograma_router, public_router as organograma_public_router
 from app.routers.sheets         import router as sheets_router
 from app.routers.comissionamento import router as comissionamento_router
@@ -258,6 +259,7 @@ app.include_router(settings_router)
 app.include_router(previsibilidade_router)
 app.include_router(contestation_router)
 app.include_router(clients_router)
+app.include_router(analyst_commission_router)   # aba Comissionamento dos analistas (adimplência)
 app.include_router(attention_router)   # aba Atenção do Faturamento (clientes proporcional/desconto)
 app.include_router(organograma_router)
 app.include_router(organograma_public_router)   # fotos do organograma (público — <img src>)

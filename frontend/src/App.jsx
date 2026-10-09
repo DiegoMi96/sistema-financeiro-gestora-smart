@@ -26,6 +26,7 @@ const ClientsPage              = lazy(() => import('./pages/clients/ClientsPage'
 const OrganoPage               = lazy(() => import('./pages/organograma/OrganoPage'))
 const IndicadoresPage          = lazy(() => import('./pages/controladoria/IndicadoresPage'))
 const ControladoriaDashboard   = lazy(() => import('./pages/controladoria/ControladoriaDashboard'))
+const AnalystCommissionPage = lazy(() => import('./pages/billing/AnalystCommissionPage'))
 const ComissionamentoDashboard = lazy(() => import('./pages/comissionamento/ComissionamentoDashboard'))
 const AcessosPage              = lazy(() => import('./pages/acessos/AcessosPage'))
 
@@ -152,6 +153,7 @@ function AppRoutes() {
           <Route path="/faturamento/:cycleId"                     element={<PrivateRoute permission="can_view_fat_ciclo_detalhe"><BillingCyclePage /></PrivateRoute>} />
           <Route path="/faturamento/:cycleId/cliente/:idSmart"    element={<PrivateRoute permission="can_view_fat_cliente_detalhe"><ClientDetailPage /></PrivateRoute>} />
           <Route path="/ajustes"                                  element={<PrivateRoute permission="can_edit_billing"><AdjustmentsPage /></PrivateRoute>} />
+          <Route path="/comissao-analistas"                       element={<PrivateRoute permission="can_edit_billing"><AnalystCommissionPage /></PrivateRoute>} />
           <Route path="/atencao"                                  element={<PrivateRoute permission="can_edit_billing"><AttentionPage /></PrivateRoute>} />
 
           <Route path="/contestacao"             element={<PrivateRoute permission="can_view_cont_ciclos"><ContestationPage /></PrivateRoute>} />

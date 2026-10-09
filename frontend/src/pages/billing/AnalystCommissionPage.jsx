@@ -1,0 +1,213 @@
+import { useState, useEffect } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import toast from 'react-hot-toast'
+import { Loader2 } from 'lucide-react'
+import { analystCommissionApi } from '../../services/api'
+
+// Aba "Comissionamento" do Faturamento — comissão dos analistas de contas a receber,
+// com base na adimplência por vencimento ORIGINAL (10, 15, 20 e 25).
+//   Meta (R$)     → quanto precisa ser recebido no vencimento para liberar a comissão (0 = sem meta)
+//   Percentual    → editável; vale para o mês e é herdado pelos meses seguintes
+//   Valor         → percentual × recebido, liberado só se o recebido atingiu a meta
+
+const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+const INPUT = 'w-32 px-3 py-2 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-green-500 focus:outline-none bg-white'
+
+const fmtBRL = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0)
+const fmtNum = v => new Intl.NumberFormat('pt-BR').format(v || 0)
+
+export default function AnalystCommissionPage() {
+  const qc = useQueryClient()
+  const hoje = new Date()
+  const [year, setYear] = useState(hoje.getFullYear())
+  const [month, setMonth] = useState(hoje.getMonth() + 1)
+  const [form, setForm] = useState({})   // { [dia]: { percentual, meta } } (strings)
+  const [saving, setSaving] = useState(false)
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['analyst-commission', year, month],
+    queryFn: () => analystCommissionApi.get(year, month).then(r => r.data),
+  })
+
+  useEffect(() => {
+    if (!data) return
+    setForm(Object.fromEntries(data.vencimentos.map(v => [v.dia, { percentual: String(v.percentual ?? 0), meta: String(v.meta ?? 0) }])))
+  }, [data])
+
+  const venc = data?.vencimentos || []
+  const num = s => { const n = parseFloat(String(s).replace(',', '.')); return Number.isFinite(n) ? n : 0 }
+  const dirty = venc.filter(v => {
+    const f = form[v.dia]
+    return f && (num(f.percentual) !== (v.percentual || 0) || num(f.meta) !== (v.meta || 0))
+  })
+
+  const setField = (dia, k, val) => setForm(f => ({ ...f, [dia]: { ...f[dia], [k]: val } }))
+
+  const handleSave = async () => {
+    for (const v of dirty) {
+      const p = num(form[v.dia].percentual)
+      if (p < 0 || p > 100) return toast.error(`Vencimento ${v.dia}: percentual deve estar entre 0 e 100`)
+    }
+    setSaving(true)
+    try {
+      for (const v of dirty) {
+        await analystCommissionApi.saveConfig({
+          year, month, dia: v.dia,
+          percentual: num(form[v.dia].percentual), meta: num(form[v.dia].meta),
+        })
+      }
+      toast.success('Configuração salva')
+      qc.invalidateQueries({ queryKey: ['analyst-commission'] })
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Erro ao salvar')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const anos = [hoje.getFullYear() - 1, hoje.getFullYear(), hoje.getFullYear() + 1]
+  const sel = 'px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-green-500 focus:outline-none'
+
+  // Valor "ao vivo": reflete o que está digitado antes de salvar
+  const valorLive = v => {
+    const f = form[v.dia]
+    if (!f) return v.valor
+    const meta = num(f.meta)
+    const ok = meta > 0 ? v.recebido >= meta : true
+    return ok ? Math.round(v.recebido * num(f.percentual)) / 100 : 0
+  }
+  const totalLive = venc.reduce((s, v) => s + valorLive(v), 0)
+
+  const TH = 'px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right'
+  const TD = 'px-4 py-3 text-sm text-right text-gray-800'
+  const ROW_LABEL = 'px-4 py-3 text-sm font-medium text-gray-700 text-left whitespace-nowrap'
+  const SECTION = 'px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50 text-left'
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">Comissionamento</h1>
+          <p className="text-sm text-gray-500 mt-1 max-w-2xl">
+            Comissão dos analistas de contas a receber, com base na adimplência por vencimento original.
+            O percentual e a meta que você salvar valem para o mês e são herdados pelos meses seguintes.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <select value={month} onChange={e => setMonth(Number(e.target.value))} className={sel}>
+            {MESES.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+          </select>
+          <select value={year} onChange={e => setYear(Number(e.target.value))} className={sel}>
+            {anos.map(a => <option key={a} value={a}>{a}</option>)}
+          </select>
+          <button onClick={handleSave} disabled={!dirty.length || saving} className="gs-btn gs-btn-dark">
+            {saving && <Loader2 size={14} className="animate-spin" />} Salvar
+          </button>
+        </div>
+      </div>
+
+      {data && !data.ciclo && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Não há ciclo de faturamento em {MESES[month - 1]}/{year}. Os valores recebidos aparecem zerados,
+          mas você já pode cadastrar percentual e meta.
+        </div>
+      )}
+
+      <div className="gs-card overflow-x-auto p-0">
+        {isLoading ? (
+          <div className="py-16 flex items-center justify-center text-sm text-gray-400 gap-2">
+            <Loader2 size={16} className="animate-spin" /> Carregando…
+          </div>
+        ) : (
+          <table className="w-full min-w-[720px]">
+            <thead>
+              <tr className="border-b border-gray-100">
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-left">Vencimento</th>
+                {venc.map(v => <th key={v.dia} className={TH}>Dia {v.dia}</th>)}
+                <th className={TH}>Total</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              <tr><td colSpan={venc.length + 2} className={SECTION}>Configuração</td></tr>
+              <tr>
+                <td className={ROW_LABEL}>Meta (R$)</td>
+                {venc.map(v => (
+                  <td key={v.dia} className={TD}>
+                    <input className={INPUT} inputMode="decimal" value={form[v.dia]?.meta ?? ''}
+                      onChange={e => setField(v.dia, 'meta', e.target.value)} />
+                  </td>
+                ))}
+                <td className={TD}>—</td>
+              </tr>
+              <tr>
+                <td className={ROW_LABEL}>Percentual (%)</td>
+                {venc.map(v => (
+                  <td key={v.dia} className={TD}>
+                    <input className={INPUT} inputMode="decimal" value={form[v.dia]?.percentual ?? ''}
+                      onChange={e => setField(v.dia, 'percentual', e.target.value)} />
+                  </td>
+                ))}
+                <td className={TD}>—</td>
+              </tr>
+              <tr className="bg-green-50/50">
+                <td className={ROW_LABEL + ' font-semibold'}>Valor da comissão</td>
+                {venc.map(v => <td key={v.dia} className={TD + ' font-semibold'}>{fmtBRL(valorLive(v))}</td>)}
+                <td className={TD + ' font-bold'}>{fmtBRL(totalLive)}</td>
+              </tr>
+
+              <tr><td colSpan={venc.length + 2} className={SECTION}>Apuração do mês</td></tr>
+              <tr>
+                <td className={ROW_LABEL}>Clientes</td>
+                {venc.map(v => <td key={v.dia} className={TD}>{fmtNum(v.clientes)}</td>)}
+                <td className={TD}>{fmtNum(venc.reduce((s, v) => s + v.clientes, 0))}</td>
+              </tr>
+              <tr>
+                <td className={ROW_LABEL}>Boletos (pagos / total)</td>
+                {venc.map(v => <td key={v.dia} className={TD}>{fmtNum(v.pagos)} / {fmtNum(v.boletos)}</td>)}
+                <td className={TD}>{fmtNum(venc.reduce((s, v) => s + v.pagos, 0))} / {fmtNum(venc.reduce((s, v) => s + v.boletos, 0))}</td>
+              </tr>
+              <tr>
+                <td className={ROW_LABEL}>Faturado</td>
+                {venc.map(v => <td key={v.dia} className={TD}>{fmtBRL(v.faturado)}</td>)}
+                <td className={TD}>{fmtBRL(venc.reduce((s, v) => s + v.faturado, 0))}</td>
+              </tr>
+              <tr>
+                <td className={ROW_LABEL}>Recebido</td>
+                {venc.map(v => <td key={v.dia} className={TD}>{fmtBRL(v.recebido)}</td>)}
+                <td className={TD}>{fmtBRL(venc.reduce((s, v) => s + v.recebido, 0))}</td>
+              </tr>
+              <tr>
+                <td className={ROW_LABEL}>Adimplência</td>
+                {venc.map(v => <td key={v.dia} className={TD}>{v.adimplencia.toFixed(2).replace('.', ',')}%</td>)}
+                <td className={TD}>{(() => {
+                  const f = venc.reduce((s, v) => s + v.faturado, 0), r = venc.reduce((s, v) => s + v.recebido, 0)
+                  return (f ? (r / f * 100) : 0).toFixed(2).replace('.', ',') + '%'
+                })()}</td>
+              </tr>
+              <tr>
+                <td className={ROW_LABEL}>Meta atingida</td>
+                {venc.map(v => {
+                  const meta = num(form[v.dia]?.meta)
+                  const ok = meta > 0 ? v.recebido >= meta : null
+                  return (
+                    <td key={v.dia} className={TD}>
+                      {ok === null ? <span className="text-gray-400">Sem meta</span>
+                        : ok ? <span className="font-semibold text-green-700">Sim</span>
+                        : <span className="font-semibold text-red-600">Não</span>}
+                    </td>
+                  )
+                })}
+                <td className={TD}>—</td>
+              </tr>
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <p className="text-xs text-gray-400">
+        Vencimento original = dia do vencimento do ciclo de faturamento (arquivo de Vencimentos). Recebido = boletos do Asaas
+        com vencimento no mês e status pago, cruzados por CNPJ/CPF.
+      </p>
+    </div>
+  )
+}

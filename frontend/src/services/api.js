@@ -114,6 +114,11 @@ export default api
 
 // ── Organograma ───────────────────────────────────────────────
 // Aba "Atenção" do Faturamento — clientes com proporcional/desconto que o motor consulta a cada ciclo
+export const analystCommissionApi = {
+  get:        (year, month) => api.get('/analyst-commission', { params: { year, month } }),
+  saveConfig: (data)        => api.put('/analyst-commission/config', data),
+}
+
 export const attentionApi = {
   list:    (params)       => api.get('/attention', { params }),
   lookup:  (q)            => api.get('/attention/lookup', { params: { q } }),

@@ -262,3 +262,8 @@ frontend/src/
 - Motor (`_run_billing_engine`): `load_attention_rules` alimenta `atencao_cancel`/`atencao_ativ` (somados ao proporcional vindo das planilhas) e `aplicar_descontos` cria `BillingAdjustment` automáticos (analista "Sistema (aba Atenção)") com o motivo na justificativa; o remessa Asaas escreve o motivo na coluna Descrição.
 - O upload "Atenção Clientes" foi removido do modal Novo Faturamento. Antes do 1º ciclo real, importar a planilha antiga pelo botão "Importar planilha" da aba.
 - Reprocessar ciclo RASCUNHO/ERRO apaga os ajustes antigos do ciclo (evita duplicar descontos).
+
+## Faturamento — Aba "Comissionamento" dos analistas (09/10/2026)
+- Comissão de contas a receber por adimplência, por vencimento ORIGINAL (10/15/20/25). Router `analyst_commission.py` (`/analyst-commission`), tabela `analyst_commission_config` (mês+dia → percentual e meta R$; mês sem config herda o anterior), tela `AnalystCommissionPage.jsx`, permissão `can_edit_billing`.
+- Vencimento original = dia de `billing_client_summaries.due_date` do ciclo; recebido/faturado vêm de `asaas_payments_sync` cruzado por CNPJ (o `boleto_status` do resumo NÃO é preenchido). Valor = percentual × recebido, liberado só se recebido >= meta (meta 0 = sem meta).
+- Pendente (evolução): percentuais por analista (ainda não há carteira de clientes por analista no sistema).
