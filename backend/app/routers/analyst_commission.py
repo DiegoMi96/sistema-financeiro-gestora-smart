@@ -7,8 +7,8 @@ vencimento em outubro, então outubro usa o ciclo de setembro). Vencimento origi
 `billing_client_summaries.due_date` (arquivo de Vencimentos); o realizado vem de
 `asaas_payments_sync` (cruzado por CNPJ/CPF) e `itau_boletos` — boletos com vencimento dentro do mês.
 
-Regra do valor (por analista): percentual × SALÁRIO do analista, liberado só se o
-recebido do vencimento atingiu a meta (R$; meta 0 = sem meta, sempre libera).
+Regra do valor (por analista): percentual × SALÁRIO do analista, liberado só se a meta (R$)
+foi definida (> 0) e o recebido do vencimento a atingiu. Previsão = o que pagaria se a meta for batida.
 O recebido é da carteira toda (ainda não há carteira por analista). Só o admin edita;
 cada analista (Carlo, Brenda…) vê apenas o próprio comissionamento.
 """
@@ -197,12 +197,15 @@ def comissionamento(year: int, month: int, user_id: Optional[int] = None,
         cfg = _rule_do_mes(db, alvo_id, year, month, dia) if alvo_id else {"percentual": 0.0, "meta": 0.0, "herdada": False}
         fat, rec = d["faturado"], d["recebido"]
         adimp = round(rec / fat * 100, 2) if fat else 0.0
-        meta_ok = rec >= cfg["meta"] if cfg["meta"] > 0 else True
-        valor = round(salario * cfg["percentual"] / 100, 2) if meta_ok else 0.0
+        # Meta 0 = ainda não definida: não libera nada (realizado = 0). Previsão = o que pagaria se a meta for batida.
+        meta_ok = cfg["meta"] > 0 and rec >= cfg["meta"]
+        previsao = round(salario * cfg["percentual"] / 100, 2)
+        valor = previsao if meta_ok else 0.0
         out.append({
             "dia": dia, "vencimento_original": (datas.get(dia) or date(year, month, dia)).isoformat(), **d, **cfg,
             "adimplencia": adimp,
             "meta_atingida": meta_ok,
+            "previsao": previsao,
             "valor": valor,
         })
     return {
@@ -217,6 +220,7 @@ def comissionamento(year: int, month: int, user_id: Optional[int] = None,
         "salario": salario,
         "vencimentos": out,
         "total": round(sum(v["valor"] for v in out), 2),
+        "total_previsao": round(sum(v["previsao"] for v in out), 2),
     }
 
 

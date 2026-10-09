@@ -6,7 +6,7 @@ import { analystCommissionApi } from '../../services/api'
 
 // Aba "Comissionamento" do Faturamento — comissão dos analistas de contas a receber,
 // com base na adimplência por vencimento ORIGINAL (10, 15, 20 e 25).
-//   Meta (R$)        → quanto precisa ser recebido no vencimento para liberar a comissão (0 = sem meta)
+//   Meta (R$)        → quanto precisa ser recebido no vencimento para liberar a comissão (0 = meta ainda não definida: nada liberado)
 //   Percentual (%)   → % do SALÁRIO do analista pago se a meta for atingida
 //   Valor            → salário × percentual, liberado só se o recebido atingiu a meta
 // O admin edita tudo; cada analista vê somente o próprio comissionamento (somente leitura).
@@ -122,14 +122,19 @@ export default function AnalystCommissionPage() {
   const sel = 'px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs bg-white focus:ring-2 focus:ring-green-500 focus:outline-none'
 
   // Valor "ao vivo": reflete o que está digitado antes de salvar
+  const previsaoLive = v => {
+    const f = form[v.dia]
+    return f ? Math.round(parseNum(salario) * parseNum(f.percentual)) / 100 : v.previsao
+  }
+  // Realizado: só conta vencimento com meta definida (> 0) e já atingida
   const valorLive = v => {
     const f = form[v.dia]
     if (!f) return v.valor
     const meta = parseNum(f.meta)
-    const ok = meta > 0 ? v.recebido >= meta : true
-    return ok ? Math.round(parseNum(salario) * parseNum(f.percentual)) / 100 : 0
+    return meta > 0 && v.recebido >= meta ? previsaoLive(v) : 0
   }
   const totalLive = venc.reduce((s, v) => s + valorLive(v), 0)
+  const totalPrevisao = venc.reduce((s, v) => s + previsaoLive(v), 0)
 
   const TH = 'px-3 py-2 text-[11px] font-semibold text-gray-500 uppercase tracking-wider text-right'
   const TD = 'px-3 py-1.5 text-xs text-right text-gray-800'
@@ -194,20 +199,20 @@ export default function AnalystCommissionPage() {
       )}
 
       {data?.analista && (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="gs-card px-4 py-2.5">
             <p className="gs-label">Analista</p>
             <p className="gs-value text-base">{data.analista.name}</p>
           </div>
           <div className="gs-card px-4 py-2.5">
-            <p className="gs-label">Salário base</p>
-            {admin
-              ? <div className="mt-0.5"><FmtInput value={salario} onChange={setSalario} prefix="R$" /></div>
-              : <p className="gs-value text-base">{fmtBRL(data.salario)}</p>}
+            <p className="gs-label">Previsão do mês</p>
+            <p className="gs-value text-base">{fmtBRL(totalPrevisao)}</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">se todas as metas forem batidas</p>
           </div>
           <div className="gs-card px-4 py-2.5">
-            <p className="gs-label">Comissão do mês</p>
+            <p className="gs-label">Realizado até o momento</p>
             <p className="gs-value text-base text-green-700">{fmtBRL(totalLive)}</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">só metas definidas e já atingidas</p>
           </div>
         </div>
       )}
@@ -259,8 +264,13 @@ export default function AnalystCommissionPage() {
                 ))}
                 <td className={TD + ' font-medium'}>{fmtDec(venc.reduce((s, v) => s + parseNum(form[v.dia]?.percentual), 0))}%</td>
               </tr>
+              <tr>
+                <td className={ROW_LABEL}>Previsão da comissão</td>
+                {venc.map(v => <td key={v.dia} className={TD}>{fmtBRL(previsaoLive(v))}</td>)}
+                <td className={TD + ' font-medium'}>{fmtBRL(totalPrevisao)}</td>
+              </tr>
               <tr className="bg-green-50/50">
-                <td className={ROW_LABEL + ' font-semibold'}>Valor da comissão</td>
+                <td className={ROW_LABEL + ' font-semibold'}>Realizado até o momento</td>
                 {venc.map(v => <td key={v.dia} className={TD + ' font-semibold'}>{fmtBRL(valorLive(v))}</td>)}
                 <td className={TD + ' font-bold'}>{fmtBRL(totalLive)}</td>
               </tr>
@@ -313,6 +323,20 @@ export default function AnalystCommissionPage() {
           </table>
         )}
       </div>
+
+      {data?.analista && (
+        <div className="gs-card px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="gs-label">Salário base — {data.analista.name}</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">
+              Base do cálculo: a comissão de cada vencimento é o percentual sobre este salário. Vale para o mês e é herdado pelos seguintes.
+            </p>
+          </div>
+          {admin
+            ? <FmtInput value={salario} onChange={setSalario} prefix="R$" />
+            : <p className="gs-value text-base">{fmtBRL(data.salario)}</p>}
+        </div>
+      )}
 
       <p className="text-[11px] text-gray-400">
         O mês escolhido é o mês de vencimento: outubro usa os boletos do ciclo de setembro. Valor do vencimento = total que o ciclo
