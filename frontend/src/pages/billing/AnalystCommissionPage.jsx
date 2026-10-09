@@ -35,16 +35,16 @@ function FmtInput({ value, onChange, prefix, suffix, disabled }) {
   const [focus, setFocus] = useState(false)
   const shown = focus ? String(value ?? '') : fmtDec(parseNum(value))
   return (
-    <div className="inline-flex items-center justify-end gap-1.5 w-36 px-3 py-2 border border-gray-200 rounded-lg bg-white focus-within:ring-2 focus-within:ring-green-500">
-      {prefix && <span className="text-xs text-gray-400">{prefix}</span>}
+    <div className="inline-flex items-center justify-end gap-1 w-28 px-2 py-1 border border-gray-200 rounded-md bg-white focus-within:ring-2 focus-within:ring-green-500">
+      {prefix && <span className="text-[10px] text-gray-400">{prefix}</span>}
       <input
         value={shown} inputMode="decimal" disabled={disabled}
         onFocus={e => { setFocus(true); e.target.select() }}
         onBlur={() => setFocus(false)}
         onChange={e => onChange(e.target.value)}
-        className="w-full min-w-0 text-sm text-right bg-transparent focus:outline-none"
+        className="w-full min-w-0 text-xs text-right bg-transparent focus:outline-none"
       />
-      {suffix && <span className="text-xs text-gray-400">{suffix}</span>}
+      {suffix && <span className="text-[10px] text-gray-400">{suffix}</span>}
     </div>
   )
 }
@@ -119,7 +119,7 @@ export default function AnalystCommissionPage() {
   }
 
   const anos = [hoje.getFullYear() - 1, hoje.getFullYear(), hoje.getFullYear() + 1]
-  const sel = 'px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-green-500 focus:outline-none'
+  const sel = 'px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs bg-white focus:ring-2 focus:ring-green-500 focus:outline-none'
 
   // Valor "ao vivo": reflete o que está digitado antes de salvar
   const valorLive = v => {
@@ -131,10 +131,10 @@ export default function AnalystCommissionPage() {
   }
   const totalLive = venc.reduce((s, v) => s + valorLive(v), 0)
 
-  const TH = 'px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right'
-  const TD = 'px-4 py-3 text-sm text-right text-gray-800'
-  const ROW_LABEL = 'px-4 py-3 text-sm font-medium text-gray-700 text-left whitespace-nowrap'
-  const SECTION = 'px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50 text-left'
+  const TH = 'px-3 py-2 text-[11px] font-semibold text-gray-500 uppercase tracking-wider text-right'
+  const TD = 'px-3 py-1.5 text-xs text-right text-gray-800'
+  const ROW_LABEL = 'px-3 py-1.5 text-xs font-medium text-gray-700 text-left whitespace-nowrap'
+  const SECTION = 'px-3 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50 text-left'
 
   if (error) {
     return (
@@ -145,11 +145,11 @@ export default function AnalystCommissionPage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Comissionamento</h1>
-          <p className="text-sm text-gray-500 mt-1 max-w-2xl">
+          <h1 className="text-lg font-bold text-gray-900">Comissionamento</h1>
+          <p className="text-xs text-gray-500 mt-0.5 max-w-2xl">
             {admin
               ? 'Comissão dos analistas de contas a receber, com base na adimplência por vencimento original. O percentual incide sobre o salário do analista, se a meta for atingida.'
               : 'Seu comissionamento com base na adimplência por vencimento original. O percentual incide sobre o seu salário, se a meta for atingida.'}
@@ -187,7 +187,7 @@ export default function AnalystCommissionPage() {
       )}
 
       {data && !data.ciclo && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
           Não há boletos com vencimento em {MESES[month - 1]}/{year} (o ciclo do mês anterior ainda não foi processado). Os valores
           aparecem zerados, mas você já pode cadastrar percentual e meta.
         </div>
@@ -195,19 +195,19 @@ export default function AnalystCommissionPage() {
 
       {data?.analista && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <div className="gs-card p-4">
+          <div className="gs-card px-4 py-2.5">
             <p className="gs-label">Analista</p>
-            <p className="gs-value text-lg">{data.analista.name}</p>
+            <p className="gs-value text-base">{data.analista.name}</p>
           </div>
-          <div className="gs-card p-4">
+          <div className="gs-card px-4 py-2.5">
             <p className="gs-label">Salário base</p>
             {admin
-              ? <div className="mt-1"><FmtInput value={salario} onChange={setSalario} prefix="R$" /></div>
-              : <p className="gs-value text-lg">{fmtBRL(data.salario)}</p>}
+              ? <div className="mt-0.5"><FmtInput value={salario} onChange={setSalario} prefix="R$" /></div>
+              : <p className="gs-value text-base">{fmtBRL(data.salario)}</p>}
           </div>
-          <div className="gs-card p-4">
+          <div className="gs-card px-4 py-2.5">
             <p className="gs-label">Comissão do mês</p>
-            <p className="gs-value text-lg text-green-700">{fmtBRL(totalLive)}</p>
+            <p className="gs-value text-base text-green-700">{fmtBRL(totalLive)}</p>
           </div>
         </div>
       )}
@@ -222,10 +222,10 @@ export default function AnalystCommissionPage() {
             Cadastre um analista (campo "Adicionar analista…") para configurar o comissionamento.
           </div>
         ) : (
-          <table className="w-full min-w-[720px]">
+          <table className="w-full min-w-[640px]">
             <thead>
               <tr className="border-b border-gray-100">
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-left">Vencimento</th>
+                <th className="px-3 py-2 text-[11px] font-semibold text-gray-500 uppercase tracking-wider text-left">Vencimento</th>
                 {venc.map(v => <th key={v.dia} className={TH}>Dia {v.dia}</th>)}
                 <th className={TH}>Total</th>
               </tr>
@@ -282,7 +282,7 @@ export default function AnalystCommissionPage() {
                 <td className={TD}>{fmtBRL(venc.reduce((s, v) => s + v.recebido, 0))}</td>
               </tr>
               <tr>
-                <td className={ROW_LABEL + ' pl-8 text-gray-500'}>dos quais no Itaú</td>
+                <td className={ROW_LABEL + ' pl-6 text-gray-500'}>dos quais no Itaú</td>
                 {venc.map(v => <td key={v.dia} className={TD + ' text-gray-500'}>{fmtBRL(v.recebido_itau)}</td>)}
                 <td className={TD + ' text-gray-500'}>{fmtBRL(venc.reduce((s, v) => s + v.recebido_itau, 0))}</td>
               </tr>
@@ -314,7 +314,7 @@ export default function AnalystCommissionPage() {
         )}
       </div>
 
-      <p className="text-xs text-gray-400">
+      <p className="text-[11px] text-gray-400">
         O mês escolhido é o mês de vencimento: outubro usa os boletos do ciclo de setembro. Valor do vencimento = total que o ciclo
         mandou cobrar em cada vencimento original (arquivo de Vencimentos) mais os boletos do Itaú de clientes que não estão no ciclo.
         Recebido = boletos desses clientes no Asaas e no Itaú, com vencimento no mês e status pago, cruzados por CNPJ/CPF.
