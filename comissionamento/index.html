@@ -1065,7 +1065,7 @@ iframe.active{display:block}
     <iframe id="frame-projeto_especial" src="projeto_especial.html?b=39" title="Projeto Especial"></iframe>
     <iframe id="frame-gestor_operacoes" src="gestor_operacoes.html?b=13" title="Gestor de Operações"></iframe>
     <iframe id="frame-diretor_adm" src="diretor_adm.html?b=11" title="Diretor Administrativo"></iframe>
-    <iframe id="frame-diretor_comercial" src="diretor_comercial.html?b=12" title="Diretor Comercial"></iframe>
+    <iframe id="frame-diretor_comercial" src="diretor_comercial.html?b=13" title="Diretor Comercial"></iframe>
   </div>
 </div>
 
@@ -3161,6 +3161,31 @@ function impResultTable(rows) {
   return `<table class="cons-panel-table"><tbody>${rows.map(r => `<tr><td>${r[0]}</td><td class="r">${r[1]}</td></tr>`).join('')}</tbody></table>`;
 }
 
+// ─── Diretor Comercial: Volume e Crescimento Líquido vêm do Importar ───
+// Volume = linhas de vendas do mês (sem hardware/cancelados); Crescimento
+// líquido = Volume − linhas da planilha de Cancelamentos. Os dois importados
+// ficam em volumeImp/cancelImp; o crescimento só fecha quando os dois chegaram.
+function impAplicarDiretorComercial(mes, patch) {
+  const dc = CLS.get('dc1_m', {});
+  const d = { ...(dc[mes] || {}) };
+  if (patch.volume !== undefined) { d.volumeImp = patch.volume; d.volume = patch.volume; }
+  if (patch.cancel !== undefined) { d.cancelImp = patch.cancel; }
+  if (d.volumeImp != null && d.cancelImp != null) d.cresc = d.volumeImp - d.cancelImp;
+  dc[mes] = d;
+  LS_set('dc1_m', dc);
+  document.getElementById('frame-diretor_comercial')?.contentWindow?.resyncMdata?.();
+  return d;
+}
+function impDcLinhas(d) {
+  const n = v => Number(v).toLocaleString('pt-BR');
+  const rows = [];
+  if (d.volumeImp != null) rows.push(['Volume de vendas', n(d.volumeImp) + ' linha(s)']);
+  if (d.cancelImp != null) rows.push(['Cancelamentos', n(d.cancelImp) + ' linha(s)']);
+  if (d.volumeImp != null && d.cancelImp != null) rows.push(['Crescimento líquido (volume − cancelamentos)', n(d.cresc) + ' linha(s)']);
+  else rows.push(['Crescimento líquido', 'aguardando ' + (d.volumeImp == null ? 'a planilha de Vendas' : 'a planilha de Cancelamentos')]);
+  return rows;
+}
+
 // ─── 1 · Vendas do mês (Volume do Vendedor) ────────────
 function impProcessarPedidos() {
   if (!impRows.pedidos) { alert('Selecione a planilha de Vendas do mês primeiro.'); return; }
@@ -3176,6 +3201,10 @@ function impProcessarPedidos() {
   const porVendedor = {}, naoIdentificados = {}, outroPerfil = {};
   const pedidosHeaders = Object.keys(impRows.pedidos[0] || {});
   const rawPorVendedor = {};
+  // Diretor Comercial: Volume de vendas = TODAS as linhas do mês (vendedores,
+  // indicadores, dealers, projetos e demais), mesma regra de filtro do Vendedor —
+  // fora hardware (Tipo != simcard), cancelados, golpe e base inativa.
+  let dcVolume = 0;
 
   impRows.pedidos.forEach(r => {
     if (norm(r['Tipo']) !== 'simcard') return;
@@ -3183,6 +3212,7 @@ function impProcessarPedidos() {
     const nome = norm(r['Vendedor']);
     if (nome === 'golpe' || nome === 'base inativa' || !nome) return;
     const qtd = Number(r['Quantidade']) || 0;
+    dcVolume += qtd;
     const ent = idx[nome];
     if (!ent) {
       naoIdentificados[r['Vendedor'] || '(vazio)'] = (naoIdentificados[r['Vendedor'] || '(vazio)'] || 0) + qtd;
@@ -3228,6 +3258,8 @@ function impProcessarPedidos() {
   const vendFrame = document.getElementById('frame-vendedor').contentWindow;
   Object.keys(porVendedor).forEach(vid => vendFrame?.impSetRaw?.(vid, mes, 'simcard', pedidosHeaders, rawPorVendedor[vid] || []));
 
+  const dcRes = impAplicarDiretorComercial(mes, { volume: dcVolume });
+
   const regrasResultado = regraRecalcularTodas(mes);
 
   // Sem isso, o Importar grava certo no localStorage mas a aba do Vendedor
@@ -3241,6 +3273,7 @@ function impProcessarPedidos() {
   const naoIdRows = Object.entries(naoIdentificados);
   const outroPerfilRows = Object.entries(outroPerfil);
   document.getElementById('imp_pedidos_result').innerHTML =
+    `<div class="imp-result-title">Diretor Comercial — ${fmtMesC(mes)}</div>${impResultTable(impDcLinhas(dcRes))}` +
     `<div class="imp-result-title">Volume aplicado ao mês (${fmtMesC(mes)})</div>${impResultTable(linhas)}` +
     (outroPerfilRows.length ? `<div class="imp-result-title">De outro perfil (Dealer/Indicador/Projeto Especial — não conta aqui)</div>${impResultTable(outroPerfilRows)}` : '') +
     (naoIdRows.length ? `<div class="imp-result-title">Não identificados (revisar cadastro)</div>${impResultTable(naoIdRows)}` : '') +
@@ -3662,6 +3695,9 @@ function impProcessarCancelamentos() {
     (cancelRaw[ent.tipo][ent.id] = cancelRaw[ent.tipo][ent.id] || []).push(cancelHeaders.map(h => (r[h] == null ? '' : r[h])));
   });
 
+  // Diretor Comercial: total de linhas canceladas da planilha inteira (todos os perfis)
+  const dcRes = impAplicarDiretorComercial(mes, { cancel: impRows.cancel.length });
+
   const dealerFrame = document.getElementById('frame-dealer').contentWindow;
   Object.keys(porEntidade.dealer).forEach(id => dealerFrame?.impSetCancelRaw?.(id, mes, cancelHeaders, cancelRaw.dealer[id] || []));
   const projFrame = document.getElementById('frame-projeto_especial').contentWindow;
@@ -3685,6 +3721,7 @@ function impProcessarCancelamentos() {
   const dealerRows = dealers.filter(e => porEntidade.dealer[e.id]).map(e => [e.nome, porEntidade.dealer[e.id] + ' linha(s)']);
   const projRows = projetos.filter(e => porEntidade.projeto[e.id]).map(e => [e.nome, porEntidade.projeto[e.id] + ' linha(s)']);
   document.getElementById('imp_cancel_result').innerHTML =
+    `<div class="imp-result-title">Diretor Comercial — ${fmtMesC(mes)}</div>${impResultTable(impDcLinhas(dcRes))}` +
     `<div class="imp-result-title">Dealer — cancelamentos em ${fmtMesC(mes)}</div>${impResultTable(dealerRows)}` +
     `<div class="imp-result-title">Projeto Especial — cancelamentos em ${fmtMesC(mes)}</div>${impResultTable(projRows)}`;
 }

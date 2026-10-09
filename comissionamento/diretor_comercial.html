@@ -137,12 +137,13 @@ tr:last-child td{border-bottom:none}
         <p class="card-title">Lançamento do mês</p>
         <div style="margin-bottom:12px">
           <label class="lbl">Mês do Comissionamento</label>
-          <input type="month" id="mesInput" onchange="updateCalc()">
+          <input type="month" id="mesInput" onchange="carregarMes()">
         </div>
         <div class="g2" style="gap:10px">
           <div><label class="lbl">Volume de vendas (linhas)</label><input type="number" id="i_volume" min="0" oninput="updateCalc()"></div>
           <div><label class="lbl">Crescimento líquido (linhas)</label><input type="number" id="i_cresc" min="0" oninput="updateCalc()"></div>
         </div>
+        <div id="dc_imp_info" class="footnote" style="margin-top:8px;display:none"></div>
         <div style="margin-top:10px"><label class="lbl">Equipamentos (hardware) vendidos</label><input type="number" id="i_hw" min="0" oninput="updateCalc()"></div>
         <div style="margin-top:10px;padding-top:10px;border-top:1px solid #eef0f4">
           <label class="lbl">Pesquisa de satisfação (só em jan/abr/jul/out)</label>
@@ -429,7 +430,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderCanais(); renderReajustes(); renderProdutos(); renderNewsKickoff(); renderBaseConquistada();
   const salvo = await COM_API.buscarCiclo('diretor_comercial');
   if (salvo && Object.keys(salvo).length) { mdata = salvo; LS.set('dc1_m', mdata); }
-  updateCalc(); renderCiclo();
+  carregarMes(); renderCiclo();
 });
 document.querySelectorAll('.tab-btn').forEach(b => {
   b.addEventListener('click', () => {
@@ -525,11 +526,38 @@ function updateCalc() {
   document.getElementById('cp_total').textContent = 'R$ ' + br2(c.total);
 }
 
+// Preenche os campos com o que já está salvo/importado no mês selecionado.
+function carregarMes() {
+  const mes = document.getElementById('mesInput').value;
+  const d = mdata[mes] || {};
+  document.getElementById('i_volume').value = d.volume ?? '';
+  document.getElementById('i_cresc').value = d.cresc ?? '';
+  document.getElementById('i_hw').value = d.hw ?? '';
+  document.getElementById('i_sat').value = d.sat ?? '';
+  document.getElementById('i_news').checked = !!d.news;
+  const info = document.getElementById('dc_imp_info');
+  if (d.volumeImp != null || d.cancelImp != null) {
+    const n = v => (v == null ? '—' : Number(v).toLocaleString('pt-BR'));
+    info.style.display = '';
+    info.innerHTML = `<strong>Vindo do Importar:</strong> volume de vendas ${n(d.volumeImp)} (sem hardware e cancelados) · cancelamentos ${n(d.cancelImp)} · crescimento líquido = volume − cancelamentos = ${d.volumeImp != null && d.cancelImp != null ? n(d.volumeImp - d.cancelImp) : '—'}`;
+  } else {
+    info.style.display = 'none';
+  }
+  updateCalc();
+}
+// Chamado pelo Importar (index.html) depois de gravar dc1_m — recarrega e persiste no backend.
+function resyncMdata() {
+  mdata = LS.get('dc1_m', {});
+  COM_API.salvarCiclo('diretor_comercial', mdata);
+  carregarMes(); renderCiclo();
+}
+
 function saveMes() {
   const mes = document.getElementById('mesInput').value;
   if (!mes) { showToast('Selecione o mês'); return; }
   if (mesAprovado(mes)) { showToast('Mês aprovado — desaprove no Importar pra editar.'); return; }
   mdata[mes] = {
+    ...(mdata[mes] || {}),   // preserva volumeImp/cancelImp vindos do Importar
     volume: +document.getElementById('i_volume').value || 0,
     cresc: +document.getElementById('i_cresc').value || 0,
     hw: +document.getElementById('i_hw').value || 0,
