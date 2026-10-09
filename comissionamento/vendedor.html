@@ -554,6 +554,8 @@ function bonusCelulaDe(vid,mes){
   const v=vendedores.find(x=>x.id===vid);
   return +(aliquota*(v?.salarioFixo||0)).toFixed(2);
 }
+// Equipamento lançado à mão (o Importar não altera) — só o Patrick. Mantém em sincronia com index.html.
+const EQUIP_MANUAL=['patrick rodrigues'];
 function calcVend(d,g,bonusCelula=0){
   const linhas=d.linhas||0,atv=d.atv||0,eq=d.eq||0,gps=d.gps||0,frete=d.frete||0,bonus=d.bonus||0;
   const alc=g.obj>0?(linhas/g.obj*100):0;
@@ -721,7 +723,7 @@ function renderEditPanel(vid,mes){
     <div class="edit-fields">
       <div><label class="lbl">Novas linhas</label><input type="number" id="e_l_${vid}" value="${d.linhas||0}" min="0" oninput="liveCalc('${vid}')"></div>
       <div><label class="lbl">Valor ativações</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="e_a_${vid}" value="${d.atv||0}" min="0" step="0.01" oninput="liveCalc('${vid}')"></div></div>
-      <div><label class="lbl">Equipamentos</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="e_q_${vid}" value="${d.eq||0}" min="0" step="0.01" oninput="liveCalc('${vid}')"></div></div>
+      <div><label class="lbl">${EQUIP_MANUAL.includes(norm(vend.nome))?'Equipamentos (manual)':'Equipamentos'}</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="e_q_${vid}" value="${d.eq||0}" min="0" step="0.01" oninput="liveCalc('${vid}')"></div></div>
       <div><label class="lbl">Smart GPS</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="e_g_${vid}" value="${d.gps||0}" min="0" step="0.01" oninput="liveCalc('${vid}')"></div></div>
       <div><label class="lbl">Frete</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="e_f_${vid}" value="${d.frete||0}" min="0" step="0.01" oninput="liveCalc('${vid}')"></div></div>
       <div><label class="lbl" style="color:#166B4A">Bônus extra</label><div class="irow"><span class="ipfx" style="color:#166B4A">R$</span><input type="number" id="e_b_${vid}" value="${d.bonus||0}" min="0" step="0.01" oninput="liveCalc('${vid}')" style="border-color:#1E9B6B"></div></div>

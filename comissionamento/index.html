@@ -1060,7 +1060,7 @@ iframe.active{display:block}
     <!-- ?b=N é só cache-busting: o navegador guarda esses arquivos em cache
          agressivamente, e sem isso uma edição no perfil não aparece nem com F5
          normal. Suba o número sempre que mexer em algum desses arquivos. -->
-    <iframe id="frame-vendedor" src="vendedor.html?b=34" title="Vendedor"></iframe>
+    <iframe id="frame-vendedor" src="vendedor.html?b=35" title="Vendedor"></iframe>
     <iframe id="frame-dealer" src="dealer.html?b=31" title="Dealer"></iframe>
     <iframe id="frame-indicadores" src="indicadores.html?b=22" title="Indicador"></iframe>
     <iframe id="frame-projeto_especial" src="projeto_especial.html?b=40" title="Projeto Especial"></iframe>
@@ -3758,6 +3758,9 @@ function impProcessarCancelamentos() {
 // Planilha crua de recebíveis — sem coluna de Executivo, então o vendedor sai
 // do cruzamento com Clientes (passo 2), igual ao Inventário. Só entra linha
 // cuja Descrição contenha "equipamento"; o resto é ignorado.
+// Vendedores cujo Equipamento é lançado MANUALMENTE (Vendedor > editar > Equipamentos).
+// O Importar não toca no valor deles — pedido do Diego, 09/10/2026 (só o Patrick).
+const EQUIP_MANUAL = ['patrick rodrigues'];
 function impProcessarEquipamentos() {
   if (!impRows.equipamentos) { alert('Selecione a planilha de Equipamentos primeiro.'); return; }
   const mapa = CLS.get('imp_clientes_map', null);
@@ -3771,6 +3774,7 @@ function impProcessarEquipamentos() {
   const equipHeaders = Object.keys(impRows.equipamentos[0] || {});
   const asRowEq = r => equipHeaders.map(h => (r[h] == null ? '' : r[h]));
   const naoIdentificados = {};
+  const equipManualIgnorado = {};
 
   impRows.equipamentos.forEach(r => {
     if (norm(r['Situação']) !== 'recebida') return;
@@ -3790,6 +3794,7 @@ function impProcessarEquipamentos() {
 
     const desc = norm(r['Descrição']);
     if (!desc.includes('equipamento')) return;
+    if (EQUIP_MANUAL.includes(norm(ent.nome))) { equipManualIgnorado[ent.nome] = (equipManualIgnorado[ent.nome] || 0) + 1; return; }
     // Sem filtro de mês — é só o recebível, conta assim que "Recebida".
     const valor = Number(r['Valor']) || 0;
     equipVendedor[ent.id] = (equipVendedor[ent.id] || 0) + valor;
@@ -3813,6 +3818,7 @@ function impProcessarEquipamentos() {
 
   document.getElementById('imp_equipamentos_result').innerHTML =
     `<div class="imp-result-title">Equipamento — 2% do valor recebido</div>${impResultTable(eqRows)}` +
+    (Object.keys(equipManualIgnorado).length ? `<div class="imp-result-title">Equipamento lançado manualmente (não alterado pelo Importar)</div>${impResultTable(Object.entries(equipManualIgnorado).map(([n, q]) => [n, q + ' linha(s) da planilha ignorada(s)']))}` : '') +
     (naoIdRows.length ? `<div class="imp-result-title">Não identificados (revisar cadastro)</div>${impResultTable(naoIdRows)}` : '');
 }
 
