@@ -2430,9 +2430,9 @@ function renderConsolidado() {
     ...projetoRows.map(r => ({ cat: 'projeto', ...r })),
   ].map((r, i) => ({ ...r, _id: i + 1 })); // ID fixo mesmo quando a busca/filtro esconde linhas
   const linhasDiretoria = [
-    { cat: 'gestor', nome: 'Gestor de Operações', ...gestorOps },
-    { cat: 'diretor', nome: 'Diretor Administrativo', ...diretorAdm },
-    { cat: 'diretorComercial', nome: 'Diretor Comercial', ...diretorCom },
+    { cat: 'diretorComercial', nome: 'Comercial', ...diretorCom },
+    { cat: 'diretor', nome: 'Administrativo', ...diretorAdm },
+    { cat: 'gestor', nome: 'Operações', ...gestorOps },
   ];
   const valOrDash = (v, neg) => v ? (neg ? '-R$ ' : 'R$ ') + br2c(v) : '<span style="color:#ccc">—</span>';
   const somaColDe = linhas => campo => linhas.reduce((a, r) => a + (r[campo] || 0), 0);
@@ -2473,9 +2473,29 @@ function renderConsolidado() {
       </tbody>
     </table>`;
   };
+  // Diretoria e Gestores: só o total por área (Comercial / Administrativo / Operações) —
+  // sem as colunas Simcard/Bonificação/Equipamento/Smart GPS/Desc., que não fazem
+  // sentido pra esses perfis (pedido do Diego, 09/10/2026).
+  const tabelaDiretoriaHtml = linhas => `
+    <table>
+      <thead><tr><th>ID</th><th>Categoria</th><th>Executivo</th><th>Total</th></tr></thead>
+      <tbody>
+        ${linhas.map((r, i) => `
+          <tr class="${r.hasData ? '' : 'cons-row-empty'}">
+            <td>${i + 1}</td>
+            <td><span class="cons-cat-pill" style="background:${CAT[r.cat].color};color:${CAT[r.cat].text || '#fff'}">${CAT[r.cat].label}</span></td>
+            <td>${r.nome}</td>
+            <td style="font-weight:700">R$ ${br2c(r.total)}</td>
+          </tr>`).join('')}
+        <tr class="cons-row-total">
+          <td colspan="3">Total</td>
+          <td>R$ ${br2c(somaColDe(linhas)('total'))}</td>
+        </tr>
+      </tbody>
+    </table>`;
   CONS_CTX = { tabelaHtml, linhasTabela, linhasDiretoria, CAT, mes };
   consRenderTabelas();
-  document.getElementById('cons_tabela_diretoria_wrap').innerHTML = tabelaHtml(linhasDiretoria);
+  document.getElementById('cons_tabela_diretoria_wrap').innerHTML = tabelaDiretoriaHtml(linhasDiretoria);
 
   renderConsHistorico(mes);
 }
