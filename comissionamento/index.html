@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<script src="com_sync.js?v=3" data-hydrate></script>
+<script src="com_sync.js?v=4" data-hydrate></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Comissionamento · Gestora Smart</title>
@@ -1381,6 +1381,17 @@ function podeVerPainel(p) {
     return perm !== false;
   } catch { return true; }
 }
+
+// A Visão Consolidada/Executivo só mostra os perfis que o usuário pode ver (pedido do Diego,
+// 09/10/2026: o Diretor Comercial não pode ter acesso aos números dos outros perfis). O servidor
+// já não entrega os dados dos painéis sem permissão (routers/comissionamento.py); aqui a tela
+// também esconde linhas, totais, gráficos e histórico desses perfis.
+const CONS_CAT_PAINEL = {
+  vendedor: 'vendedor', dealer: 'dealer', indicador: 'indicadores', projeto: 'projeto_especial',
+  gestor: 'gestor_operacoes', diretor: 'diretor_adm', diretorComercial: 'diretor_comercial',
+};
+function consVe(cat) { return podeVerPainel(CONS_CAT_PAINEL[cat]); }
+const CONS_ZERO = { total: 0, hasData: false, bonusExtra: 0, simcard: 0, bonificacao: 0, equipamento: 0, gps: 0, descCanc: 0, descFrete: 0 };
 // Esconde do menu (não só desabilita) os painéis sem permissão — roda no
 // carregamento da página, uma vez.
 function aplicarPermissoesPaineis() {
@@ -1746,7 +1757,7 @@ function populateExecSelect() {
     { label: 'Indicador N2', tipo: 'indicador_n2', itens: parceiros.filter(p => p.tipo === 'indicador_n2') },
     { label: 'Dealer', tipo: 'dealer', itens: parceiros.filter(p => p.tipo === 'dealer') },
     { label: 'Projeto Especial', tipo: 'projeto', itens: parceiros.filter(p => p.tipo === 'projeto') },
-  ].filter(g => g.itens.length);
+  ].filter(g => g.itens.length && consVe(g.tipo === 'indicador_n2' ? 'indicador' : g.tipo === 'vendedor' ? 'vendedor' : g.tipo));
   sel.innerHTML = grupos.map(g => `<optgroup label="${g.label}">${g.itens.map(it => `<option value="${g.tipo}:${it.id}">${it.nome}</option>`).join('')}</optgroup>`).join('');
   if (atual && [...sel.options].some(o => o.value === atual)) sel.value = atual;
 }
@@ -2361,14 +2372,16 @@ function renderConsolidado() {
   }
   const manual = consManualGet(mes);
 
-  const vendedorRows = manual ? [consManualRow('Vendedor · lançamento manual', manual.vendedor)] : consVendedorTotais(mes);
-  const { dealerRows, projetoRows } = manual
+  const vendedorRows = !consVe('vendedor') ? [] : manual ? [consManualRow('Vendedor · lançamento manual', manual.vendedor)] : consVendedorTotais(mes);
+  const dpAll = manual
     ? { dealerRows: [consManualRow('Dealer · lançamento manual', manual.dealer)], projetoRows: [consManualRow('Projeto Especial · lançamento manual', manual.projeto)] }
     : consDealerProjetoTotais(mes);
-  const gestorOps = manual ? consManualRow('Gestor de Operações', manual.gestor) : consGestorOpsTotal(mes);
-  const diretorAdm = manual ? consManualRow('Diretor Administrativo', manual.diretor) : consDiretorAdmTotal(mes);
-  const diretorCom = manual ? consManualRow('Diretor Comercial', manual.diretorComercial) : consDiretorComercialTotal(mes);
-  const indicadorRows = manual ? [consManualRow('Indicador · lançamento manual', manual.indicador)] : consIndicadoresTotais(mes);
+  const dealerRows = consVe('dealer') ? dpAll.dealerRows : [];
+  const projetoRows = consVe('projeto') ? dpAll.projetoRows : [];
+  const gestorOps = !consVe('gestor') ? CONS_ZERO : manual ? consManualRow('Gestor de Operações', manual.gestor) : consGestorOpsTotal(mes);
+  const diretorAdm = !consVe('diretor') ? CONS_ZERO : manual ? consManualRow('Diretor Administrativo', manual.diretor) : consDiretorAdmTotal(mes);
+  const diretorCom = !consVe('diretorComercial') ? CONS_ZERO : manual ? consManualRow('Diretor Comercial', manual.diretorComercial) : consDiretorComercialTotal(mes);
+  const indicadorRows = !consVe('indicador') ? [] : manual ? [consManualRow('Indicador · lançamento manual', manual.indicador)] : consIndicadoresTotais(mes);
 
   const sum = rows => rows.reduce((a, r) => a + r.total, 0);
   const vendedorTotal = sum(vendedorRows);
@@ -2378,7 +2391,7 @@ function renderConsolidado() {
 
   const grand = vendedorTotal + dealerTotal + projetoTotal + gestorOps.total + diretorAdm.total + diretorCom.total + indicadorTotal;
   document.getElementById('cons_grand_total').textContent = 'R$ ' + br2c(grand);
-  document.getElementById('cons_grand_sub').textContent = fmtMesC(mes) + ' · soma de todos os perfis de comissionamento';
+  document.getElementById('cons_grand_sub').textContent = fmtMesC(mes) + (Object.keys(CONS_CAT_PAINEL).every(consVe) ? ' · soma de todos os perfis de comissionamento' : ' · soma dos perfis que você pode ver');
   // Variação contra o mês anterior (mesma função do histórico — só lê, não grava).
   const [anoC, mesC] = mes.split('-').map(Number);
   const mesPrev = mesC === 1 ? `${anoC - 1}-12` : `${anoC}-${String(mesC - 1).padStart(2, '0')}`;
@@ -2406,14 +2419,14 @@ function renderConsolidado() {
   // Um único array por grupo alimenta o KPI de status e o gráfico comparativo
   // abaixo — assim os dois nunca podem divergir sobre total/atividade do mês.
   const groupsData = [
-    { nome: 'Vendedor', total: vendedorTotal, hasData: vendedorRows.some(r => r.hasData) },
-    { nome: 'Dealer', total: dealerTotal, hasData: dealerRows.some(r => r.hasData) },
-    { nome: 'Indicador', total: indicadorTotal, hasData: indicadorRows.some(r => r.hasData) },
-    { nome: 'Projeto Especial', total: projetoTotal, hasData: projetoRows.some(r => r.hasData) },
-    { nome: 'Gestor de Operações', total: gestorOps.total, hasData: gestorOps.hasData },
-    { nome: 'Diretor Administrativo', total: diretorAdm.total, hasData: diretorAdm.hasData },
-    { nome: 'Diretor Comercial', total: diretorCom.total, hasData: diretorCom.hasData },
-  ];
+    { cat: 'vendedor', nome: 'Vendedor', total: vendedorTotal, hasData: vendedorRows.some(r => r.hasData) },
+    { cat: 'dealer', nome: 'Dealer', total: dealerTotal, hasData: dealerRows.some(r => r.hasData) },
+    { cat: 'indicador', nome: 'Indicador', total: indicadorTotal, hasData: indicadorRows.some(r => r.hasData) },
+    { cat: 'projeto', nome: 'Projeto Especial', total: projetoTotal, hasData: projetoRows.some(r => r.hasData) },
+    { cat: 'gestor', nome: 'Gestor de Operações', total: gestorOps.total, hasData: gestorOps.hasData },
+    { cat: 'diretor', nome: 'Diretor Administrativo', total: diretorAdm.total, hasData: diretorAdm.hasData },
+    { cat: 'diretorComercial', nome: 'Diretor Comercial', total: diretorCom.total, hasData: diretorCom.hasData },
+  ].filter(g => consVe(g.cat));
 
   // Escala única de verde (mais escuro = maior valor, mais claro = menor),
   // em vez da cor de marca de cada perfil — pedido do Diego pro "Comparativo
@@ -2465,7 +2478,7 @@ function renderConsolidado() {
     { cat: 'gestor', nome: 'Gestor de Operações', ...gestorOps, area: 'operacoes', executivo: 'Thalles Marques' },
     { cat: 'diretor', nome: 'Diretor Administrativo', ...diretorAdm, area: 'administrativo', executivo: 'Diego Miranda' },
     { cat: 'diretorComercial', nome: 'Diretor Comercial', ...diretorCom, area: 'comercial', executivo: 'Johnny Herbert' },
-  ];
+  ].filter(r => consVe(r.cat));
   const valOrDash = (v, neg) => v ? (neg ? '-R$ ' : 'R$ ') + br2c(v) : '<span style="color:#ccc">—</span>';
   const somaColDe = linhas => campo => linhas.reduce((a, r) => a + (r[campo] || 0), 0);
   const tabelaHtml = linhas => {
@@ -2511,7 +2524,7 @@ function renderConsolidado() {
   // Célula editável da Bonificação Extra (manual). Travada em mês aprovado ou lançamento manual do mês.
   const bonusExtraCelula = r => {
     const v = r.bonusExtra || 0;
-    if (manual || mesAprovado(mes)) return v ? 'R$ ' + br2c(v) : '<span style="color:#ccc">—</span>';
+    if (manual || mesAprovado(mes) || !['gestor', 'diretor', 'diretorComercial'].every(consVe)) return v ? 'R$ ' + br2c(v) : '<span style="color:#ccc">—</span>';
     return `<input type="text" inputmode="decimal" value="${v ? br2c(v) : ''}" placeholder="0,00" onfocus="this.select()"
       onchange="consSalvarBonusExtra('${r.cat}', this.value)"
       style="width:104px;padding:6px 8px;border:1px solid #d4d3ce;border-radius:6px;font-size:12px;text-align:right;font-family:inherit;background:#fff">`;
@@ -2544,7 +2557,8 @@ function renderConsolidado() {
     </table>`;
   CONS_CTX = { tabelaHtml, linhasTabela, linhasDiretoria, CAT, mes };
   consRenderTabelas();
-  document.getElementById('cons_tabela_diretoria_wrap').innerHTML = tabelaDiretoriaHtml(linhasDiretoria);
+  document.getElementById('cons_tabela_diretoria_wrap').innerHTML = linhasDiretoria.length ? tabelaDiretoriaHtml(linhasDiretoria) : '';
+  document.getElementById('cons_tabela_diretoria_wrap').parentElement.style.display = linhasDiretoria.length ? '' : 'none';
 
   renderConsHistorico(mes);
 }
@@ -2554,17 +2568,23 @@ document.getElementById('cons_mes').addEventListener('change', renderConsolidado
 // ─── Gráfico de pilha: Janeiro até o mês selecionado, empilhado por perfil ──
 function consTotalPorPerfil(mesStr) {
   const manual = consManualGet(mesStr);
-  if (manual) return { vendedor: manual.vendedor, dealer: manual.dealer, indicador: manual.indicador, projeto: manual.projeto, gestor: manual.gestor, diretor: manual.diretor, diretorComercial: manual.diretorComercial };
-  const { dealerRows, projetoRows } = consDealerProjetoTotais(mesStr);
-  return {
-    vendedor: consVendedorTotais(mesStr).reduce((a, r) => a + r.total, 0),
-    dealer: dealerRows.reduce((a, r) => a + r.total, 0),
-    indicador: consIndicadoresTotais(mesStr).reduce((a, r) => a + r.total, 0),
-    projeto: projetoRows.reduce((a, r) => a + r.total, 0),
-    gestor: consGestorOpsTotal(mesStr).total,
-    diretor: consDiretorAdmTotal(mesStr).total,
-    diretorComercial: consDiretorComercialTotal(mesStr).total,
-  };
+  let t;
+  if (manual) t = { vendedor: manual.vendedor, dealer: manual.dealer, indicador: manual.indicador, projeto: manual.projeto, gestor: manual.gestor, diretor: manual.diretor, diretorComercial: manual.diretorComercial };
+  else {
+    const { dealerRows, projetoRows } = consDealerProjetoTotais(mesStr);
+    t = {
+      vendedor: consVendedorTotais(mesStr).reduce((a, r) => a + r.total, 0),
+      dealer: dealerRows.reduce((a, r) => a + r.total, 0),
+      indicador: consIndicadoresTotais(mesStr).reduce((a, r) => a + r.total, 0),
+      projeto: projetoRows.reduce((a, r) => a + r.total, 0),
+      gestor: consGestorOpsTotal(mesStr).total,
+      diretor: consDiretorAdmTotal(mesStr).total,
+      diretorComercial: consDiretorComercialTotal(mesStr).total,
+    };
+  }
+  // perfis sem permissão não entram em nenhum total (nem em variação, histórico ou gráfico)
+  Object.keys(t).forEach(k => { if (!consVe(k)) t[k] = 0; });
+  return t;
 }
 
 const CONS_PERFIS = [
@@ -2586,13 +2606,14 @@ function renderConsHistorico(mesAte) {
     const mesStr = `${anoAte}-${String(m).padStart(2, '0')}`;
     dados.push({ mes: mesStr, ...consTotalPorPerfil(mesStr) });
   }
-  const totalMes = d => CONS_PERFIS.reduce((a, p) => a + d[p.key], 0);
+  const PERFIS_VIS = CONS_PERFIS.filter(p => consVe(p.key));
+  const totalMes = d => PERFIS_VIS.reduce((a, p) => a + d[p.key], 0);
   const maxTotal = Math.max(...dados.map(totalMes), 1);
 
   const barrasHtml = dados.map(d => {
     const total = totalMes(d);
     const alturaBarra = total > 0 ? Math.max((total / maxTotal) * 100, 1) : 0;
-    const segs = CONS_PERFIS
+    const segs = PERFIS_VIS
       .filter(p => d[p.key] > 0)
       .map(p => `<div style="flex:${d[p.key]} 1 0;background:${p.color}" title="${p.label}: R$ ${br2c(d[p.key])}"></div>`)
       .join('');
@@ -2603,7 +2624,7 @@ function renderConsHistorico(mesAte) {
       </div>`;
   }).join('');
 
-  const legendaHtml = CONS_PERFIS.map(p => `
+  const legendaHtml = PERFIS_VIS.map(p => `
     <div class="cons-hist-legend-item"><span class="cons-hist-legend-dot" style="background:${p.color}"></span>${p.label}</div>`).join('');
 
   document.getElementById('cons_hist_chart').innerHTML =
@@ -4002,7 +4023,7 @@ function renderImportHistorico() {
   for (let m = 1; m <= 12; m++) {
     const mesStr = `${ano}-${String(m).padStart(2, '0')}`;
     const totais = consTotalPorPerfil(mesStr);
-    const total = CONS_PERFIS.reduce((a, p) => a + (totais[p.key] || 0), 0);
+    const total = CONS_PERFIS.filter(p => consVe(p.key)).reduce((a, p) => a + (totais[p.key] || 0), 0);
     const aprov = aprovacoesGet()[mesStr];
     const temDado = total > 0 || !!consManualGet(mesStr);
     let badge, acoes;

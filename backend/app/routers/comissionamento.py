@@ -44,25 +44,66 @@ def _pode(user, db, areas) -> bool:
 
 
 def _areas_da_chave(chave: str):
+    """
+    Quem pode LER cada chave de estado. A Visão Consolidada/Executivo NÃO abre os dados dos
+    perfis: ela só mostra (e só recebe) o que o usuário já pode ver pelo painel do próprio
+    perfil — senão quem só vê "Diretor Comercial" + Consolidada leria os números dos outros.
+    "importar" (função administrativa que processa tudo) lê/grava todas as chaves de perfil.
+    """
+    if chave in ("gs5_v", "dp1_dealers", "dp1_projetos", "ind1_list"):   # listas de cadastro
+        base = {"gs5_v": ["vendedor"], "dp1_dealers": ["dealer"], "dp1_projetos": ["projeto_especial"],
+                "ind1_list": ["indicadores"]}[chave]
+        return base + ["cadastro", "importar"]
     if chave.startswith("gs5_"):
-        return ["vendedor", "cadastro"] + _AREAS_GERAIS
+        return ["vendedor", "importar"]
     if chave.startswith("dp1_"):
-        return ["dealer", "projeto_especial", "cadastro"] + _AREAS_GERAIS
+        return ["dealer", "projeto_especial", "importar"]
     if chave.startswith("ind1_"):
-        return ["indicadores", "cadastro"] + _AREAS_GERAIS
+        return ["indicadores", "importar"]
     if chave.startswith("dc1_"):
-        return ["diretor_comercial"] + _AREAS_GERAIS
+        return ["diretor_comercial", "importar"]
     if chave.startswith("da1_"):
-        return ["diretor_adm"] + _AREAS_GERAIS
+        return ["diretor_adm", "importar"]
     if chave.startswith("go1_"):
-        return ["gestor_operacoes"] + _AREAS_GERAIS
-    if chave in ("cons_hist_manual", "cons_bonus_extra"):
-        return _AREAS_GERAIS
+        return ["gestor_operacoes", "importar"]
     if chave == "imp_clientes_map":
-        return _AREAS_GERAIS
+        return ["importar"]
     if chave == "regras_comissao":
-        return ["dealer", "projeto_especial", "cadastro"] + _AREAS_GERAIS
-    return _TODAS   # aprovacoes_mes e o que não for específico: qualquer painel do módulo
+        return ["dealer", "projeto_especial", "importar"]
+    if chave in ("cons_hist_manual", "cons_bonus_extra"):
+        return _AREAS_GERAIS      # leitura liberada, mas filtrada por campo (ver _filtrar_valor)
+    return _TODAS   # aprovacoes_mes: qualquer painel do módulo
+
+
+# Campos de cons_hist_manual / cons_bonus_extra por perfil -> painel necessário
+_CAMPO_PAINEL = {
+    "vendedor": "vendedor", "dealer": "dealer", "indicador": "indicadores", "projeto": "projeto_especial",
+    "gestor": "gestor_operacoes", "diretor": "diretor_adm", "diretorComercial": "diretor_comercial",
+}
+
+
+def _filtrar_valor(chave: str, valor, user, db):
+    """Tira do valor os campos de perfis que o usuário não pode ver (totais manuais / bonificação extra)."""
+    if chave not in ("cons_hist_manual", "cons_bonus_extra") or not isinstance(valor, dict):
+        return valor
+    out = {}
+    for mes, campos in valor.items():
+        if not isinstance(campos, dict):
+            continue
+        keep = {k: v for k, v in campos.items() if k in _CAMPO_PAINEL and get_permission(user, "can_view_com_" + _CAMPO_PAINEL[k], db)}
+        if keep:
+            out[mes] = keep
+    return out
+
+
+def _pode_gravar_chave(chave: str, user, db) -> bool:
+    if chave == "cons_hist_manual":
+        return _pode(user, db, ["importar"])          # lançamento manual de totais = função administrativa
+    if chave == "aprovacoes_mes":                     # aprovar/desaprovar mês = ação da Consolidada/Importar
+        return _pode(user, db, ["consolidado", "importar"])
+    if chave == "cons_bonus_extra":                   # grava o blob inteiro: só quem enxerga os 3
+        return all(get_permission(user, "can_view_com_" + a, db) for a in ("gestor_operacoes", "diretor_adm", "diretor_comercial"))
+    return _pode(user, db, _areas_da_chave(chave))
 
 
 _AREAS_EXTRATO = {
@@ -75,7 +116,7 @@ _AREAS_EXTRATO = {
 
 def _areas_do_ciclo(perfil: str):
     if perfil in ("gestor_operacoes", "diretor_adm", "diretor_comercial"):
-        return [perfil] + _AREAS_GERAIS
+        return [perfil, "importar"]
     return _TODAS   # "executivos" (lista de nomes) e afins
 
 
@@ -201,7 +242,7 @@ def ler_estado(db: Session = Depends(get_db), user=Depends(get_current_user)):
     # só devolve as chaves dos painéis que o usuário pode ver
     rows = [r for r in db.query(ComissaoEstado).all() if _pode(user, db, _areas_da_chave(r.chave))]
     return {
-        "itens": {r.chave: r.valor for r in rows},
+        "itens": {r.chave: _filtrar_valor(r.chave, r.valor, user, db) for r in rows},
         "meta": {r.chave: {"atualizado_em": r.atualizado_em.isoformat() if r.atualizado_em else None,
                            "por": r.atualizado_por} for r in rows},
     }
@@ -212,7 +253,7 @@ def gravar_estado(data: EstadoIn, db: Session = Depends(get_db), user=Depends(ge
     invalidas = [k for k in data.itens if k not in ESTADO_CHAVES]
     if invalidas:
         raise HTTPException(status_code=400, detail=f"Chave(s) não permitida(s): {', '.join(invalidas)}")
-    if any(not _pode(user, db, _areas_da_chave(k)) for k in data.itens):
+    if any(not _pode_gravar_chave(k, user, db) for k in data.itens):
         _negar()
     for chave, valor in data.itens.items():
         row = db.query(ComissaoEstado).filter(ComissaoEstado.chave == chave).first()
