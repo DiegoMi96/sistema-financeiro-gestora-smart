@@ -5,7 +5,7 @@ com base na adimplência por vencimento ORIGINAL (10, 15, 20 e 25).
 Mês escolhido = mês de VENCIMENTO dos boletos (o ciclo de setembro gera boletos com
 vencimento em outubro, então outubro usa o ciclo de setembro). Vencimento original =
 `billing_client_summaries.due_date` (arquivo de Vencimentos); o realizado vem de
-`asaas_payments_sync` (cruzado por CNPJ/CPF) e `itau_boletos` — boletos com vencimento dentro do mês.
+`asaas_payments_sync` (cruzado por CNPJ/CPF) e `itau_boletos` — SÓ o pago no dia do vencimento ou no dia seguinte (10/11, 15/16, 20/21, 25/26); pago antes ou depois não entra no recebido. Boletos com vencimento dentro do mês.
 
 Regra do valor (por analista): percentual × SALÁRIO do analista, liberado só se a meta (R$)
 foi definida (> 0) e o recebido do vencimento a atingiu. Previsão = o que pagaria se a meta for batida.
@@ -158,13 +158,15 @@ def comissionamento(year: int, month: int, user_id: Optional[int] = None,
             pg AS (  -- boletos do mês nos dois bancos (Asaas + Itaú), por cliente
                 SELECT regexp_replace(customer_cpf_cnpj, '\\D', '', 'g') AS doc,
                        COALESCE(value_original, value) AS valor,
-                       (status IN ('RECEIVED','CONFIRMED','RECEIVED_IN_CASH')) AS pago,
+                       -- "pago no dia": pago no vencimento ou no dia seguinte (antecipado/atrasado não conta)
+                       (status IN ('RECEIVED','CONFIRMED','RECEIVED_IN_CASH')
+                        AND COALESCE(payment_date, credit_date) BETWEEN due_date AND due_date + 1) AS pago,
                        'Asaas' AS banco
                 FROM asaas_payments_sync
                 WHERE due_date >= :ini AND due_date < :fim
                 UNION ALL
                 SELECT regexp_replace(cpf_cnpj, '\\D', '', 'g'), valor_titulo,
-                       (status = 'paga'), 'Itaú'
+                       (status = 'paga' AND data_pagamento BETWEEN data_vencimento AND data_vencimento + 1), 'Itaú'
                 FROM itau_boletos
                 WHERE status <> 'cancelada' AND data_vencimento >= :ini AND data_vencimento < :fim
             ),

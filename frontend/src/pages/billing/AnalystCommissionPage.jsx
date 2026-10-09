@@ -212,7 +212,7 @@ export default function AnalystCommissionPage() {
           <div className="gs-card px-4 py-2.5">
             <p className="gs-label">Realizado até o momento</p>
             <p className="gs-value text-base text-green-700">{fmtBRL(totalLive)}</p>
-            <p className="text-[10px] text-gray-400 mt-0.5">só metas definidas e já atingidas</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">só metas definidas e já atingidas (recebimento no dia)</p>
           </div>
         </div>
       )}
@@ -277,7 +277,7 @@ export default function AnalystCommissionPage() {
                 <td className={TD}>{fmtNum(venc.reduce((s, v) => s + v.clientes, 0))}</td>
               </tr>
               <tr>
-                <td className={ROW_LABEL}>Recebido</td>
+                <td className={ROW_LABEL}>Recebido no dia (vencimento + 1 dia)</td>
                 {venc.map(v => <td key={v.dia} className={TD}>{fmtBRL(v.recebido)}</td>)}
                 <td className={TD}>{fmtBRL(venc.reduce((s, v) => s + v.recebido, 0))}</td>
               </tr>
@@ -326,7 +326,7 @@ export default function AnalystCommissionPage() {
       <p className="text-xs text-gray-400">
         O mês escolhido é o mês de vencimento: outubro usa os boletos do ciclo de setembro. Valor do vencimento = total que o ciclo
         mandou cobrar em cada vencimento original (arquivo de Vencimentos) mais os boletos do Itaú de clientes que não estão no ciclo.
-        Recebido = boletos desses clientes no Asaas e no Itaú, com vencimento no mês e status pago, cruzados por CNPJ/CPF.
+        Recebido no dia = boletos desses clientes no Asaas e no Itaú pagos no próprio dia do vencimento ou no dia seguinte (10 e 11, 15 e 16, 20 e 21, 25 e 26) — pagamento antecipado ou atrasado não conta —, cruzados por CNPJ/CPF.
       </p>
     </div>
   )
