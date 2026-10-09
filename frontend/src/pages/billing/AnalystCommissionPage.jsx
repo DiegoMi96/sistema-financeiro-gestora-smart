@@ -17,19 +17,23 @@ const fmtBRL = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency
 const fmtNum = v => new Intl.NumberFormat('pt-BR').format(v || 0)
 const fmtDec = v => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v || 0)
 
-// "1.500,50" ou "1500.5" → 1500.5
+// Formato brasileiro: "1.500,50" → 1500.5 · "1.000" → 1000 (ponto = milhar quando seguido de 3 dígitos)
+// · "1500,5" → 1500.5 · "3.5" → 3.5 (ponto com 1–2 dígitos depois = decimal).
 const parseNum = s => {
-  let t = String(s ?? '').trim()
+  let t = String(s ?? '').trim().replace(/[^\d.,-]/g, '')
   if (!t) return 0
   if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.')
+  else if (/^-?\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '')
   const n = parseFloat(t)
   return Number.isFinite(n) ? n : 0
 }
+// número vindo do servidor → texto no formato digitável (vírgula decimal, sem milhar)
+const toField = v => String(v ?? 0).replace('.', ',')
 
 // Campo numérico com formatação: "R$ 1.500,00" ou "10,00 %". Em foco mostra o valor cru para digitar.
 function FmtInput({ value, onChange, prefix, suffix, disabled }) {
   const [focus, setFocus] = useState(false)
-  const shown = focus ? String(value ?? '').replace('.', ',') : fmtDec(parseNum(value))
+  const shown = focus ? String(value ?? '') : fmtDec(parseNum(value))
   return (
     <div className="inline-flex items-center justify-end gap-1.5 w-36 px-3 py-2 border border-gray-200 rounded-lg bg-white focus-within:ring-2 focus-within:ring-green-500">
       {prefix && <span className="text-xs text-gray-400">{prefix}</span>}
@@ -63,8 +67,8 @@ export default function AnalystCommissionPage() {
 
   useEffect(() => {
     if (!data) return
-    setForm(Object.fromEntries(data.vencimentos.map(v => [v.dia, { percentual: String(v.percentual ?? 0), meta: String(v.meta ?? 0) }])))
-    setSalario(String(data.salario ?? 0))
+    setForm(Object.fromEntries(data.vencimentos.map(v => [v.dia, { percentual: toField(v.percentual), meta: toField(v.meta) }])))
+    setSalario(toField(data.salario))
   }, [data])
 
   const admin = !!data?.is_admin
