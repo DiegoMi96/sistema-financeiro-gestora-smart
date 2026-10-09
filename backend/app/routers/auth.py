@@ -282,7 +282,16 @@ def update_user(
         if db.query(User).filter(User.email == data.email, User.id != user_id).first():
             raise HTTPException(status_code=400, detail="E-mail já cadastrado por outro usuário")
 
-    for field, value in data.model_dump(exclude_none=True).items():
+    # Campos enviados como null por quem edita: só valem pros que PODEM ser nulos —
+    # perfil personalizado (custom_role_key) e as permissões individuais (None = "segue
+    # o perfil"). Antes era exclude_none=True, que descartava esse null: trocar um usuário
+    # de um perfil personalizado (ex.: "Gestor de Operações") para um perfil nativo mudava o
+    # role mas MANTINHA o custom_role_key — e o perfil personalizado continuava mandando
+    # nas permissões, "voltando" o acesso pro perfil antigo (achado 09/10/2026, Johnny).
+    _anulaveis = {"custom_role_key", *ALL_PERMISSIONS}
+    for field, value in data.model_dump(exclude_unset=True).items():
+        if value is None and field not in _anulaveis:
+            continue
         setattr(user, field, value)
 
     db.add(AuditLog(

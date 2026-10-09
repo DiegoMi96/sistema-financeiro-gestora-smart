@@ -91,6 +91,15 @@
   // ── hidratação (só o shell) ──────────────────────────
   var me = document.currentScript;
   if (me && me.hasAttribute('data-hydrate') && token()) {
+    // Permissões atuais do usuário: o `user` guardado no navegador vem do último login e fica velho
+    // quando o admin muda o acesso (o menu/painéis seguiriam o acesso antigo — achado 09/10/2026).
+    try {
+      var m = new XMLHttpRequest();
+      m.open('GET', '/api/auth/me', false);
+      m.setRequestHeader('Authorization', 'Bearer ' + token());
+      m.send();
+      if (m.status === 200) origSet.call(ls, 'user', m.responseText);
+    } catch (e) {}
     try {
       var x = new XMLHttpRequest();
       x.open('GET', API + '/estado', false);   // síncrono de propósito: os iframes só começam depois
