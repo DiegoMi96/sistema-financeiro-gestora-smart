@@ -272,6 +272,7 @@ export default function BillingPage() {
 
 // ── Upload Modal ──────────────────────────────────────────────
 function UploadModal({ onClose, onSuccess }) {
+  const navigate = useNavigate()
   const [year, setYear]   = useState(new Date().getFullYear())
   const [month, setMonth] = useState(new Date().getMonth() + 1)
   const [files, setFiles] = useState({})
@@ -295,7 +296,6 @@ function UploadModal({ onClose, onSuccess }) {
       fd.append('reajuste_file',      files.reajuste)
       fd.append('sms_file',           files.sms)
       fd.append('mensageria_file',    files.mensageria)
-      if (files.atencao) fd.append('atencao_file', files.atencao)
       await billingApi.processBilling(year, month, fd)
       toast.success('Processamento iniciado!')
       onSuccess()
@@ -314,7 +314,6 @@ function UploadModal({ onClose, onSuccess }) {
     { key: 'reajuste',      label: 'Base de Reajuste',           req: true,  hint: 'Base_Reajuste.xlsx' },
     { key: 'sms',           label: 'SMS',                        req: true,  hint: 'SMS_MM_YYYY.xlsx' },
     { key: 'mensageria',    label: 'Mensageria',                 req: true,  hint: 'Pacote_Mensageria.xlsx' },
-    { key: 'atencao',       label: 'Atenção Clientes',           req: false, hint: 'Atencao_com_esses_clientes.xlsx' },
   ]
 
   const doneCount = required.filter(k => files[k]).length
@@ -404,6 +403,19 @@ function UploadModal({ onClose, onSuccess }) {
                   </label>
                 )
               })}
+            </div>
+          </div>
+
+          {/* Clientes em atenção: agora vivem numa aba própria, o motor consulta antes de rodar */}
+          <div className="rounded-xl border border-amber-200 bg-amber-50/60 px-3.5 py-3 flex items-start gap-3">
+            <AlertTriangle size={15} className="text-amber-500 mt-0.5 flex-shrink-0" />
+            <div className="text-xs text-amber-800 leading-relaxed">
+              <p className="font-semibold">Clientes em atenção (proporcional / desconto)</p>
+              <p className="text-amber-700">
+                Não precisa mais enviar planilha: o motor lê a lista da aba <strong>Atenção</strong> antes de rodar o ciclo.{' '}
+                <button type="button" onClick={() => { onClose(); navigate('/atencao') }}
+                  className="underline font-semibold hover:text-amber-900">Abrir aba Atenção</button>
+              </p>
             </div>
           </div>
 

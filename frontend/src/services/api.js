@@ -113,6 +113,16 @@ export const clientsApi = {
 export default api
 
 // ── Organograma ───────────────────────────────────────────────
+// Aba "Atenção" do Faturamento — clientes com proporcional/desconto que o motor consulta a cada ciclo
+export const attentionApi = {
+  list:    (params)       => api.get('/attention', { params }),
+  lookup:  (q)            => api.get('/attention/lookup', { params: { q } }),
+  create:  (data)         => api.post('/attention', data),
+  update:  (id, data)     => api.put(`/attention/${id}`, data),
+  remove:  (id)           => api.delete(`/attention/${id}`),
+  import:  (formData)     => api.post('/attention/import', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+}
+
 export const orgApi = {
   tree:        (view)         => api.get(`/organograma/tree?view=${view}`),
   members:     ()             => api.get('/organograma/members'),

@@ -28,6 +28,7 @@ export const MODULES = [
       { to: '/dashboard', label: 'Painel', permission: 'can_view_dashboard' },
       { to: '/faturamento',        label: 'Faturamento',      permission: 'can_view_fat_ciclos' },
       { to: '/clientes',           label: 'Clientes'          },
+      { to: '/atencao',            label: 'Atenção',          permission: 'can_edit_billing' },
       { to: '/ajustes',            label: 'Ajustes',          permission: 'can_edit_billing' },
       { to: '/configuracoes',      label: 'Configurações',    permission: 'can_manage_users' },
     ],

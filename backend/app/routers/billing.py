@@ -349,6 +349,7 @@ async def process_billing(
 
     # Cria ou recria o ciclo
     if existing:
+        db.query(BillingAdjustment).filter(BillingAdjustment.cycle_id == existing.id).delete(synchronize_session=False)
         db.delete(existing)
         db.flush()
 
@@ -459,11 +460,22 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
         except (ValueError, TypeError):
             _mensageria_valor = None
 
+        # ── Aba "Atenção": proporcional de ativação/cancelamento e descontos ──
+        # Sem try/except de propósito: se a tabela não puder ser lida, o ciclo vai
+        # pra ERRO com a mensagem — melhor do que faturar cheio um cliente que
+        # deveria sair proporcional ou com desconto.
+        from app.services.attention import load_attention_rules, aplicar_descontos
+        _atencao = load_attention_rules(db)
+        print(f"📋 Aba Atenção: {_atencao['total']} linha(s) — {len(_atencao['cancel'])} cancel. proporcional, "
+              f"{len(_atencao['ativ'])} ativ. proporcional, {len(_atencao['desconto'])} com desconto", flush=True)
+
         print(f"⏳ Iniciando motor — ciclo {cycle_id} ({month:02d}/{year})", flush=True)
         engine = BillingEngineService(year=year, month=month,
                                       cnpj_excluidos=_cnpj_excluidos,
                                       mensageria_valor=_mensageria_valor,
-                                      cnpj_sem_arredondamento=_cnpj_sem_arredondamento)
+                                      cnpj_sem_arredondamento=_cnpj_sem_arredondamento,
+                                      atencao_cancel=_atencao["cancel"],
+                                      atencao_ativ=_atencao["ativ"])
 
         # ── Setup: carrega refs + converte base Excel → CSV (pico 830 MB, depois 0) ──
         ref = engine.setup(file_paths, base_bytes=base_bytes)
@@ -782,6 +794,8 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
                 qtd_cancelamentos=int(qtd_cancel.get(cli, 0)),
                 qtd_suspensoes=int(acc_qtd_su.get(cli, 0)),
             ))
+        # Descontos da aba Atenção: abate do total do cliente e grava o ajuste com o motivo
+        _n_desc = aplicar_descontos(db, cycle_id, cycle.created_by, summaries, _atencao["desconto"])
         db.bulk_save_objects(summaries)
 
         # ── Summaries cancel-only (sem linhas Ativo no inventário) ────────────
@@ -805,6 +819,9 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
                 due_date=None, qtd_linhas_ativas=0, qtd_ativacoes=0,
                 qtd_cancelamentos=int(qtd_cancel.get(cli, 0)), qtd_suspensoes=0,
             ))
+        _n_desc += aplicar_descontos(db, cycle_id, cycle.created_by, co_summaries, _atencao["desconto"])
+        if _n_desc:
+            print(f"  ✅ {_n_desc} desconto(s) da aba Atenção aplicado(s)", flush=True)
         if co_summaries:
             db.bulk_save_objects(co_summaries)
             print(f"  ✅ {len(co_summaries)} summaries cancel-only gravados", flush=True)
@@ -1545,6 +1562,20 @@ async def export_remessa(
         .all()
     )
 
+    # Descontos automáticos da aba Atenção: o motivo vai na descrição do boleto
+    # daquele cliente (os demais continuam com a descrição padrão da remessa).
+    import re as _re_desc
+    from app.services.attention import JUSTIFICATIVA_PREFIXO, ANALISTA_AUTO
+    desc_auto: dict[str, str] = {}
+    for _adj in db.query(BillingAdjustment).filter(
+        BillingAdjustment.cycle_id == cycle_id, BillingAdjustment.analista == ANALISTA_AUTO
+    ).all():
+        _m = _re_desc.match(rf"{_re_desc.escape(JUSTIFICATIVA_PREFIXO)} de ([^:]+)(?::\s*(.*))?$", _adj.justificativa or "")
+        _alvo = _m.group(1).strip() if _m else ""
+        _obs  = ((_m.group(2) if _m else None) or _adj.observacao or "").strip()
+        _txt  = "Desconto" + (f" de {_alvo}" if _alvo else "") + (f" — {_obs}" if _obs else "")
+        desc_auto[_adj.id_smart] = _txt
+
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Planilha1"
@@ -1576,12 +1607,16 @@ async def export_remessa(
     # ── Linhas 9+: dados ─────────────────────────────────────────
     for s in summaries:
         due = due_overrides.get(s.id_smart) or due_default or None
+        _desc_linha = descricao
+        if s.id_smart in desc_auto:
+            _desc_linha = ((descricao.strip() + " | ") if descricao.strip() else "") + desc_auto[s.id_smart]
+            _desc_linha = _desc_linha[:250]
         ws.append([
             s.id_smart,
             due,
             round(s.total_final, 2),
             forma_pagamento,
-            descricao,
+            _desc_linha,
             None,
             juros,
             multa_valor,

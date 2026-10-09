@@ -81,7 +81,9 @@ class BillingEngineService:
     def __init__(self, year: int, month: int,
                  cnpj_excluidos: set | None = None,
                  mensageria_valor: float | None = None,
-                 cnpj_sem_arredondamento: set | None = None):
+                 cnpj_sem_arredondamento: set | None = None,
+                 atencao_cancel: set | None = None,
+                 atencao_ativ: set | None = None):
         self.year            = year
         self.month           = month
         self.mes_ref         = datetime(year, month, 1)
@@ -91,6 +93,11 @@ class BillingEngineService:
         # Clientes cujo Mensalidade cobrada usa arredondamento padrão (ROUND)
         # em vez do ROUNDUP normal do sistema — configurável em Configurações.
         self.cnpj_sem_arredondamento = cnpj_sem_arredondamento or set()
+        # Clientes com cancelamento/ativação PROPORCIONAL vindos da aba "Atenção"
+        # (tabela client_attention). Somam-se aos da planilha antiga, se alguém
+        # ainda enviar uma — com a aba vazia e sem planilha, o resultado é o mesmo de antes.
+        self.atencao_cancel = set(atencao_cancel or ())
+        self.atencao_ativ   = set(atencao_ativ or ())
 
     def _is_excluido(self, cnpj_str: str) -> bool:
         digits = re.sub(r"\D", "", str(cnpj_str))
@@ -221,6 +228,8 @@ class BillingEngineService:
         print("📂 Carregando arquivos de referência...", flush=True)
         reajuste_map        = self._load_reajuste(_read("reajuste"))   if file_paths.get("reajuste")   else {}
         cancel_prop, ativ_prop = self._load_atencao(_read("atencao")) if file_paths.get("atencao")    else (set(), set())
+        cancel_prop = set(cancel_prop) | self.atencao_cancel
+        ativ_prop   = set(ativ_prop)   | self.atencao_ativ
         df_cancel           = self._load_cancelamentos(_read("cancelamentos"))
         df_fretes_raw       = self._load_fretes(_read("fretes"))       if file_paths.get("fretes")     else pd.DataFrame()
         venc_map            = self._load_vencimentos(_read("vencimentos"))
@@ -371,6 +380,8 @@ class BillingEngineService:
         reajuste_map  = self._load_reajuste(_read("reajuste")) if file_paths.get("reajuste") else {}
         print(f"📂 Reajuste: {len(reajuste_map)} entradas", flush=True)
         cancel_prop, ativ_prop = self._load_atencao(_read("atencao")) if file_paths.get("atencao") else (set(), set())
+        cancel_prop = set(cancel_prop) | self.atencao_cancel
+        ativ_prop   = set(ativ_prop)   | self.atencao_ativ
         print(f"📂 Atenção: {len(cancel_prop)} cancel, {len(ativ_prop)} ativ", flush=True)
         df_cancel     = self._load_cancelamentos(_read("cancelamentos"))
         print(f"📂 Cancelamentos: {len(df_cancel)} linhas", flush=True)

@@ -567,3 +567,39 @@ class SheetIndicator(Base):
     __table_args__ = (
         UniqueConstraint("chave", "year", "month", name="uq_indicator"),
     )
+
+
+# ══════════════════════════════════════════════════════════════
+# CLIENTES EM ATENÇÃO (aba "Atenção" do Faturamento)
+# ══════════════════════════════════════════════════════════════
+
+class ClientAttention(Base):
+    """
+    Clientes que exigem atenção extra no faturamento. O motor consulta esta
+    tabela a cada ciclo (antes de calcular):
+      - motivo "ativacao"     + proporcional → ativação cobrada proporcional aos dias
+      - motivo "cancelamento" + proporcional → cancelamento cobrado proporcional aos dias
+      - motivo "desconto"                    → desconto (% ou R$) abatido do total do cliente,
+                                               gravado como ajuste com o motivo na justificativa
+    Substitui o upload da planilha "Atencao_com_esses_clientes.xlsx" no Novo Faturamento.
+    Os registros ficam valendo para os próximos ciclos até serem editados/removidos.
+    """
+    __tablename__ = "client_attention"
+
+    id             = Column(Integer, primary_key=True, index=True)
+    id_smart       = Column(String(30), nullable=False, index=True)      # ss_CNPJ
+    cnpj           = Column(String(20))
+    nome           = Column(String(255))
+    proporcional   = Column(Boolean, nullable=False, default=False)
+    motivo         = Column(String(20), nullable=False)                  # ativacao | cancelamento | desconto
+    desconto_tipo  = Column(String(12))                                  # percentual | valor (só motivo=desconto)
+    desconto_valor = Column(Float)
+    obs            = Column(Text)
+
+    created_at     = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at     = Column(DateTime(timezone=True), onupdate=func.now())
+    updated_by     = Column(String(150))
+
+    __table_args__ = (
+        UniqueConstraint("id_smart", "motivo", name="uq_attention_client_motivo"),
+    )

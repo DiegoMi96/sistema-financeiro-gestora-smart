@@ -8,13 +8,14 @@ import {
   LayoutDashboard, FileText, Users, LogOut,
   LayoutGrid, AlertCircle, TrendingUp,
   Settings, SlidersHorizontal, Menu, ChevronRight, ChevronLeft,
-  Truck, BarChart2, LineChart, Contact, UserCog
+  Truck, BarChart2, LineChart, Contact, UserCog, AlertTriangle
 } from 'lucide-react'
 
 const NAV_ICONS = {
   '/faturamento':                 FileText,
   '/clientes':        Contact,
   '/ajustes':         SlidersHorizontal,
+  '/atencao':         AlertTriangle,
   '/contestacao':     AlertCircle,
   '/logistica':       Truck,
   '/controladoria':   BarChart2,
@@ -31,6 +32,7 @@ const NAV_SECTIONS = {
   '/faturamento':                 'MÓDULOS',
   '/clientes':                    'MÓDULOS',
   '/ajustes':                     'MÓDULOS',
+  '/atencao':                     'MÓDULOS',
   '/contestacao':                 'MÓDULOS',
   '/logistica':                   'MÓDULOS',
   '/controladoria':               'MÓDULOS',

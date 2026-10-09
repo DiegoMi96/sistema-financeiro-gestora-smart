@@ -255,3 +255,10 @@ frontend/src/
 - **Paginação obrigatória** em qualquer endpoint que retorne linhas individuais (200/página).
 - **React Query v5** (`@tanstack/react-query@^5.40.0`) — sintaxe `queryFn` obrigatória (sem `useQuery([key], fn)`).
 - **recharts** já instalado no frontend — usar para todos os gráficos.
+
+## Faturamento — Aba "Atenção" (09/10/2026)
+- Tabela `client_attention` (model `ClientAttention`, única por id_smart+motivo). CRUD em `routers/attention.py` (`/attention`), tela `pages/billing/AttentionPage.jsx`, permissão `can_edit_billing`.
+- Motivos: `ativacao` / `cancelamento` (proporcional sim/não) e `desconto` (percentual ou valor fixo).
+- Motor (`_run_billing_engine`): `load_attention_rules` alimenta `atencao_cancel`/`atencao_ativ` (somados ao proporcional vindo das planilhas) e `aplicar_descontos` cria `BillingAdjustment` automáticos (analista "Sistema (aba Atenção)") com o motivo na justificativa; o remessa Asaas escreve o motivo na coluna Descrição.
+- O upload "Atenção Clientes" foi removido do modal Novo Faturamento. Antes do 1º ciclo real, importar a planilha antiga pelo botão "Importar planilha" da aba.
+- Reprocessar ciclo RASCUNHO/ERRO apaga os ajustes antigos do ciclo (evita duplicar descontos).

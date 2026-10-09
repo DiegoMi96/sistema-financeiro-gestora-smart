@@ -16,6 +16,7 @@ const BillingPage              = lazy(() => import('./pages/billing/BillingPage'
 const BillingCyclePage         = lazy(() => import('./pages/billing/BillingCyclePage'))
 const ClientDetailPage         = lazy(() => import('./pages/billing/ClientDetailPage'))
 const AdjustmentsPage          = lazy(() => import('./pages/billing/AdjustmentsPage'))
+const AttentionPage            = lazy(() => import('./pages/billing/AttentionPage'))
 const ContestationPage         = lazy(() => import('./pages/contestation/ContestationPage'))
 const ContestationCyclePage    = lazy(() => import('./pages/contestation/ContestationCyclePage'))
 const AllcomPage               = lazy(() => import('./pages/contestation/AllcomPage'))
@@ -151,6 +152,7 @@ function AppRoutes() {
           <Route path="/faturamento/:cycleId"                     element={<PrivateRoute permission="can_view_fat_ciclo_detalhe"><BillingCyclePage /></PrivateRoute>} />
           <Route path="/faturamento/:cycleId/cliente/:idSmart"    element={<PrivateRoute permission="can_view_fat_cliente_detalhe"><ClientDetailPage /></PrivateRoute>} />
           <Route path="/ajustes"                                  element={<PrivateRoute permission="can_edit_billing"><AdjustmentsPage /></PrivateRoute>} />
+          <Route path="/atencao"                                  element={<PrivateRoute permission="can_edit_billing"><AttentionPage /></PrivateRoute>} />
 
           <Route path="/contestacao"             element={<PrivateRoute permission="can_view_cont_ciclos"><ContestationPage /></PrivateRoute>} />
           <Route path="/contestacao/allcom"      element={<PrivateRoute permission="can_view_cont_allcom"><AllcomPage /></PrivateRoute>} />
