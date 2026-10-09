@@ -108,8 +108,8 @@ export default function AnalystCommissionPage() {
 
       {data && !data.ciclo && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Não há ciclo de faturamento em {MESES[month - 1]}/{year}. Os valores recebidos aparecem zerados,
-          mas você já pode cadastrar percentual e meta.
+          Não há boletos com vencimento em {MESES[month - 1]}/{year} (o ciclo do mês anterior ainda não foi processado). Os valores
+          aparecem zerados, mas você já pode cadastrar percentual e meta.
         </div>
       )}
 
@@ -129,6 +129,11 @@ export default function AnalystCommissionPage() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               <tr><td colSpan={venc.length + 2} className={SECTION}>Configuração</td></tr>
+              <tr>
+                <td className={ROW_LABEL}>Vencimento original</td>
+                {venc.map(v => <td key={v.dia} className={TD + ' font-medium'}>{v.vencimento_original.split('-').reverse().join('/')}</td>)}
+                <td className={TD}>—</td>
+              </tr>
               <tr>
                 <td className={ROW_LABEL}>Meta (R$)</td>
                 {venc.map(v => (
@@ -205,8 +210,8 @@ export default function AnalystCommissionPage() {
       </div>
 
       <p className="text-xs text-gray-400">
-        Vencimento original = dia do vencimento do ciclo de faturamento (arquivo de Vencimentos). Recebido = boletos do Asaas
-        com vencimento no mês e status pago, cruzados por CNPJ/CPF.
+        O mês escolhido é o mês de vencimento: outubro usa os boletos do ciclo de setembro. Vencimento original = data do arquivo de
+        Vencimentos do ciclo. Recebido = boletos do Asaas com vencimento no mês e status pago, cruzados por CNPJ/CPF.
       </p>
     </div>
   )

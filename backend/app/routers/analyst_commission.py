@@ -2,9 +2,10 @@
 Aba "Comissionamento" do Faturamento — comissão dos analistas de contas a receber
 com base na adimplência por vencimento ORIGINAL (10, 15, 20 e 25).
 
-Vencimento original = dia de `billing_client_summaries.due_date` do ciclo do mês
-(vem do arquivo de Vencimentos). O realizado vem de `asaas_payments_sync`
-(cruzado por CNPJ/CPF) — pagamentos com vencimento dentro do mês.
+Mês escolhido = mês de VENCIMENTO dos boletos (o ciclo de setembro gera boletos com
+vencimento em outubro, então outubro usa o ciclo de setembro). Vencimento original =
+`billing_client_summaries.due_date` (arquivo de Vencimentos); o realizado vem de
+`asaas_payments_sync` (cruzado por CNPJ/CPF) — boletos com vencimento dentro do mês.
 
 Regra do valor: percentual × recebido, liberado só se recebido >= meta
 (meta em R$ por vencimento; meta 0 = sem meta, sempre libera).
@@ -19,7 +20,7 @@ from sqlalchemy.orm import Session
 
 from app.core.permissions import require_permission
 from app.database import get_db
-from app.models import AnalystCommissionConfig, AuditLog, BillingCycle, User
+from app.models import AnalystCommissionConfig, AuditLog, User
 
 router = APIRouter(prefix="/analyst-commission", tags=["Comissionamento Analistas"])
 
@@ -56,16 +57,25 @@ def comissionamento(year: int, month: int, db: Session = Depends(get_db), user: 
 
     ini = date(year, month, 1)
     fim = date(year + (month == 12), month % 12 + 1, 1)
-    cycle = db.query(BillingCycle).filter(BillingCycle.year == year, BillingCycle.month == month).first()
-
     dados = {d: {"clientes": 0, "boletos": 0, "pagos": 0, "faturado": 0.0, "recebido": 0.0} for d in DIAS}
-    if cycle:
+    datas = {}
+    # Vencimento original de cada grupo (data mais frequente nos resumos dos ciclos)
+    for r in db.execute(text("""
+        SELECT EXTRACT(DAY FROM due_date)::int AS dia, due_date, COUNT(*) AS n
+        FROM billing_client_summaries
+        WHERE due_date >= :ini AND due_date < :fim
+          AND EXTRACT(DAY FROM due_date)::int IN (10, 15, 20, 25)
+        GROUP BY 1, 2 ORDER BY 1, 3 DESC
+    """), {"ini": ini, "fim": fim}).fetchall():
+        datas.setdefault(int(r.dia), r.due_date)
+    tem_boletos = bool(datas)
+    if tem_boletos:
         rows = db.execute(text("""
             WITH s AS (
-                SELECT regexp_replace(id_smart, '\\D', '', 'g') AS doc,
+                SELECT DISTINCT regexp_replace(id_smart, '\\D', '', 'g') AS doc,
                        EXTRACT(DAY FROM due_date)::int AS dia
                 FROM billing_client_summaries
-                WHERE cycle_id = :cid AND due_date IS NOT NULL
+                WHERE due_date >= :ini AND due_date < :fim
                   AND EXTRACT(DAY FROM due_date)::int IN (10, 15, 20, 25)
             )
             SELECT s.dia,
@@ -80,7 +90,7 @@ def comissionamento(year: int, month: int, db: Session = Depends(get_db), user: 
                    ON regexp_replace(p.customer_cpf_cnpj, '\\D', '', 'g') = s.doc
                   AND p.due_date >= :ini AND p.due_date < :fim
             GROUP BY s.dia
-        """), {"cid": cycle.id, "ini": ini, "fim": fim}).fetchall()
+        """), {"ini": ini, "fim": fim}).fetchall()
         for r in rows:
             dados[int(r.dia)] = {
                 "clientes": int(r.clientes), "boletos": int(r.boletos), "pagos": int(r.pagos),
@@ -96,14 +106,14 @@ def comissionamento(year: int, month: int, db: Session = Depends(get_db), user: 
         meta_ok = rec >= cfg["meta"] if cfg["meta"] > 0 else True
         valor = round(rec * cfg["percentual"] / 100, 2) if meta_ok else 0.0
         out.append({
-            "dia": dia, **d, **cfg,
+            "dia": dia, "vencimento_original": (datas.get(dia) or date(year, month, dia)).isoformat(), **d, **cfg,
             "adimplencia": adimp,
             "meta_atingida": meta_ok,
             "valor": valor,
         })
     return {
         "year": year, "month": month,
-        "ciclo": bool(cycle),
+        "ciclo": tem_boletos,
         "vencimentos": out,
         "total": round(sum(v["valor"] for v in out), 2),
     }
