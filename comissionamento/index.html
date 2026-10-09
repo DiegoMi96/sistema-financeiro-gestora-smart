@@ -2473,22 +2473,14 @@ function renderConsolidado() {
       </tbody>
     </table>`;
   };
-  // Diretoria e Gestores: só o total por área (Comercial / Administrativo / Operações) —
-  // sem as colunas Simcard/Bonificação/Equipamento/Smart GPS/Desc., que não fazem
-  // sentido pra esses perfis (pedido do Diego, 09/10/2026).
+  // Diretoria e Gestores: os nomes das áreas (Comercial / Administrativo / Operações) ficam
+  // no cabeçalho e o valor de cada uma embaixo, numa linha só + Total (pedido do Diego, 09/10/2026).
   const tabelaDiretoriaHtml = linhas => `
     <table>
-      <thead><tr><th>ID</th><th>Categoria</th><th>Executivo</th><th>Total</th></tr></thead>
+      <thead><tr>${linhas.map(r => `<th>${r.nome}</th>`).join('')}<th>Total</th></tr></thead>
       <tbody>
-        ${linhas.map((r, i) => `
-          <tr class="${r.hasData ? '' : 'cons-row-empty'}">
-            <td>${i + 1}</td>
-            <td><span class="cons-cat-pill" style="background:${CAT[r.cat].color};color:${CAT[r.cat].text || '#fff'}">${CAT[r.cat].label}</span></td>
-            <td>${r.nome}</td>
-            <td style="font-weight:700">R$ ${br2c(r.total)}</td>
-          </tr>`).join('')}
         <tr class="cons-row-total">
-          <td colspan="3">Total</td>
+          ${linhas.map(r => `<td style="${r.hasData ? '' : 'color:#bbb'}">R$ ${br2c(r.total)}</td>`).join('')}
           <td>R$ ${br2c(somaColDe(linhas)('total'))}</td>
         </tr>
       </tbody>
