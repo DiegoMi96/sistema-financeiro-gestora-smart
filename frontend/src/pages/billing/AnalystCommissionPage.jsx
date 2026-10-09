@@ -242,7 +242,7 @@ export default function AnalystCommissionPage() {
                       : fmtBRL(v.meta)}
                   </td>
                 ))}
-                <td className={TD}>—</td>
+                <td className={TD + ' font-medium'}>{fmtBRL(venc.reduce((s, v) => s + parseNum(form[v.dia]?.meta), 0))}</td>
               </tr>
               <tr>
                 <td className={ROW_LABEL}>Percentual do salário (%)</td>
@@ -253,7 +253,7 @@ export default function AnalystCommissionPage() {
                       : `${fmtDec(v.percentual)}%`}
                   </td>
                 ))}
-                <td className={TD}>—</td>
+                <td className={TD + ' font-medium'}>{fmtDec(venc.reduce((s, v) => s + parseNum(form[v.dia]?.percentual), 0))}%</td>
               </tr>
               <tr className="bg-green-50/50">
                 <td className={ROW_LABEL + ' font-semibold'}>Valor da comissão</td>
