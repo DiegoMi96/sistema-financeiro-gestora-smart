@@ -2262,10 +2262,18 @@ function consExcluirMes(mesParam) {
     Object.keys(store).forEach(k => { if (k.endsWith('_' + mes)) delete store[k]; });
     set(key, store);
   });
+  const cicloPerfil = { go1_m: 'gestor_operacoes', da1_m: 'diretor_adm', dc1_m: 'diretor_comercial' };
   ['go1_m', 'da1_m', 'dc1_m'].forEach(key => {
     const store = CLS.get(key, {});
     delete store[mes];
     set(key, store);
+    // Esses 3 perfis também guardam o mdata inteiro no banco (/ciclo) e, ao abrir,
+    // a página prefere a cópia do servidor — sem atualizar lá o mês excluído VOLTAVA
+    // no próximo F5 (achado 09/10/2026).
+    try {
+      const tok = localStorage.getItem('token');
+      if (tok) fetch('/api/comissionamento/ciclo', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok }, body: JSON.stringify({ perfil: cicloPerfil[key], dados: store }) });
+    } catch {}
   });
   // Sem isso, "Excluir" deixava pra trás a fonte bruta que alimenta as Regras
   // de Comissão (soma/contagem de ativação, volume de pedidos do Hilario/
