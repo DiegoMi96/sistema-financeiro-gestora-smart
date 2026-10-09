@@ -269,11 +269,6 @@ export default function AnalystCommissionPage() {
                 {venc.map(v => <td key={v.dia} className={TD}>{fmtBRL(previsaoLive(v))}</td>)}
                 <td className={TD + ' font-medium'}>{fmtBRL(totalPrevisao)}</td>
               </tr>
-              <tr className="bg-green-50/50">
-                <td className={ROW_LABEL + ' font-semibold'}>Realizado até o momento</td>
-                {venc.map(v => <td key={v.dia} className={TD + ' font-semibold'}>{fmtBRL(valorLive(v))}</td>)}
-                <td className={TD + ' font-bold'}>{fmtBRL(totalLive)}</td>
-              </tr>
 
               <tr><td colSpan={venc.length + 2} className={SECTION}>Apuração do mês</td></tr>
               <tr>
@@ -282,19 +277,9 @@ export default function AnalystCommissionPage() {
                 <td className={TD}>{fmtNum(venc.reduce((s, v) => s + v.clientes, 0))}</td>
               </tr>
               <tr>
-                <td className={ROW_LABEL}>Boletos Asaas + Itaú (pagos / emitidos)</td>
-                {venc.map(v => <td key={v.dia} className={TD}>{fmtNum(v.pagos)} / {fmtNum(v.boletos)}</td>)}
-                <td className={TD}>{fmtNum(venc.reduce((s, v) => s + v.pagos, 0))} / {fmtNum(venc.reduce((s, v) => s + v.boletos, 0))}</td>
-              </tr>
-              <tr>
                 <td className={ROW_LABEL}>Recebido</td>
                 {venc.map(v => <td key={v.dia} className={TD}>{fmtBRL(v.recebido)}</td>)}
                 <td className={TD}>{fmtBRL(venc.reduce((s, v) => s + v.recebido, 0))}</td>
-              </tr>
-              <tr>
-                <td className={ROW_LABEL + ' pl-8 text-gray-500'}>dos quais no Itaú</td>
-                {venc.map(v => <td key={v.dia} className={TD + ' text-gray-500'}>{fmtBRL(v.recebido_itau)}</td>)}
-                <td className={TD + ' text-gray-500'}>{fmtBRL(venc.reduce((s, v) => s + v.recebido_itau, 0))}</td>
               </tr>
               <tr>
                 <td className={ROW_LABEL}>Adimplência</td>
