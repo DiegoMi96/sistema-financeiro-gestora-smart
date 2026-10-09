@@ -556,12 +556,13 @@ function bonusCelulaDe(vid,mes){
 }
 // Equipamento lançado à mão (o Importar não altera) — só o Patrick. Mantém em sincronia com index.html.
 const EQUIP_MANUAL=['patrick rodrigues'];
-function calcVend(d,g,bonusCelula=0){
+const eqDiretoDe=vend=>EQUIP_MANUAL.includes(norm(vend.nome));
+function calcVend(d,g,bonusCelula=0,eqDireto=false){
   const linhas=d.linhas||0,atv=d.atv||0,eq=d.eq||0,gps=d.gps||0,frete=d.frete||0,bonus=d.bonus||0;
   const alc=g.obj>0?(linhas/g.obj*100):0;
   const fx=getFaixa(alc);const des=getDesafio(linhas,g);
   const volC=linhas*fx.vol,atvC=atv*fx.atv,desC=des.total;
-  const eqC=eq*(rules.eqRate/100),gpsC=gps*(rules.gpsRate/100);
+  const eqC=eqDireto?eq:eq*(rules.eqRate/100),gpsC=gps*(rules.gpsRate/100);
   const frDsc=Math.max(0,frete-rules.freteLimit);
   const total=volC+atvC+desC+eqC+gpsC+bonus+bonusCelula-frDsc;
   return{linhas,atv,eq,gps,frete,bonus,bonusCelula,alc,fx,des,volC,atvC,desC,eqC,gpsC,frDsc,total};
@@ -631,7 +632,7 @@ function renderResumo(){
   // 1) calcula todos (a conta é a mesma de sempre — calcVend)
   let dados=vendedores.map(vend=>{
     const d=mdata[`${vend.id}_${mes}`]||{};
-    const c=calcVend(d,vend.g,bonusCelulaDe(vend.id,mes));
+    const c=calcVend(d,vend.g,bonusCelulaDe(vend.id,mes),eqDiretoDe(vend));
     const isEmpty=!c.linhas&&!c.atv&&!c.eq&&!c.gps&&!c.bonus&&!c.bonusCelula;
     return{vend,c,isEmpty,canExport:hasRaw(vend.id,mes)};
   });
@@ -723,7 +724,7 @@ function renderEditPanel(vid,mes){
     <div class="edit-fields">
       <div><label class="lbl">Novas linhas</label><input type="number" id="e_l_${vid}" value="${d.linhas||0}" min="0" oninput="liveCalc('${vid}')"></div>
       <div><label class="lbl">Valor ativações</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="e_a_${vid}" value="${d.atv||0}" min="0" step="0.01" oninput="liveCalc('${vid}')"></div></div>
-      <div><label class="lbl">${EQUIP_MANUAL.includes(norm(vend.nome))?'Equipamentos (manual)':'Equipamentos'}</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="e_q_${vid}" value="${d.eq||0}" min="0" step="0.01" oninput="liveCalc('${vid}')"></div></div>
+      <div><label class="lbl">${EQUIP_MANUAL.includes(norm(vend.nome))?'Comissão equipamento (manual, sem taxa)':'Equipamentos'}</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="e_q_${vid}" value="${d.eq||0}" min="0" step="0.01" oninput="liveCalc('${vid}')"></div></div>
       <div><label class="lbl">Smart GPS</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="e_g_${vid}" value="${d.gps||0}" min="0" step="0.01" oninput="liveCalc('${vid}')"></div></div>
       <div><label class="lbl">Frete</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="e_f_${vid}" value="${d.frete||0}" min="0" step="0.01" oninput="liveCalc('${vid}')"></div></div>
       <div><label class="lbl" style="color:#166B4A">Bônus extra</label><div class="irow"><span class="ipfx" style="color:#166B4A">R$</span><input type="number" id="e_b_${vid}" value="${d.bonus||0}" min="0" step="0.01" oninput="liveCalc('${vid}')" style="border-color:#1E9B6B"></div></div>
@@ -740,7 +741,7 @@ function liveCalc(vid){
   const vend=vendedores.find(v=>v.id===vid);
   const mes=document.getElementById('mesInput').value;
   const d={linhas:+document.getElementById(`e_l_${vid}`).value||0,atv:+document.getElementById(`e_a_${vid}`).value||0,eq:+document.getElementById(`e_q_${vid}`).value||0,gps:+document.getElementById(`e_g_${vid}`).value||0,frete:+document.getElementById(`e_f_${vid}`).value||0,bonus:+document.getElementById(`e_b_${vid}`).value||0};
-  const c=calcVend(d,vend.g,bonusCelulaDe(vid,mes));
+  const c=calcVend(d,vend.g,bonusCelulaDe(vid,mes),eqDiretoDe(vend));
   const fpCls=['f1','f2','f3','f4','f5','f6'];
   const ths=[vend.g.obj,vend.g.m1,vend.g.m2,vend.g.sm];
   const prev=document.getElementById(`prev_${vid}`);if(!prev)return;
@@ -781,7 +782,7 @@ async function exportVendedor(vid,mes){
     }
   }
   const raw=rawStore[key]||{};
-  const c=calcVend(d,vend.g,bonusCelulaDe(vid,mes));
+  const c=calcVend(d,vend.g,bonusCelulaDe(vid,mes),eqDiretoDe(vend));
   const ths=[vend.g.obj,vend.g.m1,vend.g.m2,vend.g.sm];
 
   const wb=XLSX.utils.book_new();

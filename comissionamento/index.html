@@ -1060,7 +1060,7 @@ iframe.active{display:block}
     <!-- ?b=N é só cache-busting: o navegador guarda esses arquivos em cache
          agressivamente, e sem isso uma edição no perfil não aparece nem com F5
          normal. Suba o número sempre que mexer em algum desses arquivos. -->
-    <iframe id="frame-vendedor" src="vendedor.html?b=35" title="Vendedor"></iframe>
+    <iframe id="frame-vendedor" src="vendedor.html?b=36" title="Vendedor"></iframe>
     <iframe id="frame-dealer" src="dealer.html?b=31" title="Dealer"></iframe>
     <iframe id="frame-indicadores" src="indicadores.html?b=22" title="Indicador"></iframe>
     <iframe id="frame-projeto_especial" src="projeto_especial.html?b=40" title="Projeto Especial"></iframe>
@@ -1683,7 +1683,7 @@ function consVendedorTotais(mes) {
     const ths = [v.g.obj, v.g.m1, v.g.m2, v.g.sm];
     let desC = 0; desafio.forEach((dd, i) => { if (linhas >= ths[i]) desC += dd.val; });
     const volC = linhas * fx.vol, atvC = atv * fx.atv;
-    const eqC = eq * ((rules.eqRate || 0) / 100), gpsC = gps * ((rules.gpsRate || 0) / 100);
+    const eqC = EQUIP_MANUAL.includes(norm(v.nome)) ? eq : eq * ((rules.eqRate || 0) / 100), gpsC = gps * ((rules.gpsRate || 0) / 100);
     const frDsc = Math.max(0, frete - (rules.freteLimit || 0));
     const total = volC + atvC + desC + eqC + gpsC + bonus + bonusCelula - frDsc;
     return {
@@ -1715,7 +1715,7 @@ function calcVendExec(v, mes) {
   const ths = [v.g.obj, v.g.m1, v.g.m2, v.g.sm];
   let desC = 0; desafio.forEach((dd, i) => { if (linhas >= ths[i]) desC += dd.val; });
   const volC = linhas * fx.vol, atvC = atv * fx.atv;
-  const eqC = eq * ((rules.eqRate || 0) / 100), gpsC = gps * ((rules.gpsRate || 0) / 100);
+  const eqC = EQUIP_MANUAL.includes(norm(v.nome)) ? eq : eq * ((rules.eqRate || 0) / 100), gpsC = gps * ((rules.gpsRate || 0) / 100);
   const frDsc = Math.max(0, frete - (rules.freteLimit || 0));
   const total = volC + atvC + desC + eqC + gpsC + bonus + bonusCelula - frDsc;
   return { linhas, atv, eq, gps, frete, bonus, bonusCelula, alc, fx, volC, atvC, desC, eqC, gpsC, frDsc, total, desafio, ths };
@@ -1888,7 +1888,7 @@ function renderExecutivo() {
       ['Desafio (Bateu Levou)', ultimoDesafio ? `${ultimoDesafio} atingida` : traco, c.desC > 0 ? 'R$' + br2c(c.desC) : traco],
       ['Bonificação Time', c.bonusCelula > 0 ? 'Bônus de célula' : traco, c.bonusCelula > 0 ? '<span style="color:#166B4A">+R$' + br2c(c.bonusCelula) + '</span>' : traco],
       ['Bônus extra', c.bonus > 0 ? 'Lançamento manual' : traco, c.bonus > 0 ? '<span style="color:#166B4A">+R$' + br2c(c.bonus) + '</span>' : traco],
-      ['Equipamento', c.eqC > 0 ? `R$ ${br2c(c.eq)} × ${rg.eqRate || 0}%` : traco, c.eqC > 0 ? 'R$' + br2c(c.eqC) : traco],
+      ['Equipamento', c.eqC > 0 ? (EQUIP_MANUAL.includes(norm(v.nome)) ? 'Valor lançado manualmente' : `R$ ${br2c(c.eq)} × ${rg.eqRate || 0}%`) : traco, c.eqC > 0 ? 'R$' + br2c(c.eqC) : traco],
       ['Smart GPS', c.gpsC > 0 ? `R$ ${br2c(c.gps)} × ${rg.gpsRate || 0}%` : traco, c.gpsC > 0 ? 'R$' + br2c(c.gpsC) : traco],
       ['Desconto Frete', c.frDsc > 0 ? `Frete R$ ${br2c(c.frete)} − limite R$ ${br2c(rg.freteLimit || 0)}` : traco, c.frDsc > 0 ? '<span style="color:#b83232">-R$' + br2c(c.frDsc) + '</span>' : traco],
     ], true) + `<div class="exec-sum-footer" style="padding:14px 16px;margin-top:14px"><span style="font-size:12px">Total</span><span style="font-size:20px">R$${br2c(c.total)}</span></div>`;
@@ -3818,7 +3818,7 @@ function impProcessarEquipamentos() {
 
   document.getElementById('imp_equipamentos_result').innerHTML =
     `<div class="imp-result-title">Equipamento — 2% do valor recebido</div>${impResultTable(eqRows)}` +
-    (Object.keys(equipManualIgnorado).length ? `<div class="imp-result-title">Equipamento lançado manualmente (não alterado pelo Importar)</div>${impResultTable(Object.entries(equipManualIgnorado).map(([n, q]) => [n, q + ' linha(s) da planilha ignorada(s)']))}` : '') +
+    (Object.keys(equipManualIgnorado).length ? `<div class="imp-result-title">Equipamento lançado manualmente (não alterado pelo Importar; valor = comissão, sem taxa de 2%)</div>${impResultTable(Object.entries(equipManualIgnorado).map(([n, q]) => [n, q + ' linha(s) da planilha ignorada(s)']))}` : '') +
     (naoIdRows.length ? `<div class="imp-result-title">Não identificados (revisar cadastro)</div>${impResultTable(naoIdRows)}` : '');
 }
 
