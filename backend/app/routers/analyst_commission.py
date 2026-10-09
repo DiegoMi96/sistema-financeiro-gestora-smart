@@ -72,7 +72,7 @@ def comissionamento(year: int, month: int, db: Session = Depends(get_db), user: 
     tem_boletos = bool(datas)
     if tem_boletos:
         rows = db.execute(text("""
-            WITH s AS (
+            WITH sc AS (   -- clientes do ciclo: valor original = total do ciclo
                 SELECT regexp_replace(id_smart, '\\D', '', 'g') AS doc,
                        EXTRACT(DAY FROM due_date)::int AS dia,
                        SUM(total_final) AS valor
@@ -80,6 +80,22 @@ def comissionamento(year: int, month: int, db: Session = Depends(get_db), user: 
                 WHERE due_date >= :ini AND due_date < :fim
                   AND EXTRACT(DAY FROM due_date)::int IN (10, 15, 20, 25)
                 GROUP BY 1, 2
+            ),
+            se AS (        -- boletos do Itaú de clientes que NÃO estão no ciclo: valor = o do boleto
+                SELECT regexp_replace(cpf_cnpj, '\\D', '', 'g') AS doc,
+                       EXTRACT(DAY FROM data_vencimento)::int AS dia,
+                       SUM(valor_titulo) AS valor
+                FROM itau_boletos
+                WHERE status <> 'cancelada'
+                  AND data_vencimento >= :ini AND data_vencimento < :fim
+                  AND EXTRACT(DAY FROM data_vencimento)::int IN (10, 15, 20, 25)
+                  AND regexp_replace(cpf_cnpj, '\\D', '', 'g') NOT IN (SELECT doc FROM sc)
+                GROUP BY 1, 2
+            ),
+            s AS (
+                SELECT doc, dia, valor, FALSE AS extra FROM sc
+                UNION ALL
+                SELECT doc, dia, valor, TRUE FROM se
             ),
             f AS (   -- valor original de cada vencimento (o que o ciclo mandou cobrar)
                 SELECT dia, COUNT(*) AS clientes, SUM(valor) AS faturado FROM s GROUP BY dia
@@ -104,7 +120,7 @@ def comissionamento(year: int, month: int, db: Session = Depends(get_db), user: 
                        COALESCE(SUM(pg.valor) FILTER (WHERE pg.pago), 0) AS recebido,
                        COALESCE(SUM(pg.valor) FILTER (WHERE pg.pago AND pg.banco = 'Itaú'), 0) AS recebido_itau,
                        COUNT(*) FILTER (WHERE pg.banco = 'Itaú') AS boletos_itau
-                FROM s JOIN pg ON pg.doc = s.doc
+                FROM s JOIN pg ON pg.doc = s.doc AND (NOT s.extra OR pg.banco = 'Itaú')
                 GROUP BY s.dia
             )
             SELECT f.dia, f.clientes, f.faturado,

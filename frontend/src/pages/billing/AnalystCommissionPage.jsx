@@ -210,7 +210,7 @@ export default function AnalystCommissionPage() {
       </div>
 
       <p className="text-xs text-gray-400">
-        O mês escolhido é o mês de vencimento: outubro usa os boletos do ciclo de setembro. Valor do vencimento = total que o ciclo mandou cobrar em cada vencimento original (arquivo de Vencimentos).
+        O mês escolhido é o mês de vencimento: outubro usa os boletos do ciclo de setembro. Valor do vencimento = total que o ciclo mandou cobrar em cada vencimento original (arquivo de Vencimentos) mais os boletos do Itaú de clientes que não estão no ciclo.
         Recebido = boletos desses clientes no Asaas e no Itaú, com vencimento no mês e status pago, cruzados por CNPJ/CPF.
       </p>
     </div>
