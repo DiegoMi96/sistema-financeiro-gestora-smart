@@ -130,9 +130,9 @@ export default function AnalystCommissionPage() {
             <tbody className="divide-y divide-gray-50">
               <tr><td colSpan={venc.length + 2} className={SECTION}>Configuração</td></tr>
               <tr>
-                <td className={ROW_LABEL}>Vencimento original</td>
-                {venc.map(v => <td key={v.dia} className={TD + ' font-medium'}>{v.vencimento_original.split('-').reverse().join('/')}</td>)}
-                <td className={TD}>—</td>
+                <td className={ROW_LABEL}>Valor do vencimento (R$)</td>
+                {venc.map(v => <td key={v.dia} className={TD + ' font-medium'}>{fmtBRL(v.faturado)}</td>)}
+                <td className={TD + ' font-medium'}>{fmtBRL(venc.reduce((s, v) => s + v.faturado, 0))}</td>
               </tr>
               <tr>
                 <td className={ROW_LABEL}>Meta (R$)</td>
@@ -167,14 +167,9 @@ export default function AnalystCommissionPage() {
                 <td className={TD}>{fmtNum(venc.reduce((s, v) => s + v.clientes, 0))}</td>
               </tr>
               <tr>
-                <td className={ROW_LABEL}>Boletos (pagos / total)</td>
+                <td className={ROW_LABEL}>Boletos no Asaas (pagos / emitidos)</td>
                 {venc.map(v => <td key={v.dia} className={TD}>{fmtNum(v.pagos)} / {fmtNum(v.boletos)}</td>)}
                 <td className={TD}>{fmtNum(venc.reduce((s, v) => s + v.pagos, 0))} / {fmtNum(venc.reduce((s, v) => s + v.boletos, 0))}</td>
-              </tr>
-              <tr>
-                <td className={ROW_LABEL}>Faturado</td>
-                {venc.map(v => <td key={v.dia} className={TD}>{fmtBRL(v.faturado)}</td>)}
-                <td className={TD}>{fmtBRL(venc.reduce((s, v) => s + v.faturado, 0))}</td>
               </tr>
               <tr>
                 <td className={ROW_LABEL}>Recebido</td>
@@ -210,8 +205,8 @@ export default function AnalystCommissionPage() {
       </div>
 
       <p className="text-xs text-gray-400">
-        O mês escolhido é o mês de vencimento: outubro usa os boletos do ciclo de setembro. Vencimento original = data do arquivo de
-        Vencimentos do ciclo. Recebido = boletos do Asaas com vencimento no mês e status pago, cruzados por CNPJ/CPF.
+        O mês escolhido é o mês de vencimento: outubro usa os boletos do ciclo de setembro. Valor do vencimento = total que o ciclo mandou cobrar em cada vencimento original (arquivo de Vencimentos).
+        Recebido = boletos desses clientes no Asaas, com vencimento no mês e status pago, cruzados por CNPJ/CPF.
       </p>
     </div>
   )

@@ -72,29 +72,37 @@ def comissionamento(year: int, month: int, db: Session = Depends(get_db), user: 
     if tem_boletos:
         rows = db.execute(text("""
             WITH s AS (
-                SELECT DISTINCT regexp_replace(id_smart, '\\D', '', 'g') AS doc,
-                       EXTRACT(DAY FROM due_date)::int AS dia
+                SELECT regexp_replace(id_smart, '\\D', '', 'g') AS doc,
+                       EXTRACT(DAY FROM due_date)::int AS dia,
+                       SUM(total_final) AS valor
                 FROM billing_client_summaries
                 WHERE due_date >= :ini AND due_date < :fim
                   AND EXTRACT(DAY FROM due_date)::int IN (10, 15, 20, 25)
+                GROUP BY 1, 2
+            ),
+            f AS (   -- valor original de cada vencimento (o que o ciclo mandou cobrar)
+                SELECT dia, COUNT(*) AS clientes, SUM(valor) AS faturado FROM s GROUP BY dia
+            ),
+            r AS (   -- o que o Asaas já emitiu / recebeu desses clientes no mês
+                SELECT s.dia,
+                       COUNT(p.asaas_id) AS boletos,
+                       COUNT(p.asaas_id) FILTER (WHERE p.status IN ('RECEIVED','CONFIRMED','RECEIVED_IN_CASH')) AS pagos,
+                       COALESCE(SUM(COALESCE(p.value_original, p.value))
+                                FILTER (WHERE p.status IN ('RECEIVED','CONFIRMED','RECEIVED_IN_CASH')), 0) AS recebido
+                FROM s
+                JOIN asaas_payments_sync p
+                  ON regexp_replace(p.customer_cpf_cnpj, '\\D', '', 'g') = s.doc
+                 AND p.due_date >= :ini AND p.due_date < :fim
+                GROUP BY s.dia
             )
-            SELECT s.dia,
-                   COUNT(DISTINCT s.doc)                                         AS clientes,
-                   COUNT(p.asaas_id)                                             AS boletos,
-                   COUNT(p.asaas_id) FILTER (WHERE p.status IN ('RECEIVED','CONFIRMED','RECEIVED_IN_CASH')) AS pagos,
-                   COALESCE(SUM(COALESCE(p.value_original, p.value)), 0)         AS faturado,
-                   COALESCE(SUM(COALESCE(p.value_original, p.value))
-                            FILTER (WHERE p.status IN ('RECEIVED','CONFIRMED','RECEIVED_IN_CASH')), 0) AS recebido
-            FROM s
-            LEFT JOIN asaas_payments_sync p
-                   ON regexp_replace(p.customer_cpf_cnpj, '\\D', '', 'g') = s.doc
-                  AND p.due_date >= :ini AND p.due_date < :fim
-            GROUP BY s.dia
+            SELECT f.dia, f.clientes, f.faturado,
+                   COALESCE(r.boletos, 0) AS boletos, COALESCE(r.pagos, 0) AS pagos, COALESCE(r.recebido, 0) AS recebido
+            FROM f LEFT JOIN r ON r.dia = f.dia
         """), {"ini": ini, "fim": fim}).fetchall()
         for r in rows:
             dados[int(r.dia)] = {
                 "clientes": int(r.clientes), "boletos": int(r.boletos), "pagos": int(r.pagos),
-                "faturado": float(r.faturado), "recebido": float(r.recebido),
+                "faturado": float(r.faturado or 0), "recebido": float(r.recebido),
             }
 
     out = []
