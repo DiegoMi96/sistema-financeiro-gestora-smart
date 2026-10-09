@@ -224,6 +224,7 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
       </div>
 
       <button class="btn" onclick="saveMes()" style="width:100%;margin-top:4px">Salvar lançamento</button>
+      <button class="btn-ghost" onclick="excluirMes()" style="width:100%;margin-top:8px;color:#b83232;border-color:#e3b9b9">Excluir lançamento deste mês</button>
     </div>
   </div>
 </div>
@@ -601,6 +602,20 @@ function saveMes(){
   };
   if(!LS.set('da1_m',mdata)){showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.','#b83232');return;}
   COM_API.salvarCiclo('diretor_adm',mdata);renderCiclo();showToast('Lançamento salvo ✓');
+}
+
+// Exclui só o lançamento deste perfil no mês selecionado (não mexe nos outros perfis).
+function excluirMes(){
+  const mes=document.getElementById('mesInput').value;
+  if(!mes){showToast('Selecione o mês');return;}
+  if(mesAprovado(mes)){showToast('Mês aprovado — desaprove no Importar pra excluir.');return;}
+  if(!mdata[mes]){showToast('Não há lançamento salvo neste mês.');return;}
+  if(!confirm(`Excluir o lançamento do Diretor Administrativo de ${mes.split('-').reverse().join('/')}?\n\nApaga o resultado lançado deste mês. Não afeta os outros perfis. Não dá pra desfazer.`))return;
+  delete mdata[mes];
+  if(!LS.set('da1_m',mdata)){showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.','#b83232');return;}
+  COM_API.salvarCiclo('diretor_adm',mdata);
+  document.getElementById('i_resultado').value='';
+  updateCalc();renderCiclo();showToast('Lançamento excluído ✓');
 }
 
 // ─── CICLO COMPLETO ───────────────────────────────────

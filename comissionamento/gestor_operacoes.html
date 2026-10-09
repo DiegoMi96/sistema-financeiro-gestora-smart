@@ -186,6 +186,7 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
         </div>
       </div>
       <button class="btn" onclick="saveMes()" style="width:100%">Salvar lançamento</button>
+      <button class="btn-ghost" onclick="excluirMes()" style="width:100%;margin-top:8px;color:#b83232;border-color:#e3b9b9">Excluir lançamento deste mês</button>
     </div>
 
     <!-- PILARES OUTPUT -->
@@ -644,6 +645,20 @@ function saveMes(){
   };
   if(!LS.set('go1_m',mdata)){showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.','#b83232');return;}
   COM_API.salvarCiclo('gestor_operacoes',mdata);renderCiclo();showToast('Lançamento salvo ✓');
+}
+
+// Exclui só o lançamento deste perfil no mês selecionado (não mexe nos outros perfis).
+function excluirMes(){
+  const mes=document.getElementById('mesInput').value;
+  if(!mes){showToast('Selecione o mês');return;}
+  if(mesAprovado(mes)){showToast('Mês aprovado — desaprove no Importar pra excluir.');return;}
+  if(!mdata[mes]){showToast('Não há lançamento salvo neste mês.');return;}
+  if(!confirm(`Excluir o lançamento do Gestor de Operações de ${mes.split('-').reverse().join('/')}?\n\nApaga satisfação, eficiência, auditoria e treinamentos deste mês. Não afeta os outros perfis nem os extras avulsos. Não dá pra desfazer.`))return;
+  delete mdata[mes];
+  if(!LS.set('go1_m',mdata)){showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.','#b83232');return;}
+  COM_API.salvarCiclo('gestor_operacoes',mdata);
+  ['i_sat','i_efic','i_aud','i_trei'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  updateCalc();renderCiclo();showToast('Lançamento excluído ✓');
 }
 
 // ─── CICLO ─────────────────────────────────────────────
