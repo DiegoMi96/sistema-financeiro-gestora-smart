@@ -65,6 +65,18 @@ class PasswordChange(BaseModel):
     new_password: str
 
 
+def _can_view_comissao_analistas(user: User, db) -> bool:
+    if user.role == UserRole.ADMIN:
+        return True
+    if db is None:
+        return False
+    try:
+        from app.models import AnalystSalary
+        return db.query(AnalystSalary.id).filter(AnalystSalary.user_id == user.id).first() is not None
+    except Exception:
+        return False
+
+
 def user_to_dict(user: User, db=None) -> dict:
     custom_role_key = getattr(user, "custom_role_key", None)
 
@@ -92,8 +104,10 @@ def user_to_dict(user: User, db=None) -> dict:
         "custom_role_key": custom_role_key,
         "is_active":       user.is_active,
         "permissions": {
-            perm: get_permission(user, perm, db)
-            for perm in ROLE_PERMISSIONS[UserRole.ADMIN].keys()
+            **{perm: get_permission(user, perm, db)
+               for perm in ROLE_PERMISSIONS[UserRole.ADMIN].keys()},
+            # Aba Comissionamento (analistas) — calculada, sem coluna: admin ou analista cadastrado
+            "can_view_fat_comissao": _can_view_comissao_analistas(user, db),
         },
         # Valor bruto da coluna individual (None = "segue o perfil", nunca
         # decidido) — diferente de "permissions" acima, que já resolve pro

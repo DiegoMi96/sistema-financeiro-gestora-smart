@@ -29,7 +29,7 @@ export const MODULES = [
       { to: '/faturamento',        label: 'Faturamento',      permission: 'can_view_fat_ciclos' },
       { to: '/clientes',           label: 'Clientes'          },
       { to: '/atencao',            label: 'Atenção',          permission: 'can_edit_billing' },
-      { to: '/comissao-analistas',  label: 'Comissionamento',  permission: 'can_edit_billing' },
+      { to: '/comissao-analistas',  label: 'Comissionamento',  permission: 'can_view_fat_comissao' },
       { to: '/ajustes',            label: 'Ajustes',          permission: 'can_edit_billing' },
       { to: '/configuracoes',      label: 'Configurações',    permission: 'can_manage_users' },
     ],

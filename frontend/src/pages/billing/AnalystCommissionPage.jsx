@@ -6,54 +6,91 @@ import { analystCommissionApi } from '../../services/api'
 
 // Aba "Comissionamento" do Faturamento — comissão dos analistas de contas a receber,
 // com base na adimplência por vencimento ORIGINAL (10, 15, 20 e 25).
-//   Meta (R$)     → quanto precisa ser recebido no vencimento para liberar a comissão (0 = sem meta)
-//   Percentual    → editável; vale para o mês e é herdado pelos meses seguintes
-//   Valor         → percentual × recebido, liberado só se o recebido atingiu a meta
+//   Meta (R$)        → quanto precisa ser recebido no vencimento para liberar a comissão (0 = sem meta)
+//   Percentual (%)   → % do SALÁRIO do analista pago se a meta for atingida
+//   Valor            → salário × percentual, liberado só se o recebido atingiu a meta
+// O admin edita tudo; cada analista vê somente o próprio comissionamento (somente leitura).
 
 const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
-const INPUT = 'w-32 px-3 py-2 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-green-500 focus:outline-none bg-white'
 
 const fmtBRL = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0)
 const fmtNum = v => new Intl.NumberFormat('pt-BR').format(v || 0)
+const fmtDec = v => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v || 0)
+
+// "1.500,50" ou "1500.5" → 1500.5
+const parseNum = s => {
+  let t = String(s ?? '').trim()
+  if (!t) return 0
+  if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.')
+  const n = parseFloat(t)
+  return Number.isFinite(n) ? n : 0
+}
+
+// Campo numérico com formatação: "R$ 1.500,00" ou "10,00 %". Em foco mostra o valor cru para digitar.
+function FmtInput({ value, onChange, prefix, suffix, disabled }) {
+  const [focus, setFocus] = useState(false)
+  const shown = focus ? String(value ?? '').replace('.', ',') : fmtDec(parseNum(value))
+  return (
+    <div className="inline-flex items-center justify-end gap-1.5 w-36 px-3 py-2 border border-gray-200 rounded-lg bg-white focus-within:ring-2 focus-within:ring-green-500">
+      {prefix && <span className="text-xs text-gray-400">{prefix}</span>}
+      <input
+        value={shown} inputMode="decimal" disabled={disabled}
+        onFocus={e => { setFocus(true); e.target.select() }}
+        onBlur={() => setFocus(false)}
+        onChange={e => onChange(e.target.value)}
+        className="w-full min-w-0 text-sm text-right bg-transparent focus:outline-none"
+      />
+      {suffix && <span className="text-xs text-gray-400">{suffix}</span>}
+    </div>
+  )
+}
 
 export default function AnalystCommissionPage() {
   const qc = useQueryClient()
   const hoje = new Date()
   const [year, setYear] = useState(hoje.getFullYear())
   const [month, setMonth] = useState(hoje.getMonth() + 1)
-  const [form, setForm] = useState({})   // { [dia]: { percentual, meta } } (strings)
+  const [userId, setUserId] = useState(null)       // só admin escolhe; analista vê o próprio
+  const [form, setForm] = useState({})             // { [dia]: { percentual, meta } }
+  const [salario, setSalario] = useState('0')
   const [saving, setSaving] = useState(false)
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['analyst-commission', year, month],
-    queryFn: () => analystCommissionApi.get(year, month).then(r => r.data),
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['analyst-commission', year, month, userId],
+    queryFn: () => analystCommissionApi.get(year, month, userId).then(r => r.data),
+    retry: false,
   })
 
   useEffect(() => {
     if (!data) return
     setForm(Object.fromEntries(data.vencimentos.map(v => [v.dia, { percentual: String(v.percentual ?? 0), meta: String(v.meta ?? 0) }])))
+    setSalario(String(data.salario ?? 0))
   }, [data])
 
+  const admin = !!data?.is_admin
   const venc = data?.vencimentos || []
-  const num = s => { const n = parseFloat(String(s).replace(',', '.')); return Number.isFinite(n) ? n : 0 }
-  const dirty = venc.filter(v => {
+  const dirtyRules = venc.filter(v => {
     const f = form[v.dia]
-    return f && (num(f.percentual) !== (v.percentual || 0) || num(f.meta) !== (v.meta || 0))
+    return f && (parseNum(f.percentual) !== (v.percentual || 0) || parseNum(f.meta) !== (v.meta || 0))
   })
+  const dirtySalary = parseNum(salario) !== (data?.salario || 0)
+  const dirty = dirtyRules.length > 0 || dirtySalary
 
   const setField = (dia, k, val) => setForm(f => ({ ...f, [dia]: { ...f[dia], [k]: val } }))
 
   const handleSave = async () => {
-    for (const v of dirty) {
-      const p = num(form[v.dia].percentual)
+    for (const v of dirtyRules) {
+      const p = parseNum(form[v.dia].percentual)
       if (p < 0 || p > 100) return toast.error(`Vencimento ${v.dia}: percentual deve estar entre 0 e 100`)
     }
     setSaving(true)
     try {
-      for (const v of dirty) {
+      const uid = data.analista.id
+      if (dirtySalary) await analystCommissionApi.saveSalary({ user_id: uid, year, month, salario: parseNum(salario) })
+      for (const v of dirtyRules) {
         await analystCommissionApi.saveConfig({
-          year, month, dia: v.dia,
-          percentual: num(form[v.dia].percentual), meta: num(form[v.dia].meta),
+          user_id: uid, year, month, dia: v.dia,
+          percentual: parseNum(form[v.dia].percentual), meta: parseNum(form[v.dia].meta),
         })
       }
       toast.success('Configuração salva')
@@ -65,6 +102,18 @@ export default function AnalystCommissionPage() {
     }
   }
 
+  const handleAddMember = async (id) => {
+    if (!id) return
+    try {
+      await analystCommissionApi.addMember({ user_id: Number(id), year, month })
+      toast.success('Analista adicionado')
+      setUserId(Number(id))
+      qc.invalidateQueries({ queryKey: ['analyst-commission'] })
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Erro ao adicionar')
+    }
+  }
+
   const anos = [hoje.getFullYear() - 1, hoje.getFullYear(), hoje.getFullYear() + 1]
   const sel = 'px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-green-500 focus:outline-none'
 
@@ -72,9 +121,9 @@ export default function AnalystCommissionPage() {
   const valorLive = v => {
     const f = form[v.dia]
     if (!f) return v.valor
-    const meta = num(f.meta)
+    const meta = parseNum(f.meta)
     const ok = meta > 0 ? v.recebido >= meta : true
-    return ok ? Math.round(v.recebido * num(f.percentual)) / 100 : 0
+    return ok ? Math.round(parseNum(salario) * parseNum(f.percentual)) / 100 : 0
   }
   const totalLive = venc.reduce((s, v) => s + valorLive(v), 0)
 
@@ -83,28 +132,55 @@ export default function AnalystCommissionPage() {
   const ROW_LABEL = 'px-4 py-3 text-sm font-medium text-gray-700 text-left whitespace-nowrap'
   const SECTION = 'px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50 text-left'
 
+  if (error) {
+    return (
+      <div className="gs-card p-8 text-center text-sm text-gray-500">
+        {error.response?.data?.detail || 'Não foi possível carregar o comissionamento.'}
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Comissionamento</h1>
           <p className="text-sm text-gray-500 mt-1 max-w-2xl">
-            Comissão dos analistas de contas a receber, com base na adimplência por vencimento original.
-            O percentual e a meta que você salvar valem para o mês e são herdados pelos meses seguintes.
+            {admin
+              ? 'Comissão dos analistas de contas a receber, com base na adimplência por vencimento original. O percentual incide sobre o salário do analista, se a meta for atingida.'
+              : 'Seu comissionamento com base na adimplência por vencimento original. O percentual incide sobre o seu salário, se a meta for atingida.'}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <select value={month} onChange={e => setMonth(Number(e.target.value))} className={sel}>
             {MESES.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
           </select>
           <select value={year} onChange={e => setYear(Number(e.target.value))} className={sel}>
             {anos.map(a => <option key={a} value={a}>{a}</option>)}
           </select>
-          <button onClick={handleSave} disabled={!dirty.length || saving} className="gs-btn gs-btn-dark">
-            {saving && <Loader2 size={14} className="animate-spin" />} Salvar
-          </button>
+          {admin && (
+            <button onClick={handleSave} disabled={!dirty || saving || !data?.analista} className="gs-btn gs-btn-dark">
+              {saving && <Loader2 size={14} className="animate-spin" />} Salvar
+            </button>
+          )}
         </div>
       </div>
+
+      {admin && (
+        <div className="flex flex-wrap items-center gap-3">
+          <select value={data?.analista?.id || ''} onChange={e => setUserId(Number(e.target.value))} className={sel}
+            disabled={!data?.analistas?.length}>
+            {!data?.analistas?.length && <option value="">Nenhum analista cadastrado</option>}
+            {(data?.analistas || []).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+          {!!data?.candidatos?.length && (
+            <select value="" onChange={e => handleAddMember(e.target.value)} className={sel}>
+              <option value="">Adicionar analista…</option>
+              {data.candidatos.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          )}
+        </div>
+      )}
 
       {data && !data.ciclo && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -113,10 +189,33 @@ export default function AnalystCommissionPage() {
         </div>
       )}
 
+      {data?.analista && (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="gs-card p-4">
+            <p className="gs-label">Analista</p>
+            <p className="gs-value text-lg">{data.analista.name}</p>
+          </div>
+          <div className="gs-card p-4">
+            <p className="gs-label">Salário base</p>
+            {admin
+              ? <div className="mt-1"><FmtInput value={salario} onChange={setSalario} prefix="R$" /></div>
+              : <p className="gs-value text-lg">{fmtBRL(data.salario)}</p>}
+          </div>
+          <div className="gs-card p-4">
+            <p className="gs-label">Comissão do mês</p>
+            <p className="gs-value text-lg text-green-700">{fmtBRL(totalLive)}</p>
+          </div>
+        </div>
+      )}
+
       <div className="gs-card overflow-x-auto p-0">
         {isLoading ? (
           <div className="py-16 flex items-center justify-center text-sm text-gray-400 gap-2">
             <Loader2 size={16} className="animate-spin" /> Carregando…
+          </div>
+        ) : !data?.analista ? (
+          <div className="py-16 text-center text-sm text-gray-500">
+            Cadastre um analista (campo "Adicionar analista…") para configurar o comissionamento.
           </div>
         ) : (
           <table className="w-full min-w-[720px]">
@@ -138,18 +237,20 @@ export default function AnalystCommissionPage() {
                 <td className={ROW_LABEL}>Meta (R$)</td>
                 {venc.map(v => (
                   <td key={v.dia} className={TD}>
-                    <input className={INPUT} inputMode="decimal" value={form[v.dia]?.meta ?? ''}
-                      onChange={e => setField(v.dia, 'meta', e.target.value)} />
+                    {admin
+                      ? <FmtInput value={form[v.dia]?.meta} onChange={val => setField(v.dia, 'meta', val)} prefix="R$" />
+                      : fmtBRL(v.meta)}
                   </td>
                 ))}
                 <td className={TD}>—</td>
               </tr>
               <tr>
-                <td className={ROW_LABEL}>Percentual (%)</td>
+                <td className={ROW_LABEL}>Percentual do salário (%)</td>
                 {venc.map(v => (
                   <td key={v.dia} className={TD}>
-                    <input className={INPUT} inputMode="decimal" value={form[v.dia]?.percentual ?? ''}
-                      onChange={e => setField(v.dia, 'percentual', e.target.value)} />
+                    {admin
+                      ? <FmtInput value={form[v.dia]?.percentual} onChange={val => setField(v.dia, 'percentual', val)} suffix="%" />
+                      : `${fmtDec(v.percentual)}%`}
                   </td>
                 ))}
                 <td className={TD}>—</td>
@@ -183,16 +284,16 @@ export default function AnalystCommissionPage() {
               </tr>
               <tr>
                 <td className={ROW_LABEL}>Adimplência</td>
-                {venc.map(v => <td key={v.dia} className={TD}>{v.adimplencia.toFixed(2).replace('.', ',')}%</td>)}
+                {venc.map(v => <td key={v.dia} className={TD}>{fmtDec(v.adimplencia)}%</td>)}
                 <td className={TD}>{(() => {
                   const f = venc.reduce((s, v) => s + v.faturado, 0), r = venc.reduce((s, v) => s + v.recebido, 0)
-                  return (f ? (r / f * 100) : 0).toFixed(2).replace('.', ',') + '%'
+                  return fmtDec(f ? (r / f * 100) : 0) + '%'
                 })()}</td>
               </tr>
               <tr>
                 <td className={ROW_LABEL}>Meta atingida</td>
                 {venc.map(v => {
-                  const meta = num(form[v.dia]?.meta)
+                  const meta = parseNum(form[v.dia]?.meta)
                   const ok = meta > 0 ? v.recebido >= meta : null
                   return (
                     <td key={v.dia} className={TD}>
@@ -210,7 +311,8 @@ export default function AnalystCommissionPage() {
       </div>
 
       <p className="text-xs text-gray-400">
-        O mês escolhido é o mês de vencimento: outubro usa os boletos do ciclo de setembro. Valor do vencimento = total que o ciclo mandou cobrar em cada vencimento original (arquivo de Vencimentos) mais os boletos do Itaú de clientes que não estão no ciclo.
+        O mês escolhido é o mês de vencimento: outubro usa os boletos do ciclo de setembro. Valor do vencimento = total que o ciclo
+        mandou cobrar em cada vencimento original (arquivo de Vencimentos) mais os boletos do Itaú de clientes que não estão no ciclo.
         Recebido = boletos desses clientes no Asaas e no Itaú, com vencimento no mês e status pago, cruzados por CNPJ/CPF.
       </p>
     </div>

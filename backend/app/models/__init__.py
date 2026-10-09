@@ -605,15 +605,35 @@ class ClientAttention(Base):
     )
 
 
-class AnalystCommissionConfig(Base):
+class AnalystSalary(Base):
     """
-    Comissionamento dos analistas de contas a receber (aba "Comissionamento" do Faturamento).
-    Uma linha por (mês, dia de vencimento original): percentual da comissão e meta
-    de recebimento (R$). O mês sem configuração herda a mais recente anterior.
+    Analistas de contas a receber que participam do comissionamento (aba
+    "Comissionamento" do Faturamento) e o salário base de cada um por mês
+    (o percentual da comissão incide sobre o salário). Existir aqui = é analista.
+    Mês sem registro herda o mais recente anterior.
     """
-    __tablename__ = "analyst_commission_config"
+    __tablename__ = "analyst_salary"
 
     id         = Column(Integer, primary_key=True, index=True)
+    user_id    = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    year       = Column(Integer, nullable=False)
+    month      = Column(Integer, nullable=False)
+    salario    = Column(Float, nullable=False, default=0.0)
+    updated_by = Column(String(150))
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (UniqueConstraint("user_id", "year", "month", name="uq_analyst_salary_user_month"),)
+
+
+class AnalystCommissionRule(Base):
+    """
+    Meta (R$ a receber) e percentual (% do salário) de cada analista por vencimento
+    original (10/15/20/25) e mês. Mês sem registro herda o mais recente anterior.
+    """
+    __tablename__ = "analyst_commission_rule"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    user_id    = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     year       = Column(Integer, nullable=False)
     month      = Column(Integer, nullable=False)
     dia        = Column(Integer, nullable=False)          # 10 | 15 | 20 | 25
@@ -622,6 +642,4 @@ class AnalystCommissionConfig(Base):
     updated_by = Column(String(150))
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
-    __table_args__ = (
-        UniqueConstraint("year", "month", "dia", name="uq_analyst_commission_month_dia"),
-    )
+    __table_args__ = (UniqueConstraint("user_id", "year", "month", "dia", name="uq_analyst_rule_user_month_dia"),)

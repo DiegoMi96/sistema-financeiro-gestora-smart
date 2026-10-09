@@ -115,8 +115,10 @@ export default api
 // ── Organograma ───────────────────────────────────────────────
 // Aba "Atenção" do Faturamento — clientes com proporcional/desconto que o motor consulta a cada ciclo
 export const analystCommissionApi = {
-  get:        (year, month) => api.get('/analyst-commission', { params: { year, month } }),
-  saveConfig: (data)        => api.put('/analyst-commission/config', data),
+  get:        (year, month, userId) => api.get('/analyst-commission', { params: { year, month, user_id: userId || undefined } }),
+  saveConfig: (data)                => api.put('/analyst-commission/config', data),
+  saveSalary: (data)                => api.put('/analyst-commission/salary', data),
+  addMember:  (data)                => api.post('/analyst-commission/members', data),
 }
 
 export const attentionApi = {

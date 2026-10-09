@@ -7,8 +7,10 @@ vencimento em outubro, então outubro usa o ciclo de setembro). Vencimento origi
 `billing_client_summaries.due_date` (arquivo de Vencimentos); o realizado vem de
 `asaas_payments_sync` (cruzado por CNPJ/CPF) e `itau_boletos` — boletos com vencimento dentro do mês.
 
-Regra do valor: percentual × recebido, liberado só se recebido >= meta
-(meta em R$ por vencimento; meta 0 = sem meta, sempre libera).
+Regra do valor (por analista): percentual × SALÁRIO do analista, liberado só se o
+recebido do vencimento atingiu a meta (R$; meta 0 = sem meta, sempre libera).
+O recebido é da carteira toda (ainda não há carteira por analista). Só o admin edita;
+cada analista (Carlo, Brenda…) vê apenas o próprio comissionamento.
 """
 from datetime import date
 from typing import Optional
@@ -18,18 +20,18 @@ from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.core.permissions import require_permission
 from app.database import get_db
-from app.models import AnalystCommissionConfig, AuditLog, User
+from app.routers.auth import get_current_user
+from app.models import AnalystCommissionRule, AnalystSalary, AuditLog, User, UserRole
 
 router = APIRouter(prefix="/analyst-commission", tags=["Comissionamento Analistas"])
 
-_perm = require_permission("can_edit_billing")
 
 DIAS = (10, 15, 20, 25)
 
 
 class ConfigIn(BaseModel):
+    user_id: int
     year: int
     month: int
     dia: int
@@ -37,23 +39,76 @@ class ConfigIn(BaseModel):
     meta: float = 0.0
 
 
-def _config_do_mes(db: Session, year: int, month: int, dia: int) -> dict:
-    """Config do mês; se não houver, herda a mais recente anterior."""
-    c = (db.query(AnalystCommissionConfig)
-         .filter(AnalystCommissionConfig.dia == dia,
-                 (AnalystCommissionConfig.year * 100 + AnalystCommissionConfig.month) <= year * 100 + month)
-         .order_by(AnalystCommissionConfig.year.desc(), AnalystCommissionConfig.month.desc())
+class SalaryIn(BaseModel):
+    user_id: int
+    year: int
+    month: int
+    salario: float
+
+
+class MemberIn(BaseModel):
+    user_id: int
+    year: int
+    month: int
+
+
+def _is_admin(user: User) -> bool:
+    return user.role == UserRole.ADMIN
+
+
+def _ym(model, year, month):
+    return (model.year * 100 + model.month) <= year * 100 + month
+
+
+def _rule_do_mes(db: Session, user_id: int, year: int, month: int, dia: int) -> dict:
+    """Regra do mês; se não houver, herda a mais recente anterior."""
+    c = (db.query(AnalystCommissionRule)
+         .filter(AnalystCommissionRule.user_id == user_id, AnalystCommissionRule.dia == dia,
+                 _ym(AnalystCommissionRule, year, month))
+         .order_by(AnalystCommissionRule.year.desc(), AnalystCommissionRule.month.desc())
          .first())
     if not c:
-        return {"percentual": 0.0, "meta": 0.0, "herdada": False, "updated_by": None}
-    herdada = (c.year, c.month) != (year, month)
-    return {"percentual": c.percentual, "meta": c.meta, "herdada": herdada, "updated_by": c.updated_by}
+        return {"percentual": 0.0, "meta": 0.0, "herdada": False}
+    return {"percentual": c.percentual, "meta": c.meta, "herdada": (c.year, c.month) != (year, month)}
+
+
+def _salario_do_mes(db: Session, user_id: int, year: int, month: int) -> Optional[float]:
+    c = (db.query(AnalystSalary)
+         .filter(AnalystSalary.user_id == user_id, _ym(AnalystSalary, year, month))
+         .order_by(AnalystSalary.year.desc(), AnalystSalary.month.desc())
+         .first())
+    return c.salario if c else None
+
+
+def _membros(db: Session) -> list:
+    rows = (db.query(User).join(AnalystSalary, AnalystSalary.user_id == User.id)
+            .distinct().order_by(User.name).all())
+    return [{"id": u.id, "name": " ".join((u.name or "").split())} for u in rows]
+
+
+def is_analyst(db: Session, user_id: int) -> bool:
+    """Usado também pelo /auth/me pra decidir se a aba aparece no menu."""
+    return db.query(AnalystSalary.id).filter(AnalystSalary.user_id == user_id).first() is not None
 
 
 @router.get("")
-def comissionamento(year: int, month: int, db: Session = Depends(get_db), user: User = Depends(_perm)):
+def comissionamento(year: int, month: int, user_id: Optional[int] = None,
+                    db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     if not (1 <= month <= 12):
         raise HTTPException(status_code=400, detail="Mês inválido")
+
+    admin = _is_admin(user)
+    membros = _membros(db)
+    if admin:
+        alvo_id = user_id or (membros[0]["id"] if membros else None)
+    else:
+        # analista comum só enxerga o PRÓPRIO comissionamento, ignorando user_id
+        if not is_analyst(db, user.id):
+            raise HTTPException(status_code=403, detail="Você não participa do comissionamento de analistas")
+        alvo_id = user.id
+    alvo = next((m for m in membros if m["id"] == alvo_id), None)
+    if admin and alvo_id and not alvo:
+        raise HTTPException(status_code=404, detail="Analista não cadastrado")
 
     ini = date(year, month, 1)
     fim = date(year + (month == 12), month % 12 + 1, 1)
@@ -135,14 +190,15 @@ def comissionamento(year: int, month: int, db: Session = Depends(get_db), user: 
                 "recebido_itau": float(r.recebido_itau), "boletos_itau": int(r.boletos_itau),
             }
 
+    salario = (_salario_do_mes(db, alvo_id, year, month) if alvo_id else None) or 0.0
     out = []
     for dia in DIAS:
         d = dados[dia]
-        cfg = _config_do_mes(db, year, month, dia)
+        cfg = _rule_do_mes(db, alvo_id, year, month, dia) if alvo_id else {"percentual": 0.0, "meta": 0.0, "herdada": False}
         fat, rec = d["faturado"], d["recebido"]
         adimp = round(rec / fat * 100, 2) if fat else 0.0
         meta_ok = rec >= cfg["meta"] if cfg["meta"] > 0 else True
-        valor = round(rec * cfg["percentual"] / 100, 2) if meta_ok else 0.0
+        valor = round(salario * cfg["percentual"] / 100, 2) if meta_ok else 0.0
         out.append({
             "dia": dia, "vencimento_original": (datas.get(dia) or date(year, month, dia)).isoformat(), **d, **cfg,
             "adimplencia": adimp,
@@ -152,32 +208,84 @@ def comissionamento(year: int, month: int, db: Session = Depends(get_db), user: 
     return {
         "year": year, "month": month,
         "ciclo": tem_boletos,
+        "is_admin": admin,
+        "analista": alvo,
+        "analistas": membros if admin else [],
+        "candidatos": ([{"id": u.id, "name": " ".join((u.name or "").split())}
+                        for u in db.query(User).filter(User.is_active == True, User.role == UserRole.CONTAS_RECEBER)  # noqa: E712
+                        .order_by(User.name).all() if u.id not in {m["id"] for m in membros}] if admin else []),
+        "salario": salario,
         "vencimentos": out,
         "total": round(sum(v["valor"] for v in out), 2),
     }
 
 
+def _so_admin(user: User):
+    if not _is_admin(user):
+        raise HTTPException(status_code=403, detail="Somente o administrador edita o comissionamento")
+
+
+def _validar_mes(month: int):
+    if not (1 <= month <= 12):
+        raise HTTPException(status_code=400, detail="Mês inválido")
+
+
 @router.put("/config")
-def salvar_config(data: ConfigIn, db: Session = Depends(get_db), user: User = Depends(_perm)):
+def salvar_config(data: ConfigIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    _so_admin(user)
+    _validar_mes(data.month)
     if data.dia not in DIAS:
         raise HTTPException(status_code=400, detail="Vencimento deve ser 10, 15, 20 ou 25")
-    if not (1 <= data.month <= 12):
-        raise HTTPException(status_code=400, detail="Mês inválido")
     if data.percentual < 0 or data.percentual > 100:
         raise HTTPException(status_code=400, detail="Percentual deve estar entre 0 e 100")
     if data.meta < 0:
         raise HTTPException(status_code=400, detail="Meta não pode ser negativa")
+    if not is_analyst(db, data.user_id):
+        raise HTTPException(status_code=404, detail="Analista não cadastrado")
 
-    c = (db.query(AnalystCommissionConfig)
-         .filter_by(year=data.year, month=data.month, dia=data.dia).first())
+    c = (db.query(AnalystCommissionRule)
+         .filter_by(user_id=data.user_id, year=data.year, month=data.month, dia=data.dia).first())
     if c:
         c.percentual, c.meta, c.updated_by = data.percentual, data.meta, user.name
     else:
-        c = AnalystCommissionConfig(year=data.year, month=data.month, dia=data.dia,
-                                    percentual=data.percentual, meta=data.meta, updated_by=user.name)
-        db.add(c)
-    db.add(AuditLog(user_id=user.id, action="analyst_commission.config", entity="analyst_commission_config",
-                    details={"year": data.year, "month": data.month, "dia": data.dia,
-                             "percentual": data.percentual, "meta": data.meta}))
+        db.add(AnalystCommissionRule(user_id=data.user_id, year=data.year, month=data.month, dia=data.dia,
+                                     percentual=data.percentual, meta=data.meta, updated_by=user.name))
+    db.add(AuditLog(user_id=user.id, action="analyst_commission.rule", entity="analyst_commission_rule",
+                    details=data.model_dump() if hasattr(data, "model_dump") else data.dict()))
     db.commit()
+    return {"ok": True}
+
+
+@router.put("/salary")
+def salvar_salario(data: SalaryIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    _so_admin(user)
+    _validar_mes(data.month)
+    if data.salario < 0:
+        raise HTTPException(status_code=400, detail="Salário não pode ser negativo")
+    if not is_analyst(db, data.user_id):
+        raise HTTPException(status_code=404, detail="Analista não cadastrado")
+    c = db.query(AnalystSalary).filter_by(user_id=data.user_id, year=data.year, month=data.month).first()
+    if c:
+        c.salario, c.updated_by = data.salario, user.name
+    else:
+        db.add(AnalystSalary(user_id=data.user_id, year=data.year, month=data.month,
+                             salario=data.salario, updated_by=user.name))
+    db.add(AuditLog(user_id=user.id, action="analyst_commission.salary", entity="analyst_salary",
+                    details={"user_id": data.user_id, "year": data.year, "month": data.month}))
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/members", status_code=201)
+def adicionar_analista(data: MemberIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    _so_admin(user)
+    _validar_mes(data.month)
+    alvo = db.query(User).filter(User.id == data.user_id, User.is_active == True).first()  # noqa: E712
+    if not alvo:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    if not is_analyst(db, alvo.id):
+        db.add(AnalystSalary(user_id=alvo.id, year=data.year, month=data.month, salario=0.0, updated_by=user.name))
+        db.add(AuditLog(user_id=user.id, action="analyst_commission.member_add", entity="analyst_salary",
+                        details={"user_id": alvo.id}))
+        db.commit()
     return {"ok": True}
