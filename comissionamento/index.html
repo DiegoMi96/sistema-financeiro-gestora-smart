@@ -1066,7 +1066,7 @@ iframe.active{display:block}
     <iframe id="frame-projeto_especial" src="projeto_especial.html?b=40" title="Projeto Especial"></iframe>
     <iframe id="frame-gestor_operacoes" src="gestor_operacoes.html?b=15" title="Gestor de Operações"></iframe>
     <iframe id="frame-diretor_adm" src="diretor_adm.html?b=13" title="Diretor Administrativo"></iframe>
-    <iframe id="frame-diretor_comercial" src="diretor_comercial.html?b=15" title="Diretor Comercial"></iframe>
+    <iframe id="frame-diretor_comercial" src="diretor_comercial.html?b=16" title="Diretor Comercial"></iframe>
   </div>
 </div>
 
@@ -2464,7 +2464,7 @@ function renderConsolidado() {
   const linhasDiretoria = [
     { cat: 'gestor', nome: 'Gestor de Operações', ...gestorOps, area: 'operacoes', executivo: 'Thalles Marques' },
     { cat: 'diretor', nome: 'Diretor Administrativo', ...diretorAdm, area: 'administrativo', executivo: 'Diego Miranda' },
-    { cat: 'diretorComercial', nome: 'Diretor Comercial', ...diretorCom, area: 'comercial', executivo: 'Johnny Herbet' },
+    { cat: 'diretorComercial', nome: 'Diretor Comercial', ...diretorCom, area: 'comercial', executivo: 'Johnny Herbert' },
   ];
   const valOrDash = (v, neg) => v ? (neg ? '-R$ ' : 'R$ ') + br2c(v) : '<span style="color:#ccc">—</span>';
   const somaColDe = linhas => campo => linhas.reduce((a, r) => a + (r[campo] || 0), 0);
