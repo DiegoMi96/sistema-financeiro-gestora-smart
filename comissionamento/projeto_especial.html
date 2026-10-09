@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+<script src="com_sync.js?v=1"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Projeto Especial · Gestora Smart</title>
@@ -362,8 +363,22 @@ const COM_API={
       const r=await fetch(this.base+'/extratos?colaborador_id='+encodeURIComponent(colaboradorId)+'&mes_referencia='+encodeURIComponent(mesReferencia),{headers:{Authorization:'Bearer '+tok}});
       return r.ok?await r.json():[];
     }catch{return []}
+  },
+  // Quais extratos do mês já estão no banco (sem as linhas) — mantém o "Extrair"
+  // habilitado depois de um F5 ou em outra máquina, sem depender da memória da página.
+  async disponiveis(mesReferencia){
+    try{
+      const tok=this.token(); if(!tok) return [];
+      const r=await fetch(this.base+'/extratos/disponiveis?mes_referencia='+encodeURIComponent(mesReferencia),{headers:{Authorization:'Bearer '+tok}});
+      return r.ok?await r.json():[];
+    }catch{return []}
   }
 };
+const extDisp={}, extDispMes={};
+function carregarDisponiveis(mes,rerender){
+  if(extDispMes[mes]) return; extDispMes[mes]=true;
+  COM_API.disponiveis(mes).then(l=>{ if(!l.length) return; l.forEach(e=>{extDisp[e.colaborador_id+'_'+mes]=true;}); rerender(); });
+}
 // Mês aprovado (aprovação fica no Importar) fica travado — nem edição manual sobrescreve,
 // mesmo que a regra de alguém mude depois. Só desaprovando ou excluindo os dados.
 function mesAprovado(mes){try{const a=JSON.parse(localStorage.getItem('aprovacoes_mes')||'{}');return !!(a[mes]&&a[mes].aprovado);}catch{return false;}}
@@ -455,7 +470,7 @@ function matchEntity(name,list){
 }
 function hasRaw(id,mes){
   const r=rawStore[`projeto_${id}_${mes}`];
-  return r&&r.rows&&r.rows.length>0;
+  return !!(r&&r.rows&&r.rows.length>0)||!!extDisp[`${id}_${mes}`];
 }
 
 // ─── RENDER PROJETOS ───────────────────────────────
@@ -501,6 +516,7 @@ const RS_SVG_LAPIS='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" 
 
 function renderProjetos(){
   const mes=document.getElementById('mesInput').value;
+  carregarDisponiveis(mes,renderProjetos);
   const bloqueado=mesAprovado(mes);
   let anyRaw=false;
   const dados=projetos.map(proj=>{

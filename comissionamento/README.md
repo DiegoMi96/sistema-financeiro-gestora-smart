@@ -6,8 +6,12 @@ Gestor de Operações, Diretor Comercial, Diretor Administrativo). Aplicação e
 arquivos são a mesma origem). Desde 2026-09-27, o **extrato pós-cálculo** (o detalhe
 por colaborador/mês que vira o `.xlsx` do botão "↓ Extrair") é persistido num banco
 real (tabela `comissao_extratos` no Postgres do backend principal) — ver
-`REGRAS_DE_NEGOCIO.md` para os detalhes. O resto dos dados (cadastro, metas, faixas,
-lançamentos mensais) ainda vive só no `localStorage`.
+`REGRAS_DE_NEGOCIO.md` para os detalhes. Desde 2026-10-09 o **resto dos dados**
+(cadastro, metas, faixas, lançamentos mensais, aprovações) também é espelhado no
+banco (`comissao_estado`) por `com_sync.js`, e as planilhas de Vendas e
+Cancelamentos importadas ficam em `comissao_importacoes` — o `localStorage` virou
+só cache. Ao incluir uma chave nova de negócio: acrescente em `KEYS` (com_sync.js)
+**e** em `ESTADO_CHAVES` (backend/app/routers/comissionamento.py).
 
 ## Como é servido
 

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+<script src="com_sync.js?v=1" data-hydrate></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Comissionamento · Gestora Smart</title>
@@ -1059,13 +1060,13 @@ iframe.active{display:block}
     <!-- ?b=N é só cache-busting: o navegador guarda esses arquivos em cache
          agressivamente, e sem isso uma edição no perfil não aparece nem com F5
          normal. Suba o número sempre que mexer em algum desses arquivos. -->
-    <iframe id="frame-vendedor" src="vendedor.html?b=33" title="Vendedor"></iframe>
-    <iframe id="frame-dealer" src="dealer.html?b=30" title="Dealer"></iframe>
-    <iframe id="frame-indicadores" src="indicadores.html?b=21" title="Indicador"></iframe>
-    <iframe id="frame-projeto_especial" src="projeto_especial.html?b=39" title="Projeto Especial"></iframe>
-    <iframe id="frame-gestor_operacoes" src="gestor_operacoes.html?b=13" title="Gestor de Operações"></iframe>
-    <iframe id="frame-diretor_adm" src="diretor_adm.html?b=11" title="Diretor Administrativo"></iframe>
-    <iframe id="frame-diretor_comercial" src="diretor_comercial.html?b=13" title="Diretor Comercial"></iframe>
+    <iframe id="frame-vendedor" src="vendedor.html?b=34" title="Vendedor"></iframe>
+    <iframe id="frame-dealer" src="dealer.html?b=31" title="Dealer"></iframe>
+    <iframe id="frame-indicadores" src="indicadores.html?b=22" title="Indicador"></iframe>
+    <iframe id="frame-projeto_especial" src="projeto_especial.html?b=40" title="Projeto Especial"></iframe>
+    <iframe id="frame-gestor_operacoes" src="gestor_operacoes.html?b=14" title="Gestor de Operações"></iframe>
+    <iframe id="frame-diretor_adm" src="diretor_adm.html?b=12" title="Diretor Administrativo"></iframe>
+    <iframe id="frame-diretor_comercial" src="diretor_comercial.html?b=14" title="Diretor Comercial"></iframe>
   </div>
 </div>
 
@@ -3100,9 +3101,11 @@ function impSetStatus(target, cls, msg) {
   el.textContent = msg;
 }
 
+const impFileNames = {};
 function impHandleFile(evt, target) {
   const file = evt.target.files[0];
   if (!file) return;
+  impFileNames[target] = file.name;
   impSetStatus(target, 'st-idle', 'Lendo "' + file.name + '"…');
   const reader = new FileReader();
   reader.onload = e => {
@@ -3159,6 +3162,29 @@ function impReqMes() {
 function impResultTable(rows) {
   if (!rows.length) return '<div class="cons-panel-empty">Nenhum lançamento.</div>';
   return `<table class="cons-panel-table"><tbody>${rows.map(r => `<tr><td>${r[0]}</td><td class="r">${r[1]}</td></tr>`).join('')}</tbody></table>`;
+}
+
+// Guarda a planilha crua (Vendas/Cancelamentos) no banco — qualquer pessoa, ou o
+// próprio sistema, pode recalcular/extrair depois sem depender do arquivo local.
+// Falha não trava o Importar: o resultado mostra se gravou ou não.
+async function impSalvarImportacao(tipo, mes, rows, resultId, arquivo) {
+  const el = document.getElementById(resultId);
+  const aviso = (txt, ok) => { if (el) el.insertAdjacentHTML('beforeend', `<div style="margin-top:10px;font-size:11px;color:${ok ? '#166B4A' : '#b83232'}">${txt}</div>`); };
+  try {
+    const tok = localStorage.getItem('token');
+    if (!tok) { aviso('Planilha NÃO foi salva no banco (sem login).', false); return; }
+    const headers = Object.keys(rows[0] || {});
+    const linhas = rows.map(r => headers.map(h => (r[h] == null ? null : r[h])));
+    const resp = await fetch('/api/comissionamento/importacoes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok },
+      body: JSON.stringify({ tipo, mes_referencia: mes, arquivo: arquivo || null, headers, linhas }),
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    aviso(`Planilha salva no banco (${linhas.length.toLocaleString('pt-BR')} linhas) — disponível para qualquer usuário.`, true);
+  } catch (e) {
+    aviso('Planilha NÃO foi salva no banco: ' + e.message + '. Tente processar de novo.', false);
+  }
 }
 
 // ─── Diretor Comercial: Volume e Crescimento Líquido vêm do Importar ───
@@ -3278,6 +3304,7 @@ function impProcessarPedidos() {
     (outroPerfilRows.length ? `<div class="imp-result-title">De outro perfil (Dealer/Indicador/Projeto Especial — não conta aqui)</div>${impResultTable(outroPerfilRows)}` : '') +
     (naoIdRows.length ? `<div class="imp-result-title">Não identificados (revisar cadastro)</div>${impResultTable(naoIdRows)}` : '') +
     (regrasResultado.length ? `<div class="imp-result-title">Regras de Comissão recalculadas</div>${impResultTable(regrasResultado)}` : '');
+  impSalvarImportacao('pedidos', mes, impRows.pedidos, 'imp_pedidos_result', impFileNames.pedidos);
 }
 
 // ─── MOTOR DE REGRAS DE COMISSÃO (Dealer) ──────────────────────────────
@@ -3724,6 +3751,7 @@ function impProcessarCancelamentos() {
     `<div class="imp-result-title">Diretor Comercial — ${fmtMesC(mes)}</div>${impResultTable(impDcLinhas(dcRes))}` +
     `<div class="imp-result-title">Dealer — cancelamentos em ${fmtMesC(mes)}</div>${impResultTable(dealerRows)}` +
     `<div class="imp-result-title">Projeto Especial — cancelamentos em ${fmtMesC(mes)}</div>${impResultTable(projRows)}`;
+  impSalvarImportacao('cancelamentos', mes, impRows.cancel, 'imp_cancel_result', impFileNames.cancel);
 }
 
 // ─── 5a · Cobranças (Asaas) · Equipamento ──────

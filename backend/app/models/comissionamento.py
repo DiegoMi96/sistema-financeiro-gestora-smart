@@ -94,3 +94,43 @@ class CadastroParceiro(Base):
     criado_em     = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     importado_em  = Column(DateTime(timezone=True))
     importado_por = Column(Integer)
+
+
+class ComissaoEstado(Base):
+    """
+    Espelho no banco das chaves de negócio que o front guardava só no
+    `localStorage` de quem usava (cadastros, metas, faixas, lançamentos mensais,
+    aprovações...). Uma linha por chave (ex: "gs5_m", "dp1_dealers", "dc1_cfg").
+    Sem isso o dado existia só no navegador de quem lançou — outra pessoa/máquina
+    abria o sistema vazio e o F5 em outro navegador "perdia" tudo.
+    """
+    __tablename__ = "comissao_estado"
+
+    chave          = Column(String(100), primary_key=True)
+    valor          = Column(JSON, nullable=False)
+    atualizado_em  = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    atualizado_por = Column(String(150))
+
+
+class ComissaoImportacao(Base):
+    """
+    Planilha crua importada no Importar (hoje: Vendas/Pedidos e Cancelamentos),
+    guardada inteira pra qualquer pessoa — ou o próprio sistema — poder
+    recalcular/extrair depois, sem depender de quem fez o upload ainda estar com
+    o arquivo. Uma linha por (tipo, mês): reprocessar o mês sobrescreve.
+    O Inventário (centenas de milhares de linhas) NÃO entra aqui — o que importa
+    dele já fica nos extratos por colaborador (comissao_extratos).
+    """
+    __tablename__ = "comissao_importacoes"
+
+    id             = Column(Integer, primary_key=True, index=True)
+    tipo           = Column(String(30), nullable=False)          # pedidos | cancelamentos
+    mes_referencia = Column(String(7), nullable=False, index=True)
+    arquivo        = Column(String(255))
+    headers        = Column(JSON, nullable=False)
+    linhas         = Column(JSON, nullable=False)
+    total_linhas   = Column(Integer, nullable=False, default=0)
+    usuario        = Column(String(150))
+    atualizado_em  = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (UniqueConstraint("tipo", "mes_referencia", name="uq_comissao_importacao_tipo_mes"),)
