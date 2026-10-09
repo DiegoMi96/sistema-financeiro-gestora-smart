@@ -100,13 +100,12 @@ export default function AttentionPage() {
         <div className="flex items-center gap-2">
           <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImport} />
           <button onClick={() => fileRef.current?.click()} disabled={importing}
-            className="inline-flex items-center gap-2 px-3.5 py-2 border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="gs-btn gs-btn-outline"
             title='Importa a planilha antiga "Atencao_com_esses_clientes.xlsx" (aba "Cancelamento e Suspenção")'>
             {importing ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} Importar planilha
           </button>
           <button onClick={() => setEditing({})}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
-            style={{ background: 'linear-gradient(135deg, #3CB54A, #2EA040)' }}>
+            className="gs-btn gs-btn-dark">
             <Plus size={14} /> Adicionar cliente
           </button>
         </div>
@@ -377,10 +376,9 @@ function AttentionForm({ item, onClose, onSaved }) {
 
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose} disabled={saving}
-              className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 disabled:opacity-50">Cancelar</button>
+              className="flex-1 gs-btn gs-btn-outline justify-center">Cancelar</button>
             <button type="submit" disabled={saving}
-              className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-60"
-              style={{ background: 'linear-gradient(135deg, #3CB54A, #2EA040)' }}>
+              className="flex-1 gs-btn gs-btn-dark justify-center">
               {saving ? <><Loader2 size={14} className="animate-spin" /> Salvando…</> : (isEdit ? 'Salvar alterações' : 'Adicionar à lista')}
             </button>
           </div>
