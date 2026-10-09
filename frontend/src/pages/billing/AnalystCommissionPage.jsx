@@ -270,7 +270,7 @@ export default function AnalystCommissionPage() {
               </tr>
             </thead>
             <tbody>
-              <SectionRow label="Configuração da comissão" open={openCfg} toggle={() => setOpenCfg(o => !o)} band="bg-green-50 text-green-800" />
+              <SectionRow label="Configuração da comissão" open={openCfg} toggle={() => setOpenCfg(o => !o)} band="bg-gray-100 text-gray-700" />
               {openCfg && (<>
                 <tr className="border-b border-gray-50">
                   <td className={ROW_LABEL}>Valor do vencimento (R$)</td>
@@ -299,14 +299,14 @@ export default function AnalystCommissionPage() {
                   ))}
                   <td className={TD + ' font-bold'}>{fmtDec(totalPct)}%</td>
                 </tr>
-                <tr className="bg-green-50">
-                  <td className={ROW_LABEL + ' font-bold text-green-800'}>Previsão da comissão</td>
+                <tr className="bg-gray-100">
+                  <td className={ROW_LABEL + ' font-bold text-gray-800'}>Previsão da comissão</td>
                   {venc.map(v => <td key={v.dia} className={TD}>{fmtBRL(previsaoLive(v))}</td>)}
                   <td className={TD + ' font-bold text-green-700 text-base'}>{fmtBRL(totalPrevisao)}</td>
                 </tr>
               </>)}
 
-              <SectionRow label="Apuração do mês" open={openApu} toggle={() => setOpenApu(o => !o)} band="bg-slate-100 text-slate-600" />
+              <SectionRow label="Apuração do mês" open={openApu} toggle={() => setOpenApu(o => !o)} band="bg-gray-100 text-gray-700" />
               {openApu && (<>
                 <tr className="border-b border-gray-50">
                   <td className={ROW_LABEL}>Clientes</td>
