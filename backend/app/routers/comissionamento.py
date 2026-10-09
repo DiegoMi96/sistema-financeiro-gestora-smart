@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.comissionamento import ComissaoExtrato, ComissaoCiclo, CadastroParceiro, ComissaoEstado, ComissaoImportacao
-from app.core.permissions import require_permission
+from app.core.permissions import require_permission, get_permission
 from app.routers.auth import get_current_user
 from datetime import datetime, timezone
 
@@ -25,6 +25,62 @@ router = APIRouter(
     tags=["comissionamento"],
     dependencies=[Depends(require_permission("can_view_comissao"))],
 )
+
+
+# ── Quem pode ler/gravar o quê ───────────────────────────────────────────
+# O módulo inteiro exige `can_view_comissao`, mas as permissões por painel
+# (can_view_com_*) antes só escondiam o menu — a API entregava os dados de TODOS os
+# perfis a qualquer usuário do módulo. Ex.: o Diretor Comercial não pode ver o
+# Diretor Administrativo nem o Gestor de Operações (pedido do Diego, 09/10/2026).
+# Agora cada chave/extrato/ciclo/planilha só sai (e só entra) para quem tem pelo menos
+# uma das permissões de painel que usam aquele dado. Admin tem todas.
+_AREAS_GERAIS = ["consolidado", "executivo", "importar"]
+_TODAS = ["consolidado", "executivo", "vendedor", "dealer", "indicadores", "projeto_especial",
+          "gestor_operacoes", "diretor_comercial", "diretor_adm", "cadastro", "importar"]
+
+
+def _pode(user, db, areas) -> bool:
+    return any(get_permission(user, "can_view_com_" + a, db) for a in areas)
+
+
+def _areas_da_chave(chave: str):
+    if chave.startswith("gs5_"):
+        return ["vendedor", "cadastro"] + _AREAS_GERAIS
+    if chave.startswith("dp1_"):
+        return ["dealer", "projeto_especial", "cadastro"] + _AREAS_GERAIS
+    if chave.startswith("ind1_"):
+        return ["indicadores", "cadastro"] + _AREAS_GERAIS
+    if chave.startswith("dc1_"):
+        return ["diretor_comercial"] + _AREAS_GERAIS
+    if chave.startswith("da1_"):
+        return ["diretor_adm"] + _AREAS_GERAIS
+    if chave.startswith("go1_"):
+        return ["gestor_operacoes"] + _AREAS_GERAIS
+    if chave in ("cons_hist_manual", "cons_bonus_extra"):
+        return _AREAS_GERAIS
+    if chave == "imp_clientes_map":
+        return _AREAS_GERAIS
+    if chave == "regras_comissao":
+        return ["dealer", "projeto_especial", "cadastro"] + _AREAS_GERAIS
+    return _TODAS   # aprovacoes_mes e o que não for específico: qualquer painel do módulo
+
+
+_AREAS_EXTRATO = {
+    "vendedor": ["vendedor", "importar"],
+    "dealer": ["dealer", "importar"],
+    "indicador": ["indicadores", "importar"],
+    "projeto": ["projeto_especial", "importar"],
+}
+
+
+def _areas_do_ciclo(perfil: str):
+    if perfil in ("gestor_operacoes", "diretor_adm", "diretor_comercial"):
+        return [perfil] + _AREAS_GERAIS
+    return _TODAS   # "executivos" (lista de nomes) e afins
+
+
+def _negar():
+    raise HTTPException(status_code=403, detail="Sem permissão para este painel do Comissionamento")
 
 
 class ExtratoIn(BaseModel):
@@ -51,7 +107,9 @@ def _out(e: ComissaoExtrato) -> dict:
 
 
 @router.post("/extratos", status_code=201)
-def salvar_extrato(data: ExtratoIn, db: Session = Depends(get_db)):
+def salvar_extrato(data: ExtratoIn, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if not _pode(user, db, _AREAS_EXTRATO.get(data.tipo, ["importar"])):
+        _negar()
     existente = (
         db.query(ComissaoExtrato)
         .filter(
@@ -90,6 +148,7 @@ def buscar_extratos(
     colaborador_id: str,
     mes_referencia: str,
     db: Session = Depends(get_db),
+    user=Depends(get_current_user),
 ):
     rows = (
         db.query(ComissaoExtrato)
@@ -99,11 +158,11 @@ def buscar_extratos(
         )
         .all()
     )
-    return [_out(r) for r in rows]
+    return [_out(r) for r in rows if _pode(user, db, _AREAS_EXTRATO.get(r.tipo, ["importar"]))]
 
 
 @router.get("/extratos/disponiveis")
-def extratos_disponiveis(mes_referencia: str, db: Session = Depends(get_db)):
+def extratos_disponiveis(mes_referencia: str, db: Session = Depends(get_db), user=Depends(get_current_user)):
     """
     Quais extratos já existem no banco pro mês (sem trazer as linhas) — o front usa
     pra manter o botão "Extrair" habilitado depois de um F5, em vez de depender da
@@ -114,7 +173,8 @@ def extratos_disponiveis(mes_referencia: str, db: Session = Depends(get_db)):
         .filter(ComissaoExtrato.mes_referencia == mes_referencia)
         .all()
     )
-    return [{"colaborador_id": r.colaborador_id, "aba": r.aba, "tipo": r.tipo} for r in rows]
+    return [{"colaborador_id": r.colaborador_id, "aba": r.aba, "tipo": r.tipo}
+            for r in rows if _pode(user, db, _AREAS_EXTRATO.get(r.tipo, ["importar"]))]
 
 
 # ── Estado do sistema (espelho do localStorage) ──────────────────────────
@@ -137,8 +197,9 @@ class EstadoIn(BaseModel):
 
 
 @router.get("/estado")
-def ler_estado(db: Session = Depends(get_db)):
-    rows = db.query(ComissaoEstado).all()
+def ler_estado(db: Session = Depends(get_db), user=Depends(get_current_user)):
+    # só devolve as chaves dos painéis que o usuário pode ver
+    rows = [r for r in db.query(ComissaoEstado).all() if _pode(user, db, _areas_da_chave(r.chave))]
     return {
         "itens": {r.chave: r.valor for r in rows},
         "meta": {r.chave: {"atualizado_em": r.atualizado_em.isoformat() if r.atualizado_em else None,
@@ -151,6 +212,8 @@ def gravar_estado(data: EstadoIn, db: Session = Depends(get_db), user=Depends(ge
     invalidas = [k for k in data.itens if k not in ESTADO_CHAVES]
     if invalidas:
         raise HTTPException(status_code=400, detail=f"Chave(s) não permitida(s): {', '.join(invalidas)}")
+    if any(not _pode(user, db, _areas_da_chave(k)) for k in data.itens):
+        _negar()
     for chave, valor in data.itens.items():
         row = db.query(ComissaoEstado).filter(ComissaoEstado.chave == chave).first()
         if valor is None:
@@ -180,6 +243,8 @@ class ImportacaoIn(BaseModel):
 
 @router.post("/importacoes", status_code=201)
 def salvar_importacao(data: ImportacaoIn, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if not _pode(user, db, ["importar"]):
+        _negar()
     if data.tipo not in IMPORTACAO_TIPOS:
         raise HTTPException(status_code=400, detail="Tipo de importação inválido")
     row = (db.query(ComissaoImportacao)
@@ -197,8 +262,10 @@ def salvar_importacao(data: ImportacaoIn, db: Session = Depends(get_db), user=De
 
 
 @router.get("/importacoes")
-def listar_importacoes(mes_referencia: Optional[str] = None, db: Session = Depends(get_db)):
+def listar_importacoes(mes_referencia: Optional[str] = None, db: Session = Depends(get_db), user=Depends(get_current_user)):
     """Lista o que já foi importado (sem as linhas) — histórico de quem importou o quê e quando."""
+    if not _pode(user, db, ["importar"]):
+        _negar()
     q = db.query(ComissaoImportacao)
     if mes_referencia:
         q = q.filter(ComissaoImportacao.mes_referencia == mes_referencia)
@@ -210,7 +277,9 @@ def listar_importacoes(mes_referencia: Optional[str] = None, db: Session = Depen
 
 
 @router.get("/importacoes/{tipo}/{mes_referencia}")
-def baixar_importacao(tipo: str, mes_referencia: str, db: Session = Depends(get_db)):
+def baixar_importacao(tipo: str, mes_referencia: str, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if not _pode(user, db, ["importar"]):
+        _negar()
     r = (db.query(ComissaoImportacao)
          .filter(ComissaoImportacao.tipo == tipo, ComissaoImportacao.mes_referencia == mes_referencia).first())
     if not r:
@@ -230,7 +299,9 @@ class CicloIn(BaseModel):
 
 
 @router.post("/ciclo", status_code=201)
-def salvar_ciclo(data: CicloIn, db: Session = Depends(get_db)):
+def salvar_ciclo(data: CicloIn, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if not _pode(user, db, _areas_do_ciclo(data.perfil)):
+        _negar()
     existente = db.query(ComissaoCiclo).filter(ComissaoCiclo.perfil == data.perfil).first()
     if existente:
         existente.dados = data.dados
@@ -246,7 +317,9 @@ def salvar_ciclo(data: CicloIn, db: Session = Depends(get_db)):
 
 
 @router.get("/ciclo")
-def buscar_ciclo(perfil: str, db: Session = Depends(get_db)):
+def buscar_ciclo(perfil: str, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if not _pode(user, db, _areas_do_ciclo(perfil)):
+        _negar()
     row = db.query(ComissaoCiclo).filter(ComissaoCiclo.perfil == perfil).first()
     return {"perfil": perfil, "dados": row.dados if row else {}}
 

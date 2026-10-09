@@ -64,6 +64,8 @@
       var body = {}; body[k] = raw == null ? null : toJson(raw);
       fetch(API + '/estado', { method: 'PUT', headers: headers(), body: JSON.stringify({ itens: body }) })
         .then(function (r) {
+          // 403 = este usuário não pode gravar essa chave (painel sem permissão): descarta, não insiste
+          if (r.status === 403) { donePending(k); next(i + 1); return; }
           if (!r.ok) throw new Error('HTTP ' + r.status);
           donePending(k); next(i + 1);
         })
