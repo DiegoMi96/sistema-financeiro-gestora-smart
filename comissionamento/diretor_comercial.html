@@ -123,11 +123,6 @@ tr:last-child td{border-bottom:none}
 <!-- ═══ CALCULADORA MENSAL ═══ -->
 <div id="tab-calc" class="tab-panel active">
 
-  <div class="card gold">
-    <p class="card-title">Remuneração fixa do nível atual <span style="font-weight:400;text-transform:none;color:#99a3b4">— referência, não entra no total variável abaixo</span></p>
-    <div id="nivel_atual_box"></div>
-  </div>
-
   <div class="kpi-grid" id="kpiGrid">
     <div class="kpi"><div class="kpi-label">Volume (Gross Adds)</div><div class="kpi-val" id="k_volume">R$ 0</div><div class="kpi-sub" id="k_volume_sub">—</div></div>
     <div class="kpi"><div class="kpi-label">Cresc. Líquido</div><div class="kpi-val" id="k_cresc">R$ 0</div><div class="kpi-sub" id="k_cresc_sub">—</div></div>
@@ -271,6 +266,12 @@ tr:last-child td{border-bottom:none}
     </div>
     <div style="font-size:11px;color:#55617a;margin-bottom:14px">Pagamento único por marco — uma vez pago, nunca mais entra no cálculo mesmo que a base continue acima.</div>
     <div id="base_marcos"></div>
+  </div>
+
+  <!-- REMUNERAÇÃO FIXA -->
+  <div class="card gold">
+    <p class="card-title">Remuneração fixa do nível atual</p>
+    <div id="nivel_atual_box"></div>
   </div>
 
 </div>
