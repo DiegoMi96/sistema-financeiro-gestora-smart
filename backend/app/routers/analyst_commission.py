@@ -5,7 +5,7 @@ com base na adimplência por vencimento ORIGINAL (10, 15, 20 e 25).
 Mês escolhido = mês de VENCIMENTO dos boletos (o ciclo de setembro gera boletos com
 vencimento em outubro, então outubro usa o ciclo de setembro). Vencimento original =
 `billing_client_summaries.due_date` (arquivo de Vencimentos); o realizado vem de
-`asaas_payments_sync` (cruzado por CNPJ/CPF) — boletos com vencimento dentro do mês.
+`asaas_payments_sync` (cruzado por CNPJ/CPF) e `itau_boletos` — boletos com vencimento dentro do mês.
 
 Regra do valor: percentual × recebido, liberado só se recebido >= meta
 (meta em R$ por vencimento; meta 0 = sem meta, sempre libera).
@@ -57,7 +57,8 @@ def comissionamento(year: int, month: int, db: Session = Depends(get_db), user: 
 
     ini = date(year, month, 1)
     fim = date(year + (month == 12), month % 12 + 1, 1)
-    dados = {d: {"clientes": 0, "boletos": 0, "pagos": 0, "faturado": 0.0, "recebido": 0.0} for d in DIAS}
+    dados = {d: {"clientes": 0, "boletos": 0, "pagos": 0, "faturado": 0.0, "recebido": 0.0,
+                "recebido_itau": 0.0, "boletos_itau": 0} for d in DIAS}
     datas = {}
     # Vencimento original de cada grupo (data mais frequente nos resumos dos ciclos)
     for r in db.execute(text("""
@@ -83,26 +84,39 @@ def comissionamento(year: int, month: int, db: Session = Depends(get_db), user: 
             f AS (   -- valor original de cada vencimento (o que o ciclo mandou cobrar)
                 SELECT dia, COUNT(*) AS clientes, SUM(valor) AS faturado FROM s GROUP BY dia
             ),
-            r AS (   -- o que o Asaas já emitiu / recebeu desses clientes no mês
+            pg AS (  -- boletos do mês nos dois bancos (Asaas + Itaú), por cliente
+                SELECT regexp_replace(customer_cpf_cnpj, '\\D', '', 'g') AS doc,
+                       COALESCE(value_original, value) AS valor,
+                       (status IN ('RECEIVED','CONFIRMED','RECEIVED_IN_CASH')) AS pago,
+                       'Asaas' AS banco
+                FROM asaas_payments_sync
+                WHERE due_date >= :ini AND due_date < :fim
+                UNION ALL
+                SELECT regexp_replace(cpf_cnpj, '\\D', '', 'g'), valor_titulo,
+                       (status = 'paga'), 'Itaú'
+                FROM itau_boletos
+                WHERE status <> 'cancelada' AND data_vencimento >= :ini AND data_vencimento < :fim
+            ),
+            r AS (   -- o que já foi emitido / recebido desses clientes
                 SELECT s.dia,
-                       COUNT(p.asaas_id) AS boletos,
-                       COUNT(p.asaas_id) FILTER (WHERE p.status IN ('RECEIVED','CONFIRMED','RECEIVED_IN_CASH')) AS pagos,
-                       COALESCE(SUM(COALESCE(p.value_original, p.value))
-                                FILTER (WHERE p.status IN ('RECEIVED','CONFIRMED','RECEIVED_IN_CASH')), 0) AS recebido
-                FROM s
-                JOIN asaas_payments_sync p
-                  ON regexp_replace(p.customer_cpf_cnpj, '\\D', '', 'g') = s.doc
-                 AND p.due_date >= :ini AND p.due_date < :fim
+                       COUNT(*) AS boletos,
+                       COUNT(*) FILTER (WHERE pg.pago) AS pagos,
+                       COALESCE(SUM(pg.valor) FILTER (WHERE pg.pago), 0) AS recebido,
+                       COALESCE(SUM(pg.valor) FILTER (WHERE pg.pago AND pg.banco = 'Itaú'), 0) AS recebido_itau,
+                       COUNT(*) FILTER (WHERE pg.banco = 'Itaú') AS boletos_itau
+                FROM s JOIN pg ON pg.doc = s.doc
                 GROUP BY s.dia
             )
             SELECT f.dia, f.clientes, f.faturado,
-                   COALESCE(r.boletos, 0) AS boletos, COALESCE(r.pagos, 0) AS pagos, COALESCE(r.recebido, 0) AS recebido
+                   COALESCE(r.boletos, 0) AS boletos, COALESCE(r.pagos, 0) AS pagos, COALESCE(r.recebido, 0) AS recebido,
+                   COALESCE(r.recebido_itau, 0) AS recebido_itau, COALESCE(r.boletos_itau, 0) AS boletos_itau
             FROM f LEFT JOIN r ON r.dia = f.dia
         """), {"ini": ini, "fim": fim}).fetchall()
         for r in rows:
             dados[int(r.dia)] = {
                 "clientes": int(r.clientes), "boletos": int(r.boletos), "pagos": int(r.pagos),
                 "faturado": float(r.faturado or 0), "recebido": float(r.recebido),
+                "recebido_itau": float(r.recebido_itau), "boletos_itau": int(r.boletos_itau),
             }
 
     out = []

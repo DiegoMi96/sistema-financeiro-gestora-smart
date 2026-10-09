@@ -167,7 +167,7 @@ export default function AnalystCommissionPage() {
                 <td className={TD}>{fmtNum(venc.reduce((s, v) => s + v.clientes, 0))}</td>
               </tr>
               <tr>
-                <td className={ROW_LABEL}>Boletos no Asaas (pagos / emitidos)</td>
+                <td className={ROW_LABEL}>Boletos Asaas + Itaú (pagos / emitidos)</td>
                 {venc.map(v => <td key={v.dia} className={TD}>{fmtNum(v.pagos)} / {fmtNum(v.boletos)}</td>)}
                 <td className={TD}>{fmtNum(venc.reduce((s, v) => s + v.pagos, 0))} / {fmtNum(venc.reduce((s, v) => s + v.boletos, 0))}</td>
               </tr>
@@ -175,6 +175,11 @@ export default function AnalystCommissionPage() {
                 <td className={ROW_LABEL}>Recebido</td>
                 {venc.map(v => <td key={v.dia} className={TD}>{fmtBRL(v.recebido)}</td>)}
                 <td className={TD}>{fmtBRL(venc.reduce((s, v) => s + v.recebido, 0))}</td>
+              </tr>
+              <tr>
+                <td className={ROW_LABEL + ' pl-8 text-gray-500'}>dos quais no Itaú</td>
+                {venc.map(v => <td key={v.dia} className={TD + ' text-gray-500'}>{fmtBRL(v.recebido_itau)}</td>)}
+                <td className={TD + ' text-gray-500'}>{fmtBRL(venc.reduce((s, v) => s + v.recebido_itau, 0))}</td>
               </tr>
               <tr>
                 <td className={ROW_LABEL}>Adimplência</td>
@@ -206,7 +211,7 @@ export default function AnalystCommissionPage() {
 
       <p className="text-xs text-gray-400">
         O mês escolhido é o mês de vencimento: outubro usa os boletos do ciclo de setembro. Valor do vencimento = total que o ciclo mandou cobrar em cada vencimento original (arquivo de Vencimentos).
-        Recebido = boletos desses clientes no Asaas, com vencimento no mês e status pago, cruzados por CNPJ/CPF.
+        Recebido = boletos desses clientes no Asaas e no Itaú, com vencimento no mês e status pago, cruzados por CNPJ/CPF.
       </p>
     </div>
   )
