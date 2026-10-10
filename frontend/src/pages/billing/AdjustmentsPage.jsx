@@ -23,6 +23,7 @@ const OFENSORES = [
   { value: 'Transferência',label: 'Transferência',color: 'text-gray-600'   },
   { value: 'Anuidade',     label: 'Anuidade',     color: 'text-gray-600'   },
   { value: 'Payments',     label: 'Payments',     color: 'text-blue-600'   },
+  { value: 'Suporte',      label: 'Suporte',      color: 'text-blue-600'   },
 ]
 
 const OFENSOR_COLOR = Object.fromEntries(OFENSORES.map(o => [o.value, o.color]))

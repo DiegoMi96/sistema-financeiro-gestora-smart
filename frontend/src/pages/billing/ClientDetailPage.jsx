@@ -7,7 +7,7 @@ import toast from 'react-hot-toast'
 import { ArrowLeft, Download, Plus, ChevronLeft, ChevronRight, DollarSign, Zap, TrendingUp, AlertCircle, MessageSquare, Truck, Bell, Wallet, Lock, X, Loader2, Trash2 } from 'lucide-react'
 
 const OFENSORES = [
-  'Sistema','Proporcional','Financeiro','Logística','Comercial','Pacote','Transferência','Anuidade','Payments'
+  'Sistema','Proporcional','Financeiro','Logística','Comercial','Pacote','Transferência','Anuidade','Payments','Suporte'
 ]
 
 const fmt  = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0)
