@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { Loader2, Save, User, Target, BarChart3, Trophy, ChevronDown, Wallet, Info } from 'lucide-react'
+import { Loader2, Save, User, Target, BarChart3, Trophy, ChevronDown, Info } from 'lucide-react'
 import { analystCommissionApi } from '../../services/api'
 
 // Aba "Comissionamento" do Faturamento — comissão dos analistas de contas a receber,
@@ -95,6 +95,7 @@ export default function AnalystCommissionPage() {
   const [saving, setSaving] = useState(false)
   const [openCfg, setOpenCfg] = useState(true)
   const [openApu, setOpenApu] = useState(true)
+  const [openSal, setOpenSal] = useState(false)   // salário base: recolhido por padrão
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['analyst-commission', year, month, userId],
@@ -382,19 +383,21 @@ export default function AnalystCommissionPage() {
       </>)}
 
       {data?.analista && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-green-50 text-green-700 flex items-center justify-center flex-shrink-0"><Wallet size={20} /></div>
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold text-gray-600 uppercase tracking-wide">Salário base — {data.analista.name}</p>
-              <p className="text-xs text-gray-400 mt-0.5">
+        <div className={CARD}>
+          <button type="button" onClick={() => setOpenSal(o => !o)}
+            className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-sm font-bold uppercase tracking-wide text-gray-700">
+            <ChevronDown size={16} className={`transition-transform ${openSal ? '' : '-rotate-90'}`} /> Salário base — {data.analista.name}
+          </button>
+          {openSal && (
+            <div className="px-4 pb-4 pt-1 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-xs text-gray-400 max-w-2xl">
                 Base do cálculo: a comissão de cada vencimento é o percentual sobre este salário. Vale para o mês e é herdado pelos seguintes.
               </p>
+              {admin
+                ? <FmtInput value={salario} onChange={setSalario} prefix="R$" width="w-52" />
+                : <p className="text-lg font-bold text-gray-900">{fmtBRL(data.salario)}</p>}
             </div>
-          </div>
-          {admin
-            ? <FmtInput value={salario} onChange={setSalario} prefix="R$" width="w-52" />
-            : <p className="text-lg font-bold text-gray-900">{fmtBRL(data.salario)}</p>}
+          )}
         </div>
       )}
 
