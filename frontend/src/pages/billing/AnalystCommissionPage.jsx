@@ -69,6 +69,16 @@ function StatCard({ icon: Icon, label, value, hint, tone = 'gray', valueClass = 
   )
 }
 
+// Select com seta própria (a nativa do navegador fica colada na borda direita)
+function SelectBox({ className = '', children, ...props }) {
+  return (
+    <div className="relative inline-block">
+      <select {...props} className={`appearance-none pr-10 ${className}`}>{children}</select>
+      <ChevronDown size={15} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+    </div>
+  )
+}
+
 function Badge({ tone, children }) {
   const t = { gray: 'bg-gray-100 text-gray-500', green: 'bg-green-100 text-green-700', red: 'bg-red-50 text-red-600' }
   return <span className={`inline-block px-3 py-1 rounded-md text-xs font-semibold ${t[tone]}`}>{children}</span>
@@ -224,12 +234,12 @@ export default function AnalystCommissionPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <select value={month} onChange={e => setMonth(Number(e.target.value))} className={sel}>
+          <SelectBox value={month} onChange={e => setMonth(Number(e.target.value))} className={sel}>
             {MESES.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
-          </select>
-          <select value={year} onChange={e => setYear(Number(e.target.value))} className={sel}>
+          </SelectBox>
+          <SelectBox value={year} onChange={e => setYear(Number(e.target.value))} className={sel}>
             {anos.map(a => <option key={a} value={a}>{a}</option>)}
-          </select>
+          </SelectBox>
           {admin && (
             <button onClick={handleSave} disabled={!dirty || saving || !data?.analista} className="gs-btn gs-btn-dark">
               {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />} Salvar
@@ -240,16 +250,16 @@ export default function AnalystCommissionPage() {
 
       {admin && (
         <div className="flex flex-wrap items-center gap-3">
-          <select value={data?.analista?.id || ''} onChange={e => setUserId(Number(e.target.value))} className={sel}
+          <SelectBox value={data?.analista?.id || ''} onChange={e => setUserId(Number(e.target.value))} className={sel}
             disabled={!data?.analistas?.length}>
             {!data?.analistas?.length && <option value="">Nenhum analista cadastrado</option>}
             {(data?.analistas || []).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-          </select>
+          </SelectBox>
           {!!data?.candidatos?.length && (
-            <select value="" onChange={e => handleAddMember(e.target.value)} className={sel}>
+            <SelectBox value="" onChange={e => handleAddMember(e.target.value)} className={sel}>
               <option value="">Adicionar analista…</option>
               {data.candidatos.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+            </SelectBox>
           )}
         </div>
       )}
