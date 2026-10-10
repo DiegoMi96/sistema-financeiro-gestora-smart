@@ -125,7 +125,6 @@ export default function AdjustmentsPage() {
   const [sortBy,  setSortBy]  = useState(null)
   const [sortDir, setSortDir] = useState('asc')
   const [busca, setBusca] = useState('')
-  const [menuRel, setMenuRel] = useState(false)
 
   // Filtro de mês/ano começa vazio (= todos os meses) e só é preenchido uma
   // vez, com o ciclo mais recente, assim que a lista de ciclos carrega — pra
@@ -238,7 +237,6 @@ export default function AdjustmentsPage() {
 
   const periodoTxt = months.length ? `${[...months].sort((x, y) => x - y).map(m => MONTHS_PT[m]).join('_')}-${year}` : `${year}`
   const baixarAjustes = () => {
-    setMenuRel(false)
     baixarCSV(`ajustes_${periodoTxt}.csv`, [
       ['Período', 'Cliente', 'ID Smart', 'Analista', 'Consultor', 'Ofensor', 'N.° Fatura', 'Valor Fatura', 'Valor Ajustado', 'Diferença', 'Status', 'Motivo'],
       ...sortedAdjustments.map(a => [
@@ -246,13 +244,6 @@ export default function AdjustmentsPage() {
         a.num_fatura || '', csvNum(a.valor_original), csvNum(a.valor_ajustado), csvNum(a.valor_diferenca),
         a.approved_at ? 'Aprovado' : a.requires_approval ? 'Pendente' : 'Registrado', a.justificativa || '',
       ]),
-    ])
-  }
-  const baixarPorOfensor = () => {
-    setMenuRel(false)
-    baixarCSV(`impacto_por_ofensor_${periodoTxt}.csv`, [
-      ['Ofensor', 'Clientes', 'Impacto'],
-      ...ofensorList.map(([nome, d]) => [nome, d.clientes.size, csvNum(d.valor)]),
     ])
   }
 
@@ -265,21 +256,10 @@ export default function AdjustmentsPage() {
           <p className="text-sm text-gray-500 mt-1">Descontos, isenções e correções aplicados por ciclo</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative">
-            <button onClick={() => setMenuRel(o => !o)} disabled={adjustments.length === 0}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-green-600 text-green-700 bg-white text-sm font-semibold hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed">
-              <Download size={15} /> Baixar relatório <ChevronDown size={15} className="ml-1" />
-            </button>
-            {menuRel && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setMenuRel(false)} />
-                <div className="absolute right-0 mt-1 w-64 bg-white border border-gray-100 rounded-xl shadow-lg z-20 py-1 text-sm">
-                  <button onClick={baixarAjustes} className="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-700">Lista de ajustes (planilha CSV)</button>
-                  <button onClick={baixarPorOfensor} className="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-700">Impacto por ofensor (planilha CSV)</button>
-                </div>
-              </>
-            )}
-          </div>
+          <button onClick={baixarAjustes} disabled={lista.length === 0}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-green-600 text-green-700 bg-white text-sm font-semibold hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed">
+            <Download size={15} /> Baixar relatório
+          </button>
           {can('can_edit_billing') && (
             <button onClick={() => setShowForm(true)} className="gs-btn gs-btn-dark flex items-center gap-2">
               <Plus size={15} /> Novo Ajuste
