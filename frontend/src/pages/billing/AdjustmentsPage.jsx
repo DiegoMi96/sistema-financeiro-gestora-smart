@@ -47,6 +47,47 @@ function SelectBox({ className = '', children, ...props }) {
   )
 }
 
+// Filtro de seleção múltipla: lista com caixinhas de marcar. Nada marcado = todos.
+function MultiSelect({ options, selected, onChange, allLabel, plural, short }) {
+  const [open, setOpen] = useState(false)
+  const toggle = (v) => onChange(selected.includes(v) ? selected.filter(x => x !== v) : [...selected, v])
+  const nomeCurto = v => (short ? short(v) : options.find(o => o.value === v)?.label ?? v)
+  const nomeCheio = v => options.find(o => o.value === v)?.label ?? v
+  const rotulo = selected.length === 0 ? allLabel
+    : selected.length === 1 ? nomeCheio(selected[0])
+    : selected.length === 2 ? selected.map(nomeCurto).join(', ')
+    : `${selected.length} ${plural}`
+  return (
+    <div className="relative inline-block">
+      <button type="button" onClick={() => setOpen(o => !o)}
+        className="relative min-w-[11rem] pr-10 pl-3 py-2 text-left border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-green-500 focus:outline-none">
+        {rotulo}
+        <ChevronDown size={15} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 mt-1 w-56 max-h-80 overflow-y-auto bg-white border border-gray-100 rounded-xl shadow-lg z-20 py-1 text-sm">
+            <button type="button" onClick={() => onChange([])}
+              className={`w-full text-left px-4 py-2 hover:bg-gray-50 ${selected.length === 0 ? 'font-semibold text-green-700' : 'text-gray-700'}`}>
+              {allLabel}
+            </button>
+            {options.map(o => {
+              const on = selected.includes(o.value)
+              return (
+                <label key={o.value} className="flex items-center gap-2.5 px-4 py-2 hover:bg-gray-50 cursor-pointer text-gray-700">
+                  <input type="checkbox" checked={on} onChange={() => toggle(o.value)} className="w-4 h-4 accent-green-600" />
+                  {o.label}
+                </label>
+              )
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 // Cartão de resumo do topo: ícone num quadrado + rótulo + valor
 function KpiCard({ icon: Icon, label, value, tone = 'green', valueClass = 'text-gray-900' }) {
   const box = tone === 'red' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-700'
@@ -75,9 +116,9 @@ function baixarCSV(nome, linhas) {
 export default function AdjustmentsPage() {
   const { can } = useAuth()
   const qc      = useQueryClient()
-  const [month, setMonth]     = useState('')
+  const [months, setMonths]   = useState([])   // meses marcados (vazio = todos)
   const [year,  setYear]      = useState(now.getFullYear())
-  const [ofensor, setOfensor] = useState('')
+  const [ofensores, setOfensores] = useState([]) // ofensores marcados (vazio = todos)
   const [showForm, setShowForm] = useState(false)
   const [expanded, setExpanded] = useState(null)
   const [approving, setApproving] = useState(null)
@@ -101,7 +142,7 @@ export default function AdjustmentsPage() {
     defaultAppliedRef.current = true
     const latest = cycles[0]
     if (latest) {
-      setMonth(latest.month)
+      setMonths([latest.month])
       setYear(latest.year)
     }
   }, [cycles])
@@ -124,15 +165,15 @@ export default function AdjustmentsPage() {
     }
   }
 
-  const { data: adjustments = [], isLoading } = useQuery({
-    queryKey: ['all-adjustments', month, year, ofensor],
-    queryFn: () => billingApi.allAdjustments({
-      month:   month   || undefined,
-      year:    year    || undefined,
-      ofensor: ofensor || undefined,
-    }).then(r => r.data),
+  // Busca o ano inteiro; os meses e ofensores marcados filtram aqui na tela (assim dá pra marcar vários)
+  const { data: adjustmentsAno = [], isLoading } = useQuery({
+    queryKey: ['all-adjustments', year],
+    queryFn: () => billingApi.allAdjustments({ year: year || undefined }).then(r => r.data),
     staleTime: 2 * 60 * 1000,
   })
+  const adjustments = adjustmentsAno.filter(a =>
+    (months.length === 0 || months.includes(a.cycle_month)) &&
+    (ofensores.length === 0 || ofensores.includes(a.ofensor)))
 
   // A busca filtra a lista toda (cards, impacto por ofensor e tabela seguem o que está na tela)
   const q = busca.trim().toLowerCase()
@@ -195,7 +236,7 @@ export default function AdjustmentsPage() {
 
   const toggleRow = (id) => setExpanded(expanded === id ? null : id)
 
-  const periodoTxt = month ? `${MONTHS_PT[+month]}-${year}` : `${year}`
+  const periodoTxt = months.length ? `${[...months].sort((x, y) => x - y).map(m => MONTHS_PT[m]).join('_')}-${year}` : `${year}`
   const baixarAjustes = () => {
     setMenuRel(false)
     baixarCSV(`ajustes_${periodoTxt}.csv`, [
@@ -250,22 +291,16 @@ export default function AdjustmentsPage() {
       {/* Filtros */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex flex-wrap items-center gap-3">
         <SlidersHorizontal size={16} className="text-gray-400" />
-        <SelectBox value={month} onChange={e => setMonth(e.target.value)}
-          className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-green-500 focus:outline-none">
-          <option value="">Todos os meses</option>
-          {MONTHS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-        </SelectBox>
+        <MultiSelect options={MONTHS} selected={months} onChange={setMonths}
+          allLabel="Todos os meses" plural="meses" short={v => MONTHS_PT[v].slice(0, 3)} />
         <SelectBox value={year} onChange={e => setYear(+e.target.value)}
           className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-green-500 focus:outline-none">
           {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
         </SelectBox>
-        <SelectBox value={ofensor} onChange={e => setOfensor(e.target.value)}
-          className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-green-500 focus:outline-none">
-          <option value="">Todos os tipos</option>
-          {OFENSORES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </SelectBox>
-        {(month || ofensor || busca) && (
-          <button onClick={() => { setMonth(''); setOfensor(''); setBusca('') }}
+        <MultiSelect options={OFENSORES} selected={ofensores} onChange={setOfensores}
+          allLabel="Todos os tipos" plural="tipos" />
+        {(months.length > 0 || ofensores.length > 0 || busca) && (
+          <button onClick={() => { setMonths([]); setOfensores([]); setBusca('') }}
             className="text-xs text-green-700 hover:text-green-900 underline">
             Limpar filtros
           </button>
