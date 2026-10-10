@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { billingApi } from '../../services/api'
 import { useAuth } from '../../contexts/AuthContext'
 import toast from 'react-hot-toast'
-import { SlidersHorizontal, Plus, X, ChevronDown, ChevronUp, Lock, AlertTriangle } from 'lucide-react'
+import { SlidersHorizontal, Plus, X, ChevronDown, ChevronUp, Lock, AlertTriangle, Download, Search, FileText, Users, DollarSign, BarChart3 } from 'lucide-react'
 
 const fmt   = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0)
 const MONTHS_PT = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
@@ -37,6 +37,41 @@ const TYPE_LABELS = {
 
 const INPUT = "w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:outline-none"
 
+// Select com seta própria (a nativa fica colada na borda direita)
+function SelectBox({ className = '', children, ...props }) {
+  return (
+    <div className="relative inline-block">
+      <select {...props} className={`appearance-none pr-10 ${className}`}>{children}</select>
+      <ChevronDown size={15} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+    </div>
+  )
+}
+
+// Cartão de resumo do topo: ícone num quadrado + rótulo + valor
+function KpiCard({ icon: Icon, label, value, tone = 'green', valueClass = 'text-gray-900' }) {
+  const box = tone === 'red' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-700'
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center gap-4">
+      <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${box}`}><Icon size={22} /></div>
+      <div className="min-w-0">
+        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">{label}</p>
+        <p className={`text-2xl font-bold leading-tight ${valueClass}`}>{value}</p>
+      </div>
+    </div>
+  )
+}
+
+// CSV no formato brasileiro (separador ";", decimal ","), com BOM para o Excel abrir acentos certo
+const csvCell = v => `"${String(v ?? '').replace(/"/g, '""')}"`
+const csvNum = v => (v ?? 0).toFixed(2).replace('.', ',')
+function baixarCSV(nome, linhas) {
+  const blob = new Blob(['\uFEFF' + linhas.map(l => l.map(csvCell).join(';')).join('\r\n')], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url; a.download = nome; a.click()
+  URL.revokeObjectURL(url)
+}
+
 export default function AdjustmentsPage() {
   const { can } = useAuth()
   const qc      = useQueryClient()
@@ -48,6 +83,8 @@ export default function AdjustmentsPage() {
   const [approving, setApproving] = useState(null)
   const [sortBy,  setSortBy]  = useState(null)
   const [sortDir, setSortDir] = useState('asc')
+  const [busca, setBusca] = useState('')
+  const [menuRel, setMenuRel] = useState(false)
 
   // Filtro de mês/ano começa vazio (= todos os meses) e só é preenchido uma
   // vez, com o ciclo mais recente, assim que a lista de ciclos carrega — pra
@@ -97,12 +134,19 @@ export default function AdjustmentsPage() {
     staleTime: 2 * 60 * 1000,
   })
 
-  const totalDiff     = adjustments.reduce((s, a) => s + (a.valor_diferenca || 0), 0)
-  const totalOriginal = adjustments.reduce((s, a) => s + (a.valor_original || 0), 0)
-  const clientes      = new Set(adjustments.map(a => a.id_smart)).size
+  // A busca filtra a lista toda (cards, impacto por ofensor e tabela seguem o que está na tela)
+  const q = busca.trim().toLowerCase()
+  const lista = q
+    ? adjustments.filter(a => [a.client_nome, a.id_smart, a.analista, a.consultor, a.ofensor, a.num_fatura, a.justificativa]
+        .some(v => String(v || '').toLowerCase().includes(q)))
+    : adjustments
+
+  const totalDiff     = lista.reduce((s, a) => s + (a.valor_diferenca || 0), 0)
+  const totalOriginal = lista.reduce((s, a) => s + (a.valor_original || 0), 0)
+  const clientes      = new Set(lista.map(a => a.id_smart)).size
 
   // Agrupamento por ofensor para o painel de análise
-  const byOfensor = adjustments.reduce((acc, a) => {
+  const byOfensor = lista.reduce((acc, a) => {
     const k = a.ofensor || 'Não informado'
     if (!acc[k]) acc[k] = { clientes: new Set(), valor: 0 }
     if (a.id_smart) acc[k].clientes.add(a.id_smart)
@@ -111,7 +155,7 @@ export default function AdjustmentsPage() {
   }, {})
   const ofensorList = Object.entries(byOfensor).sort((a, b) => a[1].valor - b[1].valor)
 
-  const sortedAdjustments = [...adjustments].sort((a, b) => {
+  const sortedAdjustments = [...lista].sort((a, b) => {
     if (!sortBy) return 0
     let av, bv
     switch (sortBy) {
@@ -151,75 +195,118 @@ export default function AdjustmentsPage() {
 
   const toggleRow = (id) => setExpanded(expanded === id ? null : id)
 
+  const periodoTxt = month ? `${MONTHS_PT[+month]}-${year}` : `${year}`
+  const baixarAjustes = () => {
+    setMenuRel(false)
+    baixarCSV(`ajustes_${periodoTxt}.csv`, [
+      ['Período', 'Cliente', 'ID Smart', 'Analista', 'Consultor', 'Ofensor', 'N.° Fatura', 'Valor Fatura', 'Valor Ajustado', 'Diferença', 'Status', 'Motivo'],
+      ...sortedAdjustments.map(a => [
+        `${MONTHS_PT[a.cycle_month] ?? ''}/${a.cycle_year}`, a.client_nome || '', a.id_smart, a.analista || '', a.consultor || '', a.ofensor || '',
+        a.num_fatura || '', csvNum(a.valor_original), csvNum(a.valor_ajustado), csvNum(a.valor_diferenca),
+        a.approved_at ? 'Aprovado' : a.requires_approval ? 'Pendente' : 'Registrado', a.justificativa || '',
+      ]),
+    ])
+  }
+  const baixarPorOfensor = () => {
+    setMenuRel(false)
+    baixarCSV(`impacto_por_ofensor_${periodoTxt}.csv`, [
+      ['Ofensor', 'Clientes', 'Impacto'],
+      ...ofensorList.map(([nome, d]) => [nome, d.clientes.size, csvNum(d.valor)]),
+    ])
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
-          <h1 className="gs-page-title">Ajustes de Clientes</h1>
-          <p className="gs-page-sub">Descontos, isenções e correções aplicados por ciclo</p>
+          <h1 className="text-2xl font-bold text-gray-900">Ajustes de Clientes</h1>
+          <p className="text-sm text-gray-500 mt-1">Descontos, isenções e correções aplicados por ciclo</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <button onClick={() => setMenuRel(o => !o)} disabled={adjustments.length === 0}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-green-600 text-green-700 bg-white text-sm font-semibold hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed">
+              <Download size={15} /> Baixar relatório <ChevronDown size={15} className="ml-1" />
+            </button>
+            {menuRel && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setMenuRel(false)} />
+                <div className="absolute right-0 mt-1 w-64 bg-white border border-gray-100 rounded-xl shadow-lg z-20 py-1 text-sm">
+                  <button onClick={baixarAjustes} className="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-700">Lista de ajustes (planilha CSV)</button>
+                  <button onClick={baixarPorOfensor} className="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-700">Impacto por ofensor (planilha CSV)</button>
+                </div>
+              </>
+            )}
+          </div>
           {can('can_edit_billing') && (
-            <button onClick={() => setShowForm(true)}
-              className="gs-btn gs-btn-dark flex items-center gap-2">
-              <Plus size={14} /> Novo Ajuste
+            <button onClick={() => setShowForm(true)} className="gs-btn gs-btn-dark flex items-center gap-2">
+              <Plus size={15} /> Novo Ajuste
             </button>
           )}
         </div>
       </div>
 
       {/* Filtros */}
-      <div className="gs-card p-4 flex flex-wrap items-center gap-3">
-        <SlidersHorizontal size={15} className="text-gray-400" />
-        <select value={month} onChange={e => setMonth(e.target.value)} className="gs-select">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex flex-wrap items-center gap-3">
+        <SlidersHorizontal size={16} className="text-gray-400" />
+        <SelectBox value={month} onChange={e => setMonth(e.target.value)}
+          className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-green-500 focus:outline-none">
           <option value="">Todos os meses</option>
           {MONTHS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-        </select>
-        <select value={year} onChange={e => setYear(+e.target.value)} className="gs-select">
+        </SelectBox>
+        <SelectBox value={year} onChange={e => setYear(+e.target.value)}
+          className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-green-500 focus:outline-none">
           {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-        </select>
-        <select value={ofensor} onChange={e => setOfensor(e.target.value)} className="gs-select">
+        </SelectBox>
+        <SelectBox value={ofensor} onChange={e => setOfensor(e.target.value)}
+          className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-green-500 focus:outline-none">
           <option value="">Todos os tipos</option>
           {OFENSORES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-        {(month || ofensor) && (
-          <button onClick={() => { setMonth(''); setOfensor('') }}
-            className="text-xs text-gray-400 hover:text-gray-700 underline">
+        </SelectBox>
+        {(month || ofensor || busca) && (
+          <button onClick={() => { setMonth(''); setOfensor(''); setBusca('') }}
+            className="text-xs text-green-700 hover:text-green-900 underline">
             Limpar filtros
           </button>
         )}
+        <div className="relative ml-auto w-full sm:w-80">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input value={busca} onChange={e => setBusca(e.target.value)}
+            placeholder="Buscar por cliente, analista, consultor, ofensor..."
+            className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-green-500 focus:outline-none" />
+        </div>
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          { label: 'Total de ajustes',   val: adjustments.length,    cls: '' },
-          { label: 'Clientes afetados',  val: clientes,              cls: '' },
-          { label: 'Valor original',     val: fmt(totalOriginal),    cls: '' },
-          { label: 'Impacto financeiro', val: fmt(totalDiff),        cls: totalDiff < 0 ? 'text-red-600' : 'text-green-600' },
-        ].map(({ label, val, cls }) => (
-          <div key={label} className="gs-card p-4">
-            <p className="gs-label">{label}</p>
-            <p className={`gs-value ${cls}`}>{val}</p>
-          </div>
-        ))}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+        <KpiCard icon={FileText}   label="Total de ajustes"   value={lista.length} />
+        <KpiCard icon={Users}      label="Clientes afetados"  value={clientes} />
+        <KpiCard icon={DollarSign} label="Valor original"     value={fmt(totalOriginal)} />
+        <KpiCard icon={BarChart3}  label="Impacto financeiro" value={fmt(totalDiff)} tone="red"
+          valueClass={totalDiff < 0 ? 'text-red-600' : 'text-green-600'} />
       </div>
 
-      {/* Análise por ofensor */}
+      {/* Análise por ofensor (cores mantidas) */}
       {ofensorList.length > 0 && (
-        <div className="gs-card p-5">
-          <h2 className="gs-section-title mb-4">Impacto por ofensor</h2>
-          <div className="space-y-2">
+        <div className="bg-white rounded-2xl border border-green-200 shadow-sm p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-green-50 text-green-700 flex items-center justify-center flex-shrink-0"><BarChart3 size={20} /></div>
+            <div>
+              <h2 className="text-base font-bold text-gray-900 leading-tight">Impacto por ofensor</h2>
+              <p className="text-xs text-gray-500">Veja quais ofensores mais impactaram o valor ajustado no período.</p>
+            </div>
+          </div>
+          <div className="space-y-2.5">
             {ofensorList.map(([nome, d]) => {
               const pct = totalOriginal > 0 ? Math.abs(d.valor / totalOriginal * 100) : 0
               return (
                 <div key={nome} className="flex items-center gap-3">
                   <div className="w-28 flex-shrink-0">
-                    <span className={`text-xs font-semibold ${OFENSOR_COLOR[nome] || 'text-gray-600'}`}>{nome}</span>
+                    <span className={`text-sm font-semibold ${OFENSOR_COLOR[nome] || 'text-gray-600'}`}>{nome}</span>
                   </div>
-                  <div className="flex-1 bg-gray-100 rounded-full h-2">
-                    <div className="bg-red-400 h-2 rounded-full" style={{ width: `${Math.min(pct, 100)}%` }} />
+                  <div className="flex-1 bg-gray-100 rounded-full h-2.5">
+                    <div className="bg-red-400 h-2.5 rounded-full" style={{ width: `${Math.min(pct, 100)}%` }} />
                   </div>
                   <div className="w-24 text-right text-xs text-gray-500">{d.clientes.size} {d.clientes.size === 1 ? 'Cliente' : 'Clientes'}</div>
                   <div className="w-28 text-right text-sm font-semibold text-red-600">{fmt(d.valor)}</div>
@@ -231,10 +318,10 @@ export default function AdjustmentsPage() {
       )}
 
       {/* Tabela */}
-      <div className="gs-card overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         {isLoading ? (
           <div className="p-8 text-center text-gray-400 text-sm">Carregando...</div>
-        ) : adjustments.length === 0 ? (
+        ) : lista.length === 0 ? (
           <div className="p-12 text-center">
             <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <SlidersHorizontal size={24} className="text-gray-300" />
