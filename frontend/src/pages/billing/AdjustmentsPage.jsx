@@ -383,7 +383,8 @@ function AdjustmentModal({ onClose, onSuccess, defaultCycleId, defaultIdSmart, d
     id_smart:        defaultIdSmart  || '',
     type:            'desconto',
     component:       'total',
-    valor_ajustado:  '',
+    valor_ajustado:  '',   // "valor a remover" (usado só quando o valor atual não está disponível)
+    valor_final:     '',   // valor ajustado: o novo valor do componente na fatura
     justificativa:   '',
     analista:        user?.name || '',
     consultor:       '',
@@ -401,7 +402,33 @@ function AdjustmentModal({ onClose, onSuccess, defaultCycleId, defaultIdSmart, d
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
 
-  const diff = -parseFloat(form.valor_ajustado || 0)
+  // Valor atual do componente na fatura (vem direto do ciclo). Componentes sem campo monetário
+  // próprio (ativo, pré-ativo, cancelamento, suspenso) não têm valor atual: ficam no modo "valor a remover".
+  const COMP_CAMPO = {
+    total: 'total_final', mensalidade: 'total_mensalidade', ativacao: 'total_ativacao', excedente: 'total_excedente',
+    multa: 'total_multa', multa_cancelamento: 'total_multa', sms: 'total_sms', frete: 'total_frete', mensageria: 'total_mensageria',
+  }
+  const idOk = /^ss_\d{11,14}$/i.test((form.id_smart || '').trim())
+  const { data: resumo, isFetching: carregandoAtual } = useQuery({
+    queryKey: ['adj-client-summary', form.cycle_id, form.id_smart.trim()],
+    queryFn: () => billingApi.clientSummary(form.cycle_id, form.id_smart.trim()).then(r => r.data),
+    enabled: !!form.cycle_id && idOk,
+    retry: false,
+    staleTime: 30 * 1000,
+  })
+  const campoAtual = COMP_CAMPO[form.component]
+  const valorAtual = resumo && campoAtual ? Number(resumo[campoAtual]) : null
+  const modoAtual = valorAtual !== null && Number.isFinite(valorAtual)
+
+  // Mesma lógica de sempre: o que é registrado é o valor A REMOVER (atual − ajustado) e o componente
+  // fica com o valor ajustado. Aqui só automatizamos a conta que o colaborador fazia na calculadora.
+  const brl = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
+  const temAjustado = form.valor_final !== '' && Number.isFinite(parseFloat(form.valor_final))
+  const valorARemover = modoAtual
+    ? (temAjustado ? Math.round((valorAtual - parseFloat(form.valor_final)) * 100) / 100 : null)
+    : (form.valor_ajustado !== '' ? parseFloat(form.valor_ajustado) : null)
+  const diff = valorARemover === null ? 0 : -valorARemover
+  const temValor = valorARemover !== null
   const needsApproval = Math.abs(diff) > 3000
 
   const handleSubmit = async (e) => {
@@ -410,10 +437,11 @@ function AdjustmentModal({ onClose, onSuccess, defaultCycleId, defaultIdSmart, d
     if (!form.num_fatura) return toast.error('Informe o N.° da fatura')
     setLoading(true)
     try {
-      const valorEntrada = parseFloat(form.valor_ajustado)
+      if (valorARemover === null || !Number.isFinite(valorARemover)) return toast.error(modoAtual ? 'Informe o valor ajustado' : 'Informe o valor a remover')
+      const { valor_final, ...payload } = form
       await billingApi.createAdjustment(+form.cycle_id, {
-        ...form,
-        valor_original: valorEntrada,
+        ...payload,
+        valor_original: valorARemover,
         valor_ajustado: 0,
       })
       toast.success('Ajuste registrado!')
@@ -550,32 +578,61 @@ function AdjustmentModal({ onClose, onSuccess, defaultCycleId, defaultIdSmart, d
           </div>
 
           {/* Valores */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="gs-label mb-1 flex items-center gap-0.5 whitespace-nowrap">
-                Valor a Remover (R$) <span className="text-red-500">*</span>
-              </label>
-              <input type="number" step="0.01" value={form.valor_ajustado}
-                onChange={e => set('valor_ajustado', e.target.value)} required
-                placeholder="0,00" className={INPUT} />
-              <p className="text-xs text-gray-400 mt-1">O valor informado é removido por completo da fatura (resultado final: R$ 0,00 nesse componente)</p>
+          {modoAtual ? (
+            <div className="space-y-1">
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="gs-label block mb-1 whitespace-nowrap">Valor atual (R$)</label>
+                  <div className="px-3 py-2 rounded-lg text-sm font-semibold border border-gray-200 bg-gray-50 text-gray-700">{brl(valorAtual)}</div>
+                </div>
+                <div>
+                  <label className="gs-label mb-1 flex items-center gap-0.5 whitespace-nowrap">Valor ajustado (R$) <span className="text-red-500">*</span></label>
+                  <input type="number" step="0.01" value={form.valor_final}
+                    onChange={e => set('valor_final', e.target.value)} required
+                    placeholder="0,00" className={INPUT} />
+                </div>
+                <div>
+                  <label className="gs-label block mb-1">Diferença</label>
+                  <div className={`px-3 py-2 rounded-lg text-sm font-semibold border ${
+                    diff < 0 ? 'border-red-200 bg-red-50 text-red-700' :
+                    diff > 0 ? 'border-green-200 bg-green-50 text-green-700' :
+                    'border-gray-200 bg-gray-50 text-gray-400'
+                  }`}>
+                    {temValor ? `${diff >= 0 ? '+' : ''}${brl(diff)}` : '—'}
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-gray-400">Valor atual = valor deste componente na fatura do ciclo. O valor ajustado passa a ser o novo valor da fatura; a diferença é calculada automaticamente.</p>
             </div>
-            <div>
-              <label className="gs-label block mb-1">Diferença</label>
-              <div className={`px-3 py-2 rounded-lg text-sm font-semibold border ${
-                diff < 0 ? 'border-red-200 bg-red-50 text-red-700' :
-                diff > 0 ? 'border-green-200 bg-green-50 text-green-700' :
-                'border-gray-200 bg-gray-50 text-gray-400'
-              }`}>
-                {form.valor_ajustado
-                  ? `${diff >= 0 ? '+' : ''}${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(diff)}`
-                  : '—'}
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="gs-label mb-1 flex items-center gap-0.5 whitespace-nowrap">
+                  Valor a Remover (R$) <span className="text-red-500">*</span>
+                </label>
+                <input type="number" step="0.01" value={form.valor_ajustado}
+                  onChange={e => set('valor_ajustado', e.target.value)} required
+                  placeholder="0,00" className={INPUT} />
+                <p className="text-xs text-gray-400 mt-1">
+                  {carregandoAtual ? 'Buscando o valor atual no ciclo…'
+                    : 'O valor informado é removido por completo da fatura (resultado final: R$ 0,00 nesse componente)'}
+                </p>
+              </div>
+              <div>
+                <label className="gs-label block mb-1">Diferença</label>
+                <div className={`px-3 py-2 rounded-lg text-sm font-semibold border ${
+                  diff < 0 ? 'border-red-200 bg-red-50 text-red-700' :
+                  diff > 0 ? 'border-green-200 bg-green-50 text-green-700' :
+                  'border-gray-200 bg-gray-50 text-gray-400'
+                }`}>
+                  {temValor ? `${diff >= 0 ? '+' : ''}${brl(diff)}` : '—'}
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Aviso de aprovação necessária */}
-          {needsApproval && form.valor_ajustado && (
+          {needsApproval && temValor && (
             <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs">
               <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
               <span>Ajuste acima de R$&nbsp;3.000 — será enviado para aprovação do gestor antes de ser aplicado.</span>
