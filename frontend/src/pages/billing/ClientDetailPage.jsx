@@ -374,7 +374,8 @@ function AdjustmentModal({ cycleId, idSmart, totals, onClose, onSuccess }) {
     component: 'total',
     ofensor: '',
     valor_original: totals?.total ? fmtBRL(totals.total) : '',
-    valor_ajustado: '',
+    valor_ajustado: '',   // não digitado: o envio calcula o valor a remover (atual − ajustado)
+    valor_final: '',      // valor ajustado: o novo valor do componente na fatura
     analista: user?.name || '',
     consultor: '',
     num_fatura: '',
@@ -384,19 +385,24 @@ function AdjustmentModal({ cycleId, idSmart, totals, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false)
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
 
-  const diff = -parseBRL(form.valor_ajustado)
+  // Mesma lógica de sempre: o que é registrado é o valor A REMOVER (atual − ajustado). Só automatizamos a conta.
+  const valorAtual = parseBRL(form.valor_original)
+  const temFinal = form.valor_final !== ''
+  const valorARemover = temFinal ? Math.round((valorAtual - parseBRL(form.valor_final)) * 100) / 100 : null
+  const diff = valorARemover === null ? 0 : -valorARemover
   const needsApproval = Math.abs(diff) > 3000
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.justificativa.trim()) return toast.error('Justificativa obrigatória')
+    if (valorARemover === null) return toast.error('Informe o valor ajustado')
     setLoading(true)
     try {
-      const valorEntrada = parseBRL(form.valor_ajustado)
+      const { valor_final, ...payload } = form
       await billingApi.createAdjustment(+cycleId, {
-        ...form,
+        ...payload,
         id_smart: idSmart,
-        valor_original: valorEntrada,
+        valor_original: valorARemover,
         valor_ajustado: 0,
       })
       toast.success('Ajuste criado!')
@@ -452,7 +458,9 @@ function AdjustmentModal({ cycleId, idSmart, totals, onClose, onSuccess }) {
                 sms: totals?.sms, frete: totals?.frete, mensageria: totals?.mensageria,
               }
               set('component', comp)
-              if (compToTotal[comp] != null) set('valor_original', fmtBRL(compToTotal[comp]))
+              // ativo/pré-ativo/cancelamento/suspenso só mexem no total da fatura: o valor atual deles é o total
+              const base = compToTotal[comp] != null ? compToTotal[comp] : totals?.total
+              if (base != null) set('valor_original', fmtBRL(base))
             }} required className={INPUT}>
               {[
                 { value: 'total',              label: 'Total' },
@@ -500,25 +508,24 @@ function AdjustmentModal({ cycleId, idSmart, totals, onClose, onSuccess }) {
               placeholder="825548749" className={INPUT} />
           </div>
 
-          {/* Valores */}
+          {/* Valores — só o Valor ajustado é digitado; o atual vem do ciclo e a diferença é calculada */}
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="gs-label mb-1 flex items-center gap-0.5 whitespace-nowrap">Valor Fatura (referência)</label>
-              <input type="text" value={form.valor_original} readOnly disabled
-                placeholder="0,00" className={`${INPUT} bg-gray-50 text-gray-500 cursor-not-allowed`} />
-              <p className="text-xs text-gray-400 mt-1">Preenchido pelo componente selecionado — não é salvo</p>
+              <label className="gs-label mb-1 flex items-center gap-0.5 whitespace-nowrap">Valor atual (R$)</label>
+              <div className="px-3 py-2 rounded-lg text-sm font-semibold border border-gray-200 bg-gray-50 text-gray-700">
+                {form.valor_original ? `R$ ${form.valor_original}` : '—'}
+              </div>
+              <p className="text-xs text-gray-400 mt-1">Valor do componente na fatura do ciclo</p>
             </div>
             <div>
               <label className="gs-label mb-1 flex items-center gap-0.5 whitespace-nowrap">
-                Valor a Remover (R$) <span className="text-red-500">*</span>
+                Valor ajustado (R$) <span className="text-red-500">*</span>
               </label>
-              <input type="text" inputMode="decimal" value={form.valor_ajustado}
-                onChange={e => set('valor_ajustado', e.target.value)}
-                onBlur={e => handleBRLBlur('valor_ajustado', e.target.value)}
+              <input type="text" inputMode="decimal" value={form.valor_final}
+                onChange={e => set('valor_final', e.target.value)}
+                onBlur={e => { if (e.target.value !== '') set('valor_final', fmtBRL(parseBRL(e.target.value))) }}
                 required placeholder="0,00" className={INPUT} />
-              {form.valor_ajustado && (
-                <p className="text-xs text-blue-600 mt-1">Será removido do total da fatura</p>
-              )}
+              <p className="text-xs text-gray-400 mt-1">Passa a ser o novo valor da fatura</p>
             </div>
             <div>
               <label className="gs-label block mb-1">Diferença</label>
@@ -527,15 +534,16 @@ function AdjustmentModal({ cycleId, idSmart, totals, onClose, onSuccess }) {
                 diff > 0 ? 'border-green-200 bg-green-50 text-green-700' :
                 'border-gray-200 bg-gray-50 text-gray-400'
               }`}>
-                {form.valor_original && form.valor_ajustado
+                {form.valor_original && temFinal
                   ? `${diff >= 0 ? '+' : ''}${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(diff)}`
                   : '—'}
               </div>
+              <p className="text-xs text-gray-400 mt-1">Automática: ajustado − atual</p>
             </div>
           </div>
 
           {/* Aviso aprovação */}
-          {needsApproval && form.valor_original && form.valor_ajustado && (
+          {needsApproval && form.valor_original && temFinal && (
             <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs">
               <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
               <span>Ajuste acima de R$&nbsp;3.000 — será enviado para aprovação do gestor antes de ser aplicado.</span>
