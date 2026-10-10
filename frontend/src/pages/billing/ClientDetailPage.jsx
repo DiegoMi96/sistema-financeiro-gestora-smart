@@ -521,10 +521,15 @@ function AdjustmentModal({ cycleId, idSmart, totals, onClose, onSuccess }) {
               <label className="gs-label mb-1 flex items-center gap-0.5 whitespace-nowrap">
                 Valor ajustado (R$) <span className="text-red-500">*</span>
               </label>
-              <input type="text" inputMode="decimal" value={form.valor_final}
-                onChange={e => set('valor_final', e.target.value)}
-                onBlur={e => { if (e.target.value !== '') set('valor_final', fmtBRL(parseBRL(e.target.value))) }}
-                required placeholder="0,00" className={INPUT} />
+              <div className="flex items-stretch border border-gray-200 rounded-lg overflow-hidden bg-white focus-within:ring-2 focus-within:ring-green-500">
+                <span className="px-2.5 flex items-center bg-gray-50 border-r border-gray-200 text-xs text-gray-400">R$</span>
+                <input type="text" inputMode="decimal" value={form.valor_final}
+                  onChange={e => set('valor_final', e.target.value)}
+                  onBlur={e => { if (e.target.value !== '') set('valor_final', fmtBRL(parseBRL(e.target.value))) }}
+                  onFocus={e => e.target.select()}
+                  required placeholder="0,00"
+                  className="w-full min-w-0 px-3 py-2 text-sm text-right bg-transparent focus:outline-none" />
+              </div>
               <p className="text-xs text-gray-400 mt-1">Passa a ser o novo valor da fatura</p>
             </div>
             <div>

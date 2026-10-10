@@ -371,6 +371,17 @@ export default function AdjustmentsPage() {
   )
 }
 
+// Valor em formato brasileiro: "1.500,50" → 1500.5 · "1.000" → 1000 · "300" → 300 · "3.5" → 3.5
+const parseBR = (str) => {
+  let t = String(str ?? '').trim().replace(/[^\d.,-]/g, '')
+  if (!t) return NaN
+  if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.')
+  else if (/^-?\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '')
+  const n = parseFloat(t)
+  return Number.isFinite(n) ? n : NaN
+}
+const fmtBR = (n) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)
+
 // ── Modal de novo ajuste ──────────────────────────────────────
 // Props opcionais: defaultCycleId, defaultIdSmart, defaultNumFatura
 // — quando fornecidos, os campos ficam bloqueados (contexto de cliente dentro de ciclo)
@@ -424,8 +435,9 @@ function AdjustmentModal({ onClose, onSuccess, defaultCycleId, defaultIdSmart, d
   // Mesma lógica de sempre: o que é registrado é o valor A REMOVER (atual − ajustado) e o componente
   // fica com o valor ajustado. Aqui só automatizamos a conta que o colaborador fazia na calculadora.
   const brl = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
-  const temAjustado = form.valor_final !== '' && Number.isFinite(parseFloat(form.valor_final))
-  const valorARemover = temAtual && temAjustado ? Math.round((valorAtual - parseFloat(form.valor_final)) * 100) / 100 : null
+  const ajustadoNum = parseBR(form.valor_final)
+  const temAjustado = Number.isFinite(ajustadoNum)
+  const valorARemover = temAtual && temAjustado ? Math.round((valorAtual - ajustadoNum) * 100) / 100 : null
   const diff = valorARemover === null ? 0 : -valorARemover
   const temValor = valorARemover !== null
   const needsApproval = Math.abs(diff) > 3000
@@ -590,9 +602,15 @@ function AdjustmentModal({ onClose, onSuccess, defaultCycleId, defaultIdSmart, d
               </div>
               <div>
                 <label className="gs-label mb-1 flex items-center gap-0.5 whitespace-nowrap">Valor ajustado (R$) <span className="text-red-500">*</span></label>
-                <input type="number" step="0.01" value={form.valor_final}
-                  onChange={e => set('valor_final', e.target.value)} required disabled={!temAtual}
-                  placeholder="0,00" className={temAtual ? INPUT : `${INPUT} bg-gray-50 cursor-not-allowed`} />
+                <div className={`flex items-stretch border border-gray-200 rounded-lg overflow-hidden bg-white focus-within:ring-2 focus-within:ring-green-500 ${temAtual ? '' : 'bg-gray-50 cursor-not-allowed'}`}>
+                  <span className="px-2.5 flex items-center bg-gray-50 border-r border-gray-200 text-xs text-gray-400">R$</span>
+                  <input type="text" inputMode="decimal" value={form.valor_final}
+                    onChange={e => set('valor_final', e.target.value)}
+                    onBlur={e => { const n = parseBR(e.target.value); set('valor_final', Number.isFinite(n) ? fmtBR(n) : '') }}
+                    onFocus={e => e.target.select()}
+                    required disabled={!temAtual} placeholder="0,00"
+                    className="w-full min-w-0 px-3 py-2 text-sm text-right bg-transparent focus:outline-none disabled:cursor-not-allowed" />
+                </div>
               </div>
               <div>
                 <label className="gs-label block mb-1">Diferença</label>
