@@ -183,14 +183,33 @@ export default function AnalystCommissionPage() {
     )
   }
 
-  const SectionRow = ({ label, open, toggle, band }) => (
+  const SectionRow = ({ label, open, toggle }) => (
     <tr>
-      <td colSpan={nCols} className={band}>
-        <button type="button" onClick={toggle} className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-sm font-bold uppercase tracking-wide">
+      <td colSpan={nCols} className="border-b border-gray-100">
+        <button type="button" onClick={toggle} className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-sm font-bold uppercase tracking-wide text-gray-700">
           <ChevronDown size={16} className={`transition-transform ${open ? '' : '-rotate-90'}`} /> {label}
         </button>
       </td>
     </tr>
+  )
+
+  // Cabeçalho repetido nos dois blocos. Vencimento + dia seguinte (10 - 11, 15 - 16…): o recebido conta nos dois dias.
+  const CARD = 'bg-white rounded-2xl border border-gray-100 shadow-sm overflow-x-auto'
+  const COLS = (
+    <colgroup>
+      <col style={{ width: '25%' }} />
+      {venc.map(v => <col key={v.dia} />)}
+      <col style={{ width: '14%' }} />
+    </colgroup>
+  )
+  const HEAD = (
+    <thead>
+      <tr className="border-b border-gray-100">
+        <th className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider text-left">Vencimento</th>
+        {venc.map(v => <th key={v.dia} className={TH}>{v.dia} - {v.dia + 1}</th>)}
+        <th className={TH}>Total</th>
+      </tr>
+    </thead>
   )
 
   return (
@@ -251,26 +270,26 @@ export default function AnalystCommissionPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-x-auto">
-        {isLoading ? (
+      {isLoading ? (
+        <div className={CARD}>
           <div className="py-16 flex items-center justify-center text-sm text-gray-400 gap-2">
             <Loader2 size={16} className="animate-spin" /> Carregando…
           </div>
-        ) : !data?.analista ? (
+        </div>
+      ) : !data?.analista ? (
+        <div className={CARD}>
           <div className="py-16 text-center text-sm text-gray-500">
             Cadastre um analista (campo "Adicionar analista…") para configurar o comissionamento.
           </div>
-        ) : (
-          <table className="w-full min-w-[720px] border-collapse">
-            <thead>
-              <tr className="border-b border-gray-100">
-                <th className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider text-left">Vencimento</th>
-                {venc.map(v => <th key={v.dia} className={TH}>Dia {v.dia}</th>)}
-                <th className={TH}>Total</th>
-              </tr>
-            </thead>
+        </div>
+      ) : (<>
+        {/* Bloco 1 — Configuração da comissão */}
+        <div className={CARD}>
+          <table className="w-full min-w-[720px] border-collapse table-fixed">
+            {COLS}
+            {HEAD}
             <tbody>
-              <SectionRow label="Configuração da comissão" open={openCfg} toggle={() => setOpenCfg(o => !o)} band="bg-gray-100 text-gray-700" />
+              <SectionRow label="Configuração da comissão" open={openCfg} toggle={() => setOpenCfg(o => !o)} />
               {openCfg && (<>
                 <tr className="border-b border-gray-50">
                   <td className={ROW_LABEL}>Valor do vencimento (R$)</td>
@@ -299,14 +318,23 @@ export default function AnalystCommissionPage() {
                   ))}
                   <td className={TD + ' font-bold'}>{fmtDec(totalPct)}%</td>
                 </tr>
-                <tr className="bg-gray-100">
-                  <td className={ROW_LABEL + ' font-bold text-gray-800'}>Previsão da comissão</td>
+                <tr className="bg-green-50">
+                  <td className={ROW_LABEL + ' font-bold text-green-800'}>Previsão da comissão</td>
                   {venc.map(v => <td key={v.dia} className={TD}>{fmtBRL(previsaoLive(v))}</td>)}
                   <td className={TD + ' font-bold text-green-700 text-base'}>{fmtBRL(totalPrevisao)}</td>
                 </tr>
               </>)}
+            </tbody>
+          </table>
+        </div>
 
-              <SectionRow label="Apuração do mês" open={openApu} toggle={() => setOpenApu(o => !o)} band="bg-gray-100 text-gray-700" />
+        {/* Bloco 2 — Apuração do mês */}
+        <div className={CARD}>
+          <table className="w-full min-w-[720px] border-collapse table-fixed">
+            {COLS}
+            {HEAD}
+            <tbody>
+              <SectionRow label="Apuração do mês" open={openApu} toggle={() => setOpenApu(o => !o)} />
               {openApu && (<>
                 <tr className="border-b border-gray-50">
                   <td className={ROW_LABEL}>Clientes</td>
@@ -340,8 +368,8 @@ export default function AnalystCommissionPage() {
               </>)}
             </tbody>
           </table>
-        )}
-      </div>
+        </div>
+      </>)}
 
       {data?.analista && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex flex-wrap items-center justify-between gap-3">
