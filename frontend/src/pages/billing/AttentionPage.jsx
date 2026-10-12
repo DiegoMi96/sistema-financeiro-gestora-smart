@@ -172,14 +172,25 @@ export default function AttentionPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[980px] text-sm table-fixed">
+              {/* Larguras fixas: cada coluna alinha com o próprio cabeçalho (texto à esquerda; selos e valores centralizados) */}
+              <colgroup>
+                <col style={{ width: '14%' }} />
+                <col style={{ width: '12%' }} />
+                <col style={{ width: '15%' }} />
+                <col style={{ width: '9%' }} />
+                <col style={{ width: '16%' }} />
+                <col style={{ width: '8%' }} />
+                <col />
+                <col style={{ width: '90px' }} />
+              </colgroup>
               <thead>
                 <tr className="text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider bg-gray-50/70">
                   <th className="px-4 py-3">Nome</th>
                   <th className="px-4 py-3">CNPJ</th>
                   <th className="px-4 py-3">ID Smart</th>
                   <th className="px-4 py-3 text-center">Proporcional</th>
-                  <th className="px-4 py-3">Motivo</th>
+                  <th className="px-4 py-3 text-center">Motivo</th>
                   <th className="px-4 py-3 text-center">Desconto</th>
                   <th className="px-4 py-3">Obs</th>
                   <th className="px-4 py-3 text-right">Ações</th>
@@ -190,9 +201,9 @@ export default function AttentionPage() {
                   const m = MOTIVO_BY[a.motivo]
                   return (
                     <tr key={a.id} className="hover:bg-gray-50/60">
-                      <td className="px-4 py-3 font-medium text-gray-800">{a.nome || <span className="text-gray-300">—</span>}</td>
+                      <td className="px-4 py-3 font-medium text-gray-800 truncate" title={a.nome || ''}>{a.nome || <span className="text-gray-300">—</span>}</td>
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap tabular-nums">{fmtDoc(a.cnpj)}</td>
-                      <td className="px-4 py-3 text-gray-500 font-mono text-xs whitespace-nowrap">{a.id_smart}</td>
+                      <td className="px-4 py-3 text-gray-500 font-mono text-xs truncate" title={a.id_smart}>{a.id_smart}</td>
                       <td className="px-4 py-3 text-center">
                         {a.motivo === 'desconto' || a.motivo === 'sem_arredondamento'
                           ? <span className="text-gray-300">—</span>
@@ -200,11 +211,11 @@ export default function AttentionPage() {
                               {a.proporcional ? 'Sim' : 'Não'}
                             </span>}
                       </td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${m?.cor || ''}`}>{m?.label || a.motivo}</span>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`inline-block whitespace-nowrap px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${m?.cor || ''}`}>{m?.label || a.motivo}</span>
                       </td>
                       <td className="px-4 py-3 text-center tabular-nums text-gray-700">{descontoTxt(a)}</td>
-                      <td className="px-4 py-3 text-gray-600 max-w-[280px] truncate" title={a.obs || ''}>{a.obs || <span className="text-gray-300">—</span>}</td>
+                      <td className="px-4 py-3 text-gray-600 truncate" title={a.obs || ''}>{a.obs || <span className="text-gray-300">—</span>}</td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">
                         <button onClick={() => setEditing(a)} title="Editar"
                           className="p-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 mr-1.5"><Pencil size={13} /></button>
