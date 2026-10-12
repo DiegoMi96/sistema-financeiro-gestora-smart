@@ -115,6 +115,13 @@ def _row_from_line(line) -> list:
     cred_mb    = round(cred_kb / 1024, 4) if cred_kb else None
     franquia   = _g(line, "franquia_mb")   # Franquia do plano (vem da base, em MB)
 
+    # Início da suspensão: linha SUSPENSA com a coluna vazia usa a data de início do bloqueio de rede
+    # (a coluna de bloqueio não é mais exibida no detalhamento). Já preenchida = mantém como está.
+    # Só a data exibida muda — nenhum valor cobrado depende disto (o motor já usa o mesmo fallback).
+    inicio_susp = _g(line, "data_inicio_suspensao")
+    if inicio_susp is None and _g(line, "status") == "Suspenso":
+        inicio_susp = _g(line, "data_inicio_bloqueio")
+
     return [
         _g(line, "nome_pedido"),                            # A   1  Nome do pedido
         _g(line, "id_pedido"),                              # B   2  ID do pedido
@@ -137,7 +144,7 @@ def _row_from_line(line) -> list:
         _g(line, "status"),                                 # S   19 Status
         _g(line, "operadora_especifica"),                   # T   20 Operadora específica
         _fmt_date(_g(line, "data_fim_suspensao")),          # U   21 Data de término da suspensão
-        _fmt_date(_g(line, "data_inicio_suspensao")),       # V   22 Data de início da suspensão
+        _fmt_date(inicio_susp),                              # V   22 Data de início da suspensão
         _g(line, "consumo_total_kb"),                       # W   23 Consumo total (KB)
         r24,                                                # X   24 Reajuste 2024 (%)
         r25,                                                # Y   25 Reajuste 2025 (%)

@@ -542,7 +542,9 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
                 data_cancelamento=_safe_date(row.get("Data de cancelamento")),
                 data_inicio_bloqueio=_safe_date(row.get("Data de início do bloqueio de rede")),
                 data_fim_bloqueio_rede=_safe_date(row.get("Data de término do bloqueio de rede")),
-                data_inicio_suspensao=_safe_date(row.get("Data de início da suspensão")),
+                # Suspenso sem data de início da suspensão: guarda a do bloqueio de rede (só a data gravada; valores não mudam)
+                data_inicio_suspensao=_safe_date(row.get("Data de início da suspensão"))
+                    or (_safe_date(row.get("Data de início do bloqueio de rede")) if row.get("Status") == "Suspenso" else None),
                 data_fim_suspensao=_safe_date(row.get("Data de término da suspensão")),
                 data_fim_pre_ativacao=_safe_date(row.get("Data fim da pré-ativação")),
                 mensalidade_base=_f(row, "Mensalidade"),
