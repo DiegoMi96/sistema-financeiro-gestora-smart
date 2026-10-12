@@ -466,8 +466,12 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
         # deveria sair proporcional ou com desconto.
         from app.services.attention import load_attention_rules, aplicar_descontos
         _atencao = load_attention_rules(db)
+        # "Não arredondar reajuste" (aba Atenção) soma-se à lista de Configurações: o motor usa
+        # arredondamento normal ao centavo em vez do ROUNDUP desses clientes.
+        _cnpj_sem_arredondamento |= {_re.sub(r"\D", "", x) for x in _atencao["sem_arredondamento"] if _re.sub(r"\D", "", x)}
         print(f"📋 Aba Atenção: {_atencao['total']} linha(s) — {len(_atencao['cancel'])} cancel. proporcional, "
-              f"{len(_atencao['ativ'])} ativ. proporcional, {len(_atencao['desconto'])} com desconto", flush=True)
+              f"{len(_atencao['ativ'])} ativ. proporcional, {len(_atencao['desconto'])} com desconto, "
+              f"{len(_atencao['sem_arredondamento'])} sem arredondar reajuste", flush=True)
 
         print(f"⏳ Iniciando motor — ciclo {cycle_id} ({month:02d}/{year})", flush=True)
         engine = BillingEngineService(year=year, month=month,

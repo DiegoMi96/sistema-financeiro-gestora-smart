@@ -5,6 +5,7 @@ Lê a tabela client_attention e devolve:
   - cancel : ids com cancelamento proporcional (dias = DAY(data do cancelamento))
   - ativ   : ids com ativação proporcional   (dias = total do mês - DAY(ativação) + 1)
   - desconto: {id: [regras de desconto]}     (abatido do total do cliente, com motivo na descrição)
+  - sem_arredondamento: ids cujo reajuste NÃO é arredondado pra cima (usa arredondamento normal ao centavo)
 
 Mesmo formato de id do motor ("ss_" + dígitos) — ver _sanitize_id em billing_engine.
 """
@@ -14,8 +15,9 @@ from sqlalchemy.orm import Session
 
 from app.models import ClientAttention, BillingAdjustment, AdjustmentType, User
 
-MOTIVOS = ("ativacao", "cancelamento", "desconto")
-MOTIVO_LABEL = {"ativacao": "Ativação", "cancelamento": "Cancelamento", "desconto": "Desconto"}
+MOTIVOS = ("ativacao", "cancelamento", "desconto", "sem_arredondamento")
+MOTIVO_LABEL = {"ativacao": "Ativação", "cancelamento": "Cancelamento", "desconto": "Desconto",
+                "sem_arredondamento": "Não arredondar reajuste"}
 DESCONTO_TIPOS = ("percentual", "valor")
 JUSTIFICATIVA_PREFIXO = "Desconto automático (aba Atenção)"
 ANALISTA_AUTO = "Sistema (aba Atenção)"
@@ -31,6 +33,7 @@ def load_attention_rules(db: Session) -> dict:
     cancel: set = set()
     ativ: set = set()
     desconto: dict = {}
+    sem_arred: set = set()
     rows = db.query(ClientAttention).all()
     for r in rows:
         cid = norm_id(r.id_smart)
@@ -40,13 +43,15 @@ def load_attention_rules(db: Session) -> dict:
             cancel.add(cid)
         elif r.motivo == "ativacao" and r.proporcional:
             ativ.add(cid)
+        elif r.motivo == "sem_arredondamento":
+            sem_arred.add(cid)
         elif r.motivo == "desconto" and r.desconto_tipo in DESCONTO_TIPOS and (r.desconto_valor or 0) > 0:
             desconto.setdefault(cid, []).append({
                 "tipo": r.desconto_tipo,
                 "valor": float(r.desconto_valor),
                 "obs": (r.obs or "").strip(),
             })
-    return {"cancel": cancel, "ativ": ativ, "desconto": desconto, "total": len(rows)}
+    return {"cancel": cancel, "ativ": ativ, "desconto": desconto, "sem_arredondamento": sem_arred, "total": len(rows)}
 
 
 def calcular_desconto(total: float, regra: dict) -> float:

@@ -15,7 +15,15 @@ const MOTIVOS = [
   { value: 'ativacao',     label: 'Ativação',     cor: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
   { value: 'cancelamento', label: 'Cancelamento', cor: 'bg-red-50 text-red-700 border-red-200' },
   { value: 'desconto',     label: 'Desconto',     cor: 'bg-amber-50 text-amber-700 border-amber-200' },
+  { value: 'sem_arredondamento', label: 'Não arredondar reajuste', cor: 'bg-sky-50 text-sky-700 border-sky-200' },
 ]
+// Texto de apoio de cada caixinha do formulário
+const MOTIVO_DESC = {
+  ativacao: 'Ativação no meio do mês (pode cobrar proporcional)',
+  cancelamento: 'Cancelamento no meio do mês (pode cobrar proporcional)',
+  desconto: 'Abate % ou R$ do total do cliente em todo ciclo',
+  sem_arredondamento: 'O reajuste não é arredondado para cima: usa o arredondamento normal ao centavo',
+}
 const MOTIVO_BY = Object.fromEntries(MOTIVOS.map(m => [m.value, m]))
 
 const INPUT = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:outline-none bg-white'
@@ -93,7 +101,7 @@ export default function AttentionPage() {
           </h1>
           <p className="text-sm text-gray-500 mt-1 max-w-2xl">
             Clientes que precisam de atenção extra no faturamento. Antes de rodar cada ciclo, o motor consulta esta lista e
-            aplica o <strong>proporcional</strong> de ativação/cancelamento ou o <strong>desconto</strong>. O que você
+            aplica o <strong>proporcional</strong> de ativação/cancelamento, o <strong>desconto</strong> ou o <strong>reajuste sem arredondar para cima</strong>. O que você
             cadastrar aqui vale para os próximos ciclos.
           </p>
         </div>
@@ -112,7 +120,7 @@ export default function AttentionPage() {
       </div>
 
       {/* Resumo */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
           { label: 'Clientes na lista', val: total },
           ...MOTIVOS.map(m => ({ label: m.label, val: porMotivo[m.value] })),
@@ -186,7 +194,7 @@ export default function AttentionPage() {
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap tabular-nums">{fmtDoc(a.cnpj)}</td>
                       <td className="px-4 py-3 text-gray-500 font-mono text-xs whitespace-nowrap">{a.id_smart}</td>
                       <td className="px-4 py-3 text-center">
-                        {a.motivo === 'desconto'
+                        {a.motivo === 'desconto' || a.motivo === 'sem_arredondamento'
                           ? <span className="text-gray-300">—</span>
                           : <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${a.proporcional ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
                               {a.proporcional ? 'Sim' : 'Não'}
@@ -232,7 +240,6 @@ function AttentionForm({ item, onClose, onSaved }) {
     nome: item.nome || '',
     cnpj: item.cnpj || '',
     id_smart: item.id_smart || '',
-    motivo: item.motivo || 'ativacao',
     proporcional: item.id ? !!item.proporcional : true,
     desconto_tipo: item.desconto_tipo || 'percentual',
     desconto_valor: item.desconto_valor ?? '',
@@ -240,7 +247,30 @@ function AttentionForm({ item, onClose, onSaved }) {
   })
   const [saving, setSaving] = useState(false)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
-  const ehDesconto = form.motivo === 'desconto'
+  // Motivos marcados (um cliente pode ter vários). Na edição, parte dos motivos que o cliente já tem na lista.
+  const [motivos, setMotivos] = useState(item.motivo ? [item.motivo] : ['ativacao'])
+  const [originais, setOriginais] = useState(item.motivo ? [item.motivo] : [])
+  const ehDesconto = motivos.includes('desconto')
+  const temProporcional = motivos.includes('ativacao') || motivos.includes('cancelamento')
+  const toggleMotivo = (v) => setMotivos(ms => ms.includes(v) ? ms.filter(x => x !== v) : [...ms, v])
+
+  useEffect(() => {
+    if (!isEdit || !item.id_smart) return
+    attentionApi.list({ search: item.id_smart }).then(r => {
+      const irmaos = r.data.filter(x => x.id_smart === item.id_smart)
+      if (!irmaos.length) return
+      setMotivos(irmaos.map(x => x.motivo))
+      setOriginais(irmaos.map(x => x.motivo))
+      const prop = irmaos.find(x => x.motivo === 'ativacao' || x.motivo === 'cancelamento')
+      const desc = irmaos.find(x => x.motivo === 'desconto')
+      setForm(f => ({
+        ...f,
+        proporcional: prop ? !!prop.proporcional : f.proporcional,
+        desconto_tipo: desc?.desconto_tipo || f.desconto_tipo,
+        desconto_valor: desc?.desconto_valor ?? f.desconto_valor,
+      }))
+    }).catch(() => {})
+  }, [isEdit, item.id_smart])  // eslint-disable-line react-hooks/exhaustive-deps
 
   // Autocompletar: acha o cliente por nome / CNPJ / ID Smart e preenche a linha
   useEffect(() => {
@@ -260,21 +290,24 @@ function AttentionForm({ item, onClose, onSaved }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.cnpj && !form.id_smart) return toast.error('Informe o CNPJ/CPF ou o ID Smart do cliente')
+    if (motivos.length === 0) return toast.error('Marque pelo menos um motivo')
+    const removidos = originais.filter(m => !motivos.includes(m))
+    if (isEdit && removidos.length && !window.confirm(`Desmarcar ${removidos.map(m => MOTIVO_BY[m]?.label || m).join(', ')} remove essa regra do cliente nos próximos ciclos. Continuar?`)) return
     const payload = {
       nome: form.nome || null,
       cnpj: form.cnpj || null,
       id_smart: form.id_smart || null,
-      motivo: form.motivo,
-      proporcional: ehDesconto ? false : form.proporcional,
+      motivos,
+      proporcional: temProporcional ? form.proporcional : false,
       desconto_tipo: ehDesconto ? form.desconto_tipo : null,
       desconto_valor: ehDesconto ? Number(String(form.desconto_valor).replace(',', '.')) : null,
       obs: form.obs || null,
+      substituir: isEdit,
     }
     setSaving(true)
     try {
-      if (isEdit) await attentionApi.update(item.id, payload)
-      else await attentionApi.create(payload)
-      toast.success(isEdit ? 'Alterações salvas' : 'Cliente adicionado à lista')
+      await attentionApi.lote(payload)
+      toast.success(isEdit ? 'Alterações salvas' : (motivos.length > 1 ? 'Cliente adicionado com os motivos marcados' : 'Cliente adicionado à lista'))
       onSaved()
     } catch (err) {
       const d = err.response?.data?.detail
@@ -330,23 +363,34 @@ function AttentionForm({ item, onClose, onSaved }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className={LABEL}>Motivo <span className="normal-case font-normal text-gray-400">(marque um ou mais)</span></label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {MOTIVOS.map(m => {
+                const on = motivos.includes(m.value)
+                return (
+                  <label key={m.value}
+                    className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-colors ${on ? 'border-green-300 bg-green-50/50' : 'border-gray-200 hover:bg-gray-50'}`}>
+                    <input type="checkbox" checked={on} onChange={() => toggleMotivo(m.value)} className="mt-0.5 w-4 h-4 accent-green-600" />
+                    <span>
+                      <span className="block text-sm font-semibold text-gray-800">{m.label}</span>
+                      <span className="block text-[11px] text-gray-500 leading-snug">{MOTIVO_DESC[m.value]}</span>
+                    </span>
+                  </label>
+                )
+              })}
+            </div>
+          </div>
+
+          {temProporcional && (
             <div>
-              <label className={LABEL}>Motivo</label>
-              <select value={form.motivo} onChange={e => set('motivo', e.target.value)} className={INPUT}>
-                {MOTIVOS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+              <label className={LABEL}>Proporcional <span className="normal-case font-normal text-gray-400">(ativação / cancelamento)</span></label>
+              <select value={form.proporcional ? 'sim' : 'nao'} onChange={e => set('proporcional', e.target.value === 'sim')} className={INPUT}>
+                <option value="sim">Sim — cobrar proporcional aos dias</option>
+                <option value="nao">Não — cobrar o mês cheio</option>
               </select>
             </div>
-            {!ehDesconto && (
-              <div>
-                <label className={LABEL}>Proporcional</label>
-                <select value={form.proporcional ? 'sim' : 'nao'} onChange={e => set('proporcional', e.target.value === 'sim')} className={INPUT}>
-                  <option value="sim">Sim — cobrar proporcional aos dias</option>
-                  <option value="nao">Não — cobrar o mês cheio</option>
-                </select>
-              </div>
-            )}
-          </div>
+          )}
 
           {ehDesconto && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl bg-amber-50/60 border border-amber-200">

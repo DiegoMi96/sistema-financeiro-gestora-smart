@@ -126,6 +126,7 @@ export const attentionApi = {
   lookup:  (q)            => api.get('/attention/lookup', { params: { q } }),
   create:  (data)         => api.post('/attention', data),
   update:  (id, data)     => api.put(`/attention/${id}`, data),
+  lote:    (data)         => api.post('/attention/lote', data),
   remove:  (id)           => api.delete(`/attention/${id}`),
   import:  (formData)     => api.post('/attention/import', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
 }

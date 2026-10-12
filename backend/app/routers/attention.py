@@ -54,7 +54,7 @@ def _validar(data: AttentionIn) -> dict:
     """Normaliza e valida; devolve os campos prontos pra gravar."""
     motivo = (data.motivo or "").strip().lower()
     if motivo not in MOTIVOS:
-        raise HTTPException(status_code=422, detail="Motivo inválido — use Ativação, Cancelamento ou Desconto.")
+        raise HTTPException(status_code=422, detail="Motivo inválido — use Ativação, Cancelamento, Desconto ou Não arredondar reajuste.")
     cid = norm_id(data.id_smart) or norm_id(data.cnpj)
     if not cid:
         raise HTTPException(status_code=422, detail="Informe o CNPJ/CPF ou o ID Smart do cliente.")
@@ -79,6 +79,8 @@ def _validar(data: AttentionIn) -> dict:
         if tipo == "percentual" and valor > 100:
             raise HTTPException(status_code=422, detail="Desconto percentual não pode passar de 100%.")
         out["desconto_tipo"], out["desconto_valor"] = tipo, float(valor)
+    elif motivo == "sem_arredondamento":
+        out["proporcional"] = False
     else:
         out["proporcional"] = bool(data.proporcional)
     return out
@@ -121,6 +123,68 @@ def buscar_cliente(q: str = "", db: Session = Depends(get_db), _=Depends(_perm))
         cond = cond | ClientProfile.cnpj.ilike(f"%{digits}%") | ClientProfile.id_smart.ilike(f"%{digits}%")
     rows = db.query(ClientProfile).filter(cond).order_by(ClientProfile.nome.asc()).limit(12).all()
     return [{"id_smart": r.id_smart, "cnpj": r.cnpj, "nome": r.nome} for r in rows]
+
+
+class AttentionLoteIn(BaseModel):
+    """Vários motivos de uma vez para o mesmo cliente (caixinhas do formulário)."""
+    id_smart: Optional[str] = None
+    cnpj: Optional[str] = None
+    nome: Optional[str] = None
+    proporcional: bool = False
+    motivos: list[str]
+    desconto_tipo: Optional[str] = None
+    desconto_valor: Optional[float] = None
+    obs: Optional[str] = None
+    substituir: bool = False   # edição: motivos desmarcados deixam de valer (a linha é removida)
+
+
+@router.post("/lote")
+def salvar_lote(data: AttentionLoteIn, db: Session = Depends(get_db), user: User = Depends(_perm)):
+    """
+    Grava (cria ou atualiza) uma linha por motivo marcado, tudo-ou-nada. Com `substituir`, os motivos
+    que existiam para o cliente e não vieram marcados são removidos. O mesmo proporcional/observação
+    vale para os motivos marcados; o desconto só se aplica ao motivo "desconto".
+    """
+    motivos = []
+    for m in data.motivos or []:
+        m = (m or "").strip().lower()
+        if m and m not in motivos:
+            motivos.append(m)
+    if not motivos:
+        raise HTTPException(status_code=422, detail="Marque pelo menos um motivo.")
+    prontos = []
+    for m in motivos:
+        prontos.append(_validar(AttentionIn(
+            id_smart=data.id_smart, cnpj=data.cnpj, nome=data.nome, proporcional=data.proporcional, motivo=m,
+            desconto_tipo=data.desconto_tipo, desconto_valor=data.desconto_valor, obs=data.obs)))
+    cid = prontos[0]["id_smart"]
+    _preencher_nome(db, prontos[0])
+    nome = prontos[0].get("nome")
+    existentes = {a.motivo: a for a in db.query(ClientAttention).filter(ClientAttention.id_smart == cid).all()}
+    saidas = []
+    for campos in prontos:
+        campos["nome"] = campos.get("nome") or nome
+        a = existentes.get(campos["motivo"])
+        if a:
+            for k, v in campos.items():
+                setattr(a, k, v)
+            a.updated_by = user.name
+        else:
+            a = ClientAttention(**campos, updated_by=user.name)
+            db.add(a)
+        saidas.append(a)
+    removidos = []
+    if data.substituir:
+        for m, a in existentes.items():
+            if m not in motivos:
+                removidos.append(m)
+                db.delete(a)
+    db.add(AuditLog(user_id=user.id, action="attention.lote", entity="client_attention",
+                    details={"id_smart": cid, "motivos": motivos, "removidos": removidos}))
+    db.commit()
+    for a in saidas:
+        db.refresh(a)
+    return [_out(a) for a in saidas]
 
 
 @router.post("", status_code=201)
