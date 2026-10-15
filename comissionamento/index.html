@@ -1061,9 +1061,9 @@ iframe.active{display:block}
          agressivamente, e sem isso uma edição no perfil não aparece nem com F5
          normal. Suba o número sempre que mexer em algum desses arquivos. -->
     <iframe id="frame-vendedor" src="vendedor.html?b=36" title="Vendedor"></iframe>
-    <iframe id="frame-dealer" src="dealer.html?b=31" title="Dealer"></iframe>
-    <iframe id="frame-indicadores" src="indicadores.html?b=22" title="Indicador"></iframe>
-    <iframe id="frame-projeto_especial" src="projeto_especial.html?b=40" title="Projeto Especial"></iframe>
+    <iframe id="frame-dealer" src="dealer.html?b=32" title="Dealer"></iframe>
+    <iframe id="frame-indicadores" src="indicadores.html?b=23" title="Indicador"></iframe>
+    <iframe id="frame-projeto_especial" src="projeto_especial.html?b=41" title="Projeto Especial"></iframe>
     <iframe id="frame-gestor_operacoes" src="gestor_operacoes.html?b=15" title="Gestor de Operações"></iframe>
     <iframe id="frame-diretor_adm" src="diretor_adm.html?b=13" title="Diretor Administrativo"></iframe>
     <iframe id="frame-diretor_comercial" src="diretor_comercial.html?b=16" title="Diretor Comercial"></iframe>
@@ -2023,12 +2023,22 @@ function consDealerProjetoTotais(mes) {
       simcard: margin + ativacao, bonificacao: bonus, equipamento: 0, gps: 0, descCanc: cancelDesc, descFrete: 0,
     };
   });
-  return { dealerRows, projetoRows };
+  return {
+    dealerRows: dealerRows.filter((r, i) => parceiroVisivel(dealers[i], mes, r.hasData)),
+    projetoRows: projetoRows.filter((r, i) => parceiroVisivel(projetos[i], mes, r.hasData)),
+  };
 }
 
 // Bonificação extra MANUAL da Diretoria/Gestores (por mês e por perfil), digitada direto na
 // tabela "Diretoria e Gestores" da Visão Consolidada e somada ao total de cada um — pedido
 // do Diego, 09/10/2026. Chaves: gestor | diretor | diretorComercial.
+// Parceiro sem lançamento não aparece em mês aprovado nem em mês anterior ao seu cadastro (recebidoEm). Só exibição.
+function parceiroVisivel(e, mes, temLancamento) {
+  if (temLancamento) return true;
+  if (mesAprovado(mes)) return false;
+  const reg = e && e.recebidoEm ? String(e.recebidoEm).slice(0, 7) : null;
+  return !(reg && mes < reg);
+}
 function consBonusExtraDe(mes, cat) {
   const v = Number((CLS.get('cons_bonus_extra', {})[mes] || {})[cat]) || 0;
   return v > 0 ? v : 0;
@@ -2168,9 +2178,9 @@ function consIndicadoresTotais(mes) {
     const simcard = atv * (rules.taxa || 0);
     return {
       nome: ind.nome, total: simcard + bonus, hasData: !!(atv || bonus),
-      simcard, bonificacao: bonus, equipamento: 0, gps: 0, descCanc: 0, descFrete: 0,
+      simcard, bonificacao: bonus, equipamento: 0, gps: 0, descCanc: 0, descFrete: 0, _e: ind,
     };
-  });
+  }).filter(r => parceiroVisivel(r._e, mes, r.hasData));
 }
 
 // ─── Lançamento manual (meses anteriores ao Importar) ──

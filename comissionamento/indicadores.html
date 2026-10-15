@@ -265,6 +265,15 @@ function carregarDisponiveis(mes,rerender){
 // Mês aprovado (aprovação fica no Importar) fica travado — nem edição manual sobrescreve,
 // mesmo que a regra de alguém mude depois. Só desaprovando ou excluindo os dados.
 function mesAprovado(mes){try{const a=JSON.parse(localStorage.getItem('aprovacoes_mes')||'{}');return !!(a[mes]&&a[mes].aprovado);}catch{return false;}}
+// Parceiro (Indicador/Dealer/Projeto Especial) só aparece numa linha quando faz sentido pro mês:
+// com lançamento sempre aparece; sem lançamento NÃO aparece em mês aprovado (fechado) nem em mês anterior
+// ao mês em que se cadastrou (cadastro pelo link guarda recebidoEm). Só exibição — nenhum valor muda.
+function parceiroVisivel(e,mes,temLancamento){
+  if(temLancamento) return true;
+  if(mesAprovado(mes)) return false;
+  const reg=e&&e.recebidoEm?String(e.recebidoEm).slice(0,7):null;
+  return !(reg&&mes<reg);
+}
 // Pra Visão do Executivo (index.html) conseguir ler os dados brutos deste
 // iframe — `rawStore` é `let`, não vira propriedade de window sozinho.
 function getRawFor(id,mes){return rawStore[`${id}_${mes}`]||{};}
@@ -383,7 +392,7 @@ function renderInd(){
     const d=mdata[`${ind.id}_${mes}`]||{};
     const c=calcInd(d);
     return{ind,nome:ind.nome,c,isEmpty:!c.atv&&!c.bonus,canExport:!!(rawStore[`${ind.id}_${mes}`]?.rows?.length)||!!extDisp[`${ind.id}_${mes}`]};
-  });
+  }).filter(x=>parceiroVisivel(x.ind,mes,!x.isEmpty));
   const {lista,filtrando}=rsFiltrarOrdenar(dados,(x,k)=>k==='nome'?norm(x.nome):k==='atv'?x.c.atv:k==='comissao'?x.c.comissao:k==='bonus'?x.c.bonus:x.c.total);
   let grand=0,rows='';
   lista.forEach(({ind,c,isEmpty,canExport})=>{
