@@ -141,6 +141,19 @@ input[type=text],input[type=number],input[type=month],input[type=date],select,te
 .mn-cancel:hover{background:#f5f4f0}
 .mn-foot .cad-btn{background:#166B4A;border-radius:8px;height:38px;padding:0 22px;font-size:12.5px;font-weight:700}
 .mn-foot .cad-btn:hover{background:#0d5233}
+/* ─── Modal Ver parceiro (somente leitura; o Editar fica aqui dentro) ─── */
+#cadModalVer .modal-card{max-width:680px;background:#fff;border-radius:14px}
+#cadModalVer .modal-card-hdr{border-bottom:none;background:#fff;align-items:flex-start;padding:20px 24px 4px}
+#cadModalVer .modal-card-hdr h2{font-size:20px;line-height:1.15}
+#cadModalVer .mn-sub{font-size:12px;color:#777;margin-top:4px}
+#cadModalVer .modal-close{color:#555;display:flex;align-items:center;justify-content:center}
+#cadModalVer .modal-card-body{padding:12px 24px 22px}
+.ver-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 20px}
+.ver-item.full{grid-column:1/-1}
+.ver-lbl{font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
+.ver-val{font-size:13px;color:#1a1a18;word-break:break-word}
+.cad-btn-ver{display:inline-flex;align-items:center;gap:6px;background:#fff;color:#1a1a18;border:1.5px solid #d4d3ce;border-radius:6px;padding:8px 14px;font-size:12px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap}
+.cad-btn-ver:hover{background:#f5f4f0}
 /* ─── Modal Enviar Link — layout novo (só este modal) ─── */
 #cadModalLink .modal-card{max-width:640px;background:#fff;border-radius:14px}
 #cadModalLink .modal-card-hdr{border-bottom:none;background:#fff;align-items:flex-start;padding:20px 24px 4px}
@@ -1186,6 +1199,25 @@ iframe.active{display:block}
   </div>
 </div>
 
+<div class="modal-overlay" id="cadModalVer" onclick="if(event.target===this) cadFecharModal('ver')">
+  <div class="modal-card">
+    <div class="modal-card-hdr">
+      <div>
+        <h2 id="cadVerTitulo">Parceiro</h2>
+        <p class="mn-sub" id="cadVerSub"></p>
+      </div>
+      <button class="modal-close" onclick="cadFecharModal('ver')" aria-label="Fechar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="modal-card-body">
+      <div class="mn-sec" style="padding-bottom:12px"><div class="ver-grid" id="cadVerCorpo"></div></div>
+      <div class="mn-foot">
+        <button class="mn-cancel" onclick="cadFecharModal('ver')">Fechar</button>
+        <button class="cad-btn" id="cadVerEditar" style="background:#166B4A;border-radius:8px;height:38px;padding:0 22px;font-size:12.5px;font-weight:700">Editar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="cadModalLink" onclick="if(event.target===this) cadFecharModal('link')">
   <div class="modal-card">
     <div class="modal-card-hdr">
@@ -1450,7 +1482,7 @@ document.addEventListener('click', (e) => {
   }
 });
 
-const CAD_MODAL_ID = { novo: 'cadModalNovo', link: 'cadModalLink', vendedor: 'cadModalVendedor' };
+const CAD_MODAL_ID = { novo: 'cadModalNovo', link: 'cadModalLink', vendedor: 'cadModalVendedor', ver: 'cadModalVer' };
 
 function cadAbrirModal(qual) {
   document.getElementById('cadDropdownMenu').classList.remove('open');
@@ -1470,6 +1502,7 @@ document.addEventListener('keydown', (e) => {
   cadFecharModal('novo');
   cadFecharModal('link');
   cadFecharModal('vendedor');
+  cadFecharModal('ver');
 });
 
 // Vendedor não é um "parceiro" (é quem tem parceiros vinculados a ele), mas
@@ -2888,11 +2921,72 @@ function cadSalvar() {
   showCadToast(`${nome} cadastrado(a) como ${CAD_LABEL_SING[tipo]} ✓`);
 }
 
+// Meses em que o parceiro tem lançamento (valor lançado/importado) — usado para proteger a remoção.
+function cadLancamentosDo(tipo, id) {
+  const meses = new Set();
+  const varre = (store, prefixo, temDados) => Object.keys(store).forEach(k => {
+    if (!k.startsWith(prefixo)) return;
+    const mes = k.slice(prefixo.length);
+    if (/^\d{4}-\d{2}$/.test(mes) && temDados(store[k] || {})) meses.add(mes);
+  });
+  if (tipo === 'dealer') varre(CLS.get('dp1_m', {}), `d_${id}_`, d => d.margin || d.novas || d.bonus || d.cancel);
+  else if (tipo === 'projeto') varre(CLS.get('dp1_m', {}), `p_${id}_`, d => d.margin || d.ativacao || d.bonus || d.cancel);
+  else varre(CLS.get('ind1_m', {}), `${id}_`, d => d.atv || d.bonus);
+  return [...meses].sort();
+}
+
+// Remover tira o parceiro da lista em TODOS os meses (a lista manda em tudo). Por isso: nunca remove quem tem
+// lançamento em mês já aprovado (mudaria o fechamento) e sempre pede confirmação (15/10/2026).
 function cadRemover(tipo, id) {
   const key = CAD_KEY[tipo];
-  const list = CLS.get(key, cadDefaults(tipo)).filter(e => e.id !== id);
-  LS_set(key, list);
+  const lista = CLS.get(key, cadDefaults(tipo));
+  const entry = lista.find(e => e.id === id);
+  if (!entry) return;
+  const meses = cadLancamentosDo(tipo, id);
+  const fechados = meses.filter(m => mesAprovado(m));
+  const fmt = ms => ms.map(fmtMesC).join(', ');
+  if (fechados.length) {
+    alert(`Não dá para remover ${entry.nome}: ele tem lançamento em mês já aprovado (${fmt(fechados)}).\n\nRemover tiraria a comissão dele do fechamento desse mês.\n\nSe for um cadastro duplicado, mantenha este (ele guarda o histórico) e atualize os dados nele — ou desaprove o mês no Importar antes, se for mesmo necessário.`);
+    return;
+  }
+  const msg = meses.length
+    ? `${entry.nome} tem lançamento em ${fmt(meses)} (mês ainda aberto).\n\nRemover apaga ele de TODOS os meses e esses valores deixam de aparecer. Continuar?`
+    : `Remover ${entry.nome} do cadastro?`;
+  if (!confirm(msg)) return;
+  if (!LS_set(key, lista.filter(e => e.id !== id))) { showCadToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.', true); return; }
+  cadFecharModal('ver');
   cadRenderList();
+}
+
+// Popup "Ver": mostra tudo o que foi preenchido, só leitura. O botão Editar fica aqui dentro.
+function cadVer(tipo, id) {
+  const e = CLS.get(CAD_KEY[tipo], cadDefaults(tipo)).find(x => x.id === id);
+  if (!e) return;
+  const esc = v => String(v == null ? '' : v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const val = v => (v ? esc(v) : '<span style="color:#bbb">—</span>');
+  const tipoReal = e.categoria || tipo;
+  const conta = [e.contaBanco && 'Banco ' + e.contaBanco, e.contaAgencia && 'Ag. ' + e.contaAgencia, e.contaNumero && 'Conta ' + e.contaNumero, e.contaPix && 'PIX: ' + e.contaPix].filter(Boolean).join(' · ') || e.conta || '';
+  const endereco = [e.endereco, e.bairro, [e.cidade, e.estado].filter(Boolean).join('/'), e.cep && 'CEP ' + e.cep].filter(Boolean).join(', ');
+  const origem = e.origem === 'link'
+    ? 'Preenchido pelo próprio parceiro (link)' + (e.recebidoEm ? ' em ' + new Date(e.recebidoEm).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '')
+    : 'Cadastrado no sistema';
+  const itens = [
+    ['Categoria', CAD_LABEL_SING[tipoReal] || tipoReal], ['Status', e.pendente ? 'Pendente (faltam dados de contato/pagamento)' : 'Completo'],
+    ['Nome', e.nome], ['Empresa', e.empresa],
+    ['CPF', e.cpf || e.doc], ['CNPJ', e.cnpj],
+    ['Celular', e.celular], ['Telefone', e.telefone],
+    ['E-mail', e.email], ['E-mail 2', e.email2],
+    ['Endereço', endereco, true], ['Conta para pagamento', conta, true],
+    ['Apelido / ID no CRM', e.apelido], ['Comercial', e.comercial],
+    ['Ajuda de custo', e.ajudaCusto ? 'R$ ' + (+e.ajudaCusto).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : ''],
+    ['Origem do cadastro', origem],
+  ];
+  document.getElementById('cadVerTitulo').textContent = e.nome;
+  document.getElementById('cadVerSub').textContent = (CAD_LABEL_SING[tipoReal] || tipoReal) + (e.empresa ? ' · ' + e.empresa : '');
+  document.getElementById('cadVerCorpo').innerHTML = itens.map(([l, v, full]) =>
+    `<div class="ver-item${full ? ' full' : ''}"><div class="ver-lbl">${l}</div><div class="ver-val">${val(v)}</div></div>`).join('');
+  document.getElementById('cadVerEditar').onclick = () => { cadFecharModal('ver'); cadEditar(tipo, id); };
+  document.getElementById(CAD_MODAL_ID.ver).classList.add('open');
 }
 
 // Paginação da lista (só apresentação — os dados e filtros são os mesmos).
@@ -2973,7 +3067,7 @@ function cadRenderList() {
       <tr>
         <td><span class="cad-tipo-pill ${CAD_PILL_CLASS[e._tipo]}">${CAD_LABEL_SING[e._tipo]}</span></td>
         <td>
-          <div style="font-weight:500">${e.nome}${e.origem === 'link' && !e.apelido ? ' <span title="Veio pelo link de cadastro — falta preencher o apelido / ID no CRM (clique em Editar)." style="display:inline-block;font-size:10px;font-weight:700;color:#8a5a1a;background:#fbf3e6;border:1px solid #f0dbb0;border-radius:10px;padding:1px 7px;margin-left:6px;vertical-align:1px">completar apelido</span>' : ''}</div>
+          <div style="font-weight:500">${e.nome}${e.origem === 'link' && !e.apelido ? ' <span title="Veio pelo link de cadastro — falta preencher o apelido / ID no CRM (abra em Ver e clique em Editar)." style="display:inline-block;font-size:10px;font-weight:700;color:#8a5a1a;background:#fbf3e6;border:1px solid #f0dbb0;border-radius:10px;padding:1px 7px;margin-left:6px;vertical-align:1px">completar apelido</span>' : ''}</div>
           ${e.empresa || e.apelido ? `<div class="cad-cell-sub">${[e.empresa, e.apelido].filter(Boolean).join(' · ')}</div>` : ''}
         </td>
         <td style="color:#888">${e.cpf || e.doc || e.cnpj || '<span style="color:#ccc">—</span>'}</td>
@@ -2987,7 +3081,7 @@ function cadRenderList() {
         <td><span class="cad-st ${e.pendente ? 'pend' : 'ok'}" ${e.pendente ? 'title="Faltam dados de contato/pagamento (CPF, cidade, celular, e-mail ou conta) — comissão calcula normal, mas não pague sem completar."' : ''}>${e.pendente ? 'Pendente' : 'Completo'}</span></td>
         <td style="white-space:nowrap">
           <div class="cad-acoes">
-            <button class="cad-btn-outline" onclick="cadEditar('${e._tipo}','${e.id}')">Editar</button>
+            <button class="cad-btn-ver" onclick="cadVer('${e._tipo}','${e.id}')" title="Ver tudo o que foi preenchido (e editar)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Ver</button>
             <button class="cad-del-btn" onclick="cadRemover('${e._tipo}','${e.id}')">Remover</button>
           </div>
         </td>
