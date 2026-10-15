@@ -68,6 +68,8 @@ def _areas_da_chave(chave: str):
         return ["gestor_operacoes", "importar"]
     if chave == "imp_clientes_map":
         return ["importar"]
+    if chave == "imp_dealer_fontes":     # fonte de dados das Regras de Comissão dos dealers (volume/ativações por mês)
+        return ["dealer", "importar"]
     if chave == "regras_comissao":
         return ["dealer", "projeto_especial", "importar"]
     if chave in ("cons_hist_manual", "cons_bonus_extra"):
@@ -228,7 +230,7 @@ ESTADO_CHAVES = {
     "dc1_cfg", "dc1_ext", "dc1_m",
     "da1_cfg", "da1_ext", "da1_m",
     "go1_cfg", "go1_ext", "go1_m",
-    "aprovacoes_mes", "cons_hist_manual", "cons_bonus_extra", "imp_clientes_map", "regras_comissao",
+    "aprovacoes_mes", "cons_hist_manual", "cons_bonus_extra", "imp_dealer_fontes", "imp_clientes_map", "regras_comissao",
 }
 
 
