@@ -362,6 +362,21 @@ export default function AnalystCommissionPage() {
                   {venc.map(v => <td key={v.dia} className={TD}>{fmtDec(v.adimplencia)}%</td>)}
                   <td className={TD + ' font-bold'}>{fmtDec(totalFat ? totalRec / totalFat * 100 : 0)}%</td>
                 </tr>
+                <tr className="border-b border-gray-50">
+                  <td className={ROW_LABEL}>Alcance da meta (%)</td>
+                  {venc.map(v => {
+                    const meta = parseNum(form[v.dia]?.meta)
+                    if (meta <= 0) return <td key={v.dia} className={TD}><span className="text-gray-400">—</span></td>
+                    const pct = v.recebido / meta * 100
+                    return <td key={v.dia} className={TD + (pct >= 100 ? ' font-semibold text-green-700' : '')}>{fmtDec(pct)}%</td>
+                  })}
+                  <td className={TD + ' font-bold'}>{(() => {
+                    // total: recebido só dos vencimentos que têm meta ÷ soma das metas
+                    const comMeta = venc.filter(v => parseNum(form[v.dia]?.meta) > 0)
+                    const metas = comMeta.reduce((acc, v) => acc + parseNum(form[v.dia]?.meta), 0)
+                    return metas > 0 ? fmtDec(comMeta.reduce((acc, v) => acc + v.recebido, 0) / metas * 100) + '%' : '—'
+                  })()}</td>
+                </tr>
                 <tr>
                   <td className={ROW_LABEL}>Meta atingida</td>
                   {venc.map(v => {
