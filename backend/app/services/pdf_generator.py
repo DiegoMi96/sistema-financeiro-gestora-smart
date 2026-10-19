@@ -425,8 +425,7 @@ def generate_client_invoice_pdf(
     def _linha(lbl, cat, qtd, v):
         # Linhas do Clube Smart: fundo verde claro na linha toda (mesmo verde da coluna Subtotal)
         c = ' class="td-clube"' if cat == "Clube Smart" else ""
-        cat_html = f"<strong>{cat}</strong>" if c else cat      # só "Clube Smart" em negrito na categoria
-        return (f'<tr><td class="td-item{" td-clube" if c else ""}">{escape(lbl)}</td><td{c}>{cat_html}</td><td{c}>{qtd}</td>'
+        return (f'<tr><td class="td-item{" td-clube" if c else ""}">{escape(lbl)}</td><td{c}>{cat}</td><td{c}>{qtd}</td>'
                 f'<td{c}>{_brl_neg(v)}</td><td class="td-green">{_brl_neg(v)}</td></tr>')
     linhas_outros = "".join(_linha(l, "Padrão", q, v) for l, q, v in padrao) + \
                     "".join(_linha(l, "Clube Smart", q, v) for l, q, v in clube)
