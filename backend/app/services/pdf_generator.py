@@ -188,6 +188,11 @@ def _brl(v) -> str:
     return f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
+def _brl_neg(v) -> str:
+    """Valor em R$; negativo sai como -R$ 6,66 (desconto)."""
+    return f"-{_brl(abs(v))}" if (v or 0) < 0 else _brl(v)
+
+
 def _num(v) -> str:
     if not v:
         return "0"
@@ -197,7 +202,7 @@ def _num(v) -> str:
 def generate_client_invoice_pdf(
     cycle, agg_rows, summary, adjustments,
     client=None, asaas_cust=None, nome_override=None, cpf_cnpj_override=None,
-    asaas_invoice_number=None, itau_nosso_numero=None,
+    asaas_invoice_number=None, itau_nosso_numero=None, extras=None,
 ) -> io.BytesIO:
 
     today = datetime.date.today()
@@ -340,15 +345,79 @@ def generate_client_invoice_pdf(
         )
 
     # ── Outros serviços ─────────────────────────────────────
-    outros_total = val_cancel + val_multa + val_exc + val_sms + val_frete + val_msg + val_clube - val_desc
-    # Linhas do Clube Smart só aparecem quando há valor (a apresentação completa vem na revisão do PDF)
-    extra_rows = ""
-    if val_desc:
-        extra_rows += (f'<tr><td class="td-label">Desconto de Frete — Clube Smart</td><td>—</td>'
-                       f'<td>-{_brl(val_desc)}</td><td class="td-green">-{_brl(val_desc)}</td></tr>')
-    if val_clube:
-        extra_rows += (f'<tr><td class="td-label">Clube Smart</td><td>1</td>'
-                       f'<td>{_brl(val_clube)}</td><td class="td-green">{_brl(val_clube)}</td></tr>')
+    # ── Serviço extra (Clube Smart) ─────────────────────────
+    # Parcelas de excedente/multa, desconto de frete e mensalidade do Clube. O que está em parcela sai das
+    # linhas "Excedente" e "Cancelamento" de Outros Serviços (não conta duas vezes).
+    import re as _re
+    def _x(row, name, idx):
+        v = getattr(row, name, None)
+        if v is None:
+            try:
+                v = row[idx]
+            except Exception:
+                v = None
+        return v
+
+    extra_rows = []
+    parc_exc = parc_multa = 0.0
+    n_desc = 0
+    desc_tot = 0.0
+    clube_tot = 0.0
+    for r in (extras or []):
+        st   = str(_x(r, "status", 0) or "")
+        nome = str(_x(r, "nome_pedido", 1) or "")
+        val  = float(_x(r, "total_linha", 2) or 0)
+        m = _re.search(r"Parcela\s+(\d+/\d+)", nome)
+        np_ = m.group(1) if m else ""
+        if st == "Parcela Excedente":
+            parc_exc += val
+            extra_rows.append((f"Parcelamento MB {np_}".strip(), 1, val))
+        elif st == "Parcela Multa":
+            parc_multa += val
+            extra_rows.append((f"Parcelamento Tx Cancelamento {np_}".strip(), 1, val))
+        elif st == "Desconto Frete Clube Smart":
+            n_desc += 1
+            desc_tot += val          # já vem negativo
+        elif st == "Clube Smart":
+            clube_tot += val
+    if n_desc:
+        extra_rows.insert(0, ("Desconto Frete", n_desc, desc_tot))
+    if clube_tot:
+        extra_rows.append(("Clube Smart (mensalidade)", 1, clube_tot))
+    extra_total = sum(v for _, _, v in extra_rows)
+
+    val_exc_out   = val_exc - parc_exc
+    val_multa_out = val_multa - parc_multa
+    outros_total = val_cancel + val_multa_out + val_exc_out + val_sms + val_frete + val_msg
+
+    extra_html = ""
+    if extra_rows:
+        linhas = "".join(
+            f'<tr><td class="td-label">{escape(lbl)}</td><td>{_num(q)}</td>'
+            f'<td>{_brl_neg(v)}</td><td class="td-green">{_brl_neg(v)}</td></tr>'
+            for lbl, q, v in extra_rows)
+        extra_html = f"""
+  <table>
+    <colgroup>
+      <col style="width:46%;"><col style="width:16%;">
+      <col style="width:20%;"><col style="width:18%;">
+    </colgroup>
+    <tr class="tbl-section-header">
+      <td colspan="4">Serviço Extra</td>
+    </tr>
+    <tr class="tbl-col-header">
+      <th>Item</th><th>Quantidade</th>
+      <th>Valor</th><th class="th-green">Subtotal</th>
+    </tr>
+    <tbody>
+      {linhas}
+      <tr class="subtotal-row">
+        <td colspan="3" style="text-align:left;padding-left:24px;">SUBTOTAL</td>
+        <td class="td-green">{_brl(extra_total)}</td>
+      </tr>
+    </tbody>
+  </table>
+"""
 
     logo_uri = f"file://{_LOGO_PATH}"
 
@@ -434,16 +503,16 @@ def generate_client_invoice_pdf(
     <tbody>
       <tr><td class="td-label">Cancelamento</td>
           <td>{_num(by_st["Cancelamento"]["qtd"])}</td>
-          <td>{_brl(val_cancel + val_multa)}</td>
-          <td class="td-green">{_brl(val_cancel + val_multa)}</td></tr>
+          <td>{_brl(val_cancel + val_multa_out)}</td>
+          <td class="td-green">{_brl(val_cancel + val_multa_out)}</td></tr>
       <tr><td class="td-label">Pré-Ativo</td>
           <td>{_num(by_st["Pré-ativo"]["qtd"])}</td>
           <td>{_brl(0)}</td>
           <td class="td-green">{_brl(0)}</td></tr>
       <tr><td class="td-label">Excedente de Dados (MB)</td>
           <td>{f"{qtd_mb:,.0f} MB".replace(",",".")}</td>
-          <td>{_brl(val_exc)}</td>
-          <td class="td-green">{_brl(val_exc)}</td></tr>
+          <td>{_brl(val_exc_out)}</td>
+          <td class="td-green">{_brl(val_exc_out)}</td></tr>
       <tr><td class="td-label">SMS</td>
           <td>{_num(qtd_sms)}</td>
           <td>{_brl(val_sms)}</td>
@@ -456,7 +525,6 @@ def generate_client_invoice_pdf(
           <td>{_num(qtd_msg)}</td>
           <td>{_brl(val_msg)}</td>
           <td class="td-green">{_brl(val_msg)}</td></tr>
-      {extra_rows}
       <tr class="subtotal-row">
         <td colspan="3" style="text-align:left;padding-left:24px;">SUBTOTAL</td>
         <td class="td-green">{_brl(outros_total)}</td>
@@ -464,6 +532,7 @@ def generate_client_invoice_pdf(
     </tbody>
   </table>
 
+  {extra_html}
   <div class="total-final">
     <span class="tf-label">Total Geral</span>
     <span class="tf-value">{_brl(total)}</span>

@@ -1969,8 +1969,23 @@ def export_client_pdf(
     except Exception:
         pass
 
+    # Clube Smart: linhas de parcela, desconto de frete e mensalidade do Clube (tabela "Serviço extra" do PDF)
+    try:
+        extras = db.execute(
+            text("""
+                SELECT status, nome_pedido, total_linha FROM billing_lines
+                 WHERE cycle_id = :cid AND id_smart = :smart
+                   AND status IN ('Parcela Excedente', 'Parcela Multa', 'Desconto Frete Clube Smart', 'Clube Smart')
+                 ORDER BY id
+            """),
+            {"cid": cycle_id, "smart": id_smart}
+        ).fetchall()
+    except Exception:
+        extras = []
+
     output = generate_client_invoice_pdf(
         cycle, agg_rows, summary, adjs,
+        extras=extras,
         client=client,
         asaas_cust=asaas_cust,
         nome_override=nome_fallback,
