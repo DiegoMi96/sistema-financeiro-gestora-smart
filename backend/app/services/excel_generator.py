@@ -76,7 +76,17 @@ HEADERS_32 = [
     "Total",                         # AG  33
 ]
 
-HEADERS_PERIODO = ["Data início", "Data término"]   # AH, AI — período informativo do ciclo
+HEADERS_PERIODO = ["Data início", "Data término"]   # período informativo do ciclo
+
+# Ordem de saída: Data início/Data término logo depois de "Nome do pedido" (coluna A).
+# Os índices abaixo são os da ordem interna (HEADERS_32 + HEADERS_PERIODO, base 0); os
+# conjuntos de formato (_CALC_COLS, _MONEY_COLS…) continuam usando a posição interna.
+_ORDEM_SAIDA = [0, 33, 34] + list(range(1, 33))
+
+
+def _ordenar(seq):
+    seq = list(seq) + [None] * (35 - len(seq))
+    return [seq[i] for i in _ORDEM_SAIDA]
 
 # Colunas calculadas (24–33) → fundo amarelo
 _CALC_COLS = set(range(24, 34))
@@ -201,7 +211,8 @@ def generate_faturamento_excel(cycle, lines) -> io.BytesIO:
     # Cabeçalho
     periodo = periodo_do_ciclo(cycle)
     hdr_cells = []
-    for col_idx, h in enumerate(HEADERS_32 + HEADERS_PERIODO, 1):
+    for new_idx, h in enumerate(_ordenar(HEADERS_32 + HEADERS_PERIODO)):
+        col_idx = _ORDEM_SAIDA[new_idx] + 1          # posição interna (formatos)
         c = WriteOnlyCell(ws, value=h)
         c.fill      = CALC_FILL if col_idx in _CALC_COLS else HDR_FILL
         c.font      = HDR_FONT
@@ -213,9 +224,10 @@ def generate_faturamento_excel(cycle, lines) -> io.BytesIO:
     # Dados — WriteOnlyCell só para colunas que precisam de formatação numérica/monetária.
     # Células simples usam valor direto (sem objeto) — reduz criações de 22M → ~7M.
     for line in lines:
-        row_vals  = _row_from_line(line, periodo)
+        row_vals  = _ordenar(_row_from_line(line, periodo))
         row_cells = []
-        for col_idx, val in enumerate(row_vals, 1):
+        for new_idx, val in enumerate(row_vals):
+            col_idx  = _ORDEM_SAIDA[new_idx] + 1     # posição interna (formatos)
             is_calc  = col_idx in _CALC_COLS
             is_money = col_idx in _MONEY_COLS
             is_pct   = col_idx in _PCT_COLS
@@ -279,7 +291,7 @@ def generate_faturamento_excel(cycle, lines) -> io.BytesIO:
         14,  # AH  Data início (período do ciclo)
         14,  # AI  Data término (período do ciclo)
     ]
-    for i, w in enumerate(widths, 1):
+    for i, w in enumerate(_ordenar(widths), 1):
         ws.column_dimensions[get_column_letter(i)].width = w
 
     wb.save(buf)
@@ -339,8 +351,8 @@ def generate_client_excel_fast(cycle, lines, low_memory: bool = False) -> io.Byt
 
     # Larguras e formatos de coluna via set_column (aplicado a células sem formato explícito)
     _WIDTHS = [22,18,14,14,22,18,14,22,18,30,12,24,18,18,16,18,14,14,20,20,22,22,16,11,11,14,12,16,10,8,14,12,14,14,14]
-    for i, w in enumerate(_WIDTHS):
-        col_1idx = i + 1
+    for i, w in enumerate(_ordenar(_WIDTHS)):
+        col_1idx = _ORDEM_SAIDA[i] + 1               # posição interna (formatos)
         if col_1idx in _MONEY_COLS:
             ws.set_column(i, i, w, fmt_brl)
         elif col_1idx in _PCT_COLS:
@@ -350,9 +362,9 @@ def generate_client_excel_fast(cycle, lines, low_memory: bool = False) -> io.Byt
 
     # Cabeçalho (linha 0) com formato explícito
     periodo = periodo_do_ciclo(cycle)
-    for col_idx, h in enumerate(HEADERS_32 + HEADERS_PERIODO):
-        fmt = hdr_yel if (col_idx + 1) in _CALC_COLS else hdr_gray
-        ws.write(0, col_idx, h, fmt)
+    for new_idx, h in enumerate(_ordenar(HEADERS_32 + HEADERS_PERIODO)):
+        fmt = hdr_yel if (_ORDEM_SAIDA[new_idx] + 1) in _CALC_COLS else hdr_gray
+        ws.write(0, new_idx, h, fmt)
     ws.set_row(0, 30)
 
     # Dados a partir da linha 1 — write_row sem formato por célula (rápido)
@@ -367,7 +379,7 @@ def generate_client_excel_fast(cycle, lines, low_memory: bool = False) -> io.Byt
         return v
 
     for row_idx, line in enumerate(lines, 1):
-        vals = _row_from_line(line, periodo)
+        vals = _ordenar(_row_from_line(line, periodo))
         ws.write_row(row_idx, 0, [_clean(v) for v in vals])
 
     wb.close()
