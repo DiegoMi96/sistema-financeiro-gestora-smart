@@ -10,6 +10,22 @@ from openpyxl.utils import get_column_letter
 MESES = ["","Janeiro","Fevereiro","Março","Abril","Maio","Junho",
          "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]
 
+def periodo_do_ciclo(cycle):
+    """(início, término) do ciclo em dd/mm/aaaa — informativo. Ciclo sem datas = mês-calendário."""
+    import calendar
+    from datetime import date
+    ini = getattr(cycle, "data_inicio", None)
+    fim = getattr(cycle, "data_fim", None)
+    try:
+        if ini is None:
+            ini = date(cycle.year, cycle.month, 1)
+        if fim is None:
+            fim = date(cycle.year, cycle.month, calendar.monthrange(cycle.year, cycle.month)[1])
+        return ini.strftime("%d/%m/%Y"), fim.strftime("%d/%m/%Y")
+    except Exception:
+        return None, None
+
+
 def _fmt_date(d):
     if d is None:
         return None
@@ -60,6 +76,8 @@ HEADERS_32 = [
     "Total",                         # AG  33
 ]
 
+HEADERS_PERIODO = ["Data início", "Data término"]   # AH, AI — período informativo do ciclo
+
 # Colunas calculadas (24–33) → fundo amarelo
 _CALC_COLS = set(range(24, 34))
 
@@ -98,7 +116,7 @@ def _g(line, attr, default=None):
     return v
 
 
-def _row_from_line(line) -> list:
+def _row_from_line(line, periodo=None) -> list:
     id_smart = _g(line, "id_smart") or ""
     cpf_cnpj = id_smart.replace("ss_", "").replace("SS_", "")
 
@@ -122,7 +140,7 @@ def _row_from_line(line) -> list:
     if inicio_susp is None and _g(line, "status") == "Suspenso":
         inicio_susp = _g(line, "data_inicio_bloqueio")
 
-    return [
+    row = [
         _g(line, "nome_pedido"),                            # A   1  Nome do pedido
         _g(line, "id_pedido"),                              # B   2  ID do pedido
         _fmt_date(_g(line, "data_ativacao")),               # C   3  Data de ativação
@@ -157,6 +175,9 @@ def _row_from_line(line) -> list:
         _g(line, "ativacao_cobrada"),                       # AF  32 Ativação
         _g(line, "total_linha"),                            # AG  33 Total
     ]
+    if periodo:                                              # AH–AI: período do ciclo (só informativo)
+        row += list(periodo)
+    return row
 
 
 def generate_faturamento_excel(cycle, lines) -> io.BytesIO:
@@ -178,8 +199,9 @@ def generate_faturamento_excel(cycle, lines) -> io.BytesIO:
     _yel  = PatternFill("solid", fgColor="FFFFF0CC")
 
     # Cabeçalho
+    periodo = periodo_do_ciclo(cycle)
     hdr_cells = []
-    for col_idx, h in enumerate(HEADERS_32, 1):
+    for col_idx, h in enumerate(HEADERS_32 + HEADERS_PERIODO, 1):
         c = WriteOnlyCell(ws, value=h)
         c.fill      = CALC_FILL if col_idx in _CALC_COLS else HDR_FILL
         c.font      = HDR_FONT
@@ -191,7 +213,7 @@ def generate_faturamento_excel(cycle, lines) -> io.BytesIO:
     # Dados — WriteOnlyCell só para colunas que precisam de formatação numérica/monetária.
     # Células simples usam valor direto (sem objeto) — reduz criações de 22M → ~7M.
     for line in lines:
-        row_vals  = _row_from_line(line)
+        row_vals  = _row_from_line(line, periodo)
         row_cells = []
         for col_idx, val in enumerate(row_vals, 1):
             is_calc  = col_idx in _CALC_COLS
@@ -254,6 +276,8 @@ def generate_faturamento_excel(cycle, lines) -> io.BytesIO:
         14,  # AE  Mensalidade (calc)
         12,  # AF  Ativação
         14,  # AG  Total
+        14,  # AH  Data início (período do ciclo)
+        14,  # AI  Data término (período do ciclo)
     ]
     for i, w in enumerate(widths, 1):
         ws.column_dimensions[get_column_letter(i)].width = w
@@ -314,7 +338,7 @@ def generate_client_excel_fast(cycle, lines, low_memory: bool = False) -> io.Byt
     fmt_def = wb.add_format({})
 
     # Larguras e formatos de coluna via set_column (aplicado a células sem formato explícito)
-    _WIDTHS = [22,18,14,14,22,18,14,22,18,30,12,24,18,18,16,18,14,14,20,20,22,22,16,11,11,14,12,16,10,8,14,12,14]
+    _WIDTHS = [22,18,14,14,22,18,14,22,18,30,12,24,18,18,16,18,14,14,20,20,22,22,16,11,11,14,12,16,10,8,14,12,14,14,14]
     for i, w in enumerate(_WIDTHS):
         col_1idx = i + 1
         if col_1idx in _MONEY_COLS:
@@ -325,7 +349,8 @@ def generate_client_excel_fast(cycle, lines, low_memory: bool = False) -> io.Byt
             ws.set_column(i, i, w)
 
     # Cabeçalho (linha 0) com formato explícito
-    for col_idx, h in enumerate(HEADERS_32):
+    periodo = periodo_do_ciclo(cycle)
+    for col_idx, h in enumerate(HEADERS_32 + HEADERS_PERIODO):
         fmt = hdr_yel if (col_idx + 1) in _CALC_COLS else hdr_gray
         ws.write(0, col_idx, h, fmt)
     ws.set_row(0, 30)
@@ -342,7 +367,7 @@ def generate_client_excel_fast(cycle, lines, low_memory: bool = False) -> io.Byt
         return v
 
     for row_idx, line in enumerate(lines, 1):
-        vals = _row_from_line(line)
+        vals = _row_from_line(line, periodo)
         ws.write_row(row_idx, 0, [_clean(v) for v in vals])
 
     wb.close()

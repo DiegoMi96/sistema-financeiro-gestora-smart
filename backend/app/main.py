@@ -128,6 +128,8 @@ def _run_migrations():
         ("itau_boletos",  "description",            "TEXT"),
         ("asaas_payments_sync", "invoice_number",   "VARCHAR(50)"),
         ("billing_cycles", "error_message",         "TEXT"),
+        ("billing_cycles", "data_inicio",           "DATE"),
+        ("billing_cycles", "data_fim",              "DATE"),
     ]
     try:
         cols.append(("users", "custom_role_key", "VARCHAR(100)"))

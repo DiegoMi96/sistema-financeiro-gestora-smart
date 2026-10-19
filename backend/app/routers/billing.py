@@ -322,6 +322,8 @@ async def process_billing(
     background_tasks: BackgroundTasks,
     year:  int = 2026,
     month: int = 5,
+    data_inicio: Optional[str] = None,   # informativo (aparece no detalhamento) — não entra no cálculo
+    data_fim:    Optional[str] = None,
     base_file:          UploadFile = File(...),
     cancelamentos_file: UploadFile = File(...),
     fretes_file:        UploadFile = File(None),
@@ -337,6 +339,20 @@ async def process_billing(
     Recebe os arquivos de entrada, processa o faturamento em background
     e retorna o ID do ciclo criado.
     """
+    # Período informativo do ciclo (ex.: 20/09 a 19/10). Não altera o motor — só é gravado e exibido.
+    from datetime import date as _date
+    def _parse_data(txt, rotulo):
+        if not txt:
+            return None
+        try:
+            return _date.fromisoformat(str(txt)[:10])
+        except ValueError:
+            raise HTTPException(status_code=422, detail=f"{rotulo} inválida — use o formato dd/mm/aaaa.")
+    _ini = _parse_data(data_inicio, "Data início")
+    _fim = _parse_data(data_fim, "Data término")
+    if _ini and _fim and _fim < _ini:
+        raise HTTPException(status_code=422, detail="A data de término não pode ser anterior à data de início.")
+
     # Verifica se já existe ciclo para este mês
     existing = db.query(BillingCycle).filter(
         BillingCycle.year == year, BillingCycle.month == month
@@ -355,6 +371,7 @@ async def process_billing(
 
     cycle = BillingCycle(
         year=year, month=month,
+        data_inicio=_ini, data_fim=_fim,
         status=BillingStatus.RASCUNHO,
         created_by=current_user.id,
         base_filename=base_file.filename,
@@ -2031,6 +2048,8 @@ def _cycle_to_dict(c: BillingCycle) -> dict:
         "year":         c.year,
         "month":        c.month,
         "period":       f"{c.month:02d}/{c.year}",
+        "data_inicio":  c.data_inicio.isoformat() if c.data_inicio else None,
+        "data_fim":     c.data_fim.isoformat() if c.data_fim else None,
         "status":       c.status,
         "total_lines":  c.total_lines,
         "total_value":  round(c.total_value or 0, 2),

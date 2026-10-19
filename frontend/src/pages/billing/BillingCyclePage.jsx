@@ -214,7 +214,10 @@ export default function BillingCyclePage() {
           <h1 className="gs-page-title">
             {MONTHS_PT[cycle.month]} {cycle.year}
           </h1>
-          <p className="gs-page-sub">{fmtN(cycle.total_lines)} linhas · {cycle.total_boletos} boletos</p>
+          <p className="gs-page-sub">
+            {fmtN(cycle.total_lines)} linhas · {cycle.total_boletos} boletos
+            {cycle.data_inicio && cycle.data_fim && ` · Período: ${cycle.data_inicio.split('-').reverse().join('/')} a ${cycle.data_fim.split('-').reverse().join('/')}`}
+          </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap sm:justify-end">
 {can('can_approve_billing') && (

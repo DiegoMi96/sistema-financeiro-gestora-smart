@@ -278,6 +278,18 @@ function UploadModal({ onClose, onSuccess }) {
   const [files, setFiles] = useState({})
   const [loading, setLoading] = useState(false)
 
+  // Período INFORMATIVO do ciclo (aparece no detalhamento; não altera o cálculo). Por padrão acompanha o mês
+  // escolhido (dia 1 ao último dia); depois que o usuário muda uma data, deixa de acompanhar.
+  const isoDia = (y, m, d) => `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+  const [dataInicio, setDataInicio] = useState(isoDia(new Date().getFullYear(), new Date().getMonth() + 1, 1))
+  const [dataFim, setDataFim] = useState(isoDia(new Date().getFullYear(), new Date().getMonth() + 1, new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()))
+  const [datasEditadas, setDatasEditadas] = useState(false)
+  useEffect(() => {
+    if (datasEditadas) return
+    setDataInicio(isoDia(year, month, 1))
+    setDataFim(isoDia(year, month, new Date(year, month, 0).getDate()))
+  }, [year, month, datasEditadas])
+
   const required    = ['base', 'cancelamentos', 'vencimentos', 'reajuste', 'sms', 'mensageria']
   const allRequired = required.every(k => files[k])
 
@@ -286,6 +298,7 @@ function UploadModal({ onClose, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!allRequired) return toast.error('Preencha todos os arquivos obrigatórios')
+    if (dataInicio && dataFim && dataFim < dataInicio) return toast.error('A data de término não pode ser anterior à data de início')
     setLoading(true)
     try {
       const fd = new FormData()
@@ -296,7 +309,7 @@ function UploadModal({ onClose, onSuccess }) {
       fd.append('reajuste_file',      files.reajuste)
       fd.append('sms_file',           files.sms)
       fd.append('mensageria_file',    files.mensageria)
-      await billingApi.processBilling(year, month, fd)
+      await billingApi.processBilling(year, month, fd, { data_inicio: dataInicio, data_fim: dataFim })
       toast.success('Processamento iniciado!')
       onSuccess()
     } catch (err) {
@@ -353,6 +366,19 @@ function UploadModal({ onClose, onSuccess }) {
                   className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 focus:outline-none" />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-3 mt-3">
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Data início</label>
+                <input type="date" value={dataInicio} onChange={e => { setDataInicio(e.target.value); setDatasEditadas(true) }}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 focus:outline-none bg-white" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Data término</label>
+                <input type="date" value={dataFim} onChange={e => { setDataFim(e.target.value); setDatasEditadas(true) }}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 focus:outline-none bg-white" />
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">Informativo: de quando a quando as linhas estão sendo cobradas. Aparece no detalhamento do cliente e do ciclo e <strong>não altera o cálculo</strong>.</p>
           </div>
 
           {/* Arquivos */}

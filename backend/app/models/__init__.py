@@ -287,6 +287,10 @@ class BillingCycle(Base):
     total_lines  = Column(Integer, default=0)
     total_value  = Column(Float, default=0.0)
     total_boletos = Column(Integer, default=0)
+    # Período INFORMATIVO do ciclo (ex.: 20/09 a 19/10) — aparece nas planilhas de detalhamento.
+    # NÃO entra em nenhum cálculo do motor (o motor segue usando year/month). Nulo = mês-calendário.
+    data_inicio  = Column(Date)
+    data_fim     = Column(Date)
     # Preenchido só quando status=ERRO — mensagem do que quebrou no motor
     # (antes o erro só aparecia no log do container; ciclo ficava com
     # aparência de "ainda não processado", sem avisar ninguém).

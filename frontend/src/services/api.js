@@ -49,7 +49,7 @@ export const billingApi = {
   cycles:          ()                        => api.get('/billing/cycles'),
   cycle:           (id)                      => api.get(`/billing/cycles/${id}`),
   approveCycle:    (id)                      => api.post(`/billing/cycles/${id}/approve`),
-  processBilling:  (year, month, formData)   => api.post(`/billing/cycles/process?year=${year}&month=${month}`, formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 300000 }),
+  processBilling:  (year, month, formData, extra = {}) => api.post(`/billing/cycles/process?year=${year}&month=${month}` + (extra.data_inicio ? `&data_inicio=${extra.data_inicio}` : '') + (extra.data_fim ? `&data_fim=${extra.data_fim}` : ''), formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 300000 }),
   clients:         (cycleId, params)         => api.get(`/billing/cycles/${cycleId}/clients`, { params }),
   allAdjustments:  (params)                  => api.get('/billing/adjustments', { params }),
   adjustments:     (cycleId)                 => api.get(`/billing/cycles/${cycleId}/adjustments`),
