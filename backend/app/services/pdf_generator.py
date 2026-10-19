@@ -392,7 +392,7 @@ def generate_client_invoice_pdf(
         elif st == "Clube Smart":
             clube_tot += val
     if n_desc:
-        extra_rows.insert(0, ("Desconto Frete", n_desc, desc_tot))
+        extra_rows.insert(0, ("Desconto Frete — Clube Smart", n_desc, desc_tot))
     if clube_tot:
         extra_rows.append(("Clube Smart (mensalidade)", 1, clube_tot))
     extra_total = sum(v for _, _, v in extra_rows)
