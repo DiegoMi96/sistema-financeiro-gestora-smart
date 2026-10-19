@@ -393,10 +393,12 @@ def generate_client_invoice_pdf(
             parc_multa += val
             extra_rows.append((nome, 1, val))
         elif st == "Desconto Frete Clube Smart":
-            mp = _re.search(r"Pedido\s+(.+)$", nome)    # um por frete com desconto (valor negativo)
-            extra_rows.append((f"Desconto Frete {_fmt_pct()}%" + (f" – Pedido {mp.group(1).strip()}" if mp else ""), 1, val))
+            n_desc += 1                                  # descontos de frete (negativos) somados numa linha só
+            desc_tot += val
         elif st == "Clube Smart":
             clube_tot += val
+    if n_desc:
+        extra_rows.insert(0, (f"Desconto Frete {_fmt_pct()}%", n_desc, desc_tot))
     if clube_tot:
         extra_rows.append(("Clube Smart – mensalidade", 1, clube_tot))
     extra_total = sum(v for _, _, v in extra_rows)
