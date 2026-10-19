@@ -381,6 +381,7 @@ def generate_client_invoice_pdf(
     n_desc = 0
     desc_tot = 0.0
     clube_tot = 0.0
+    has_clube = False
     for r in (extras or []):
         st   = str(_x(r, "status", 0) or "")
         nome = str(_x(r, "nome_pedido", 1) or "")      # mesmo texto do "Nome do pedido" no detalhamento
