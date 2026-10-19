@@ -146,6 +146,7 @@ _CSS = """
     background: var(--gray-light);
   }
   td.td-label { text-align: left; font-weight: 600; }
+  td.td-item { text-align: left; font-weight: 400; }
   td.td-clube { background: var(--green-light); }
   td.td-green {
     background: var(--green-light); font-weight: 700; color: var(--gray-dark);
@@ -424,7 +425,8 @@ def generate_client_invoice_pdf(
     def _linha(lbl, cat, qtd, v):
         # Linhas do Clube Smart: fundo verde claro na linha toda (mesmo verde da coluna Subtotal)
         c = ' class="td-clube"' if cat == "Clube Smart" else ""
-        return (f'<tr><td class="td-label{" td-clube" if c else ""}">{escape(lbl)}</td><td{c}>{cat}</td><td{c}>{qtd}</td>'
+        cat_html = f"<strong>{cat}</strong>" if c else cat      # só "Clube Smart" em negrito na categoria
+        return (f'<tr><td class="td-item{" td-clube" if c else ""}">{escape(lbl)}</td><td{c}>{cat_html}</td><td{c}>{qtd}</td>'
                 f'<td{c}>{_brl_neg(v)}</td><td class="td-green">{_brl_neg(v)}</td></tr>')
     linhas_outros = "".join(_linha(l, "Padrão", q, v) for l, q, v in padrao) + \
                     "".join(_linha(l, "Clube Smart", q, v) for l, q, v in clube)
