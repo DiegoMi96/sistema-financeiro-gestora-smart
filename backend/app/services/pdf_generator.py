@@ -93,17 +93,6 @@ _CSS = """
   }
   .block-body strong { font-weight: 700; }
 
-  /* ── CLIENTE + COMPETÊNCIA lado a lado ── */
-  .client-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: stretch; }
-  .client-row .client-block { flex: 1 1 64%; margin-bottom: 0; }
-  .period-box {
-    flex: 0 0 33%; background: var(--green-light);
-    border: 1px solid var(--border); border-radius: 3px; padding: 8px 12px;
-  }
-  .period-box .pb-label { font-size: 10px; color: var(--text-muted); }
-  .period-box .pb-month { font-size: 15px; font-weight: 800; color: var(--green); margin-bottom: 4px; }
-  .period-box .pb-text { font-size: 9px; color: var(--text-muted); line-height: 1.45; }
-
   /* ── PERÍODO ── */
   .period-bar {
     background: var(--gray-light); border: 1px solid var(--border);
@@ -469,25 +458,20 @@ def generate_client_invoice_pdf(
     </div>
   </div>
 
-  <div class="client-row">
-    <div class="client-block">
-      <div class="block-header">Dados do Cliente</div>
-      <div class="block-body">
-        <strong>Razão Social:</strong> {razao}<br>
-        <strong>CNPJ/CPF:</strong> {cnpj}<br>
-        <strong>Endereço:</strong> {endereco}<br>
-        <strong>E-mail:</strong> {email} &nbsp;|&nbsp; <strong>Tel:</strong> {telefone}
-      </div>
+  <div class="client-block">
+    <div class="block-header">Dados do Cliente</div>
+    <div class="block-body">
+      <strong>Razão Social:</strong> {razao}<br>
+      <strong>CNPJ/CPF:</strong> {cnpj}<br>
+      <strong>Endereço:</strong> {endereco}<br>
+      <strong>E-mail:</strong> {email} &nbsp;|&nbsp; <strong>Tel:</strong> {telefone}
     </div>
-    <div class="period-box">
-      <div class="pb-label">Competência</div>
-      <div class="pb-month">{mes_ext}</div>
-      <div class="pb-text">
-        Serviço de Valor Adicionado para gestão de Conectividade M2M &amp; IoT — Pode haver
-        valores relacionados a Mensalidades, Taxas de ativação, Cancelamentos, Fretes e
-        Dados adicionais.
-      </div>
-    </div>
+  </div>
+
+  <div class="period-bar">
+    <strong>[ Competência {mes_ext} ]</strong> — Serviço de Valor Adicionado para gestão de
+    Conectividade M2M &amp; IoT — Pode haver valores relacionados a Mensalidades,
+    Taxas de ativação, Cancelamentos, Fretes e Dados adicionais.
   </div>
 
   <div class="section-title st-discriminacao">Discriminação dos Serviços</div>
@@ -516,7 +500,7 @@ def generate_client_invoice_pdf(
 
   <table>
     <colgroup>
-      <col style="width:43%;"><col style="width:15%;"><col style="width:10%;">
+      <col style="width:42%;"><col style="width:14%;"><col style="width:12%;">
       <col style="width:15%;"><col style="width:17%;">
     </colgroup>
     <tr class="tbl-section-header">
