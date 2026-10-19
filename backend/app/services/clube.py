@@ -164,7 +164,7 @@ def planejar(db: Session, year: int, month: int, cfg: dict, *,
                 continue
             if tipo == "excedente":
                 mb_txt = f"{round(mb_exc.get(cli, 0)):,}".replace(",", ".")
-                obs = f"Excedente total {brl(total)} – MB total {mb_txt} – Consumo {mes_label(year, month)}"
+                obs = f"MB total {mb_txt} – Consumo {mes_label(year, month)} – Total {brl(total)}"
             else:
                 q = int(qtd_multa.get(cli, 0))
                 obs = f"Multa total {brl(total)} – {q} {'linha' if q == 1 else 'linhas'} – Cancelamento {mes_label(year, month)}"
