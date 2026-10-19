@@ -146,8 +146,6 @@ _CSS = """
     background: var(--gray-light);
   }
   td.td-label { text-align: left; font-weight: 600; }
-  td.td-clube { background: #F3FAEF; }
-  td.td-clube-cat { background: var(--green-light); color: #3F7F27; font-weight: 700; }
   td.td-green {
     background: var(--green-light); font-weight: 700; color: var(--gray-dark);
   }
@@ -423,10 +421,6 @@ def generate_client_invoice_pdf(
     outros_total = sum(v for _, _, v in padrao) + sum(v for _, _, v in clube)
 
     def _linha(lbl, cat, qtd, v):
-        if cat == "Clube Smart":   # benefício em destaque (verde) para ficar claro o que é
-            return (f'<tr><td class="td-label td-clube">{escape(lbl)}</td><td class="td-clube-cat">{cat}</td>'
-                    f'<td class="td-clube">{qtd}</td><td class="td-clube">{_brl_neg(v)}</td>'
-                    f'<td class="td-green">{_brl_neg(v)}</td></tr>')
         return (f'<tr><td class="td-label">{escape(lbl)}</td><td>{cat}</td><td>{qtd}</td>'
                 f'<td>{_brl_neg(v)}</td><td class="td-green">{_brl_neg(v)}</td></tr>')
     linhas_outros = "".join(_linha(l, "Padrão", q, v) for l, q, v in padrao) + \
