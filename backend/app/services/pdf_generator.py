@@ -391,7 +391,8 @@ def generate_client_invoice_pdf(
             extra_rows.append((_re.sub(r"\s+–\s+Total R\$.*$", "", nome), 1, val))
         elif st == "Parcela Multa":
             parc_multa += val
-            extra_rows.append((nome, 1, val))
+            # No PDF o item não repete "Multa total R$ ..." (o valor da parcela vai em Valor/Subtotal)
+            extra_rows.append((_re.sub(r"Multa total R\$\s*[\d\.,]+\s+–\s+", "", nome), 1, val))
         elif st == "Desconto Frete Clube Smart":
             n_desc += 1                                  # descontos de frete (negativos) somados numa linha só
             desc_tot += val
@@ -507,8 +508,8 @@ def generate_client_invoice_pdf(
 
   <table>
     <colgroup>
-      <col style="width:40%;"><col style="width:14%;"><col style="width:13%;">
-      <col style="width:16%;"><col style="width:17%;">
+      <col style="width:43%;"><col style="width:15%;"><col style="width:10%;">
+      <col style="width:15%;"><col style="width:17%;">
     </colgroup>
     <tr class="tbl-section-header">
       <td colspan="5">Outros Serviços</td>
