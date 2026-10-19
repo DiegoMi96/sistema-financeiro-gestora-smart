@@ -387,12 +387,14 @@ def generate_client_invoice_pdf(
         val  = float(_x(r, "total_linha", 2) or 0)
         if st == "Parcela Excedente":
             parc_exc += val
-            extra_rows.append((nome, 1, val))
+            # No PDF o valor vai nas colunas Valor/Subtotal: o item não repete "– Total R$ ..."
+            extra_rows.append((_re.sub(r"\s+–\s+Total R\$.*$", "", nome), 1, val))
         elif st == "Parcela Multa":
             parc_multa += val
             extra_rows.append((nome, 1, val))
         elif st == "Desconto Frete Clube Smart":
-            extra_rows.append((nome, 1, val))           # um por frete com desconto (valor negativo)
+            mp = _re.search(r"Pedido\s+(.+)$", nome)    # um por frete com desconto (valor negativo)
+            extra_rows.append((f"Desconto Frete {_fmt_pct()}%" + (f" – Pedido {mp.group(1).strip()}" if mp else ""), 1, val))
         elif st == "Clube Smart":
             clube_tot += val
     if clube_tot:
