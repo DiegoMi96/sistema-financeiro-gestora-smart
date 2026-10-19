@@ -146,6 +146,8 @@ _CSS = """
     background: var(--gray-light);
   }
   td.td-label { text-align: left; font-weight: 600; }
+  td.td-clube { background: #F3FAEF; }
+  td.td-clube-cat { background: var(--green-light); color: #3F7F27; font-weight: 700; }
   td.td-green {
     background: var(--green-light); font-weight: 700; color: var(--gray-dark);
   }
@@ -197,6 +199,11 @@ def _fmt_doc(raw: str) -> str:
 def _brl(v) -> str:
     v = v or 0
     return f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def _fmt_pct() -> str:
+    """Percentual do desconto de frete do Clube (regra: 20%)."""
+    return "20"
 
 
 def _brl_neg(v) -> str:
@@ -382,19 +389,19 @@ def generate_client_invoice_pdf(
         np_ = m.group(1) if m else ""
         if st == "Parcela Excedente":
             parc_exc += val
-            extra_rows.append((f"Parcelamento MB {np_}".strip(), 1, val))
+            extra_rows.append((f"Parcelamento de Excedente (MB) {np_}".strip(), 1, val))
         elif st == "Parcela Multa":
             parc_multa += val
-            extra_rows.append((f"Parcelamento Tx Cancelamento {np_}".strip(), 1, val))
+            extra_rows.append((f"Parcelamento Tx de Cancelamento {np_}".strip(), 1, val))
         elif st == "Desconto Frete Clube Smart":
             n_desc += 1
             desc_tot += val          # já vem negativo
         elif st == "Clube Smart":
             clube_tot += val
     if n_desc:
-        extra_rows.insert(0, ("Desconto Frete", n_desc, desc_tot))
+        extra_rows.insert(0, (f"Desconto de {_fmt_pct()}% no Frete", n_desc, desc_tot))
     if clube_tot:
-        extra_rows.append(("Mensalidade Clube Smart", 1, clube_tot))
+        extra_rows.append(("Mensalidade do Clube Smart", 1, clube_tot))
     extra_total = sum(v for _, _, v in extra_rows)
 
     val_exc_out   = val_exc - parc_exc
@@ -415,6 +422,10 @@ def generate_client_invoice_pdf(
     outros_total = sum(v for _, _, v in padrao) + sum(v for _, _, v in clube)
 
     def _linha(lbl, cat, qtd, v):
+        if cat == "Clube Smart":   # benefício em destaque (verde) para ficar claro o que é
+            return (f'<tr><td class="td-label td-clube">{escape(lbl)}</td><td class="td-clube-cat">{cat}</td>'
+                    f'<td class="td-clube">{qtd}</td><td class="td-clube">{_brl_neg(v)}</td>'
+                    f'<td class="td-green">{_brl_neg(v)}</td></tr>')
         return (f'<tr><td class="td-label">{escape(lbl)}</td><td>{cat}</td><td>{qtd}</td>'
                 f'<td>{_brl_neg(v)}</td><td class="td-green">{_brl_neg(v)}</td></tr>')
     linhas_outros = "".join(_linha(l, "Padrão", q, v) for l, q, v in padrao) + \
@@ -496,8 +507,8 @@ def generate_client_invoice_pdf(
 
   <table>
     <colgroup>
-      <col style="width:34%;"><col style="width:15%;"><col style="width:14%;">
-      <col style="width:19%;"><col style="width:18%;">
+      <col style="width:40%;"><col style="width:14%;"><col style="width:13%;">
+      <col style="width:16%;"><col style="width:17%;">
     </colgroup>
     <tr class="tbl-section-header">
       <td colspan="5">Outros Serviços</td>
