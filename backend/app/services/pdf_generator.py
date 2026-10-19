@@ -383,31 +383,27 @@ def generate_client_invoice_pdf(
     clube_tot = 0.0
     for r in (extras or []):
         st   = str(_x(r, "status", 0) or "")
-        nome = str(_x(r, "nome_pedido", 1) or "")
+        nome = str(_x(r, "nome_pedido", 1) or "")      # mesmo texto do "Nome do pedido" no detalhamento
         val  = float(_x(r, "total_linha", 2) or 0)
-        m = _re.search(r"Parcela\s+(\d+/\d+)", nome)
-        np_ = m.group(1) if m else ""
         if st == "Parcela Excedente":
             parc_exc += val
-            extra_rows.append((f"Parcelamento de Excedente (MB) {np_}".strip(), 1, val))
+            extra_rows.append((nome, 1, val))
         elif st == "Parcela Multa":
             parc_multa += val
-            extra_rows.append((f"Parcelamento Tx de Cancelamento {np_}".strip(), 1, val))
+            extra_rows.append((nome, 1, val))
         elif st == "Desconto Frete Clube Smart":
-            n_desc += 1
-            desc_tot += val          # já vem negativo
+            extra_rows.append((nome, 1, val))           # um por frete com desconto (valor negativo)
         elif st == "Clube Smart":
             clube_tot += val
-    if n_desc:
-        extra_rows.insert(0, (f"Desconto de {_fmt_pct()}% no Frete", n_desc, desc_tot))
     if clube_tot:
-        extra_rows.append(("Mensalidade do Clube Smart", 1, clube_tot))
+        extra_rows.append(("Clube Smart – mensalidade", 1, clube_tot))
     extra_total = sum(v for _, _, v in extra_rows)
 
     val_exc_out   = val_exc - parc_exc
     if parc_exc and val_exc_out < 0.005:
         qtd_mb = 0   # excedente todo em parcela: os MB aparecem no "Parcelamento MB", não aqui
     val_multa_out = val_multa - parc_multa
+
     # Tabela única "Outros Serviços" com a coluna Categoria (Padrão | Clube Smart)
     qtd_mb_txt = f"{qtd_mb:,.0f} MB".replace(",", ".")
     padrao = [
