@@ -392,45 +392,33 @@ def generate_client_invoice_pdf(
         elif st == "Clube Smart":
             clube_tot += val
     if n_desc:
-        extra_rows.insert(0, ("Desconto Frete — Clube Smart", n_desc, desc_tot))
+        extra_rows.insert(0, ("Desconto Frete", n_desc, desc_tot))
     if clube_tot:
-        extra_rows.append(("Clube Smart (mensalidade)", 1, clube_tot))
+        extra_rows.append(("Mensalidade Clube Smart", 1, clube_tot))
     extra_total = sum(v for _, _, v in extra_rows)
 
     val_exc_out   = val_exc - parc_exc
     if parc_exc and val_exc_out < 0.005:
         qtd_mb = 0   # excedente todo em parcela: os MB aparecem no "Parcelamento MB", não aqui
     val_multa_out = val_multa - parc_multa
-    outros_total = val_cancel + val_multa_out + val_exc_out + val_sms + val_frete + val_msg
+    # Tabela única "Outros Serviços" com a coluna Categoria (Padrão | Clube Smart)
+    qtd_mb_txt = f"{qtd_mb:,.0f} MB".replace(",", ".")
+    padrao = [
+        ("Cancelamento", _num(by_st["Cancelamento"]["qtd"]), val_cancel + val_multa_out),
+        ("Pré-Ativo", _num(by_st["Pré-ativo"]["qtd"]), 0),
+        ("Excedente de Dados (MB)", qtd_mb_txt, val_exc_out),
+        ("SMS", _num(qtd_sms), val_sms),
+        ("Frete", _num(qtd_frete), val_frete),
+        ("Pacote Mensageria", _num(qtd_msg), val_msg),
+    ]
+    clube = [(lbl, _num(q), v) for lbl, q, v in extra_rows]
+    outros_total = sum(v for _, _, v in padrao) + sum(v for _, _, v in clube)
 
-    extra_html = ""
-    if extra_rows:
-        linhas = "".join(
-            f'<tr><td class="td-label">{escape(lbl)}</td><td>{_num(q)}</td>'
-            f'<td>{_brl_neg(v)}</td><td class="td-green">{_brl_neg(v)}</td></tr>'
-            for lbl, q, v in extra_rows)
-        extra_html = f"""
-  <table>
-    <colgroup>
-      <col style="width:46%;"><col style="width:16%;">
-      <col style="width:20%;"><col style="width:18%;">
-    </colgroup>
-    <tr class="tbl-section-header">
-      <td colspan="4">Serviço Extra</td>
-    </tr>
-    <tr class="tbl-col-header">
-      <th>Item</th><th>Quantidade</th>
-      <th>Valor</th><th class="th-green">Subtotal</th>
-    </tr>
-    <tbody>
-      {linhas}
-      <tr class="subtotal-row">
-        <td colspan="3" style="text-align:left;padding-left:24px;">SUBTOTAL</td>
-        <td class="td-green">{_brl(extra_total)}</td>
-      </tr>
-    </tbody>
-  </table>
-"""
+    def _linha(lbl, cat, qtd, v):
+        return (f'<tr><td class="td-label">{escape(lbl)}</td><td>{cat}</td><td>{qtd}</td>'
+                f'<td>{_brl_neg(v)}</td><td class="td-green">{_brl_neg(v)}</td></tr>')
+    linhas_outros = "".join(_linha(l, "Padrão", q, v) for l, q, v in padrao) + \
+                    "".join(_linha(l, "Clube Smart", q, v) for l, q, v in clube)
 
     logo_uri = f"file://{_LOGO_PATH}"
 
@@ -508,49 +496,25 @@ def generate_client_invoice_pdf(
 
   <table>
     <colgroup>
-      <col style="width:46%;"><col style="width:16%;">
-      <col style="width:20%;"><col style="width:18%;">
+      <col style="width:34%;"><col style="width:15%;"><col style="width:14%;">
+      <col style="width:19%;"><col style="width:18%;">
     </colgroup>
     <tr class="tbl-section-header">
-      <td colspan="4">Outros Serviços</td>
+      <td colspan="5">Outros Serviços</td>
     </tr>
     <tr class="tbl-col-header">
-      <th>Item</th><th>Quantidade</th>
+      <th>Item</th><th>Categoria</th><th>Quantidade</th>
       <th>Valor</th><th class="th-green">Subtotal</th>
     </tr>
     <tbody>
-      <tr><td class="td-label">Cancelamento</td>
-          <td>{_num(by_st["Cancelamento"]["qtd"])}</td>
-          <td>{_brl(val_cancel + val_multa_out)}</td>
-          <td class="td-green">{_brl(val_cancel + val_multa_out)}</td></tr>
-      <tr><td class="td-label">Pré-Ativo</td>
-          <td>{_num(by_st["Pré-ativo"]["qtd"])}</td>
-          <td>{_brl(0)}</td>
-          <td class="td-green">{_brl(0)}</td></tr>
-      <tr><td class="td-label">Excedente de Dados (MB)</td>
-          <td>{f"{qtd_mb:,.0f} MB".replace(",",".")}</td>
-          <td>{_brl(val_exc_out)}</td>
-          <td class="td-green">{_brl(val_exc_out)}</td></tr>
-      <tr><td class="td-label">SMS</td>
-          <td>{_num(qtd_sms)}</td>
-          <td>{_brl(val_sms)}</td>
-          <td class="td-green">{_brl(val_sms)}</td></tr>
-      <tr><td class="td-label">Frete</td>
-          <td>{_num(qtd_frete)}</td>
-          <td>{_brl(val_frete)}</td>
-          <td class="td-green">{_brl(val_frete)}</td></tr>
-      <tr><td class="td-label">Pacote Mensageria</td>
-          <td>{_num(qtd_msg)}</td>
-          <td>{_brl(val_msg)}</td>
-          <td class="td-green">{_brl(val_msg)}</td></tr>
+      {linhas_outros}
       <tr class="subtotal-row">
-        <td colspan="3" style="text-align:left;padding-left:24px;">SUBTOTAL</td>
+        <td colspan="4" style="text-align:left;padding-left:24px;">SUBTOTAL</td>
         <td class="td-green">{_brl(outros_total)}</td>
       </tr>
     </tbody>
   </table>
 
-  {extra_html}
   <div class="total-final">
     <span class="tf-label">Total Geral</span>
     <span class="tf-value">{_brl(total)}</span>
