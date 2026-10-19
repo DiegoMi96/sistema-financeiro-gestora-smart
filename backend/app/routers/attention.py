@@ -54,7 +54,7 @@ def _validar(data: AttentionIn) -> dict:
     """Normaliza e valida; devolve os campos prontos pra gravar."""
     motivo = (data.motivo or "").strip().lower()
     if motivo not in MOTIVOS:
-        raise HTTPException(status_code=422, detail="Motivo inválido — use Ativação, Cancelamento, Desconto ou Não arredondar reajuste.")
+        raise HTTPException(status_code=422, detail="Motivo inválido — use Ativação, Cancelamento, Desconto, Não arredondar reajuste ou Sem Clube Smart.")
     cid = norm_id(data.id_smart) or norm_id(data.cnpj)
     if not cid:
         raise HTTPException(status_code=422, detail="Informe o CNPJ/CPF ou o ID Smart do cliente.")
@@ -79,7 +79,7 @@ def _validar(data: AttentionIn) -> dict:
         if tipo == "percentual" and valor > 100:
             raise HTTPException(status_code=422, detail="Desconto percentual não pode passar de 100%.")
         out["desconto_tipo"], out["desconto_valor"] = tipo, float(valor)
-    elif motivo == "sem_arredondamento":
+    elif motivo in ("sem_arredondamento", "sem_clube"):
         out["proporcional"] = False
     else:
         out["proporcional"] = bool(data.proporcional)

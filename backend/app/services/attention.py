@@ -6,6 +6,7 @@ Lê a tabela client_attention e devolve:
   - ativ   : ids com ativação proporcional   (dias = total do mês - DAY(ativação) + 1)
   - desconto: {id: [regras de desconto]}     (abatido do total do cliente, com motivo na descrição)
   - sem_arredondamento: ids cujo reajuste NÃO é arredondado pra cima (usa arredondamento normal ao centavo)
+  - sem_clube: ids que saíram do Clube Smart (sem desconto de frete, sem novos parcelamentos, sem a linha do Clube)
 
 Mesmo formato de id do motor ("ss_" + dígitos) — ver _sanitize_id em billing_engine.
 """
@@ -15,9 +16,9 @@ from sqlalchemy.orm import Session
 
 from app.models import ClientAttention, BillingAdjustment, AdjustmentType, User
 
-MOTIVOS = ("ativacao", "cancelamento", "desconto", "sem_arredondamento")
+MOTIVOS = ("ativacao", "cancelamento", "desconto", "sem_arredondamento", "sem_clube")
 MOTIVO_LABEL = {"ativacao": "Ativação", "cancelamento": "Cancelamento", "desconto": "Desconto",
-                "sem_arredondamento": "Não arredondar reajuste"}
+                "sem_arredondamento": "Não arredondar reajuste", "sem_clube": "Sem Clube Smart"}
 DESCONTO_TIPOS = ("percentual", "valor")
 JUSTIFICATIVA_PREFIXO = "Desconto automático (aba Atenção)"
 ANALISTA_AUTO = "Sistema (aba Atenção)"
@@ -34,6 +35,7 @@ def load_attention_rules(db: Session) -> dict:
     ativ: set = set()
     desconto: dict = {}
     sem_arred: set = set()
+    sem_clube: set = set()
     rows = db.query(ClientAttention).all()
     for r in rows:
         cid = norm_id(r.id_smart)
@@ -45,13 +47,15 @@ def load_attention_rules(db: Session) -> dict:
             ativ.add(cid)
         elif r.motivo == "sem_arredondamento":
             sem_arred.add(cid)
+        elif r.motivo == "sem_clube":
+            sem_clube.add(cid)
         elif r.motivo == "desconto" and r.desconto_tipo in DESCONTO_TIPOS and (r.desconto_valor or 0) > 0:
             desconto.setdefault(cid, []).append({
                 "tipo": r.desconto_tipo,
                 "valor": float(r.desconto_valor),
                 "obs": (r.obs or "").strip(),
             })
-    return {"cancel": cancel, "ativ": ativ, "desconto": desconto, "sem_arredondamento": sem_arred, "total": len(rows)}
+    return {"cancel": cancel, "ativ": ativ, "desconto": desconto, "sem_arredondamento": sem_arred, "sem_clube": sem_clube, "total": len(rows)}
 
 
 def calcular_desconto(total: float, regra: dict) -> float:

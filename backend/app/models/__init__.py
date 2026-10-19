@@ -420,6 +420,8 @@ class BillingClientSummary(Base):
     total_mensageria    = Column(Float, default=0.0)
     total_ajustes       = Column(Float, default=0.0)   # soma de descontos/acréscimos
     total_cancelamento  = Column(Float, default=0.0)   # mensalidade + multa dos cancelamentos
+    total_clube         = Column(Float, default=0.0)   # mensalidade do Clube Smart (0 até a 1ª cobrança)
+    total_desc_clube    = Column(Float, default=0.0)   # desconto do Clube no frete (positivo; já abatido do total_final)
     total_final         = Column(Float, default=0.0)   # valor do boleto
 
     # Nome pré-computado para evitar JOINs lentos no endpoint de clientes
@@ -440,6 +442,38 @@ class BillingClientSummary(Base):
     __table_args__ = (
         UniqueConstraint("cycle_id", "client_id", name="uq_summary_cycle_client"),
         Index("ix_summary_cycle", "cycle_id"),
+    )
+
+
+class BillingInstallment(Base):
+    """Parcela de excedente/multa (benefício Clube Smart: parcelamento em 3x).
+
+    Uma linha por parcela. `plano` agrupa as parcelas da mesma dívida
+    ("<id_smart>|<tipo>|<AAAA-MM de origem>"). Chaveada por ano/mês (não por
+    cycle_id) para sobreviver a reprocessamento/exclusão do ciclo.
+    """
+    __tablename__ = "billing_installments"
+
+    id            = Column(Integer, primary_key=True, index=True)
+    plano         = Column(String(80), index=True, nullable=False)
+    id_smart      = Column(String(30), index=True, nullable=False)
+    tipo          = Column(String(12), nullable=False)          # 'excedente' | 'multa'
+    origem_ano    = Column(Integer, nullable=False)
+    origem_mes    = Column(Integer, nullable=False)
+    parcela       = Column(Integer, nullable=False)             # 1..N
+    total_parcelas = Column(Integer, nullable=False)
+    due_ano       = Column(Integer, nullable=False)             # ciclo em que deve ser cobrada
+    due_mes       = Column(Integer, nullable=False)
+    valor         = Column(Float, nullable=False)
+    valor_total   = Column(Float, nullable=False)               # dívida original
+    obs           = Column(String(300))                         # texto base da descrição
+    status        = Column(String(12), nullable=False, default="pendente", index=True)  # pendente|cobrada|antecipada
+    cobrada_ano   = Column(Integer)
+    cobrada_mes   = Column(Integer)
+
+    __table_args__ = (
+        Index("ix_inst_due", "due_ano", "due_mes", "status"),
+        Index("ix_inst_cobrada", "cobrada_ano", "cobrada_mes"),
     )
 
 

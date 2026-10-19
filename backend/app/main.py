@@ -130,6 +130,8 @@ def _run_migrations():
         ("billing_cycles", "error_message",         "TEXT"),
         ("billing_cycles", "data_inicio",           "DATE"),
         ("billing_cycles", "data_fim",              "DATE"),
+        ("billing_client_summaries", "total_clube",      "FLOAT DEFAULT 0"),
+        ("billing_client_summaries", "total_desc_clube", "FLOAT DEFAULT 0"),
     ]
     try:
         cols.append(("users", "custom_role_key", "VARCHAR(100)"))

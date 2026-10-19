@@ -236,6 +236,14 @@ def delete_cycle(
     if cycle.status not in ("rascunho", "revisao", "erro"):
         raise HTTPException(status_code=400, detail=f"Somente ciclos em rascunho, revisão ou erro podem ser excluídos. Status atual: {cycle.status}")
 
+    # Parcelas do Clube Smart: as cobradas aqui voltam a pendente e os planos nascidos aqui são apagados
+    from app.services.clube import liberar_ciclo as _liberar_parcelas
+    try:
+        _liberar_parcelas(db, cycle.year, cycle.month)
+    except ValueError as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
     # Apaga filhos primeiro (FK sem CASCADE)
     db.query(BillingLine).filter(BillingLine.cycle_id == cycle_id).delete(synchronize_session=False)
     db.query(BillingClientSummary).filter(BillingClientSummary.cycle_id == cycle_id).delete(synchronize_session=False)
@@ -443,7 +451,7 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
     import os as _os
     import pandas as pd
     from collections import defaultdict
-    from app.services.billing_engine import BillingEngineService
+    from app.services.billing_engine import BillingEngineService, _kb_to_mb
     from app.database import SessionLocal
     from sqlalchemy import text as _text
     import shutil, re as _re
@@ -489,6 +497,12 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
         print(f"📋 Aba Atenção: {_atencao['total']} linha(s) — {len(_atencao['cancel'])} cancel. proporcional, "
               f"{len(_atencao['ativ'])} ativ. proporcional, {len(_atencao['desconto'])} com desconto, "
               f"{len(_atencao['sem_arredondamento'])} sem arredondar reajuste", flush=True)
+
+        # ── Clube Smart: configuração + libera parcelas de um processamento anterior deste ciclo ──
+        from app.services import clube as _clube
+        _clube_cfg = _clube.carregar_config(db)
+        _sem_clube = set(_atencao.get("sem_clube") or ())
+        _clube.liberar_ciclo(db, year, month)
 
         print(f"⏳ Iniciando motor — ciclo {cycle_id} ({month:02d}/{year})", flush=True)
         engine = BillingEngineService(year=year, month=month,
@@ -596,6 +610,9 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
                 msisdn=str(row.get("MSISDN", "") or ""),
                 operadora=None,
                 status=row.get("Status"),
+                nome_pedido=_s(row, "Nome do pedido"),
+                mensalidade_base=float(row.get("_mensalidade_base", 0) or 0),
+                excedente_cobrado=float(row.get("_excedente", 0) or 0),
                 data_ativacao=_safe_date(row.get("_data_ativacao")),
                 data_cancelamento=_safe_date(row.get("_data_cancelamento")),
                 dias=int(row.get("_dias", 0) or 0),
@@ -619,6 +636,8 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
         acc_qtd_at = defaultdict(int)     # qtd Ativo
         acc_qtd_av = defaultdict(int)     # qtd com ativação
         acc_qtd_su = defaultdict(int)     # qtd Suspenso
+        acc_live   = defaultdict(int)     # linhas do inventário que não são Cancelamento (cliente "vivo")
+        acc_mb_exc = defaultdict(float)   # MB de excedente (para a descrição do parcelamento)
         nome_map: dict = {}               # id_smart → nome cliente
         da_map:   dict = {}               # ICCID → data ativação (para cancelamentos)
 
@@ -670,6 +689,12 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
                 acc_qtd_at[id_smart] += int((status_grp == "Ativo").sum())
                 acc_qtd_av[id_smart] += int((grp["_ativacao"] > 0).sum())
                 acc_qtd_su[id_smart] += int((status_grp == "Suspenso").sum())
+                acc_live[id_smart]   += int((status_grp != "Cancelamento").sum())
+                _m_exc = grp["_excedente"] > 0
+                if _m_exc.any() and "Crédito adicionado no Simcard" in grp.columns:
+                    acc_mb_exc[id_smart] += float(
+                        pd.to_numeric(grp.loc[_m_exc, "Crédito adicionado no Simcard"], errors="coerce")
+                        .fillna(0).apply(_kb_to_mb).sum())
 
             # Mapa de nomes (primeiro valor não-nulo por cliente)
             for col in ["Nome do cliente", "Apelido"]:
@@ -694,6 +719,39 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
                 db.flush()
             frete_map = df_fretes.groupby("ID_CPF/CNPJ")["_total"].sum().to_dict()
             print(f"  ✅ {len(df_fretes)} linhas de fretes gravadas", flush=True)
+
+        # ── Clube Smart: desconto de frete (só categoria "Software" = SIM card; limite por frete) ──
+        desc_frete_map: dict = {}
+        if not df_fretes.empty and "_categoria" in df_fretes.columns:
+            _rows_desc = []
+            _sem_cat = 0
+            for r in df_fretes.to_dict("records"):
+                cli = r.get("ID_CPF/CNPJ")
+                if not _clube.eh_software(r.get("_categoria")):
+                    if str(r.get("_categoria") or "").strip().lower() in ("", "nan", "none"):
+                        _sem_cat += 1
+                    continue
+                if cli in _sem_clube:
+                    continue
+                d = _clube.desconto_frete(r.get("_total"), _clube_cfg)
+                if d <= 0:
+                    continue
+                ped = str(r.get("_pedido") or "").strip()
+                ped = "" if ped.lower() in ("nan", "none") else ped
+                _rows_desc.append({
+                    "ID_CPF/CNPJ": cli, "CPF/CNPJ": r.get("CPF/CNPJ"), "Nome do cliente": r.get("Nome do cliente"),
+                    "Status": _clube.STATUS_DESC_FRETE,
+                    "Nome do pedido": (f"Clube Smart – {_clube_cfg['clube_frete_pct']:g}% de desconto no frete"
+                                       f" (limite {_clube.brl(_clube_cfg['clube_frete_limite'])})"
+                                       + (f" – Pedido {ped}" if ped else "")),
+                    "_dias": 0, "_total": -d,
+                })
+                desc_frete_map[cli] = round(desc_frete_map.get(cli, 0.0) + d, 2)
+            for i in range(0, len(_rows_desc), BATCH_SIZE):
+                db.bulk_save_objects([_extra_line(r) for r in _rows_desc[i:i + BATCH_SIZE]])
+                db.flush()
+            print(f"  ✅ Clube Smart: {len(_rows_desc)} desconto(s) de frete (R$ {sum(desc_frete_map.values()):,.2f}); "
+                  f"{_sem_cat} frete(s) sem categoria (sem desconto)", flush=True)
 
         # ── Mensageria ────────────────────────────────────────────────────────
         df_men = ref["df_mensageria"]
@@ -726,6 +784,57 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
             sms_cr           = df_cr.groupby("ID_CPF/CNPJ")["_sms"].sum().to_dict()
             qtd_cancel       = df_cr.groupby("ID_CPF/CNPJ").size().to_dict()
             print(f"  ✅ {len(df_cr)} linhas de cancelamento gravadas", flush=True)
+
+        # ── Clube Smart: mensalidade (R$ 0,00 até o ciclo da 1ª cobrança) ─────
+        vivos = {c for c, n in acc_live.items() if n > 0}
+        clube_val = _clube.mensalidade_clube(year, month, _clube_cfg)
+        clube_map: dict = {}
+        _clube_ids = sorted(vivos - _sem_clube)
+        for i in range(0, len(_clube_ids), BATCH_SIZE):
+            db.bulk_save_objects([_extra_line({
+                "ID_CPF/CNPJ": c, "CPF/CNPJ": c.replace("ss_", ""), "Status": _clube.STATUS_CLUBE,
+                "Nome do pedido": "Clube Smart", "_mensalidade_base": clube_val,
+                "_mensalidade_cobr": clube_val, "_total": clube_val, "_dias": 0,
+            }) for c in _clube_ids[i:i + BATCH_SIZE]])
+            db.flush()
+        if clube_val > 0:
+            clube_map = {c: clube_val for c in _clube_ids}
+        print(f"  ✅ Clube Smart: {len(_clube_ids)} cliente(s), mensalidade R$ {clube_val:.2f}", flush=True)
+
+        # ── Clube Smart: parcelamento de excedente e multa (3x, a partir de R$ 10) ──
+        qtd_multa = df_cr[df_cr["_multa"] > 0].groupby("ID_CPF/CNPJ").size().to_dict() if not df_cr.empty else {}
+        plano = _clube.planejar(
+            db, year, month, _clube_cfg,
+            exc=dict(acc_exc), multa=dict(cancel_multa_map), mb_exc=acc_mb_exc, qtd_multa=qtd_multa,
+            vivos=vivos, sem_clube=_sem_clube)
+        # Linhas de origem seguem com o valor apurado (informativo), mas não entram no total:
+        # quem cobra é a linha da parcela.
+        _zer_exc, _zer_multa = sorted(plano["zerar_exc"]), sorted(plano["zerar_multa"])
+        for i in range(0, len(_zer_exc), 1000):
+            db.execute(_text("""
+                UPDATE billing_lines SET total_linha = total_linha - COALESCE(excedente_cobrado, 0)
+                 WHERE cycle_id = :c AND id_smart = ANY(:ids) AND COALESCE(excedente_cobrado, 0) > 0
+            """), {"c": cycle_id, "ids": _zer_exc[i:i + 1000]})
+        for i in range(0, len(_zer_multa), 1000):
+            db.execute(_text("""
+                UPDATE billing_lines SET total_linha = total_linha - COALESCE(multa_cobrada, 0)
+                 WHERE cycle_id = :c AND id_smart = ANY(:ids) AND status = 'Cancelamento'
+                   AND COALESCE(iccid, '') = '' AND COALESCE(multa_cobrada, 0) > 0
+            """), {"c": cycle_id, "ids": _zer_multa[i:i + 1000]})
+        _rows_parc = []
+        for ln in plano["linhas"]:
+            _rows_parc.append({
+                "ID_CPF/CNPJ": ln["id_smart"], "CPF/CNPJ": ln["id_smart"].replace("ss_", ""),
+                "Status": _clube.STATUS_PARCELA[ln["tipo"]], "Nome do pedido": ln["texto"],
+                "_dias": 0, "_total": ln["valor"],
+                **({"_excedente": ln["valor"]} if ln["tipo"] == "excedente" else {"_multa": ln["valor"]}),
+            })
+        for i in range(0, len(_rows_parc), BATCH_SIZE):
+            db.bulk_save_objects([_extra_line(r) for r in _rows_parc[i:i + BATCH_SIZE]])
+            db.flush()
+        exc_final = plano["exc_final"]
+        print(f"  ✅ Clube Smart: {plano['n_planos']} plano(s) novo(s), {plano['n_carregadas']} parcela(s) de ciclos "
+              f"anteriores, {plano['n_antecipadas']} saldo(s) antecipado(s)", flush=True)
 
         # ── Agrega nomes via Asaas ────────────────────────────────────────────
         if nome_map:
@@ -766,17 +875,20 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
 
         # ── Mapas finais de summary ───────────────────────────────────────────
         cancel_map = {cli: round(float(v), 2) for cli, v in cancel_mens_map.items()}
-        multa_map  = cancel_multa_map
+        multa_map  = plano["multa_final"]
         sms_map_s  = {cli: acc_sms.get(cli, 0) + sms_cr.get(cli, 0)
                       for cli in set(list(acc_sms.keys()) + list(sms_cr.keys()))}
         venc_map   = ref["venc_map"]
 
         # ── Boletos: todos os clientes com total > 0 ──────────────────────────
         # total por cliente = inventário + fretes + mensageria
-        all_clients = set(acc_total.keys()) | set(frete_map.keys()) | set(men_map.keys())
+        all_clients = set(acc_total.keys()) | set(frete_map.keys()) | set(men_map.keys()) | set(exc_final.keys())
         boleto_rows = []
         for cli in all_clients:
-            tot = (acc_total.get(cli, 0) + frete_map.get(cli, 0) + men_map.get(cli, 0))
+            # excedente: troca o apurado pelo cobrado (parcela); Clube soma; desconto de frete abate
+            tot = (acc_total.get(cli, 0) + (exc_final.get(cli, 0) - acc_exc.get(cli, 0))
+                   + frete_map.get(cli, 0) + men_map.get(cli, 0)
+                   + clube_map.get(cli, 0) - desc_frete_map.get(cli, 0))
             if round(tot, 2) <= 0:
                 continue
             boleto_rows.append({
@@ -798,17 +910,20 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
                 nome_cliente=nome_map.get(cli),
                 total_mensalidade=round(float(acc_mens.get(cli, 0)), 2),
                 total_ativacao=round(float(acc_ativ.get(cli, 0)), 2),
-                total_excedente=round(float(acc_exc.get(cli, 0)), 2),
+                total_excedente=round(float(exc_final.get(cli, 0)), 2),
                 total_multa=round(float(multa_map.get(cli, 0)), 2),
                 total_sms=round(float(sms_map_s.get(cli, 0)), 2),
                 total_frete=round(float(frete_map.get(cli, 0)), 6),
                 total_mensageria=round(float(men_map.get(cli, 0)), 2),
                 total_cancelamento=round(float(cancel_map.get(cli, 0)), 2),
+                total_clube=round(float(clube_map.get(cli, 0)), 2),
+                total_desc_clube=round(float(desc_frete_map.get(cli, 0)), 2),
                 total_final=round(
                     float(acc_mens.get(cli, 0)) + float(acc_ativ.get(cli, 0)) +
-                    float(acc_exc.get(cli, 0))  + float(multa_map.get(cli, 0)) +
+                    float(exc_final.get(cli, 0))  + float(multa_map.get(cli, 0)) +
                     float(sms_map_s.get(cli, 0)) + float(frete_map.get(cli, 0)) +
-                    float(men_map.get(cli, 0))  + float(cancel_map.get(cli, 0)),
+                    float(men_map.get(cli, 0))  + float(cancel_map.get(cli, 0)) +
+                    float(clube_map.get(cli, 0)) - float(desc_frete_map.get(cli, 0)),
                     2
                 ),
                 due_date=_safe_date(row.get("vencimento")),
@@ -990,6 +1105,8 @@ def list_cycle_clients(
             "total_sms":          round(d.get("total_sms") or 0, 2),
             "total_frete":        round(d.get("total_frete") or 0, 2),
             "total_mensageria":   round(d.get("total_mensageria") or 0, 2),
+            "total_clube":        round(d.get("total_clube") or 0, 2),
+            "total_desc_clube":   round(d.get("total_desc_clube") or 0, 2),
             "total_ajustes":      round(d.get("total_ajustes") or 0, 2),
             "total_cancelamento": round(d.get("total_cancelamento") or 0, 2),
             "total_final":        round(d.get("total_final") or 0, 2),
@@ -2072,6 +2189,8 @@ def _summary_to_dict(s: BillingClientSummary) -> dict:
         "total_sms":           round(s.total_sms or 0, 2),
         "total_frete":         round(s.total_frete or 0, 2),
         "total_mensageria":    round(s.total_mensageria or 0, 2),
+        "total_clube":         round(s.total_clube or 0, 2),
+        "total_desc_clube":    round(s.total_desc_clube or 0, 2),
         "total_ajustes":       round(s.total_ajustes or 0, 2),
         "total_final":         round(s.total_final or 0, 2),
         "due_date":            s.due_date.isoformat() if s.due_date else None,

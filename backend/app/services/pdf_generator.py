@@ -320,6 +320,8 @@ def generate_client_invoice_pdf(
     val_msg    = (summary.total_mensageria   or 0) if summary else 0
     val_cancel = (summary.total_cancelamento or 0) if summary else 0
     val_multa  = (summary.total_multa        or 0) if summary else 0
+    val_clube  = (getattr(summary, "total_clube", 0) or 0) if summary else 0        # mensalidade Clube Smart
+    val_desc   = (getattr(summary, "total_desc_clube", 0) or 0) if summary else 0   # desconto de frete (positivo)
 
     # ── Operadoras table rows ───────────────────────────────
     op_rows = []
@@ -338,7 +340,15 @@ def generate_client_invoice_pdf(
         )
 
     # ── Outros serviços ─────────────────────────────────────
-    outros_total = val_cancel + val_multa + val_exc + val_sms + val_frete + val_msg
+    outros_total = val_cancel + val_multa + val_exc + val_sms + val_frete + val_msg + val_clube - val_desc
+    # Linhas do Clube Smart só aparecem quando há valor (a apresentação completa vem na revisão do PDF)
+    extra_rows = ""
+    if val_desc:
+        extra_rows += (f'<tr><td class="td-label">Desconto de Frete — Clube Smart</td><td>—</td>'
+                       f'<td>-{_brl(val_desc)}</td><td class="td-green">-{_brl(val_desc)}</td></tr>')
+    if val_clube:
+        extra_rows += (f'<tr><td class="td-label">Clube Smart</td><td>1</td>'
+                       f'<td>{_brl(val_clube)}</td><td class="td-green">{_brl(val_clube)}</td></tr>')
 
     logo_uri = f"file://{_LOGO_PATH}"
 
@@ -446,6 +456,7 @@ def generate_client_invoice_pdf(
           <td>{_num(qtd_msg)}</td>
           <td>{_brl(val_msg)}</td>
           <td class="td-green">{_brl(val_msg)}</td></tr>
+      {extra_rows}
       <tr class="subtotal-row">
         <td colspan="3" style="text-align:left;padding-left:24px;">SUBTOTAL</td>
         <td class="td-green">{_brl(outros_total)}</td>

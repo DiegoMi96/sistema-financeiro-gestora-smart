@@ -672,6 +672,8 @@ class BillingEngineService:
             df.columns = ["id", "cliente", "valor"]
             df["id"]    = df["id"].astype(str).str.strip()
             df["valor"] = pd.to_numeric(df["valor"], errors="coerce").fillna(0)
+            df["categoria"] = None   # formato antigo não traz a categoria (Hardware/Software)
+            df["pedido"]    = None
             return df
         except Exception:
             pass
@@ -706,10 +708,17 @@ class BillingEngineService:
                 f"(colunas disponíveis: {list(raw.columns)})"
             )
 
+        # Clube Smart: coluna "CATEGORIA" (Hardware/Software) — só "Software" (SIM card)
+        # recebe o desconto de frete. Ausente/vazia = sem desconto.
+        col_cat = _find("CATEGORIA")
+        col_ped = _find("PEDIDO", "ID_PEDIDO", "NÚMERO DO PEDIDO")
+
         df = pd.DataFrame()
         df["id"]     = raw[col_id].astype(str).str.strip()
         df["cliente"]= raw[col_cli] if col_cli is not None else None
         df["valor"]  = pd.to_numeric(raw[col_valor], errors="coerce").fillna(0)
+        df["categoria"] = raw[col_cat] if col_cat is not None else None
+        df["pedido"]    = raw[col_ped] if col_ped is not None else None
         return df.dropna(subset=["id"])
 
     def _load_vencimentos(self, data: bytes) -> dict:
@@ -948,7 +957,8 @@ class BillingEngineService:
                          "Status": "Frete", "_dias": 0, "_reajuste_pct": 0,
                          "_mensalidade_reaj": 0, "_mensalidade_cobr": 0,
                          "_ativacao": 0, "_excedente": 0, "_multa": 0, "_sms": 0,
-                         "_total": float(r.get("valor",0))})
+                         "_total": float(r.get("valor",0)),
+                         "_categoria": r.get("categoria"), "_pedido": r.get("pedido")})
         return pd.DataFrame(rows)
 
     def _montar_mensageria(self, df_men: "pd.DataFrame") -> "pd.DataFrame":

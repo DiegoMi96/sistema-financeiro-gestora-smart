@@ -16,6 +16,7 @@ const MOTIVOS = [
   { value: 'cancelamento', label: 'Cancelamento', cor: 'bg-red-50 text-red-700 border-red-200' },
   { value: 'desconto',     label: 'Desconto',     cor: 'bg-amber-50 text-amber-700 border-amber-200' },
   { value: 'sem_arredondamento', label: 'Não arredondar reajuste', cor: 'bg-sky-50 text-sky-700 border-sky-200' },
+  { value: 'sem_clube', label: 'Sem Clube Smart', cor: 'bg-violet-50 text-violet-700 border-violet-200' },
 ]
 // Texto de apoio de cada caixinha do formulário
 const MOTIVO_DESC = {
@@ -23,6 +24,7 @@ const MOTIVO_DESC = {
   cancelamento: 'Cancelamento no meio do mês (pode cobrar proporcional)',
   desconto: 'Abate % ou R$ do total do cliente em todo ciclo',
   sem_arredondamento: 'O reajuste não é arredondado para cima: usa o arredondamento normal ao centavo',
+  sem_clube: 'Cliente saiu do Clube Smart: sem desconto de frete, sem novos parcelamentos e sem a linha do Clube',
 }
 const MOTIVO_BY = Object.fromEntries(MOTIVOS.map(m => [m.value, m]))
 
@@ -205,7 +207,7 @@ export default function AttentionPage() {
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap tabular-nums">{fmtDoc(a.cnpj)}</td>
                       <td className="px-4 py-3 text-gray-500 font-mono text-xs truncate" title={a.id_smart}>{a.id_smart}</td>
                       <td className="px-4 py-3 text-center">
-                        {a.motivo === 'desconto' || a.motivo === 'sem_arredondamento'
+                        {a.motivo === 'desconto' || a.motivo === 'sem_arredondamento' || a.motivo === 'sem_clube'
                           ? <span className="text-gray-300">—</span>
                           : <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${a.proporcional ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
                               {a.proporcional ? 'Sim' : 'Não'}
