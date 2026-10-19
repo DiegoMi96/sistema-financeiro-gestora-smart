@@ -356,10 +356,18 @@ def generate_client_invoice_pdf(
         atv  = d.get("atv",  0.0)
         sub  = mens + atv
         tot_ativos += sub
+        if not (qtd or mens or atv):
+            continue          # só aparecem as operadoras que o cliente tem
         op_rows.append(
             f"<tr><td>{op}</td><td>{_num(qtd)}</td>"
             f"<td>{_brl(mens)}</td><td>{_brl(atv)}</td>"
             f"<td class='td-green'>{_brl(sub)}</td></tr>"
+        )
+
+    if not op_rows:           # cliente sem nenhuma linha ativa: mantém a tabela com uma linha zerada
+        op_rows.append(
+            f"<tr><td>—</td><td>{_num(0)}</td><td>{_brl(0)}</td><td>{_brl(0)}</td>"
+            f"<td class='td-green'>{_brl(0)}</td></tr>"
         )
 
     # ── Outros serviços ─────────────────────────────────────
