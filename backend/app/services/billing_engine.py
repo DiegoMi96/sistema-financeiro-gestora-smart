@@ -667,13 +667,18 @@ class BillingEngineService:
     def _load_fretes(self, data: bytes) -> pd.DataFrame:
         # Formato antigo: aba "Resumo" com coluna "ID_CNPJCPF".
         try:
-            df = pd.read_excel(io.BytesIO(data), sheet_name="Resumo", engine="openpyxl")
-            df = df[["ID_CNPJCPF", "DESTINATARIO", "VALOR TOTAL"]].dropna(subset=["ID_CNPJCPF"])
-            df.columns = ["id", "cliente", "valor"]
+            raw_r = pd.read_excel(io.BytesIO(data), sheet_name="Resumo", engine="openpyxl")
+            # Clube Smart: "Categoria" (simcard/software = SIM card → desconto; hardware = sem desconto) e
+            # "PEDIDO" são opcionais nesta aba; ausentes = sem desconto (comportamento anterior).
+            _n = {str(c).strip().lower(): c for c in raw_r.columns}
+            _cat, _ped = _n.get("categoria"), _n.get("pedido")
+            df = raw_r[["ID_CNPJCPF", "DESTINATARIO", "VALOR TOTAL"]].copy()
+            df["categoria"] = raw_r[_cat] if _cat is not None else None
+            df["pedido"]    = raw_r[_ped] if _ped is not None else None
+            df = df.dropna(subset=["ID_CNPJCPF"])
+            df.columns = ["id", "cliente", "valor", "categoria", "pedido"]
             df["id"]    = df["id"].astype(str).str.strip()
             df["valor"] = pd.to_numeric(df["valor"], errors="coerce").fillna(0)
-            df["categoria"] = None   # formato antigo não traz a categoria (Hardware/Software)
-            df["pedido"]    = None
             return df
         except Exception:
             pass

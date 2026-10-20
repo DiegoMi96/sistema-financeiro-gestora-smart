@@ -94,8 +94,10 @@ def desconto_frete(valor: float, cfg: dict) -> float:
 
 
 def eh_software(categoria) -> bool:
-    c = str(categoria or "").strip().lower()
-    return c == "software"
+    """Categoria de frete que recebe o desconto do Clube: SIM card ("simcard"/"sim card"/"software").
+    "hardware" (ou qualquer outra/vazia) fica sem desconto."""
+    c = str(categoria or "").strip().lower().replace(" ", "")
+    return c in ("simcard", "software")
 
 
 # ── parcelamento ───────────────────────────────────────────────────────────────
