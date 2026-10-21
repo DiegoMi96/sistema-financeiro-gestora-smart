@@ -221,12 +221,6 @@ export default function BillingCyclePage() {
         </div>
         <div className="flex items-center gap-2 flex-wrap sm:justify-end">
 {can('can_approve_billing') && (
-            <button onClick={openRemessaModal} className="gs-btn gs-btn-outline gs-btn-sm">
-              <FileDown size={14} />
-              Remessa Asaas
-            </button>
-          )}
-          {can('can_approve_billing') && (
             <button onClick={handleExcel} disabled={excelStatus !== null} className="gs-btn gs-btn-outline gs-btn-sm flex items-center gap-1.5">
               {excelStatus === 'starting'    && <><Loader2 size={14} className="animate-spin" /> Iniciando...</>}
               {excelStatus === 'polling'     && <><Loader2 size={14} className="animate-spin" /> Gerando planilha...</>}
@@ -256,7 +250,7 @@ export default function BillingCyclePage() {
               {cycle.approved_at
                 ? `Aprovado em ${new Date(cycle.approved_at).toLocaleDateString('pt-BR')}.`
                 : 'Ciclo finalizado.'}{' '}
-              Baixe a <button onClick={openRemessaModal} className="underline font-medium hover:text-green-800">Remessa Asaas</button> para enviar ao time de cobranças,
+              Faça a <button onClick={() => setTab('import')} className="underline font-medium hover:text-green-800">Importação e a Remessa Asaas</button> para enviar ao time de cobranças,
               ou o <button onClick={handleExcel} disabled={excelStatus !== null} className="underline font-medium hover:text-green-800 disabled:opacity-50 disabled:cursor-not-allowed">Excel completo</button>.
             </p>
           </div>
@@ -315,6 +309,7 @@ export default function BillingCyclePage() {
             ['clients',    'Clientes',        null,                                      true],
             ['breakdown',  'Resumo por Status', null,                                   can('can_approve_billing') || (can('can_edit_billing') && user?.role !== 'contas_receber')],
             ['adjustments','Ajustes',          adjustments?.length > 0 ? adjustments.length : null, true],
+            ['import',     'Importação',       null,                                      can('can_approve_billing')],
           ].filter(([,,, visible]) => visible).map(([k, l, badge]) => (
             <button key={k} onClick={() => setTab(k)}
               className={`flex items-center gap-1.5 px-5 py-3.5 text-sm font-medium transition-colors border-b-2 ${
@@ -465,6 +460,10 @@ export default function BillingCyclePage() {
         )}
 
         {/* ── Tab: Ajustes ── */}
+        {tab === 'import' && can('can_approve_billing') && (
+          <ImportTab cycleId={+cycleId} cycle={cycle} onRemessaPadrao={openRemessaModal} />
+        )}
+
         {tab === 'adjustments' && (
           <AdjustmentsTab adjustments={adjustments || []} cycleId={cycleId} qc={qc} can={can} />
         )}
@@ -606,6 +605,226 @@ function StatusBadge({ status }) {
     <span className={`text-sm ${status === 'Total Geral' ? 'font-semibold text-green-700' : 'text-gray-700'}`}>
       {status}
     </span>
+  )
+}
+
+// ── Aba Importação: valida a planilha de lançamento do Asaas e gera a remessa final ──
+const SITUACAO = {
+  ok:      { label: 'OK',      cls: 'bg-green-100 text-green-700' },
+  atencao: { label: 'Atenção', cls: 'bg-amber-100 text-amber-700' },
+  erro:    { label: 'Erro',    cls: 'bg-red-100 text-red-700' },
+}
+const fmtData = iso => iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4) : '—'
+
+function ImportTab({ cycleId, cycle, onRemessaPadrao }) {
+  const [file, setFile]         = useState(null)
+  const [result, setResult]     = useState(null)
+  const [incluir, setIncluir]   = useState({})          // linha do Excel → true/false
+  const [filtro, setFiltro]     = useState('todos')
+  const [busca, setBusca]       = useState('')
+  const [loading, setLoading]   = useState(false)
+  const [gerando, setGerando]   = useState(false)
+  const [verFalt, setVerFalt]   = useState(false)
+
+  const validar = async (f) => {
+    if (!f) return
+    setLoading(true)
+    try {
+      const fd = new FormData()
+      fd.append('planilha', f)
+      const r = await billingApi.validateImport(cycleId, fd)
+      setResult(r.data)
+      setIncluir(Object.fromEntries(r.data.itens.map(i => [i.linha, i.incluir])))
+      setFiltro('todos'); setBusca(''); setVerFalt(false)
+    } catch (e) {
+      setResult(null)
+      toast.error(e.response?.data?.detail || 'Erro ao validar a planilha')
+    } finally { setLoading(false) }
+  }
+
+  const onEscolher = (e) => {
+    const f = e.target.files?.[0]
+    e.target.value = ''
+    if (!f) return
+    setFile(f); validar(f)
+  }
+
+  const itens = result?.itens || []
+  const marcada = (i) => i.situacao !== 'erro' && !!incluir[i.linha]       // erro nunca entra na remessa
+  const selecionadas = itens.filter(marcada)
+  const valorSel = selecionadas.reduce((a, i) => a + (i.valor || 0), 0)
+
+  const visiveis = itens.filter(i => {
+    if (filtro === 'desmarcados' ? marcada(i) : (filtro !== 'todos' && i.situacao !== filtro)) return false
+    if (busca.trim()) {
+      const q = busca.trim().toLowerCase()
+      return (i.nome || '').toLowerCase().includes(q) || (i.id_smart || '').toLowerCase().includes(q) || (i.cnpj || '').includes(q.replace(/\D/g, '') || '§')
+    }
+    return true
+  })
+
+  const gerarRemessa = async () => {
+    setGerando(true)
+    try {
+      const excluir = itens.filter(i => !marcada(i)).map(i => i.linha)
+      const fd = new FormData()
+      fd.append('planilha', file)
+      fd.append('excluir', JSON.stringify(excluir))
+      const r = await billingApi.remessaImport(cycleId, fd)
+      _download(r.data, `Remessa_Asaas_${String(cycle?.month).padStart(2, '0')}_${cycle?.year}.xlsx`)
+      toast.success(`Remessa gerada com ${selecionadas.length} cobranças`)
+    } catch (e) {
+      toast.error('Erro ao gerar a remessa')
+    } finally { setGerando(false) }
+  }
+
+  const res = result?.resumo
+  const Card = ({ label, children, tone }) => (
+    <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 min-w-0">
+      <p className="gs-label">{label}</p>
+      <p className={`text-base font-semibold truncate ${tone || 'text-gray-800'}`}>{children}</p>
+    </div>
+  )
+
+  return (
+    <div className="p-5 space-y-5">
+      {/* Envio da planilha */}
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="gs-btn gs-btn-outline gs-btn-sm cursor-pointer flex items-center gap-1.5">
+          {loading ? <Loader2 size={14} className="animate-spin" /> : <FileDown size={14} />}
+          {file ? 'Trocar planilha' : 'Escolher planilha'}
+          <input type="file" accept=".xlsx" className="hidden" onChange={onEscolher} disabled={loading} />
+        </label>
+        <span className="text-sm text-gray-500 truncate max-w-md">
+          {file ? file.name : 'Planilha de lançamento no modelo de importação do Asaas (.xlsx)'}
+        </span>
+        <button onClick={onRemessaPadrao} className="ml-auto text-xs text-gray-400 hover:text-gray-600 underline">
+          Sem planilha? Gerar remessa padrão do sistema
+        </button>
+      </div>
+
+      {!result && !loading && (
+        <div className="border border-dashed border-gray-200 rounded-xl p-8 text-center text-sm text-gray-500">
+          Suba a planilha para validar contra o ciclo. Você revisa linha a linha, desmarca quem não deve entrar
+          (por exemplo, quem mudou para o Itaú) e clica em <b>Remessa</b>. Nada é enviado ao Asaas nesta etapa:
+          a remessa é a própria planilha, já sem as linhas desmarcadas.
+        </div>
+      )}
+
+      {result && (<>
+        {/* Resumo */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Card label="Linhas na planilha">{fmtN(res.linhas)}</Card>
+          <Card label="Valor da planilha">{fmt(res.total_planilha)}</Card>
+          <Card label="Valor do ciclo">{fmt(res.total_ciclo)}</Card>
+          <Card label="Diferença" tone={Math.abs(res.diferenca) > 0.01 ? 'text-red-600' : 'text-green-700'}>{fmt(res.diferenca)}</Card>
+          <Card label="OK" tone="text-green-700">{fmtN(res.ok)}</Card>
+          <Card label="Atenção" tone="text-amber-600">{fmtN(res.atencao)}</Card>
+          <Card label="Erro" tone={res.erro > 0 ? 'text-red-600' : 'text-gray-800'}>{fmtN(res.erro)}</Card>
+          <Card label="Do ciclo fora da planilha" tone={res.faltantes_sem_itau_qtd > 0 ? 'text-amber-600' : 'text-gray-800'}>
+            {fmtN(res.faltantes_qtd)} · {fmt(res.faltantes_valor)}
+          </Card>
+        </div>
+
+        {res.faltantes_qtd > 0 && (
+          <div className="text-xs text-gray-500">
+            <button onClick={() => setVerFalt(v => !v)} className="underline hover:text-gray-700">
+              {verFalt ? 'Ocultar' : 'Ver'} clientes do ciclo que não estão na planilha
+            </button>
+            {verFalt && (
+              <div className="mt-2 border border-gray-100 rounded-lg max-h-48 overflow-y-auto divide-y divide-gray-50">
+                {result.faltantes.map(f => (
+                  <div key={f.id_smart} className="flex items-center gap-3 px-3 py-1.5">
+                    <span className="flex-1 truncate text-gray-700">{f.nome || f.id_smart}</span>
+                    <span className="text-gray-400 font-mono">{f.id_smart}</span>
+                    <span className="w-32 text-right text-gray-700">{fmt(f.valor_ciclo)}</span>
+                    <span className={`w-36 text-right ${f.motivo === 'fora da planilha' ? 'text-amber-600' : 'text-gray-400'}`}>{f.motivo}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Filtros */}
+        <div className="flex flex-wrap items-center gap-2">
+          {[['todos','Todos'],['ok','OK'],['atencao','Atenção'],['erro','Erro'],['desmarcados','Fora da remessa']].map(([k, l]) => (
+            <button key={k} onClick={() => setFiltro(k)}
+              className={`px-3 py-1 rounded-full text-xs font-medium border ${filtro === k ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
+              {l}
+            </button>
+          ))}
+          <div className="relative ml-auto">
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar cliente ou CNPJ..."
+              className="pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-sm w-60 focus:ring-2 focus:ring-green-500 focus:outline-none" />
+          </div>
+        </div>
+
+        {/* Tabela */}
+        <div className="border border-gray-100 rounded-xl overflow-hidden">
+          <div className="max-h-[460px] overflow-auto">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 z-10 bg-gray-50">
+                <tr className="text-xs text-gray-400 uppercase tracking-wide border-b border-gray-100">
+                  <th className="py-2 px-3 w-10 text-center">
+                    <input type="checkbox"
+                      checked={visiveis.filter(i => i.situacao !== 'erro').length > 0 && visiveis.filter(i => i.situacao !== 'erro').every(i => incluir[i.linha])}
+                      onChange={e => setIncluir(prev => { const n = { ...prev }; visiveis.forEach(i => { if (i.situacao !== 'erro') n[i.linha] = e.target.checked }); return n })}
+                      title="Marcar/desmarcar as linhas visíveis" />
+                  </th>
+                  <th className="py-2 px-3 text-center w-14">Linha</th>
+                  <th className="py-2 px-3 text-left">Cliente</th>
+                  <th className="py-2 px-3 text-center">Venc.</th>
+                  <th className="py-2 px-3 text-right">Planilha</th>
+                  <th className="py-2 px-3 text-right">Ciclo</th>
+                  <th className="py-2 px-3 text-center">Situação</th>
+                  <th className="py-2 px-3 text-left">Avisos</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visiveis.map(i => (
+                  <tr key={i.linha} className={`border-t border-gray-50 ${marcada(i) ? '' : 'bg-gray-50/70 text-gray-400'}`}>
+                    <td className="py-2 px-3 text-center">
+                      <input type="checkbox" checked={marcada(i)} disabled={i.situacao === 'erro'}
+                        onChange={e => setIncluir(prev => ({ ...prev, [i.linha]: e.target.checked }))} />
+                    </td>
+                    <td className="py-2 px-3 text-center text-xs text-gray-400">{i.linha}</td>
+                    <td className="py-2 px-3 max-w-[260px]">
+                      <p className="font-medium truncate">{i.nome || i.id_smart}</p>
+                      <p className="text-xs text-gray-400 font-mono">{i.id_smart}</p>
+                    </td>
+                    <td className="py-2 px-3 text-center whitespace-nowrap">{fmtData(i.vencimento)}</td>
+                    <td className="py-2 px-3 text-right whitespace-nowrap">{i.valor != null ? fmt(i.valor) : '—'}</td>
+                    <td className="py-2 px-3 text-right whitespace-nowrap">{i.valor_ciclo != null ? fmt(i.valor_ciclo) : '—'}</td>
+                    <td className="py-2 px-3 text-center">
+                      <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-bold ${SITUACAO[i.situacao].cls}`}>{SITUACAO[i.situacao].label}</span>
+                    </td>
+                    <td className="py-2 px-3 text-xs text-gray-500 max-w-[360px]">{i.mensagens.join(' · ') || '—'}</td>
+                  </tr>
+                ))}
+                {visiveis.length === 0 && (
+                  <tr><td colSpan={8} className="py-8 text-center text-sm text-gray-400">Nenhuma linha neste filtro.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Remessa */}
+        <div className="flex flex-wrap items-center gap-3 pt-1">
+          <p className="text-sm text-gray-600">
+            Na remessa: <b>{fmtN(selecionadas.length)}</b> cobranças · <b>{fmt(valorSel)}</b>
+            {itens.length - selecionadas.length > 0 && <span className="text-gray-400"> · {fmtN(itens.length - selecionadas.length)} de fora</span>}
+          </p>
+          <button onClick={gerarRemessa} disabled={gerando || selecionadas.length === 0}
+            className="gs-btn gs-btn-green ml-auto flex items-center gap-1.5 disabled:opacity-50">
+            {gerando ? <Loader2 size={14} className="animate-spin" /> : <FileDown size={14} />}
+            {gerando ? 'Gerando...' : 'Remessa Asaas'}
+          </button>
+        </div>
+      </>)}
+    </div>
   )
 }
 

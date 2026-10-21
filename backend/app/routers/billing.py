@@ -1787,6 +1787,273 @@ async def export_remessa(
     )
 
 
+# ─────────────────────────────────────────────
+# IMPORTAÇÃO DA PLANILHA DE LANÇAMENTO DO ASAAS (aba "Importação" do ciclo)
+# ─────────────────────────────────────────────
+# Sobe a planilha no modelo do Asaas (cabeçalho "Identificador único do CLIENTE…", dados abaixo dele),
+# valida contra o ciclo e gera a remessa final SEM as linhas que o usuário desmarcar.
+# Etapa 1: nada é enviado ao Asaas — só valida e devolve a planilha filtrada (mesmo formato que subiu).
+
+def _norm_txt(v) -> str:
+    import unicodedata
+    return unicodedata.normalize("NFKD", str(v or "")).encode("ascii", "ignore").decode().strip().lower()
+
+
+def _ler_planilha_importacao(content: bytes):
+    """Lê a planilha do modelo Asaas. Devolve (wb, ws, linha_cabecalho, colunas, linhas).
+    `linhas` = [{linha, id, venc, valor, forma, descricao, cpf}] só das linhas com algum dado."""
+    import io as _io
+    import openpyxl
+    from datetime import date, datetime
+
+    try:
+        wb = openpyxl.load_workbook(_io.BytesIO(content), data_only=True)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Arquivo inválido. Envie a planilha .xlsx do modelo de importação do Asaas.")
+    ws = wb.worksheets[0]
+    rows = list(ws.iter_rows(values_only=True))
+
+    # O cabeçalho verdadeiro é a ÚLTIMA linha que começa com "Identificador" (o modelo traz um exemplo antes).
+    hdr_idx = None
+    for i, r in enumerate(rows):
+        if r and r[0] and _norm_txt(r[0]).startswith("identificador"):
+            hdr_idx = i
+    if hdr_idx is None:
+        raise HTTPException(status_code=422, detail="Não achei o cabeçalho \"Identificador único do CLIENTE…\". Use o modelo de importação do Asaas.")
+    hdr = [_norm_txt(c) for c in rows[hdr_idx]]
+
+    def col(*pref, exact=None):
+        for i, h in enumerate(hdr):
+            if exact and h == exact:
+                return i
+        for i, h in enumerate(hdr):
+            if any(h.startswith(p) for p in pref):
+                return i
+        return None
+
+    c_id   = col("identificador")
+    c_venc = col("vencimento")
+    c_val  = col("valor (", exact="valor")
+    c_form = col("forma")
+    c_desc = col("descri")
+    c_cpf  = col("cpf")
+    if c_id is None or c_venc is None or c_val is None:
+        raise HTTPException(status_code=422, detail="Faltam colunas obrigatórias (Identificador, Vencimento e Valor).")
+
+    def _data(v):
+        if isinstance(v, datetime):
+            return v.date()
+        if isinstance(v, date):
+            return v
+        if isinstance(v, str):
+            for f in ("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y"):
+                try:
+                    return datetime.strptime(v.strip()[:10], f).date()
+                except ValueError:
+                    continue
+        return None
+
+    def _num(v):
+        if isinstance(v, (int, float)):
+            return float(v)
+        try:
+            return float(str(v).strip().replace("R$", "").replace(".", "").replace(",", ".")) if v not in (None, "") else None
+        except ValueError:
+            return None
+
+    linhas = []
+    for j, r in enumerate(rows[hdr_idx + 1:], start=hdr_idx + 2):   # j = nº da linha no Excel
+        if not r or not any(c not in (None, "") for c in r):
+            continue
+        g = lambda c: (r[c] if c is not None and c < len(r) else None)
+        linhas.append({
+            "linha": j,
+            "id": str(g(c_id)).strip() if g(c_id) not in (None, "") else "",
+            "venc_raw": g(c_venc), "venc": _data(g(c_venc)),
+            "valor_raw": g(c_val), "valor": _num(g(c_val)),
+            "forma": str(g(c_form) or "").strip(),
+            "descricao": str(g(c_desc) or "").strip(),
+            "cpf": str(g(c_cpf) or "").strip(),
+        })
+    return wb, ws, hdr_idx + 1, linhas
+
+
+@router.post("/cycles/{cycle_id}/import/validate")
+async def validar_importacao(
+    cycle_id: int,
+    planilha: UploadFile = File(...),
+    current_user: User = Depends(require_permission("can_approve_billing")),
+    db: Session = Depends(get_db),
+):
+    """Valida a planilha de lançamento do Asaas contra o ciclo (não grava nada, não envia nada)."""
+    import re as _re
+    from datetime import date as _date
+    from sqlalchemy import text as _t
+
+    cycle = db.query(BillingCycle).filter(BillingCycle.id == cycle_id).first()
+    if not cycle:
+        raise HTTPException(status_code=404, detail="Ciclo não encontrado")
+
+    content = await planilha.read()
+    _wb, _ws, _hdr, linhas = _ler_planilha_importacao(content)
+    if not linhas:
+        raise HTTPException(status_code=422, detail="A planilha não tem nenhuma linha de dados abaixo do cabeçalho.")
+
+    dig = lambda x: _re.sub(r"\D", "", str(x or ""))
+
+    # Resumo do ciclo por cliente
+    ciclo = {}
+    for sm in db.query(BillingClientSummary).filter(BillingClientSummary.cycle_id == cycle_id).all():
+        ciclo[sm.id_smart] = sm
+    ciclo_por_dig = {dig(k): k for k in ciclo}
+
+    # Janela de vencimentos da planilha (para procurar Itaú/Asaas no mesmo mês)
+    vencs = [l["venc"] for l in linhas if l["venc"]]
+    ini = _date(min(vencs).year, min(vencs).month, 1) if vencs else None
+    fim = _date(max(vencs).year, max(vencs).month, 28) if vencs else None
+    import calendar as _cal
+    if fim:
+        fim = _date(fim.year, fim.month, _cal.monthrange(fim.year, fim.month)[1])
+
+    itau, asaas_pg, cli_asaas = {}, {}, set()
+    if ini:
+        for r in db.execute(_t("""
+            SELECT regexp_replace(cpf_cnpj, '\\D', '', 'g') AS c, nosso_numero, data_vencimento, valor_titulo
+            FROM itau_boletos WHERE data_vencimento BETWEEN :i AND :f AND COALESCE(status,'') <> 'cancelada'
+        """), {"i": ini, "f": fim}).fetchall():
+            itau.setdefault(r.c, []).append(r)
+        for r in db.execute(_t("""
+            SELECT regexp_replace(customer_cpf_cnpj, '\\D', '', 'g') AS c, value, due_date, invoice_number
+            FROM asaas_payments_sync WHERE due_date BETWEEN :i AND :f AND COALESCE(status,'') <> 'DELETED'
+        """), {"i": ini, "f": fim}).fetchall():
+            asaas_pg.setdefault(r.c, []).append(r)
+    for r in db.execute(_t("SELECT regexp_replace(cpf_cnpj, '\\D', '', 'g') AS c, external_reference FROM asaas_customers_sync")).fetchall():
+        if r.c:
+            cli_asaas.add(r.c)
+        if r.external_reference:
+            cli_asaas.add(dig(r.external_reference))
+
+    itens, vistos = [], {}
+    for l in linhas:
+        cid = l["id"] if l["id"] in ciclo else ciclo_por_dig.get(dig(l["id"]) or dig(l["cpf"]))
+        d = dig(cid or l["id"]) or dig(l["cpf"])
+        sm = ciclo.get(cid) if cid else None
+        erros, avisos = [], []
+        venc_s = l["venc"].isoformat() if l["venc"] else None
+
+        if not l["id"] and not l["cpf"]:
+            erros.append("sem identificador do cliente")
+        elif not sm:
+            erros.append("cliente não está neste ciclo")
+        if l["venc"] is None:
+            erros.append("vencimento ausente ou inválido")
+        elif l["venc"] < _date.today():
+            erros.append("vencimento no passado")
+        if l["valor"] is None or l["valor"] <= 0:
+            erros.append("valor ausente ou zerado")
+        if cid:
+            if cid in vistos:
+                erros.append(f"cliente repetido (também na linha {vistos[cid]})")
+            else:
+                vistos[cid] = l["linha"]
+
+        valor_ciclo = round(float(sm.total_final or 0), 2) if sm else None
+        dif = round((l["valor"] or 0) - valor_ciclo, 2) if (sm and l["valor"] is not None) else None
+        if dif is not None and abs(dif) > 0.01:
+            avisos.append(f"valor diferente do ciclo ({'+' if dif > 0 else '-'}R$ {abs(dif):,.2f})".replace(",", "X").replace(".", ",").replace("X", "."))
+
+        no_itau = [b for b in itau.get(d, []) if l["venc"] and b.data_vencimento.month == l["venc"].month]
+        if no_itau:
+            avisos.append("já tem boleto do Itaú no mês (nº " + ", ".join(str(b.nosso_numero) for b in no_itau[:3]) + ")")
+        no_asaas = [p for p in asaas_pg.get(d, []) if l["venc"] and p.due_date.month == l["venc"].month]
+        if no_asaas:
+            avisos.append("já existe cobrança no Asaas no mês (" + ", ".join(f"R$ {p.value:,.2f}" for p in no_asaas[:2]).replace(",", "X").replace(".", ",").replace("X", ".") + ")")
+        if d and d not in cli_asaas:
+            avisos.append("cliente não encontrado no Asaas (precisa estar cadastrado)")
+
+        situacao = "erro" if erros else ("atencao" if avisos else "ok")
+        # Já tem boleto no Itaú ou cobrança no Asaas no mês → nasce desmarcado (risco de cobrança em duplicidade)
+        incluir = situacao != "erro" and not no_itau and not no_asaas
+        itens.append({
+            "linha": l["linha"], "id_smart": cid or l["id"], "cnpj": d,
+            "nome": (sm.nome_cliente if sm else None),
+            "vencimento": venc_s, "valor": l["valor"], "valor_ciclo": valor_ciclo, "diferenca": dif,
+            "forma": l["forma"], "descricao": l["descricao"],
+            "situacao": situacao, "mensagens": erros + avisos, "incluir": incluir,
+        })
+
+    na_planilha = {i["id_smart"] for i in itens}
+    faltantes = []
+    for k, sm in ciclo.items():
+        if k in na_planilha or (sm.total_final or 0) <= 0:
+            continue
+        d = dig(k)
+        faltantes.append({
+            "id_smart": k, "nome": sm.nome_cliente, "valor_ciclo": round(float(sm.total_final or 0), 2),
+            "motivo": "tem boleto do Itaú no mês" if any(True for b in itau.get(d, [])) else "fora da planilha",
+        })
+    faltantes.sort(key=lambda x: -x["valor_ciclo"])
+
+    total_planilha = round(sum(i["valor"] or 0 for i in itens), 2)
+    total_ciclo = round(sum(float(sm.total_final or 0) for sm in ciclo.values() if (sm.total_final or 0) > 0), 2)
+    return {
+        "arquivo": planilha.filename,
+        "resumo": {
+            "linhas": len(itens),
+            "ok": sum(1 for i in itens if i["situacao"] == "ok"),
+            "atencao": sum(1 for i in itens if i["situacao"] == "atencao"),
+            "erro": sum(1 for i in itens if i["situacao"] == "erro"),
+            "total_planilha": total_planilha,
+            "total_ciclo": total_ciclo,
+            "diferenca": round(total_planilha - total_ciclo, 2),
+            "faltantes_qtd": len(faltantes),
+            "faltantes_valor": round(sum(f["valor_ciclo"] for f in faltantes), 2),
+            "faltantes_sem_itau_qtd": sum(1 for f in faltantes if f["motivo"] == "fora da planilha"),
+        },
+        "itens": itens,
+        "faltantes": faltantes[:300],
+    }
+
+
+@router.post("/cycles/{cycle_id}/import/remessa")
+async def remessa_da_importacao(
+    cycle_id: int,
+    planilha: UploadFile = File(...),
+    excluir: str = Form("[]"),
+    current_user: User = Depends(require_permission("can_approve_billing")),
+    db: Session = Depends(get_db),
+):
+    """Devolve a MESMA planilha enviada, sem as linhas desmarcadas (números de linha do Excel em `excluir`).
+    Etapa 1: não envia nada ao Asaas — é a planilha pronta para importar lá."""
+    import io as _io, json as _json
+    from fastapi.responses import StreamingResponse
+
+    cycle = db.query(BillingCycle).filter(BillingCycle.id == cycle_id).first()
+    if not cycle:
+        raise HTTPException(status_code=404, detail="Ciclo não encontrado")
+    try:
+        lin_excluir = {int(x) for x in _json.loads(excluir or "[]")}
+    except Exception:
+        raise HTTPException(status_code=422, detail="Lista de linhas a excluir inválida.")
+
+    content = await planilha.read()
+    wb, ws, _hdr, linhas = _ler_planilha_importacao(content)
+    validas = {l["linha"] for l in linhas}
+    for n in sorted(lin_excluir & validas, reverse=True):     # de baixo para cima, para não deslocar as linhas
+        ws.delete_rows(n, 1)
+    buf = _io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    filename = f"Remessa_Asaas_{cycle.month:02d}_{cycle.year}.xlsx"
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"',
+                 "X-Linhas-Mantidas": str(len(validas - lin_excluir)),
+                 "Access-Control-Expose-Headers": "X-Linhas-Mantidas"},
+    )
+
+
 @router.get("/cycles/{cycle_id}/export/remessa-template")
 def export_remessa_template(
     cycle_id: int,
