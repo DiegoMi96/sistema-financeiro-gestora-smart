@@ -29,6 +29,22 @@ _asaas_sync_interval_minutes = _ASAAS_SYNC_INTERVAL_SECONDS // 60
 router = APIRouter(prefix="/analyst", tags=["Dashboard Analista"])
 
 
+_MESES_COMPETENCIA = ["", "JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO", "JULHO",
+                      "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"]
+
+
+def _descricao_itau(vencimento_orig) -> str | None:
+    """Descrição dos boletos do Itaú (o relatório do Itaú não traz descrição): "[ Competência SETEMBRO ]".
+    A competência é o mês do ciclo de faturamento = mês anterior ao vencimento do boleto
+    (vencimento em outubro → competência setembro). Sem vencimento, não gera descrição."""
+    try:
+        d = vencimento_orig if isinstance(vencimento_orig, date) else date.fromisoformat(str(vencimento_orig)[:10])
+    except Exception:
+        return None
+    mes = 12 if d.month == 1 else d.month - 1
+    return f"[ Competência {_MESES_COMPETENCIA[mes]} ]"
+
+
 # ─────────────────────────────────────────────
 # SCHEMAS
 # ─────────────────────────────────────────────
@@ -1225,43 +1241,10 @@ async def get_operational_summary(
     except Exception:
         lista_vencidos = []
 
-    # Descrição dos boletos Itaú (o relatório do Itaú não traz descrição):
-    # gera a partir do resumo de faturamento (qtd de linhas do ciclo mais recente),
-    # cruzando pelo CNPJ. Ex.: "Cobrança referente a 45 linhas — Ref. Jul/2026".
-    try:
-        import re as _re_desc
-        _MESES_ABREV = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
-                        'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
-        _tem_itau_sem_desc = any(v["banco"] == "Itaú" and not v.get("description") for v in lista_vencidos)
-        if _tem_itau_sem_desc:
-            _last_cycle = db.query(BillingCycle).order_by(BillingCycle.id.desc()).first()
-            if _last_cycle:
-                _qtd_por_cnpj = {}
-                for _s in db.execute(text("""
-                    SELECT id_smart, qtd_linhas_ativas
-                    FROM billing_client_summaries WHERE cycle_id = :cid
-                """), {"cid": _last_cycle.id}).fetchall():
-                    _dig = _re_desc.sub(r'\D', '', _s.id_smart or '')
-                    if _dig:
-                        _qtd_por_cnpj[_dig] = _s.qtd_linhas_ativas or 0
-                for _row in lista_vencidos:
-                    if _row["banco"] != "Itaú" or _row.get("description"):
-                        continue
-                    _dig = _re_desc.sub(r'\D', '', _row.get("cnpj") or '')
-                    _qtd = _qtd_por_cnpj.get(_dig)
-                    if not _qtd:
-                        continue
-                    _ref = ''
-                    _vo = _row.get("vencimento_orig")
-                    if _vo and len(str(_vo)) >= 7:
-                        try:
-                            _mm = int(str(_vo)[5:7])
-                            _ref = f" — Ref. {_MESES_ABREV[_mm]}/{str(_vo)[0:4]}"
-                        except Exception:
-                            _ref = ''
-                    _row["description"] = f"Cobrança referente a {_qtd} linhas{_ref}"
-    except Exception:
-        pass
+    # Descrição dos boletos Itaú (o relatório do Itaú não traz descrição): "[ Competência SETEMBRO ]"
+    for _row in lista_vencidos:
+        if _row["banco"] == "Itaú" and not _row.get("description"):
+            _row["description"] = _descricao_itau(_row.get("vencimento_orig"))
 
     # ── Clientes a vencer nos próximos 15 dias ─────────────────
     quinze_dias = hoje + timedelta(days=15)
@@ -2088,38 +2071,12 @@ async def download_vencidos_template(
             return f"{d[:3]}.{d[3:6]}.{d[6:9]}-{d[9:]}"
         return raw or ""
 
-    # Descrição dos boletos Itaú (o relatório do Itaú não traz descrição) —
-    # mesma regra da tela: "Cobrança referente a N linhas — Ref. Mês/Ano".
-    _qtd_map = {}
-    try:
-        if any((r.banco == "Itaú" and not r.description) for r in rows):
-            import re as _re_desc
-            _lc = db.query(BillingCycle).order_by(BillingCycle.id.desc()).first()
-            if _lc:
-                for _s in db.execute(text(
-                    "SELECT id_smart, qtd_linhas_ativas FROM billing_client_summaries WHERE cycle_id = :cid"
-                ), {"cid": _lc.id}).fetchall():
-                    _d = _re_desc.sub(r"\D", "", _s.id_smart or "")
-                    if _d:
-                        _qtd_map[_d] = _s.qtd_linhas_ativas or 0
-    except Exception:
-        pass
-
-    _MESES = ["", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
-              "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
-
+    # Descrição dos boletos Itaú (o relatório do Itaú não traz descrição) — mesma regra da tela.
     def _descricao(r):
         if r.description:
             return r.description
         if r.banco == "Itaú":
-            q = _qtd_map.get(r.cnpj_raw or "")
-            if q:
-                ref = ""
-                vo = r.vencimento_orig
-                if vo:
-                    try: ref = f" — Ref. {_MESES[vo.month]}/{vo.year}"
-                    except Exception: ref = ""
-                return f"Cobrança referente a {q} linhas{ref}"
+            return _descricao_itau(r.vencimento_orig) or ""
         return ""
 
     def _lock(col, value, align="left"):
