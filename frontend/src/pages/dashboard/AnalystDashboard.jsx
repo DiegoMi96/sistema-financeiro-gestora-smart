@@ -9,7 +9,7 @@ import {
   ResponsiveContainer, Cell,
 } from 'recharts'
 import { AlertTriangle, Clock, Edit2, DollarSign, FileText, ExternalLink,
-  TrendingUp, CheckCircle, TrendingDown, Percent, Upload, ChevronRight, X, Users, Download, ChevronDown } from 'lucide-react'
+  TrendingUp, CheckCircle, TrendingDown, Percent, Upload, ChevronRight, X, Users, Download, ChevronDown, Filter } from 'lucide-react'
 import { WeeklyProgress, DailyAccumulated, DailyReceived } from '../../components/dashboard/WeeklyProgressCards'
 
 const fmt   = v => `R$ ${Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -48,6 +48,12 @@ function ListaVencidos({ rows, month, year }) {
   const [uploading,  setUploading]  = useState(false)
   const exportRef = useRef(null)
   const uploadRef = useRef(null)
+  // Filtros da lista (botão "Filtro"): banco, faixa de atraso e valor mínimo
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [fBanco,     setFBanco]     = useState([])
+  const [fDias,      setFDias]      = useState([])
+  const [fValorMin,  setFValorMin]  = useState('')
+  const filterRef = useRef(null)
 
   useEffect(() => {
     if (!month || !year) return
@@ -61,7 +67,10 @@ function ListaVencidos({ rows, month, year }) {
   }, [month, year])
 
   useEffect(() => {
-    const handler = e => { if (!exportRef.current?.contains(e.target)) setExportOpen(false) }
+    const handler = e => {
+      if (!exportRef.current?.contains(e.target)) setExportOpen(false)
+      if (!filterRef.current?.contains(e.target)) setFilterOpen(false)
+    }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
@@ -160,9 +169,23 @@ function ListaVencidos({ rows, month, year }) {
 
   const STR_COLS = new Set(['nome', 'banco', 'email', 'description', 'num_boleto', 'vencimento_planejado', 'observacao'])
 
-  const base = search.trim()
+  // Faixas de atraso (mesmas cores da coluna Dias): até 7, de 8 a 15 e mais de 15 dias
+  const FAIXAS_DIAS = [
+    { key: 'ate7',  label: 'Até 7 dias',    ok: d => d <= 7 },
+    { key: '8a15',  label: '8 a 15 dias',   ok: d => d > 7 && d <= 15 },
+    { key: 'mais15', label: 'Mais de 15 dias', ok: d => d > 15 },
+  ]
+  const valorMin = parseFloat(String(fValorMin).replace(/\./g, '').replace(',', '.')) || 0
+  const nFiltros = (fBanco.length ? 1 : 0) + (fDias.length ? 1 : 0) + (valorMin > 0 ? 1 : 0)
+  const toggle = (arr, setArr, v) => setArr(arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v])
+  const limparFiltros = () => { setFBanco([]); setFDias([]); setFValorMin('') }
+
+  let base = search.trim()
     ? rows.filter(r => r.nome.toLowerCase().includes(search.toLowerCase()))
     : rows
+  if (fBanco.length) base = base.filter(r => fBanco.includes(r.banco))
+  if (fDias.length)  base = base.filter(r => FAIXAS_DIAS.some(f => fDias.includes(f.key) && f.ok(Number(r.dias ?? 0))))
+  if (valorMin > 0)  base = base.filter(r => Number(r.valor || 0) >= valorMin)
 
   const filtered = [...base].sort((a, b) => {
     let av, bv
@@ -249,6 +272,60 @@ function ListaVencidos({ rows, month, year }) {
             </div>
           )}
           <input ref={uploadRef} type="file" accept=".xlsx" className="hidden" onChange={handleUpload} />
+        </div>
+        <div className="relative" ref={filterRef}>
+          <button
+            onClick={() => setFilterOpen(o => !o)}
+            className="gs-btn gs-btn-outline gs-btn-sm flex items-center gap-1.5"
+          >
+            <Filter size={14} />
+            <span className="hidden sm:inline">Filtro</span>
+            {nFiltros > 0 && (
+              <span className="bg-green-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{nFiltros}</span>
+            )}
+            <ChevronDown size={12} />
+          </button>
+          {filterOpen && (
+            <div className="absolute right-0 top-full mt-1 z-20 bg-white border border-gray-200 rounded-lg shadow-lg w-[260px] p-4 space-y-4">
+              <div>
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Banco</p>
+                <div className="flex gap-2">
+                  {['Asaas', 'Itaú'].map(b => (
+                    <label key={b} className="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer">
+                      <input type="checkbox" checked={fBanco.includes(b)} onChange={() => toggle(fBanco, setFBanco, b)} />
+                      {b}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Atraso</p>
+                <div className="space-y-1.5">
+                  {FAIXAS_DIAS.map(f => (
+                    <label key={f.key} className="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer">
+                      <input type="checkbox" checked={fDias.includes(f.key)} onChange={() => toggle(fDias, setFDias, f.key)} />
+                      {f.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Valor mínimo (R$)</p>
+                <input
+                  type="text" inputMode="decimal" placeholder="0,00"
+                  value={fValorMin} onChange={e => setFValorMin(e.target.value)}
+                  className="gs-input text-sm w-full"
+                />
+              </div>
+              <div className="flex items-center justify-between pt-1 border-t border-gray-100">
+                <span className="text-xs text-gray-400">{filtered.length} de {rows.length}</span>
+                <button onClick={limparFiltros} disabled={nFiltros === 0}
+                  className="text-xs font-semibold text-green-700 hover:underline disabled:text-gray-300 disabled:no-underline">
+                  Limpar filtros
+                </button>
+              </div>
+            </div>
+          )}
         </div>
         <input
           type="text"
