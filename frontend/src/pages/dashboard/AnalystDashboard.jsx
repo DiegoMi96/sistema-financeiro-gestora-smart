@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
@@ -856,8 +856,8 @@ export default function AnalystDashboard() {
       </div>
 
 
-      {/* 6 KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      {/* 5 KPIs — 5 por linha só a partir de 1280px (abaixo disso o card fica estreito demais para valores na casa dos milhões) */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
         <KPICard label="Total emitido"
           value={fmt(op?.emitido)}
           sub={`${fmtN(op?.qtd_total)} cobranças`}
@@ -1343,6 +1343,28 @@ function KPICard({ label, value, sub, valueColor, large, icon: Icon, iconColor }
     amber: { background: '#FFFBEB', color: '#D97706' },
   }[iconColor] || { background: '#F0FDF4', color: '#3CB54A' }
 
+  // O valor nunca quebra de linha: fica no tamanho padrão (18px, ou 22px no "large") e só encolhe,
+  // aos poucos, quando o número é grande demais para a largura do card.
+  const valRef = useRef(null)
+  const maxSize = large ? 22 : 18
+  useLayoutEffect(() => {
+    const el = valRef.current
+    if (!el) return
+    const fit = () => {
+      let size = maxSize
+      el.style.fontSize = `${size}px`
+      while (el.scrollWidth > el.clientWidth + 0.5 && size > 11) {
+        size -= 0.5
+        el.style.fontSize = `${size}px`
+      }
+    }
+    fit()
+    if (typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(fit)
+    ro.observe(el.parentElement)
+    return () => ro.disconnect()
+  }, [value, maxSize])
+
   return (
     <div className="gs-card p-4 flex items-center gap-3">
       {Icon && (
@@ -1350,9 +1372,9 @@ function KPICard({ label, value, sub, valueColor, large, icon: Icon, iconColor }
           <Icon size={18} />
         </div>
       )}
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <p className="gs-label">{label}</p>
-        <p className={`gs-value ${valueColor || ''}`} style={large ? { fontSize: 22 } : { fontSize: 18 }}>{value ?? '—'}</p>
+        <p ref={valRef} className={`gs-value whitespace-nowrap ${valueColor || ''}`}>{value ?? '—'}</p>
         {sub && <p className="gs-sub">{sub}</p>}
       </div>
     </div>
