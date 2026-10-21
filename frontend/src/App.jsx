@@ -22,7 +22,6 @@ const ContestationCyclePage    = lazy(() => import('./pages/contestation/Contest
 const AllcomPage               = lazy(() => import('./pages/contestation/AllcomPage'))
 const UsersPage                = lazy(() => import('./pages/auth/UsersPage'))
 const SettingsPage             = lazy(() => import('./pages/settings/SettingsPage'))
-const ClientsPage              = lazy(() => import('./pages/clients/ClientsPage'))
 const OrganoPage               = lazy(() => import('./pages/organograma/OrganoPage'))
 const IndicadoresPage          = lazy(() => import('./pages/controladoria/IndicadoresPage'))
 const ControladoriaDashboard   = lazy(() => import('./pages/controladoria/ControladoriaDashboard'))
@@ -143,8 +142,10 @@ function AppRoutes() {
           />
           <Route path="/dashboard-analista" element={<Navigate to="/dashboard" replace />} />
 
-          {/* Clientes */}
-          <Route path="/clientes" element={<ClientsPage />} />
+          {/* Aba Clientes removida do menu em 21/10/2026 (pouco usada; o cadastro continua no banco e
+              alimenta nomes do faturamento e a busca da Atenção). A página segue em pages/clients/ClientsPage.jsx.
+              Link/favorito antigo vai para o painel. */}
+          <Route path="/clientes" element={<Navigate to="/dashboard" replace />} />
 
           {/* Faturamento — rotas protegidas 01/08/2026 (antes ficavam sem
               PrivateRoute nenhum; bug que deixava Suporte Técnico ver
