@@ -48,10 +48,11 @@ function ListaVencidos({ rows, month, year }) {
   const [uploading,  setUploading]  = useState(false)
   const exportRef = useRef(null)
   const uploadRef = useRef(null)
-  // Filtros da lista (botão "Filtro"): banco, faixa de atraso e valor mínimo
+  // Filtros da lista (botão "Filtro"): banco, período de vencimento e valor mínimo
   const [filterOpen, setFilterOpen] = useState(false)
   const [fBanco,     setFBanco]     = useState([])
-  const [fDias,      setFDias]      = useState([])
+  const [fVencDe,    setFVencDe]    = useState('')
+  const [fVencAte,   setFVencAte]   = useState('')
   const [fValorMin,  setFValorMin]  = useState('')
   const filterRef = useRef(null)
 
@@ -169,22 +170,23 @@ function ListaVencidos({ rows, month, year }) {
 
   const STR_COLS = new Set(['nome', 'banco', 'email', 'description', 'num_boleto', 'vencimento_planejado', 'observacao'])
 
-  // Faixas de atraso (mesmas cores da coluna Dias): até 7, de 8 a 15 e mais de 15 dias
-  const FAIXAS_DIAS = [
-    { key: 'ate7',  label: 'Até 7 dias',    ok: d => d <= 7 },
-    { key: '8a15',  label: '8 a 15 dias',   ok: d => d > 7 && d <= 15 },
-    { key: 'mais15', label: 'Mais de 15 dias', ok: d => d > 15 },
-  ]
   const valorMin = parseFloat(String(fValorMin).replace(/\./g, '').replace(',', '.')) || 0
-  const nFiltros = (fBanco.length ? 1 : 0) + (fDias.length ? 1 : 0) + (valorMin > 0 ? 1 : 0)
+  const nFiltros = (fBanco.length ? 1 : 0) + ((fVencDe || fVencAte) ? 1 : 0) + (valorMin > 0 ? 1 : 0)
   const toggle = (arr, setArr, v) => setArr(arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v])
-  const limparFiltros = () => { setFBanco([]); setFDias([]); setFValorMin('') }
+  const limparFiltros = () => { setFBanco([]); setFVencDe(''); setFVencAte(''); setFValorMin('') }
 
   let base = search.trim()
     ? rows.filter(r => r.nome.toLowerCase().includes(search.toLowerCase()))
     : rows
   if (fBanco.length) base = base.filter(r => fBanco.includes(r.banco))
-  if (fDias.length)  base = base.filter(r => FAIXAS_DIAS.some(f => fDias.includes(f.key) && f.ok(Number(r.dias ?? 0))))
+  if (fVencDe || fVencAte) {
+    // 1º vencimento (vencimento_orig, AAAA-MM-DD): período inclusivo; linha sem data some quando há período
+    base = base.filter(r => {
+      const v = (r.vencimento_orig || '').slice(0, 10)
+      if (!v) return false
+      return (!fVencDe || v >= fVencDe) && (!fVencAte || v <= fVencAte)
+    })
+  }
   if (valorMin > 0)  base = base.filter(r => Number(r.valor || 0) >= valorMin)
 
   const filtered = [...base].sort((a, b) => {
@@ -299,14 +301,16 @@ function ListaVencidos({ rows, month, year }) {
                 </div>
               </div>
               <div>
-                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Atraso</p>
-                <div className="space-y-1.5">
-                  {FAIXAS_DIAS.map(f => (
-                    <label key={f.key} className="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer">
-                      <input type="checkbox" checked={fDias.includes(f.key)} onChange={() => toggle(fDias, setFDias, f.key)} />
-                      {f.label}
-                    </label>
-                  ))}
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Vencimento</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="text-xs text-gray-500">De
+                    <input type="date" value={fVencDe} max={fVencAte || undefined}
+                      onChange={e => setFVencDe(e.target.value)} className="gs-input text-sm w-full mt-0.5" />
+                  </label>
+                  <label className="text-xs text-gray-500">Até
+                    <input type="date" value={fVencAte} min={fVencDe || undefined}
+                      onChange={e => setFVencAte(e.target.value)} className="gs-input text-sm w-full mt-0.5" />
+                  </label>
                 </div>
               </div>
               <div>
