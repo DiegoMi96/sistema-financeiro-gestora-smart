@@ -477,6 +477,50 @@ class BillingInstallment(Base):
     )
 
 
+class AsaasRemessaJob(Base):
+    """Execução de "Criar cobranças no Asaas" (aba Importação do ciclo). Progresso vive no banco
+    porque o backend roda com mais de um worker."""
+    __tablename__ = "asaas_remessa_jobs"
+
+    id          = Column(Integer, primary_key=True, index=True)
+    cycle_id    = Column(Integer, index=True, nullable=False)
+    ambiente    = Column(String(10), nullable=False)               # 'sandbox' | 'producao'
+    simular     = Column(Boolean, default=False)                   # True = só confere, não cria nada
+    status      = Column(String(12), nullable=False, default="rodando")   # rodando|concluido|erro|cancelado
+    total       = Column(Integer, default=0)
+    feitos      = Column(Integer, default=0)
+    criadas     = Column(Integer, default=0)
+    existentes  = Column(Integer, default=0)
+    erros       = Column(Integer, default=0)
+    params      = Column(Text)                                     # JSON: descrição, juros, multa, forma…
+    mensagem    = Column(Text)
+    created_by  = Column(Integer)
+    started_at  = Column(DateTime(timezone=True), server_default=func.now())
+    finished_at = Column(DateTime(timezone=True))
+
+
+class AsaasRemessaItem(Base):
+    """Uma cobrança da remessa. Chave de idempotência: cycle_id + id_smart + ambiente."""
+    __tablename__ = "asaas_remessa_itens"
+
+    id                 = Column(Integer, primary_key=True, index=True)
+    job_id             = Column(Integer, index=True, nullable=False)
+    cycle_id           = Column(Integer, index=True, nullable=False)
+    id_smart           = Column(String(40), index=True, nullable=False)
+    linha              = Column(Integer)
+    ambiente           = Column(String(10), nullable=False)
+    vencimento         = Column(Date)
+    valor              = Column(Float)
+    status             = Column(String(12), nullable=False, default="pendente", index=True)  # pendente|criada|existente|simulada|erro
+    external_reference = Column(String(80))
+    asaas_customer_id  = Column(String(60))
+    asaas_payment_id   = Column(String(60))
+    invoice_url        = Column(String(300))
+    dados              = Column(Text)        # JSON com o que será enviado: descrição, forma, juros, multa, tipo da multa
+    erro               = Column(Text)
+    updated_at         = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
 # ══════════════════════════════════════════════════════════════
 # AJUSTES E JUSTIFICATIVAS
 # ══════════════════════════════════════════════════════════════

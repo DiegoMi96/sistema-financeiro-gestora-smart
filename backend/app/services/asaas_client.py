@@ -1,6 +1,8 @@
 """
-Integração com a API do Asaas — somente leitura.
-Consulta boletos e atualiza status no banco.
+Integração com a API do Asaas.
+Leitura: consulta boletos e atualiza status no banco.
+Escrita (aba Importação do ciclo): cria cobranças — SEMPRE por `get_asaas_creation_client`, que escolhe
+sandbox (padrão) ou produção conforme a configuração, nunca a chave de produção por acidente.
 """
 import asyncio
 import httpx
@@ -180,7 +182,98 @@ class AsaasClient:
             return data.get("invoiceUrl") or data.get("bankSlipUrl")
 
 
+    # ── Escrita (criação de cobranças) ────────────────────────────────────────
+
+    async def _req(self, method: str, path: str, *, params: dict = None, json: dict = None, tentativas: int = 5):
+        """Chamada com repetição automática quando o Asaas limita o ritmo (HTTP 429)."""
+        ultimo = None
+        for n in range(tentativas):
+            async with httpx.AsyncClient() as client:
+                r = await client.request(method, f"{self.base_url}{path}", params=params, json=json,
+                                         headers=self.headers, timeout=30.0)
+            if r.status_code != 429:
+                return r
+            ultimo = r
+            espera = r.headers.get("Retry-After")
+            try:
+                espera = float(espera) if espera else 2.0 * (n + 1)
+            except ValueError:
+                espera = 2.0 * (n + 1)
+            await asyncio.sleep(min(espera, 30.0))
+        return ultimo
+
+    @staticmethod
+    def erro_legivel(r) -> str:
+        """Mensagem de erro do Asaas em português simples."""
+        try:
+            erros = r.json().get("errors") or []
+            msgs = [e.get("description") or e.get("code") for e in erros if e]
+            if msgs:
+                return "; ".join(str(m) for m in msgs)[:400]
+        except Exception:
+            pass
+        return f"HTTP {r.status_code}"
+
+    async def find_customer(self, *, cpf_cnpj: str = None, external_reference: str = None) -> Optional[dict]:
+        params = {"limit": 1}
+        if cpf_cnpj:
+            params["cpfCnpj"] = cpf_cnpj
+        if external_reference:
+            params["externalReference"] = external_reference
+        r = await self._req("GET", "/customers", params=params)
+        if r.status_code != 200:
+            raise RuntimeError(f"consulta de cliente falhou: {self.erro_legivel(r)}")
+        data = r.json().get("data") or []
+        return data[0] if data else None
+
+    async def create_customer(self, payload: dict) -> dict:
+        r = await self._req("POST", "/customers", json=payload)
+        if r.status_code not in (200, 201):
+            raise RuntimeError(f"criação de cliente falhou: {self.erro_legivel(r)}")
+        return r.json()
+
+    async def find_payment_by_external_ref(self, ref: str) -> Optional[dict]:
+        """Cobrança já criada com esta referência (ignora as removidas)."""
+        r = await self._req("GET", "/payments", params={"externalReference": ref, "limit": 10})
+        if r.status_code != 200:
+            raise RuntimeError(f"consulta de cobrança falhou: {self.erro_legivel(r)}")
+        for p in r.json().get("data") or []:
+            if not p.get("deleted"):
+                return p
+        return None
+
+    async def create_payment(self, payload: dict) -> dict:
+        r = await self._req("POST", "/payments", json=payload)
+        if r.status_code not in (200, 201):
+            raise RuntimeError(self.erro_legivel(r))
+        return r.json()
+
+
 # ─── Dependency ───────────────────────────────────────────────────────────────
+
+SANDBOX_URL_PADRAO = "https://api-sandbox.asaas.com/v3"
+
+
+def get_asaas_creation_client(db):
+    """Cliente para CRIAR cobranças. Devolve (cliente, ambiente) com ambiente 'sandbox' ou 'producao'.
+
+    Padrão = sandbox, com chave PRÓPRIA (asaas_sandbox_api_key). Só vai para produção se alguém trocar
+    asaas_criar_modo para "producao" em Configurações. A chave de produção nunca é usada no modo sandbox.
+    """
+    from app.routers.settings import _get as _g
+    modo = (_g(db, "asaas_criar_modo") or "sandbox").strip().lower()
+    if modo == "producao":
+        key = _g(db, "asaas_api_key") or settings.ASAAS_API_KEY
+        url = _g(db, "asaas_base_url") or settings.ASAAS_BASE_URL
+        if not key:
+            raise ValueError("A chave de produção do Asaas não está configurada.")
+        return AsaasClient(api_key=key, base_url=url), "producao"
+    key = _g(db, "asaas_sandbox_api_key")
+    url = _g(db, "asaas_sandbox_base_url") or SANDBOX_URL_PADRAO
+    if not key:
+        raise ValueError("A chave do sandbox do Asaas não está configurada (Configurações → Integrações → Asaas).")
+    return AsaasClient(api_key=key, base_url=url), "sandbox"
+
 
 def get_asaas_client(db=None) -> AsaasClient:
     """

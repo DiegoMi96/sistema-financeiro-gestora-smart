@@ -1837,6 +1837,9 @@ def _ler_planilha_importacao(content: bytes):
     c_form = col("forma")
     c_desc = col("descri")
     c_cpf  = col("cpf")
+    c_juros  = col("% juros", "juros")
+    c_multa  = col("valor multa", "multa")
+    c_tmulta = col("tipo da multa")
     if c_id is None or c_venc is None or c_val is None:
         raise HTTPException(status_code=422, detail="Faltam colunas obrigatórias (Identificador, Vencimento e Valor).")
 
@@ -1874,30 +1877,20 @@ def _ler_planilha_importacao(content: bytes):
             "forma": str(g(c_form) or "").strip(),
             "descricao": str(g(c_desc) or "").strip(),
             "cpf": str(g(c_cpf) or "").strip(),
+            "juros": _num(g(c_juros)), "multa": _num(g(c_multa)),
+            "tmulta": str(g(c_tmulta) or "").strip(),
         })
-    return wb, ws, hdr_idx + 1, linhas
+    cols = {"id": c_id, "venc": c_venc, "valor": c_val, "forma": c_form, "descricao": c_desc,
+            "juros": c_juros, "multa": c_multa, "tmulta": c_tmulta}
+    return wb, ws, hdr_idx + 1, linhas, cols
 
 
-@router.post("/cycles/{cycle_id}/import/validate")
-async def validar_importacao(
-    cycle_id: int,
-    planilha: UploadFile = File(...),
-    current_user: User = Depends(require_permission("can_approve_billing")),
-    db: Session = Depends(get_db),
-):
-    """Valida a planilha de lançamento do Asaas contra o ciclo (não grava nada, não envia nada)."""
+def _validar_core(db, cycle_id, linhas):
+    """Valida as linhas lidas da planilha contra o ciclo (não grava nada). Usada pela aba Importação
+    (validação) e pela criação de cobranças — a mesma regra nos dois lugares."""
     import re as _re
     from datetime import date as _date
     from sqlalchemy import text as _t
-
-    cycle = db.query(BillingCycle).filter(BillingCycle.id == cycle_id).first()
-    if not cycle:
-        raise HTTPException(status_code=404, detail="Ciclo não encontrado")
-
-    content = await planilha.read()
-    _wb, _ws, _hdr, linhas = _ler_planilha_importacao(content)
-    if not linhas:
-        raise HTTPException(status_code=422, detail="A planilha não tem nenhuma linha de dados abaixo do cabeçalho.")
 
     dig = lambda x: _re.sub(r"\D", "", str(x or ""))
 
@@ -1997,7 +1990,6 @@ async def validar_importacao(
     total_planilha = round(sum(i["valor"] or 0 for i in itens), 2)
     total_ciclo = round(sum(float(sm.total_final or 0) for sm in ciclo.values() if (sm.total_final or 0) > 0), 2)
     return {
-        "arquivo": planilha.filename,
         "resumo": {
             "linhas": len(itens),
             "ok": sum(1 for i in itens if i["situacao"] == "ok"),
@@ -2015,11 +2007,36 @@ async def validar_importacao(
     }
 
 
+@router.post("/cycles/{cycle_id}/import/validate")
+async def validar_importacao(
+    cycle_id: int,
+    planilha: UploadFile = File(...),
+    current_user: User = Depends(require_permission("can_approve_billing")),
+    db: Session = Depends(get_db),
+):
+    """Valida a planilha de lançamento do Asaas contra o ciclo (não grava nada, não envia nada)."""
+    cycle = db.query(BillingCycle).filter(BillingCycle.id == cycle_id).first()
+    if not cycle:
+        raise HTTPException(status_code=404, detail="Ciclo não encontrado")
+    content = await planilha.read()
+    _wb, _ws, _hdr, linhas, _cols = _ler_planilha_importacao(content)
+    if not linhas:
+        raise HTTPException(status_code=422, detail="A planilha não tem nenhuma linha de dados abaixo do cabeçalho.")
+    res = _validar_core(db, cycle_id, linhas)
+    return {"arquivo": planilha.filename, **res}
+
+
 @router.post("/cycles/{cycle_id}/import/remessa")
 async def remessa_da_importacao(
     cycle_id: int,
     planilha: UploadFile = File(...),
     excluir: str = Form("[]"),
+    descricao: str = Form(""),
+    forma_pagamento: str = Form(""),
+    juros: str = Form(""),
+    multa_valor: str = Form(""),
+    multa_tipo: str = Form(""),
+    vencimento_padrao: str = Form(""),
     current_user: User = Depends(require_permission("can_approve_billing")),
     db: Session = Depends(get_db),
 ):
@@ -2037,8 +2054,37 @@ async def remessa_da_importacao(
         raise HTTPException(status_code=422, detail="Lista de linhas a excluir inválida.")
 
     content = await planilha.read()
-    wb, ws, _hdr, linhas = _ler_planilha_importacao(content)
+    wb, ws, _hdr, linhas, cols = _ler_planilha_importacao(content)
     validas = {l["linha"] for l in linhas}
+    # Parâmetros do modal "Remessa Asaas": quando preenchidos, valem para TODAS as linhas mantidas
+    # (descrição, forma de pagamento, juros, multa e tipo da multa) e o vencimento padrão só preenche as linhas sem data.
+    from datetime import datetime as _dt
+    over = {}
+    if descricao.strip():
+        over["descricao"] = descricao.strip()[:500]
+    if forma_pagamento.strip():
+        over["forma"] = forma_pagamento.strip()
+    if juros.strip() != "":
+        over["juros"] = float(juros.replace(",", "."))
+    if multa_valor.strip() != "":
+        over["multa"] = float(multa_valor.replace(",", "."))
+    if multa_tipo.strip():
+        over["tmulta"] = multa_tipo.strip().upper()
+    venc_padrao = None
+    if vencimento_padrao.strip():
+        try:
+            venc_padrao = _dt.strptime(vencimento_padrao.strip(), "%Y-%m-%d").date()
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Vencimento padrão inválido (use AAAA-MM-DD).")
+    manter = [l for l in linhas if l["linha"] not in lin_excluir]
+    for l in manter:
+        for campo, valor in over.items():
+            c = cols.get(campo)
+            if c is not None:
+                ws.cell(row=l["linha"], column=c + 1, value=valor)
+        if venc_padrao and l["venc"] is None and cols.get("venc") is not None:
+            cel = ws.cell(row=l["linha"], column=cols["venc"] + 1, value=venc_padrao)
+            cel.number_format = "DD/MM/YYYY"
     for n in sorted(lin_excluir & validas, reverse=True):     # de baixo para cima, para não deslocar as linhas
         ws.delete_rows(n, 1)
     buf = _io.BytesIO()
@@ -2052,6 +2098,220 @@ async def remessa_da_importacao(
                  "X-Linhas-Mantidas": str(len(validas - lin_excluir)),
                  "Access-Control-Expose-Headers": "X-Linhas-Mantidas"},
     )
+
+
+# ── Criar cobranças no Asaas (etapa 2 da aba Importação) ─────────────────────────────────
+
+def _job_dict(db, job):
+    from app.models import AsaasRemessaItem
+    erros = (db.query(AsaasRemessaItem)
+             .filter(AsaasRemessaItem.job_id == job.id, AsaasRemessaItem.status == "erro")
+             .order_by(AsaasRemessaItem.linha).limit(200).all())
+    avisos = (db.query(AsaasRemessaItem)
+              .filter(AsaasRemessaItem.job_id == job.id, AsaasRemessaItem.status == "simulada",
+                      AsaasRemessaItem.erro.isnot(None)).limit(200).all())
+    return {
+        "id": job.id, "cycle_id": job.cycle_id, "ambiente": job.ambiente, "simular": bool(job.simular),
+        "status": job.status, "total": job.total, "feitos": job.feitos, "criadas": job.criadas,
+        "existentes": job.existentes, "erros": job.erros, "mensagem": job.mensagem,
+        "iniciado_em": job.started_at.isoformat() if job.started_at else None,
+        "terminado_em": job.finished_at.isoformat() if job.finished_at else None,
+        "lista_erros": [{"linha": e.linha, "id_smart": e.id_smart, "valor": e.valor, "erro": e.erro} for e in erros],
+        "lista_avisos": [{"linha": e.linha, "id_smart": e.id_smart, "aviso": e.erro} for e in avisos],
+    }
+
+
+@router.get("/asaas-criacao/ambiente")
+def ambiente_criacao_asaas(
+    current_user: User = Depends(require_permission("can_approve_billing")),
+    db: Session = Depends(get_db),
+):
+    """Em qual ambiente o botão "Criar cobranças no Asaas" vai trabalhar (nunca devolve chaves)."""
+    from urllib.parse import urlparse
+    from app.routers.settings import _get as _g
+    from app.config import settings as _cfg
+    from app.services.asaas_client import SANDBOX_URL_PADRAO
+    modo = (_g(db, "asaas_criar_modo") or "sandbox").strip().lower()
+    if modo == "producao":
+        url = _g(db, "asaas_base_url") or _cfg.ASAAS_BASE_URL
+        ok = bool(_g(db, "asaas_api_key") or _cfg.ASAAS_API_KEY)
+    else:
+        modo = "sandbox"
+        url = _g(db, "asaas_sandbox_base_url") or SANDBOX_URL_PADRAO
+        ok = bool(_g(db, "asaas_sandbox_api_key"))
+    return {"ambiente": modo, "configurado": ok, "host": urlparse(url).netloc,
+            "mensagem": None if ok else ("Configure a chave do sandbox em Configurações → Integrações → Asaas."
+                                         if modo == "sandbox" else "Chave de produção não configurada.")}
+
+
+@router.post("/cycles/{cycle_id}/import/asaas-create")
+async def criar_cobrancas_asaas(
+    cycle_id: int,
+    background_tasks: BackgroundTasks,
+    planilha: UploadFile = File(...),
+    excluir: str = Form("[]"),
+    descricao: str = Form(""),
+    forma_pagamento: str = Form(""),
+    juros: str = Form(""),
+    multa_valor: str = Form(""),
+    multa_tipo: str = Form(""),
+    simular: str = Form("0"),
+    confirmar: str = Form(""),
+    current_user: User = Depends(require_permission("can_approve_billing")),
+    db: Session = Depends(get_db),
+):
+    """Cria no Asaas (pela API) as cobranças da planilha validada, menos as desmarcadas.
+    Ambiente: sandbox por padrão (chave própria); produção só se configurado e com confirmação explícita."""
+    import json as _json
+    from datetime import datetime, timedelta, timezone
+    from sqlalchemy import func as sqlfunc
+    from app.models import AsaasRemessaJob, AsaasRemessaItem
+    from app.services.asaas_client import get_asaas_creation_client
+    from app.services.asaas_remessa import executar_job, referencia_externa
+
+    cycle = db.query(BillingCycle).filter(BillingCycle.id == cycle_id).first()
+    if not cycle:
+        raise HTTPException(status_code=404, detail="Ciclo não encontrado")
+    so_simular = simular.strip() in ("1", "true", "True", "sim")
+
+    try:
+        _cli, ambiente = get_asaas_creation_client(db)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    if ambiente == "producao" and not so_simular:
+        if getattr(current_user.role, "value", current_user.role) != "admin":
+            raise HTTPException(status_code=403, detail="Apenas administradores podem criar cobranças em PRODUÇÃO.")
+        if cycle.status not in (BillingStatus.APROVADO, BillingStatus.FECHADO):
+            raise HTTPException(status_code=400, detail="Em produção, só é possível criar cobranças de um ciclo APROVADO.")
+        if confirmar.strip() != "CRIAR COBRANÇAS EM PRODUÇÃO":
+            raise HTTPException(status_code=400, detail="Confirmação ausente: digite exatamente CRIAR COBRANÇAS EM PRODUÇÃO.")
+
+    # Uma execução por vez em cada ciclo (execução parada há mais de 15 min é considerada interrompida)
+    ativo = db.query(AsaasRemessaJob).filter(AsaasRemessaJob.cycle_id == cycle_id, AsaasRemessaJob.status == "rodando").first()
+    if ativo:
+        ultimo = db.query(sqlfunc.max(AsaasRemessaItem.updated_at)).filter(AsaasRemessaItem.job_id == ativo.id).scalar() or ativo.started_at
+        if ultimo and datetime.now(timezone.utc) - ultimo < timedelta(minutes=15):
+            raise HTTPException(status_code=409, detail=f"Já existe uma execução em andamento neste ciclo (nº {ativo.id}).")
+        ativo.status, ativo.mensagem = "erro", "Interrompida (sem atividade há mais de 15 minutos)."
+        db.commit()
+
+    try:
+        lin_excluir = {int(x) for x in _json.loads(excluir or "[]")}
+    except Exception:
+        raise HTTPException(status_code=422, detail="Lista de linhas a excluir inválida.")
+    try:
+        ov_juros = float(juros.replace(",", ".")) if juros.strip() != "" else None
+        ov_multa = float(multa_valor.replace(",", ".")) if multa_valor.strip() != "" else None
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Juros ou multa inválidos.")
+
+    content = await planilha.read()
+    _wb, _ws, _hdr, linhas, _cols = _ler_planilha_importacao(content)
+    if not linhas:
+        raise HTTPException(status_code=422, detail="A planilha não tem nenhuma linha de dados.")
+    por_linha = {l["linha"]: l for l in linhas}
+    res = _validar_core(db, cycle_id, linhas)
+    enviar = [i for i in res["itens"] if i["situacao"] != "erro" and i["linha"] not in lin_excluir]
+    if not enviar:
+        raise HTTPException(status_code=422, detail="Nenhuma cobrança para criar: todas as linhas estão com erro ou foram desmarcadas.")
+
+    job = AsaasRemessaJob(
+        cycle_id=cycle_id, ambiente=ambiente, simular=so_simular, status="rodando", total=len(enviar),
+        created_by=current_user.id,
+        params=_json.dumps({"arquivo": planilha.filename, "descricao": descricao, "forma": forma_pagamento,
+                            "juros": ov_juros, "multa": ov_multa, "tipo_multa": multa_tipo}),
+    )
+    db.add(job)
+    db.flush()
+    for i in enviar:
+        l = por_linha[i["linha"]]
+        dados = {
+            "descricao": (descricao.strip() or l["descricao"] or "")[:500],
+            "forma": forma_pagamento.strip() or l["forma"] or "Boleto",
+            "juros": ov_juros if ov_juros is not None else l["juros"],
+            "multa": ov_multa if ov_multa is not None else l["multa"],
+            "tmulta": (multa_tipo.strip() or l["tmulta"] or "PORCENTAGEM"),
+        }
+        db.add(AsaasRemessaItem(
+            job_id=job.id, cycle_id=cycle_id, id_smart=i["id_smart"], linha=i["linha"], ambiente=ambiente,
+            vencimento=date.fromisoformat(i["vencimento"]), valor=i["valor"], status="pendente",
+            external_reference=referencia_externa(cycle, i["id_smart"]), dados=_json.dumps(dados),
+        ))
+    db.commit()
+    background_tasks.add_task(executar_job, job.id)
+    return {"job_id": job.id, "ambiente": ambiente, "total": len(enviar), "simular": so_simular}
+
+
+@router.get("/asaas-jobs/{job_id}")
+def progresso_job_asaas(
+    job_id: int,
+    current_user: User = Depends(require_permission("can_approve_billing")),
+    db: Session = Depends(get_db),
+):
+    from app.models import AsaasRemessaJob
+    job = db.query(AsaasRemessaJob).filter(AsaasRemessaJob.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Execução não encontrada")
+    return _job_dict(db, job)
+
+
+@router.get("/cycles/{cycle_id}/asaas-jobs")
+def execucoes_asaas_do_ciclo(
+    cycle_id: int,
+    current_user: User = Depends(require_permission("can_approve_billing")),
+    db: Session = Depends(get_db),
+):
+    from app.models import AsaasRemessaJob
+    jobs = (db.query(AsaasRemessaJob).filter(AsaasRemessaJob.cycle_id == cycle_id)
+            .order_by(AsaasRemessaJob.id.desc()).limit(5).all())
+    return [_job_dict(db, j) for j in jobs]
+
+
+@router.post("/asaas-jobs/{job_id}/retry")
+async def repetir_job_asaas(
+    job_id: int,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(require_permission("can_approve_billing")),
+    db: Session = Depends(get_db),
+):
+    """Refaz só o que falhou (ou retoma uma execução interrompida). O que já foi criado não é recriado."""
+    from datetime import datetime, timedelta, timezone
+    from sqlalchemy import func as sqlfunc
+    from app.models import AsaasRemessaJob, AsaasRemessaItem
+    from app.services.asaas_remessa import executar_job
+    job = db.query(AsaasRemessaJob).filter(AsaasRemessaJob.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Execução não encontrada")
+    if job.status == "rodando":
+        ultimo = db.query(sqlfunc.max(AsaasRemessaItem.updated_at)).filter(AsaasRemessaItem.job_id == job.id).scalar() or job.started_at
+        if ultimo and datetime.now(timezone.utc) - ultimo < timedelta(minutes=15):
+            raise HTTPException(status_code=409, detail="A execução ainda está em andamento.")
+    n = (db.query(AsaasRemessaItem).filter(AsaasRemessaItem.job_id == job.id, AsaasRemessaItem.status == "erro")
+         .update({"status": "pendente", "erro": None}, synchronize_session=False))
+    pend = db.query(AsaasRemessaItem).filter(AsaasRemessaItem.job_id == job.id, AsaasRemessaItem.status == "pendente").count()
+    if pend == 0:
+        raise HTTPException(status_code=400, detail="Nada a refazer: não há itens com erro nem pendentes.")
+    job.status, job.finished_at, job.mensagem = "rodando", None, None
+    db.commit()
+    background_tasks.add_task(executar_job, job.id)
+    return {"job_id": job.id, "refazendo": pend, "erros_reabertos": n}
+
+
+@router.post("/asaas-jobs/{job_id}/cancel")
+def cancelar_job_asaas(
+    job_id: int,
+    current_user: User = Depends(require_permission("can_approve_billing")),
+    db: Session = Depends(get_db),
+):
+    from app.models import AsaasRemessaJob
+    job = db.query(AsaasRemessaJob).filter(AsaasRemessaJob.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Execução não encontrada")
+    if job.status == "rodando":
+        job.status = "cancelado"
+        db.commit()
+    return _job_dict(db, job)
 
 
 @router.get("/cycles/{cycle_id}/export/remessa-template")

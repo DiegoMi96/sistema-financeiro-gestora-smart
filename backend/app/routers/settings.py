@@ -33,7 +33,7 @@ class SystemSetting(Base):
 
 
 # ── Helpers ───────────────────────────────────────────────────
-SENSITIVE = {"asaas_api_key"}
+SENSITIVE = {"asaas_api_key", "asaas_sandbox_api_key"}
 
 def _get(db: Session, key: str, default: str = "") -> str:
     row = db.query(SystemSetting).filter(SystemSetting.key == key).first()
@@ -59,6 +59,9 @@ def _mask(value: str) -> str:
 class SettingsOut(BaseModel):
     asaas_api_key:       str
     asaas_base_url:      str
+    asaas_sandbox_api_key: str = ""
+    asaas_criar_modo:    str = "sandbox"
+    asaas_sandbox_configured: bool = False
     empresa_nome:        str
     empresa_cnpj:        str
     empresa_ie:          str
@@ -77,6 +80,8 @@ class SettingsOut(BaseModel):
 class SettingsIn(BaseModel):
     asaas_api_key:       Optional[str] = None
     asaas_base_url:      Optional[str] = None
+    asaas_sandbox_api_key: Optional[str] = None
+    asaas_criar_modo:    Optional[str] = None      # "sandbox" (padrão) | "producao" — ambiente das cobranças criadas pela aba Importação
     empresa_nome:        Optional[str] = None
     empresa_cnpj:        Optional[str] = None
     empresa_ie:          Optional[str] = None
@@ -108,6 +113,9 @@ def get_settings(
     return SettingsOut(
         asaas_api_key       = _mask(asaas_key),
         asaas_base_url      = _get(db, "asaas_base_url") or env_settings.ASAAS_BASE_URL,
+        asaas_sandbox_api_key = _mask(_get(db, "asaas_sandbox_api_key")),
+        asaas_criar_modo    = _get(db, "asaas_criar_modo") or "sandbox",
+        asaas_sandbox_configured = bool(_get(db, "asaas_sandbox_api_key")),
         empresa_nome        = _get(db, "empresa_nome")     or "Gestora Smart Sim Card, Hardware e Software Ltda",
         empresa_cnpj        = _get(db, "empresa_cnpj")     or "35.775.152/0001-40",
         empresa_ie          = _get(db, "empresa_ie")        or "",
@@ -144,6 +152,9 @@ def update_settings(
 ):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Apenas administradores podem alterar configurações")
+
+    if body.asaas_criar_modo is not None and body.asaas_criar_modo not in ("sandbox", "producao"):
+        raise HTTPException(status_code=422, detail='Ambiente inválido: use "sandbox" ou "producao".')
 
     for field, value in body.model_dump(exclude_none=True).items():
         # Ignora se o usuário não alterou campos mascarados (•••)

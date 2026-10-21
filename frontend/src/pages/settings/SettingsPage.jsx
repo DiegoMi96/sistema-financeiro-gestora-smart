@@ -78,9 +78,12 @@ function Integracoes({ cfg, save }) {
   const savedValues = {
     asaas_api_key:     cfg?.asaas_api_key     || '',
     asaas_base_url:    cfg?.asaas_base_url    || '',
+    asaas_sandbox_api_key: cfg?.asaas_sandbox_api_key || '',
+    asaas_criar_modo:  cfg?.asaas_criar_modo  || 'sandbox',
   }
   const [form, setForm] = useState(savedValues)
   const [showAsaas, setShowAsaas] = useState(false)
+  const [showSandbox, setShowSandbox] = useState(false)
   const [testing, setTesting]     = useState(false)
   const [testResult, setTestResult] = useState(null)
 
@@ -143,8 +146,48 @@ function Integracoes({ cfg, save }) {
             className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono"
           />
           <p className="text-xs text-gray-400 mt-1">
-            Produção: <code>https://api.asaas.com/v3</code> · Sandbox: <code>https://sandbox.asaas.com/api/v3</code>
+            Produção: <code>https://api.asaas.com/v3</code> · Sandbox: <code>https://api-sandbox.asaas.com/v3</code>
           </p>
+        </div>
+
+        {/* Criação de cobranças pela API (aba Importação do ciclo) — chave e ambiente PRÓPRIOS */}
+        <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 space-y-3">
+          <div>
+            <p className="gs-label">Criar cobranças pelo sistema (aba Importação)</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Usa uma chave própria do <b>sandbox</b>. A chave de produção acima nunca é usada para testes.
+            </p>
+          </div>
+          <div>
+            <label className="gs-label block mb-1">Chave da API do sandbox</label>
+            <div className="relative">
+              <input
+                type={showSandbox ? 'text' : 'password'}
+                value={form.asaas_sandbox_api_key}
+                onChange={e => setForm(p => ({ ...p, asaas_sandbox_api_key: e.target.value }))}
+                placeholder="$aact_hmlg_..."
+                className="w-full px-3 py-2 pr-10 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono bg-white"
+              />
+              <button type="button" onClick={() => setShowSandbox(v => !v)}
+                className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
+                {showSandbox ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">Gerada no painel do Asaas Sandbox (sandbox.asaas.com), em Integrações.</p>
+          </div>
+          <div>
+            <label className="gs-label block mb-1">Ambiente das cobranças criadas</label>
+            <select value={form.asaas_criar_modo} onChange={e => setForm(p => ({ ...p, asaas_criar_modo: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
+              <option value="sandbox">Sandbox (teste — ninguém é cobrado)</option>
+              <option value="producao">Produção (cobranças reais)</option>
+            </select>
+            {form.asaas_criar_modo === 'producao' && (
+              <p className="text-xs text-red-600 mt-1">
+                Em produção, o botão "Criar cobranças no Asaas" cobra clientes de verdade. Só ciclos aprovados e com confirmação digitada.
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-3">

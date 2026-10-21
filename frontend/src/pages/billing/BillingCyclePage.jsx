@@ -626,6 +626,33 @@ function ImportTab({ cycleId, cycle, onRemessaPadrao }) {
   const [gerando, setGerando]   = useState(false)
   const [verFalt, setVerFalt]   = useState(false)
 
+  // Modal "Remessa Asaas": planilha para importar OU criação das cobranças pela API
+  const MESES = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+  const [modal, setModal]       = useState(false)
+  const [etapa, setEtapa]       = useState('form')        // form | confirmar | progresso
+  const [desc, setDesc]         = useState('')
+  const [forma, setForma]       = useState('Boleto')
+  const [jurosM, setJurosM]     = useState('1')
+  const [multaV, setMultaV]     = useState('2')
+  const [multaT, setMultaT]     = useState('PORCENTAGEM')
+  const [confTxt, setConfTxt]   = useState('')
+  const [jobId, setJobId]       = useState(null)
+  const [iniciando, setIniciando] = useState(false)
+  const [simulando, setSimulando] = useState(false)
+
+  const { data: ambiente } = useQuery({
+    queryKey: ['asaas-ambiente'], queryFn: () => billingApi.asaasAmbiente().then(r => r.data),
+    enabled: modal, staleTime: 0,
+  })
+  const { data: job, refetch: refetchJob } = useQuery({
+    queryKey: ['asaas-job', jobId], queryFn: () => billingApi.asaasJob(jobId).then(r => r.data),
+    enabled: !!jobId, refetchInterval: q => (q.state.data?.status === 'rodando' ? 2000 : false),
+  })
+  const { data: ultimos, refetch: refetchUltimos } = useQuery({
+    queryKey: ['asaas-jobs', cycleId], queryFn: () => billingApi.asaasJobs(cycleId).then(r => r.data), staleTime: 30 * 1000,
+  })
+  const ultimo = ultimos?.[0]
+
   const validar = async (f) => {
     if (!f) return
     setLoading(true)
@@ -663,16 +690,63 @@ function ImportTab({ cycleId, cycle, onRemessaPadrao }) {
     return true
   })
 
+  const montarForm = (excluir) => {
+    const fd = new FormData()
+    fd.append('planilha', file)
+    fd.append('excluir', JSON.stringify(excluir))
+    fd.append('descricao', desc)
+    fd.append('forma_pagamento', forma)
+    fd.append('juros', jurosM)
+    fd.append('multa_valor', multaV)
+    fd.append('multa_tipo', multaT)
+    return fd
+  }
+
+  const abrirModal = () => {
+    if (!desc && cycle) {
+      setDesc(`[ Competência ${MESES[cycle.month]?.toUpperCase()} ] - Serviço de Valor Adicionado para gestão de Conectividade M2M & IoT — Pode haver valores relacionados a Mensalidades, Taxas de ativação, Cancelamentos, Fretes e Dados adicionais.`)
+    }
+    setEtapa('form'); setConfTxt(''); setModal(true)
+  }
+
+  const iniciarCriacao = async (simular) => {
+    setIniciando(true); setSimulando(simular)
+    try {
+      const excluir = itens.filter(i => !marcada(i)).map(i => i.linha)
+      const fd = montarForm(excluir)
+      fd.append('simular', simular ? '1' : '0')
+      if (!simular) fd.append('confirmar', confTxt)
+      const r = await billingApi.asaasCreate(cycleId, fd)
+      setJobId(r.data.job_id); setEtapa('progresso')
+      toast.success(simular ? 'Simulação iniciada' : 'Criação das cobranças iniciada')
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Erro ao iniciar')
+    } finally { setIniciando(false) }
+  }
+
+  const refazerFalhas = async () => {
+    try { await billingApi.asaasRetry(jobId); refetchJob(); toast.success('Refazendo os que falharam') }
+    catch (e) { toast.error(e.response?.data?.detail || 'Erro ao refazer') }
+  }
+  const cancelarJob = async () => {
+    try { await billingApi.asaasCancel(jobId); refetchJob(); toast('Execução cancelada') }
+    catch { toast.error('Erro ao cancelar') }
+  }
+  const baixarErros = () => {
+    const linhas = (job?.lista_erros || []).map(e => `${e.linha};"${e.id_smart}";${String(e.valor ?? '').replace('.', ',')};"${(e.erro || '').replace(/"/g, "'")}"`)
+    _download('\uFEFFLinha;Cliente;Valor;Erro\n' + linhas.join('\n'), `Erros_Asaas_${cycle?.month}_${cycle?.year}.csv`, 'text/csv;charset=utf-8')
+  }
+  const fecharModal = () => { setModal(false); refetchUltimos() }
+
   const gerarRemessa = async () => {
     setGerando(true)
     try {
       const excluir = itens.filter(i => !marcada(i)).map(i => i.linha)
-      const fd = new FormData()
-      fd.append('planilha', file)
-      fd.append('excluir', JSON.stringify(excluir))
+      const fd = montarForm(excluir)
       const r = await billingApi.remessaImport(cycleId, fd)
       _download(r.data, `Remessa_Asaas_${String(cycle?.month).padStart(2, '0')}_${cycle?.year}.xlsx`)
-      toast.success(`Remessa gerada com ${selecionadas.length} cobranças`)
+      toast.success(`Planilha gerada com ${selecionadas.length} cobranças`)
+      setModal(false)
     } catch (e) {
       toast.error('Erro ao gerar a remessa')
     } finally { setGerando(false) }
@@ -817,13 +891,168 @@ function ImportTab({ cycleId, cycle, onRemessaPadrao }) {
             Na remessa: <b>{fmtN(selecionadas.length)}</b> cobranças · <b>{fmt(valorSel)}</b>
             {itens.length - selecionadas.length > 0 && <span className="text-gray-400"> · {fmtN(itens.length - selecionadas.length)} de fora</span>}
           </p>
-          <button onClick={gerarRemessa} disabled={gerando || selecionadas.length === 0}
+          <button onClick={abrirModal} disabled={selecionadas.length === 0}
             className="gs-btn gs-btn-green ml-auto flex items-center gap-1.5 disabled:opacity-50">
-            {gerando ? <Loader2 size={14} className="animate-spin" /> : <FileDown size={14} />}
-            {gerando ? 'Gerando...' : 'Remessa Asaas'}
+            <FileDown size={14} />
+            Remessa Asaas
           </button>
         </div>
+
       </>)}
+
+        {ultimo && (
+        <p className="text-xs text-gray-400">
+          Última execução na API ({ultimo.ambiente === 'sandbox' ? 'sandbox' : 'produção'}{ultimo.simular ? ', simulação' : ''}):{' '}
+          {ultimo.criadas} criadas · {ultimo.existentes} já existiam · {ultimo.erros} com erro ·{' '}
+          <button onClick={() => { setJobId(ultimo.id); setEtapa('progresso'); setModal(true) }} className="underline hover:text-gray-600">ver detalhes</button>
+        </p>
+      )}
+
+      {modal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="gs-card w-full max-w-lg p-6 space-y-5 max-h-[92vh] overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <h2 className="gs-section-title text-base">
+                {etapa === 'progresso' ? (job?.simular ? 'Simulação no Asaas' : 'Criação das cobranças no Asaas') : 'Exportar Remessa Asaas'}
+              </h2>
+              <button onClick={fecharModal} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+            </div>
+
+            {etapa === 'form' && (<>
+              <div>
+                <label className="gs-label block mb-1">Descrição</label>
+                <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 resize-none"
+                  placeholder="Descrição que aparecerá nos boletos..." />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="gs-label block mb-1">Forma de pagamento</label>
+                  <select value={forma} onChange={e => setForma(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 bg-white">
+                    <option>Boleto</option>
+                    <option>Cartão</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="gs-label block mb-1">% Juros ao mês</label>
+                  <input type="number" min="0" step="0.1" value={jurosM} onChange={e => setJurosM(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400" />
+                </div>
+                <div>
+                  <label className="gs-label block mb-1">Valor Multa</label>
+                  <input type="number" min="0" step="0.1" value={multaV} onChange={e => setMultaV(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400" />
+                </div>
+                <div>
+                  <label className="gs-label block mb-1">Tipo da Multa</label>
+                  <select value={multaT} onChange={e => setMultaT(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 bg-white">
+                    <option value="PORCENTAGEM">Porcentagem</option>
+                    <option value="FIXO">Fixo</option>
+                  </select>
+                </div>
+              </div>
+              <p className="text-xs text-gray-400">
+                Valem para as <b>{fmtN(selecionadas.length)}</b> cobranças marcadas ({fmt(valorSel)}). Os campos preenchidos aqui substituem os da planilha.
+              </p>
+
+              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 space-y-2">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Criar cobranças no Asaas (pela API)</p>
+                {ambiente && (
+                  <p className={`text-xs font-medium ${ambiente.ambiente === 'producao' ? 'text-red-600' : 'text-amber-600'}`}>
+                    Ambiente: {ambiente.ambiente === 'producao' ? 'PRODUÇÃO — cobranças reais, o cliente é notificado' : 'SANDBOX — teste, ninguém é cobrado'}
+                    <span className="text-gray-400 font-normal"> · {ambiente.host}</span>
+                  </p>
+                )}
+                {ambiente && !ambiente.configurado && <p className="text-xs text-red-600">{ambiente.mensagem}</p>}
+              </div>
+
+              <div className="flex flex-wrap gap-2 pt-1">
+                <button onClick={gerarRemessa} disabled={gerando} className="gs-btn gs-btn-outline flex-1 flex items-center justify-center gap-1.5">
+                  {gerando ? <Loader2 size={14} className="animate-spin" /> : <FileDown size={14} />} Gerar planilha
+                </button>
+                <button onClick={() => iniciarCriacao(true)} disabled={iniciando || !ambiente?.configurado} className="gs-btn gs-btn-outline flex-1 flex items-center justify-center gap-1.5 disabled:opacity-50">
+                  {iniciando && simulando ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />} Simular
+                </button>
+                <button onClick={() => { setConfTxt(''); setEtapa('confirmar') }} disabled={iniciando || !ambiente?.configurado} className="gs-btn gs-btn-primary w-full flex items-center justify-center gap-1.5 disabled:opacity-50">
+                  <BadgeCheck size={14} /> Criar cobranças no Asaas
+                </button>
+              </div>
+            </>)}
+
+            {etapa === 'confirmar' && (<>
+              <div className={`rounded-lg border p-4 text-sm ${ambiente?.ambiente === 'producao' ? 'border-red-200 bg-red-50 text-red-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+                Criar <b>{fmtN(selecionadas.length)}</b> cobranças · <b>{fmt(valorSel)}</b> no ambiente{' '}
+                <b>{ambiente?.ambiente === 'producao' ? 'PRODUÇÃO' : 'SANDBOX'}</b>.
+                {ambiente?.ambiente === 'producao'
+                  ? ' Os clientes serão cobrados e notificados pelo Asaas. Para desfazer, é preciso cancelar cobrança por cobrança.'
+                  : ' É um ambiente de teste: nenhum cliente real é cobrado.'}
+              </div>
+              {ambiente?.ambiente === 'producao' && (
+                <div>
+                  <label className="gs-label block mb-1">Digite <code className="bg-gray-100 px-1 rounded normal-case">CRIAR COBRANÇAS EM PRODUÇÃO</code> para confirmar</label>
+                  <input value={confTxt} onChange={e => setConfTxt(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300" />
+                </div>
+              )}
+              <div className="flex gap-3 pt-1">
+                <button onClick={() => setEtapa('form')} className="gs-btn gs-btn-outline flex-1">Voltar</button>
+                <button onClick={() => iniciarCriacao(false)}
+                  disabled={iniciando || (ambiente?.ambiente === 'producao' && confTxt.trim() !== 'CRIAR COBRANÇAS EM PRODUÇÃO')}
+                  className="gs-btn gs-btn-primary flex-1 flex items-center justify-center gap-1.5 disabled:opacity-50">
+                  {iniciando ? <Loader2 size={14} className="animate-spin" /> : <BadgeCheck size={14} />} Confirmar e criar
+                </button>
+              </div>
+            </>)}
+
+            {etapa === 'progresso' && (
+              <div className="space-y-4">
+                {!job ? <p className="text-sm text-gray-400">Carregando...</p> : (<>
+                  <p className="text-xs text-gray-500">
+                    Ambiente: <b>{job.ambiente === 'producao' ? 'PRODUÇÃO' : 'SANDBOX'}</b>{job.simular ? ' · simulação (nada é criado)' : ''}
+                    {' · '}{job.status === 'rodando' ? 'em andamento' : job.status === 'concluido' ? 'concluída' : job.status === 'cancelado' ? 'cancelada' : 'com erro'}
+                  </p>
+                  <div>
+                    <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                      <div className="h-full bg-green-500 transition-all" style={{ width: `${job.total ? Math.round(job.feitos * 100 / job.total) : 0}%` }} />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">{fmtN(job.feitos)} de {fmtN(job.total)} processadas</p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="rounded-lg bg-green-50 py-2"><p className="text-lg font-semibold text-green-700">{fmtN(job.simular ? job.feitos - job.erros : job.criadas)}</p><p className="text-[11px] text-gray-500">{job.simular ? 'prontas' : 'criadas'}</p></div>
+                    <div className="rounded-lg bg-gray-50 py-2"><p className="text-lg font-semibold text-gray-700">{fmtN(job.existentes)}</p><p className="text-[11px] text-gray-500">já existiam</p></div>
+                    <div className="rounded-lg bg-red-50 py-2"><p className="text-lg font-semibold text-red-600">{fmtN(job.erros)}</p><p className="text-[11px] text-gray-500">com erro</p></div>
+                  </div>
+                  {job.mensagem && <p className="text-xs text-red-600">{job.mensagem}</p>}
+                  {job.lista_erros?.length > 0 && (
+                    <div className="border border-red-100 rounded-lg max-h-44 overflow-y-auto divide-y divide-red-50 text-xs">
+                      {job.lista_erros.map(e => (
+                        <div key={e.linha} className="px-3 py-1.5">
+                          <span className="text-gray-400">linha {e.linha}</span> · <span className="font-mono">{e.id_smart}</span> · <span className="text-red-600">{e.erro}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {job.simular && job.lista_avisos?.length > 0 && (
+                    <div className="border border-amber-100 rounded-lg max-h-32 overflow-y-auto divide-y divide-amber-50 text-xs">
+                      {job.lista_avisos.map(e => (
+                        <div key={e.linha} className="px-3 py-1.5"><span className="font-mono">{e.id_smart}</span> · <span className="text-amber-700">{e.aviso}</span></div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {job.status === 'rodando' && <button onClick={cancelarJob} className="gs-btn gs-btn-outline flex-1">Cancelar execução</button>}
+                    {job.status !== 'rodando' && job.erros > 0 && <button onClick={refazerFalhas} className="gs-btn gs-btn-primary flex-1">Tentar novamente os que falharam</button>}
+                    {job.erros > 0 && <button onClick={baixarErros} className="gs-btn gs-btn-outline flex-1">Baixar erros (CSV)</button>}
+                    <button onClick={fecharModal} className="gs-btn gs-btn-outline flex-1">Fechar</button>
+                  </div>
+                </>)}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
