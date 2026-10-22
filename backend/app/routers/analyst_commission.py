@@ -5,7 +5,11 @@ com base na adimplência por vencimento ORIGINAL (10, 15, 20 e 25).
 Mês escolhido = mês de VENCIMENTO dos boletos (o ciclo de setembro gera boletos com
 vencimento em outubro, então outubro usa o ciclo de setembro). Vencimento original =
 `billing_client_summaries.due_date` (arquivo de Vencimentos); o realizado vem de
-`asaas_payments_sync` (cruzado por CNPJ/CPF) e `itau_boletos` — SÓ o pago no dia do vencimento ou no dia seguinte (10/11, 15/16, 20/21, 25/26); pago antes ou depois não entra no recebido. Boletos com vencimento dentro do mês.
+`asaas_payments_sync` (cruzado por CNPJ/CPF) e `itau_boletos` — SÓ o pago NO DIA do vencimento ou no dia seguinte (10/11, 15/16, 20/21, 25/26); pago antes ou depois não entra no recebido. Boletos com vencimento dentro do mês.
+VENCIMENTO EM FIM DE SEMANA (22/10/2026, pedido do Diego): sábado e domingo não são dia útil, então a janela vai do
+vencimento REAL até 1 dia depois do primeiro dia útil (sáb 10 → vale pago de sáb 10 a ter 13). Assim o Pix pago no fim de
+semana entra E quem paga na segunda/terça também. Dia útil comum: janela de sempre (vencimento e dia seguinte). Feriados não
+entram (o sistema não tem calendário de feriados).
 
 Regra do valor (por analista): percentual × SALÁRIO do analista, liberado só se a meta (R$)
 foi definida (> 0) e o recebido do vencimento a atingiu. Previsão = o que pagaria se a meta for batida.
@@ -25,6 +29,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.routers.auth import get_current_user
 from app.models import AnalystCommissionRule, AnalystSalary, AuditLog, User, UserRole
+from app.utils.business_days import effective_due_date_sql
 
 router = APIRouter(prefix="/analyst-commission", tags=["Comissionamento Analistas"])
 
@@ -145,7 +150,9 @@ def comissionamento(year: int, month: int, user_id: Optional[int] = None,
         datas.setdefault(int(r.dia), r.due_date)
     tem_boletos = bool(datas)
     if tem_boletos:
-        rows = db.execute(text("""
+        _ef_asaas = effective_due_date_sql("due_date")
+        _ef_itau  = effective_due_date_sql("data_vencimento")
+        rows = db.execute(text(f"""
             WITH sc AS (   -- clientes do ciclo: valor original = total do ciclo
                 SELECT regexp_replace(id_smart, '\\D', '', 'g') AS doc,
                        EXTRACT(DAY FROM due_date)::int AS dia,
@@ -177,15 +184,15 @@ def comissionamento(year: int, month: int, user_id: Optional[int] = None,
             pg AS (  -- boletos do mês nos dois bancos (Asaas + Itaú), por cliente
                 SELECT regexp_replace(customer_cpf_cnpj, '\\D', '', 'g') AS doc,
                        COALESCE(value_original, value) AS valor,
-                       -- "pago no dia": pago no vencimento ou no dia seguinte (antecipado/atrasado não conta)
+                       -- "pago no dia": do vencimento real até 1 dia depois do 1º dia útil (antecipado/atrasado não conta)
                        (status IN ('RECEIVED','CONFIRMED','RECEIVED_IN_CASH')
-                        AND COALESCE(payment_date, credit_date) BETWEEN due_date AND due_date + 1) AS pago,
+                        AND COALESCE(payment_date, credit_date) BETWEEN due_date AND ({_ef_asaas}) + 1) AS pago,
                        'Asaas' AS banco
                 FROM asaas_payments_sync
                 WHERE due_date >= :ini AND due_date < :fim
                 UNION ALL
                 SELECT regexp_replace(cpf_cnpj, '\\D', '', 'g'), valor_titulo,
-                       (status = 'paga' AND data_pagamento BETWEEN data_vencimento AND data_vencimento + 1), 'Itaú'
+                       (status = 'paga' AND data_pagamento BETWEEN data_vencimento AND ({_ef_itau}) + 1), 'Itaú'
                 FROM itau_boletos
                 WHERE status <> 'cancelada' AND data_vencimento >= :ini AND data_vencimento < :fim
             ),
