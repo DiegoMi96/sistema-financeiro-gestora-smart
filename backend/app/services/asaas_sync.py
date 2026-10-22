@@ -213,12 +213,12 @@ def _upsert_payments(db: Session, payments: list, customers: dict):
         db.execute(text("""
             INSERT INTO asaas_payments_sync (
                 asaas_id, customer_id, customer_name, customer_cpf_cnpj,
-                value, value_original, net_value, due_date, payment_date, credit_date,
+                value, value_original, net_value, due_date, original_due_date, payment_date, credit_date,
                 status, billing_type, description, external_reference,
                 invoice_url, invoice_number, synced_at
             ) VALUES (
                 :asaas_id, :customer_id, :customer_name, :customer_cpf_cnpj,
-                :value, :value_original, :net_value, :due_date, :payment_date, :credit_date,
+                :value, :value_original, :net_value, :due_date, :original_due_date, :payment_date, :credit_date,
                 :status, :billing_type, :description, :external_reference,
                 :invoice_url, :invoice_number, :now
             )
@@ -229,6 +229,7 @@ def _upsert_payments(db: Session, payments: list, customers: dict):
                 value_original    = EXCLUDED.value_original,
                 net_value         = EXCLUDED.net_value,
                 due_date          = EXCLUDED.due_date,
+                original_due_date = COALESCE(EXCLUDED.original_due_date, asaas_payments_sync.original_due_date),
                 payment_date      = EXCLUDED.payment_date,
                 credit_date       = EXCLUDED.credit_date,
                 status            = EXCLUDED.status,
@@ -247,6 +248,7 @@ def _upsert_payments(db: Session, payments: list, customers: dict):
             "value_original":    p.get("originalValue"),
             "net_value":         p.get("netValue"),
             "due_date":          _d(p.get("dueDate")),
+            "original_due_date": _d(p.get("originalDueDate")),
             "payment_date":      _d(p.get("paymentDate")),
             "credit_date":       _d(p.get("creditDate")),
             "status":            p.get("status"),

@@ -8,7 +8,7 @@ vencimento em outubro, então outubro usa o ciclo de setembro). Vencimento origi
 `asaas_payments_sync` (cruzado por CNPJ/CPF) e `itau_boletos` — SÓ o pago NO DIA do vencimento ou no dia seguinte (10/11, 15/16, 20/21, 25/26); pago antes ou depois não entra no recebido. Boletos com vencimento dentro do mês.
 CADA BOLETO VALE NO DIA DO SEU PRÓPRIO VENCIMENTO (22/10/2026, conferido contra as planilhas do Diego de 15/10 e 20/10): o dia 10/15/20/25
 de um boleto é o do seu vencimento, não o do ciclo do cliente (que pode estar vazio ou diferente). Boleto com vencimento fora desses
-dias (remarcado) vale no dia do ciclo do cliente; se o cliente não tem dia no ciclo, no dia anterior (16 → 15). Faturado = valor do ciclo. O pagamento também não pode ser ANTES do vencimento do próprio boleto (antecipado não conta). A base são os clientes do ciclo (Asaas e Itaú) + boletos do Itaú de clientes fora do ciclo.
+dias (remarcado) vale no dia do ciclo do cliente; se o cliente não tem dia no ciclo, no dia anterior (16 → 15). Faturado = valor do ciclo. ASAAS usa o vencimento ORIGINAL (originalDueDate, coluna original_due_date da sincronização; sem ele, o atual); o Itaú só tem o atual. O pagamento também não pode ser ANTES do vencimento do próprio boleto (antecipado não conta). A base são os clientes do ciclo (Asaas e Itaú) + boletos do Itaú de clientes fora do ciclo.
 VENCIMENTO EM FIM DE SEMANA (22/10/2026, pedido do Diego): sábado e domingo não são dia útil, então a janela vai do
 vencimento REAL até 1 dia depois do primeiro dia útil (sáb 10 → vale pago de sáb 10 a ter 13). Assim o Pix pago no fim de
 semana entra E quem paga na segunda/terça também. Dia útil comum: janela de sempre (vencimento e dia seguinte). Feriados não
@@ -152,6 +152,12 @@ def comissionamento(year: int, month: int, user_id: Optional[int] = None,
     """), {"ini": ini, "fim": fim}).fetchall():
         datas.setdefault(int(r.dia), r.due_date)
     tem_boletos = bool(datas)
+    if not tem_boletos:
+        # Sem vencimento nos resumos do ciclo (ex.: arquivo de Vencimentos incompleto), mas com boletos nos bancos: calcula assim mesmo
+        tem_boletos = bool(db.execute(text("""
+            SELECT EXISTS (SELECT 1 FROM asaas_payments_sync WHERE COALESCE(original_due_date, due_date) >= :ini AND COALESCE(original_due_date, due_date) < :fim)
+                OR EXISTS (SELECT 1 FROM itau_boletos WHERE status <> 'cancelada' AND data_vencimento >= :ini AND data_vencimento < :fim)
+        """), {"ini": ini, "fim": fim}).scalar())
     if tem_boletos:
         # Ciclo que gerou os boletos deste mês (o de setembro gera vencimentos de outubro)
         py, pm = (year - 1, 12) if month == 1 else (year, month - 1)
@@ -160,12 +166,13 @@ def comissionamento(year: int, month: int, user_id: Optional[int] = None,
         ef_g = effective_due_date_sql("e.gdate")
         rows = db.execute(text(f"""
             WITH bol0 AS (   -- todos os boletos (Asaas + Itaú) com vencimento no mês, valor ORIGINAL do boleto
-                SELECT regexp_replace(customer_cpf_cnpj, '\\D', '', 'g') AS doc, due_date AS dv,
+                -- Asaas: vale o vencimento ORIGINAL (originalDueDate), não o atual (que muda quando o boleto é remarcado)
+                SELECT regexp_replace(customer_cpf_cnpj, '\\D', '', 'g') AS doc, COALESCE(original_due_date, due_date) AS dv,
                        COALESCE(value_original, value) AS valor,
                        (status IN ('RECEIVED','CONFIRMED','RECEIVED_IN_CASH')) AS rec,
                        COALESCE(payment_date, credit_date) AS dp, 'Asaas' AS banco
                 FROM asaas_payments_sync
-                WHERE due_date >= :ini AND due_date < :fim
+                WHERE COALESCE(original_due_date, due_date) >= :ini AND COALESCE(original_due_date, due_date) < :fim
                 UNION ALL
                 SELECT regexp_replace(cpf_cnpj, '\\D', '', 'g'), data_vencimento, valor_titulo,
                        (status = 'paga'), data_pagamento, 'Itaú'

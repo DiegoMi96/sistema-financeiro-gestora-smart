@@ -84,6 +84,7 @@ class AsaasPaymentSync(Base):
     value_original   = Column(Float)   # preenchido pelo Asaas quando há juros/multa (originalValue)
     net_value        = Column(Float)
     due_date         = Column(Date, index=True)
+    original_due_date = Column(Date)   # vencimento ORIGINAL (originalDueDate do Asaas) — usado só pelo Comissionamento dos analistas
     payment_date     = Column(Date)
     credit_date      = Column(Date)
     status           = Column(String(30), index=True)   # PENDING, RECEIVED, CONFIRMED, OVERDUE…
