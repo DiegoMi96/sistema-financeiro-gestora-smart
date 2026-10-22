@@ -9,6 +9,8 @@ vencimento em outubro, então outubro usa o ciclo de setembro). Vencimento origi
 
 Regra do valor (por analista): percentual × SALÁRIO do analista, liberado só se a meta (R$)
 foi definida (> 0) e o recebido do vencimento a atingiu. Previsão = o que pagaria se a meta for batida.
+MARGEM DO TIME (22/10/2026): a meta conta como atingida a partir de 95% dela (margem de 5%, configurável em
+system_settings.analistas_margem_meta_pct). O percentual do salário não muda — só o gatilho.
 O recebido é da carteira toda (ainda não há carteira por analista). Só o admin edita;
 cada analista (Carlo, Brenda…) vê apenas o próprio comissionamento.
 """
@@ -28,6 +30,23 @@ router = APIRouter(prefix="/analyst-commission", tags=["Comissionamento Analista
 
 
 DIAS = (10, 15, 20, 25)
+
+MARGEM_META_PADRAO = 5.0   # % — o time bate a meta com 95% dela
+
+
+def _margem_meta(db: Session) -> float:
+    """Margem (em %) abaixo da meta que ainda conta como meta atingida. Padrão 5; ajustável sem deploy."""
+    try:
+        v = db.execute(text("SELECT value FROM system_settings WHERE key = 'analistas_margem_meta_pct'")).scalar()
+        m = float(str(v).replace(",", ".")) if v not in (None, "") else MARGEM_META_PADRAO
+    except Exception:
+        m = MARGEM_META_PADRAO
+    return min(max(m, 0.0), 50.0)
+
+
+def meta_atingida(meta: float, recebido: float, margem_pct: float) -> bool:
+    """Meta definida (> 0) e recebido >= meta × (1 − margem). Sem meta definida não libera nada."""
+    return meta > 0 and recebido + 1e-9 >= meta * (1 - margem_pct / 100.0)
 
 
 class ConfigIn(BaseModel):
@@ -193,6 +212,7 @@ def comissionamento(year: int, month: int, user_id: Optional[int] = None,
             }
 
     salario = (_salario_do_mes(db, alvo_id, year, month) if alvo_id else None) or 0.0
+    margem = _margem_meta(db)
     out = []
     for dia in DIAS:
         d = dados[dia]
@@ -200,13 +220,14 @@ def comissionamento(year: int, month: int, user_id: Optional[int] = None,
         fat, rec = d["faturado"], d["recebido"]
         adimp = round(rec / fat * 100, 2) if fat else 0.0
         # Meta 0 = ainda não definida: não libera nada (realizado = 0). Previsão = o que pagaria se a meta for batida.
-        meta_ok = cfg["meta"] > 0 and rec >= cfg["meta"]
+        meta_ok = meta_atingida(cfg["meta"], rec, margem)
         previsao = round(salario * cfg["percentual"] / 100, 2)
         valor = previsao if meta_ok else 0.0
         out.append({
             "dia": dia, "vencimento_original": (datas.get(dia) or date(year, month, dia)).isoformat(), **d, **cfg,
             "adimplencia": adimp,
             "meta_atingida": meta_ok,
+            "meta_minima": round(cfg["meta"] * (1 - margem / 100.0), 2),
             "previsao": previsao,
             "valor": valor,
         })
@@ -220,6 +241,7 @@ def comissionamento(year: int, month: int, user_id: Optional[int] = None,
                         for u in db.query(User).filter(User.is_active == True, User.role == UserRole.CONTAS_RECEBER)  # noqa: E712
                         .order_by(User.name).all() if u.id not in {m["id"] for m in membros}] if admin else []),
         "salario": salario,
+        "margem_meta_pct": margem,
         "vencimentos": out,
         "total": round(sum(v["valor"] for v in out), 2),
         "total_previsao": round(sum(v["previsao"] for v in out), 2),

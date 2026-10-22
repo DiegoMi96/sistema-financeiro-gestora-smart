@@ -164,12 +164,14 @@ export default function AnalystCommissionPage() {
     const f = form[v.dia]
     return f ? Math.round(parseNum(salario) * parseNum(f.percentual)) / 100 : v.previsao
   }
-  // Realizado: só conta vencimento com meta definida (> 0) e já atingida
+  // Margem do time: a meta conta como atingida a partir de (100 − margem)% dela (hoje 95%). Vem do servidor.
+  const margem = data?.margem_meta_pct ?? 5
+  const atingiu = (meta, recebido) => meta > 0 && recebido + 0.000001 >= meta * (1 - margem / 100)
+  // Realizado: só conta vencimento com meta definida (> 0) e já atingida (com a margem)
   const valorLive = v => {
     const f = form[v.dia]
     if (!f) return v.valor
-    const meta = parseNum(f.meta)
-    return meta > 0 && v.recebido >= meta ? previsaoLive(v) : 0
+    return atingiu(parseNum(f.meta), v.recebido) ? previsaoLive(v) : 0
   }
   const totalLive = venc.reduce((s, v) => s + valorLive(v), 0)
   const totalPrevisao = venc.reduce((s, v) => s + previsaoLive(v), 0)
@@ -276,7 +278,7 @@ export default function AnalystCommissionPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
           <StatCard icon={User} tone="green" label="Analista" value={data.analista.name} />
           <StatCard icon={Target} label="Previsão do mês" value={fmtBRL(totalPrevisao)} hint="Se todas as metas forem batidas" />
-          <StatCard icon={BarChart3} label="Realizado até o momento" value={fmtBRL(totalLive)} valueClass="text-green-700" hint="Só metas definidas e já atingidas" />
+          <StatCard icon={BarChart3} label="Realizado até o momento" value={fmtBRL(totalLive)} valueClass="text-green-700" hint={`Só metas definidas e já atingidas (a partir de ${String(100 - margem).replace('.', ',')}%)`} />
           <StatCard icon={Trophy} label="Meta do mês (total)" value={fmtBRL(totalMeta)} hint="Soma das metas dos vencimentos" />
         </div>
       )}
@@ -368,7 +370,7 @@ export default function AnalystCommissionPage() {
                     const meta = parseNum(form[v.dia]?.meta)
                     if (meta <= 0) return <td key={v.dia} className={TD}><span className="text-gray-400">—</span></td>
                     const pct = v.recebido / meta * 100
-                    return <td key={v.dia} className={TD + (pct >= 100 ? ' font-semibold text-green-700' : '')}>{fmtDec(pct)}%</td>
+                    return <td key={v.dia} className={TD + (pct >= 100 - margem ? ' font-semibold text-green-700' : '')}>{fmtDec(pct)}%</td>
                   })}
                   <td className={TD + ' font-bold'}>{(() => {
                     // total: recebido só dos vencimentos que têm meta ÷ soma das metas
@@ -378,13 +380,13 @@ export default function AnalystCommissionPage() {
                   })()}</td>
                 </tr>
                 <tr>
-                  <td className={ROW_LABEL}>Meta atingida</td>
+                  <td className={ROW_LABEL}>Meta atingida <span className="font-normal text-gray-400">(a partir de {String(100 - margem).replace('.', ',')}%)</span></td>
                   {venc.map(v => {
                     const meta = parseNum(form[v.dia]?.meta)
                     return (
                       <td key={v.dia} className={TD}>
                         {meta <= 0 ? <Badge tone="gray">Sem meta</Badge>
-                          : v.recebido >= meta ? <Badge tone="green">Atingida</Badge>
+                          : atingiu(meta, v.recebido) ? <Badge tone="green">Atingida</Badge>
                           : <Badge tone="red">Não atingida</Badge>}
                       </td>
                     )
