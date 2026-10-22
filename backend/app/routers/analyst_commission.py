@@ -7,8 +7,8 @@ vencimento em outubro, então outubro usa o ciclo de setembro). Vencimento origi
 `billing_client_summaries.due_date` (arquivo de Vencimentos); o realizado vem de
 `asaas_payments_sync` (cruzado por CNPJ/CPF) e `itau_boletos` — SÓ o pago NO DIA do vencimento ou no dia seguinte (10/11, 15/16, 20/21, 25/26); pago antes ou depois não entra no recebido. Boletos com vencimento dentro do mês.
 CADA BOLETO VALE NO DIA DO SEU PRÓPRIO VENCIMENTO (22/10/2026, conferido contra as planilhas do Diego de 15/10 e 20/10): o dia 10/15/20/25
-de um boleto é o do seu vencimento, não o do ciclo do cliente (que pode estar vazio ou diferente); vencimento deslocado em 1 dia
-(16 → 15) vale no dia anterior. A base são os clientes do ciclo (Asaas e Itaú) + boletos do Itaú de clientes fora do ciclo.
+de um boleto é o do seu vencimento, não o do ciclo do cliente (que pode estar vazio ou diferente). Boleto com vencimento fora desses
+dias (remarcado) vale no dia do ciclo do cliente; se o cliente não tem dia no ciclo, no dia anterior (16 → 15). Faturado = valor do ciclo. A base são os clientes do ciclo (Asaas e Itaú) + boletos do Itaú de clientes fora do ciclo.
 VENCIMENTO EM FIM DE SEMANA (22/10/2026, pedido do Diego): sábado e domingo não são dia útil, então a janela vai do
 vencimento REAL até 1 dia depois do primeiro dia útil (sáb 10 → vale pago de sáb 10 a ter 13). Assim o Pix pago no fim de
 semana entra E quem paga na segunda/terça também. Dia útil comum: janela de sempre (vencimento e dia seguinte). Feriados não
@@ -172,32 +172,37 @@ def comissionamento(year: int, month: int, user_id: Optional[int] = None,
                 FROM itau_boletos
                 WHERE status <> 'cancelada' AND data_vencimento >= :ini AND data_vencimento < :fim
             ),
-            bol AS (   -- cada boleto vale no dia do SEU vencimento (10/15/20/25); vencimento deslocado 1 dia (16 → 15) vale no dia anterior
-                SELECT b.*, CASE WHEN EXTRACT(DAY FROM b.dv)::int IN (10, 15, 20, 25) THEN b.dv
-                                 WHEN EXTRACT(DAY FROM b.dv - 1)::int IN (10, 15, 20, 25) THEN b.dv - 1 END AS gdate
-                FROM bol0 b
-            ),
             base AS (  -- clientes do ciclo de origem (qualquer ciclo com vencimento no mês, ou o do mês anterior)
-                SELECT regexp_replace(id_smart, '\\D', '', 'g') AS doc, SUM(total_final) AS valor_ciclo, MIN(due_date) AS due_ciclo
+                SELECT regexp_replace(id_smart, '\\D', '', 'g') AS doc, SUM(total_final) AS valor_ciclo,
+                       MIN(CASE WHEN due_date >= :ini AND due_date < :fim AND EXTRACT(DAY FROM due_date)::int IN (10, 15, 20, 25)
+                                THEN due_date END) AS due_ciclo
                 FROM billing_client_summaries
                 WHERE total_final > 0 AND (cycle_id = :cyc OR (due_date >= :ini AND due_date < :fim))
                 GROUP BY 1
+            ),
+            bol AS (   -- dia (grupo) de cada boleto: o do PRÓPRIO vencimento (10/15/20/25); se o vencimento é outro (boleto
+                       -- remarcado), o dia do ciclo do cliente; sem dia no ciclo, o dia anterior (16 -> 15)
+                SELECT b.*, CASE WHEN EXTRACT(DAY FROM b.dv)::int IN (10, 15, 20, 25) THEN b.dv
+                                 WHEN bs.due_ciclo IS NOT NULL THEN bs.due_ciclo
+                                 WHEN EXTRACT(DAY FROM b.dv - 1)::int IN (10, 15, 20, 25) THEN b.dv - 1 END AS gdate
+                FROM bol0 b LEFT JOIN base bs ON bs.doc = b.doc
             ),
             elig AS (  -- boletos que entram: de cliente do ciclo (Asaas e Itaú) ou boleto do Itaú de cliente fora do ciclo
                 SELECT b.* FROM bol b
                 WHERE b.gdate IS NOT NULL AND b.gdate >= :ini AND b.gdate < :fim
                   AND (b.banco = 'Itaú' OR b.doc IN (SELECT doc FROM base))
             ),
-            semb AS (  -- cliente do ciclo com vencimento definido e SEM boleto no sistema: entra no faturado pelo valor do ciclo
-                SELECT bs.doc, bs.valor_ciclo AS valor, bs.due_ciclo AS gdate
+            fat AS (   -- faturado = o que o ciclo mandou cobrar de cada cliente (uma vez, sem somar boleto duplicado);
+                       -- sem dia no ciclo, vale o dia do boleto mais antigo; + boletos do Itaú de clientes fora do ciclo
+                SELECT bs.doc, bs.valor_ciclo AS valor,
+                       COALESCE(bs.due_ciclo, (SELECT MIN(e.gdate) FROM elig e WHERE e.doc = bs.doc)) AS gdate
                 FROM base bs
-                WHERE bs.due_ciclo >= :ini AND bs.due_ciclo < :fim AND EXTRACT(DAY FROM bs.due_ciclo)::int IN (10, 15, 20, 25)
-                  AND NOT EXISTS (SELECT 1 FROM elig e WHERE e.doc = bs.doc)
+                UNION ALL
+                SELECT e.doc, e.valor, e.gdate FROM elig e WHERE e.banco = 'Itaú' AND e.doc NOT IN (SELECT doc FROM base)
             ),
             f AS (     -- faturado de cada vencimento
                 SELECT EXTRACT(DAY FROM gdate)::int AS dia, COUNT(DISTINCT doc) AS clientes, SUM(valor) AS faturado
-                FROM (SELECT doc, valor, gdate FROM elig UNION ALL SELECT doc, valor, gdate FROM semb) u
-                GROUP BY 1
+                FROM fat WHERE gdate IS NOT NULL GROUP BY 1
             ),
             r AS (     -- emitido / recebido: "pago no dia" = do vencimento até 1 dia depois do 1º dia útil
                 SELECT EXTRACT(DAY FROM x.gdate)::int AS dia,
