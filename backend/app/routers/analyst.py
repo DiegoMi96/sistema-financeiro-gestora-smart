@@ -2161,6 +2161,7 @@ async def upload_vencidos_planilha(
 
     updated = 0
     errors  = []
+    notas_vistas: dict = {}
 
     for row_num, row in enumerate(rows[1:], 2):
         if not row or len(row) <= max(cnpj_idx, vp_idx, obs_idx):
@@ -2185,15 +2186,19 @@ async def upload_vencidos_planilha(
                     errors.append(f"Linha {row_num}: data inválida '{vp_raw}'")
                     continue
 
-        nota = db.query(VencidoNota).filter(
-            VencidoNota.cnpj == raw_cnpj,
-            VencidoNota.mes  == mes,
-            VencidoNota.ano  == ano,
-        ).first()
-
-        if not nota:
-            nota = VencidoNota(cnpj=raw_cnpj, mes=mes, ano=ano)
-            db.add(nota)
+        # o mesmo CNPJ pode aparecer em várias linhas (um cliente com mais de um boleto vencido):
+        # a nota é por cliente, então reaproveita a já tratada nesta planilha (a última linha vale)
+        nota = notas_vistas.get(raw_cnpj)
+        if nota is None:
+            nota = db.query(VencidoNota).filter(
+                VencidoNota.cnpj == raw_cnpj,
+                VencidoNota.mes  == mes,
+                VencidoNota.ano  == ano,
+            ).first()
+            if not nota:
+                nota = VencidoNota(cnpj=raw_cnpj, mes=mes, ano=ano)
+                db.add(nota)
+            notas_vistas[raw_cnpj] = nota
 
         nota.vencimento_planejado = vp_date
         nota.observacao           = obs_raw or None
