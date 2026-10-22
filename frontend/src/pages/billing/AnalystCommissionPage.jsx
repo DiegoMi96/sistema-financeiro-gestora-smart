@@ -101,6 +101,10 @@ export default function AnalystCommissionPage() {
     queryKey: ['analyst-commission', year, month, userId],
     queryFn: () => analystCommissionApi.get(year, month, userId).then(r => r.data),
     retry: false,
+    // O recebido muda toda vez que o Itaú/Asaas é atualizado: sempre busca de novo ao abrir a aba
+    // (o padrão do sistema guarda os dados por 5 min e mostrava o recebido de antes da importação).
+    staleTime: 0,
+    refetchOnMount: 'always',
   })
 
   useEffect(() => {

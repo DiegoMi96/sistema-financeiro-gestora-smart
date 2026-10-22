@@ -441,6 +441,7 @@ function ResumoBanco({ resumo, insight, month, year }) {
       toast.success(`Itaú: ${data.inseridos} novos, ${data.atualizados} atualizados`)
       setItauCount(data.inseridos + data.atualizados)
       qc.invalidateQueries({ queryKey: ['analyst-operational'] })
+      qc.invalidateQueries({ queryKey: ['analyst-commission'] })   // o "Recebido no dia" do Comissionamento usa o Itaú
     } catch (err) {
       toast.error(err.message)
     } finally {
