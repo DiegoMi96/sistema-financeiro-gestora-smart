@@ -6,6 +6,9 @@ Mês escolhido = mês de VENCIMENTO dos boletos (o ciclo de setembro gera boleto
 vencimento em outubro, então outubro usa o ciclo de setembro). Vencimento original =
 `billing_client_summaries.due_date` (arquivo de Vencimentos); o realizado vem de
 `asaas_payments_sync` (cruzado por CNPJ/CPF) e `itau_boletos` — SÓ o pago NO DIA do vencimento ou no dia seguinte (10/11, 15/16, 20/21, 25/26); pago antes ou depois não entra no recebido. Boletos com vencimento dentro do mês.
+CADA BOLETO VALE NO DIA DO SEU PRÓPRIO VENCIMENTO (22/10/2026, conferido contra as planilhas do Diego de 15/10 e 20/10): o dia 10/15/20/25
+de um boleto é o do seu vencimento, não o do ciclo do cliente (que pode estar vazio ou diferente); vencimento deslocado em 1 dia
+(16 → 15) vale no dia anterior. A base são os clientes do ciclo (Asaas e Itaú) + boletos do Itaú de clientes fora do ciclo.
 VENCIMENTO EM FIM DE SEMANA (22/10/2026, pedido do Diego): sábado e domingo não são dia útil, então a janela vai do
 vencimento REAL até 1 dia depois do primeiro dia útil (sáb 10 → vale pago de sáb 10 a ter 13). Assim o Pix pago no fim de
 semana entra E quem paga na segunda/terça também. Dia útil comum: janela de sempre (vencimento e dia seguinte). Feriados não
@@ -150,67 +153,67 @@ def comissionamento(year: int, month: int, user_id: Optional[int] = None,
         datas.setdefault(int(r.dia), r.due_date)
     tem_boletos = bool(datas)
     if tem_boletos:
-        _ef_asaas = effective_due_date_sql("due_date")
-        _ef_itau  = effective_due_date_sql("data_vencimento")
+        # Ciclo que gerou os boletos deste mês (o de setembro gera vencimentos de outubro)
+        py, pm = (year - 1, 12) if month == 1 else (year, month - 1)
+        cyc = db.execute(text("SELECT id FROM billing_cycles WHERE year = :y AND month = :m ORDER BY id DESC LIMIT 1"),
+                         {"y": py, "m": pm}).scalar()
+        ef_g = effective_due_date_sql("e.gdate")
         rows = db.execute(text(f"""
-            WITH sc AS (   -- clientes do ciclo: valor original = total do ciclo
-                SELECT regexp_replace(id_smart, '\\D', '', 'g') AS doc,
-                       EXTRACT(DAY FROM due_date)::int AS dia,
-                       SUM(total_final) AS valor
-                FROM billing_client_summaries
-                WHERE due_date >= :ini AND due_date < :fim
-                  AND EXTRACT(DAY FROM due_date)::int IN (10, 15, 20, 25)
-                GROUP BY 1, 2
-            ),
-            se AS (        -- boletos do Itaú de clientes que NÃO estão no ciclo: valor = o do boleto
-                SELECT regexp_replace(cpf_cnpj, '\\D', '', 'g') AS doc,
-                       EXTRACT(DAY FROM data_vencimento)::int AS dia,
-                       SUM(valor_titulo) AS valor
-                FROM itau_boletos
-                WHERE status <> 'cancelada'
-                  AND data_vencimento >= :ini AND data_vencimento < :fim
-                  AND EXTRACT(DAY FROM data_vencimento)::int IN (10, 15, 20, 25)
-                  AND regexp_replace(cpf_cnpj, '\\D', '', 'g') NOT IN (SELECT doc FROM sc)
-                GROUP BY 1, 2
-            ),
-            s AS (
-                SELECT doc, dia, valor, FALSE AS extra FROM sc
-                UNION ALL
-                SELECT doc, dia, valor, TRUE FROM se
-            ),
-            f AS (   -- valor original de cada vencimento (o que o ciclo mandou cobrar)
-                SELECT dia, COUNT(*) AS clientes, SUM(valor) AS faturado FROM s GROUP BY dia
-            ),
-            pg AS (  -- boletos do mês nos dois bancos (Asaas + Itaú), por cliente
-                SELECT regexp_replace(customer_cpf_cnpj, '\\D', '', 'g') AS doc,
+            WITH bol0 AS (   -- todos os boletos (Asaas + Itaú) com vencimento no mês, valor ORIGINAL do boleto
+                SELECT regexp_replace(customer_cpf_cnpj, '\\D', '', 'g') AS doc, due_date AS dv,
                        COALESCE(value_original, value) AS valor,
-                       -- "pago no dia": do vencimento real até 1 dia depois do 1º dia útil (antecipado/atrasado não conta)
-                       (status IN ('RECEIVED','CONFIRMED','RECEIVED_IN_CASH')
-                        AND COALESCE(payment_date, credit_date) BETWEEN due_date AND ({_ef_asaas}) + 1) AS pago,
-                       'Asaas' AS banco
+                       (status IN ('RECEIVED','CONFIRMED','RECEIVED_IN_CASH')) AS rec,
+                       COALESCE(payment_date, credit_date) AS dp, 'Asaas' AS banco
                 FROM asaas_payments_sync
                 WHERE due_date >= :ini AND due_date < :fim
                 UNION ALL
-                SELECT regexp_replace(cpf_cnpj, '\\D', '', 'g'), valor_titulo,
-                       (status = 'paga' AND data_pagamento BETWEEN data_vencimento AND ({_ef_itau}) + 1), 'Itaú'
+                SELECT regexp_replace(cpf_cnpj, '\\D', '', 'g'), data_vencimento, valor_titulo,
+                       (status = 'paga'), data_pagamento, 'Itaú'
                 FROM itau_boletos
                 WHERE status <> 'cancelada' AND data_vencimento >= :ini AND data_vencimento < :fim
             ),
-            r AS (   -- o que já foi emitido / recebido desses clientes
-                SELECT s.dia,
+            bol AS (   -- cada boleto vale no dia do SEU vencimento (10/15/20/25); vencimento deslocado 1 dia (16 → 15) vale no dia anterior
+                SELECT b.*, CASE WHEN EXTRACT(DAY FROM b.dv)::int IN (10, 15, 20, 25) THEN b.dv
+                                 WHEN EXTRACT(DAY FROM b.dv - 1)::int IN (10, 15, 20, 25) THEN b.dv - 1 END AS gdate
+                FROM bol0 b
+            ),
+            base AS (  -- clientes do ciclo de origem (qualquer ciclo com vencimento no mês, ou o do mês anterior)
+                SELECT regexp_replace(id_smart, '\\D', '', 'g') AS doc, SUM(total_final) AS valor_ciclo, MIN(due_date) AS due_ciclo
+                FROM billing_client_summaries
+                WHERE total_final > 0 AND (cycle_id = :cyc OR (due_date >= :ini AND due_date < :fim))
+                GROUP BY 1
+            ),
+            elig AS (  -- boletos que entram: de cliente do ciclo (Asaas e Itaú) ou boleto do Itaú de cliente fora do ciclo
+                SELECT b.* FROM bol b
+                WHERE b.gdate IS NOT NULL AND b.gdate >= :ini AND b.gdate < :fim
+                  AND (b.banco = 'Itaú' OR b.doc IN (SELECT doc FROM base))
+            ),
+            semb AS (  -- cliente do ciclo com vencimento definido e SEM boleto no sistema: entra no faturado pelo valor do ciclo
+                SELECT bs.doc, bs.valor_ciclo AS valor, bs.due_ciclo AS gdate
+                FROM base bs
+                WHERE bs.due_ciclo >= :ini AND bs.due_ciclo < :fim AND EXTRACT(DAY FROM bs.due_ciclo)::int IN (10, 15, 20, 25)
+                  AND NOT EXISTS (SELECT 1 FROM elig e WHERE e.doc = bs.doc)
+            ),
+            f AS (     -- faturado de cada vencimento
+                SELECT EXTRACT(DAY FROM gdate)::int AS dia, COUNT(DISTINCT doc) AS clientes, SUM(valor) AS faturado
+                FROM (SELECT doc, valor, gdate FROM elig UNION ALL SELECT doc, valor, gdate FROM semb) u
+                GROUP BY 1
+            ),
+            r AS (     -- emitido / recebido: "pago no dia" = do vencimento até 1 dia depois do 1º dia útil
+                SELECT EXTRACT(DAY FROM x.gdate)::int AS dia,
                        COUNT(*) AS boletos,
-                       COUNT(*) FILTER (WHERE pg.pago) AS pagos,
-                       COALESCE(SUM(pg.valor) FILTER (WHERE pg.pago), 0) AS recebido,
-                       COALESCE(SUM(pg.valor) FILTER (WHERE pg.pago AND pg.banco = 'Itaú'), 0) AS recebido_itau,
-                       COUNT(*) FILTER (WHERE pg.banco = 'Itaú') AS boletos_itau
-                FROM s JOIN pg ON pg.doc = s.doc AND (NOT s.extra OR pg.banco = 'Itaú')
-                GROUP BY s.dia
+                       COUNT(*) FILTER (WHERE x.pago) AS pagos,
+                       COALESCE(SUM(x.valor) FILTER (WHERE x.pago), 0) AS recebido,
+                       COALESCE(SUM(x.valor) FILTER (WHERE x.pago AND x.banco = 'Itaú'), 0) AS recebido_itau,
+                       COUNT(*) FILTER (WHERE x.banco = 'Itaú') AS boletos_itau
+                FROM (SELECT e.*, (e.rec AND e.dp BETWEEN e.gdate AND ({ef_g}) + 1) AS pago FROM elig e) x
+                GROUP BY 1
             )
             SELECT f.dia, f.clientes, f.faturado,
                    COALESCE(r.boletos, 0) AS boletos, COALESCE(r.pagos, 0) AS pagos, COALESCE(r.recebido, 0) AS recebido,
                    COALESCE(r.recebido_itau, 0) AS recebido_itau, COALESCE(r.boletos_itau, 0) AS boletos_itau
             FROM f LEFT JOIN r ON r.dia = f.dia
-        """), {"ini": ini, "fim": fim}).fetchall()
+        """), {"ini": ini, "fim": fim, "cyc": cyc}).fetchall()
         for r in rows:
             dados[int(r.dia)] = {
                 "clientes": int(r.clientes), "boletos": int(r.boletos), "pagos": int(r.pagos),
