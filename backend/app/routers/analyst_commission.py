@@ -8,7 +8,7 @@ vencimento em outubro, então outubro usa o ciclo de setembro). Vencimento origi
 `asaas_payments_sync` (cruzado por CNPJ/CPF) e `itau_boletos` — SÓ o pago NO DIA do vencimento ou no dia seguinte (10/11, 15/16, 20/21, 25/26); pago antes ou depois não entra no recebido. Boletos com vencimento dentro do mês.
 CADA BOLETO VALE NO DIA DO SEU PRÓPRIO VENCIMENTO (22/10/2026, conferido contra as planilhas do Diego de 15/10 e 20/10): o dia 10/15/20/25
 de um boleto é o do seu vencimento, não o do ciclo do cliente (que pode estar vazio ou diferente). Boleto com vencimento fora desses
-dias (remarcado) vale no dia do ciclo do cliente; se o cliente não tem dia no ciclo, no dia anterior (16 → 15). Faturado = valor do ciclo. A base são os clientes do ciclo (Asaas e Itaú) + boletos do Itaú de clientes fora do ciclo.
+dias (remarcado) vale no dia do ciclo do cliente; se o cliente não tem dia no ciclo, no dia anterior (16 → 15). Faturado = valor do ciclo. O pagamento também não pode ser ANTES do vencimento do próprio boleto (antecipado não conta). A base são os clientes do ciclo (Asaas e Itaú) + boletos do Itaú de clientes fora do ciclo.
 VENCIMENTO EM FIM DE SEMANA (22/10/2026, pedido do Diego): sábado e domingo não são dia útil, então a janela vai do
 vencimento REAL até 1 dia depois do primeiro dia útil (sáb 10 → vale pago de sáb 10 a ter 13). Assim o Pix pago no fim de
 semana entra E quem paga na segunda/terça também. Dia útil comum: janela de sempre (vencimento e dia seguinte). Feriados não
@@ -211,7 +211,7 @@ def comissionamento(year: int, month: int, user_id: Optional[int] = None,
                        COALESCE(SUM(x.valor) FILTER (WHERE x.pago), 0) AS recebido,
                        COALESCE(SUM(x.valor) FILTER (WHERE x.pago AND x.banco = 'Itaú'), 0) AS recebido_itau,
                        COUNT(*) FILTER (WHERE x.banco = 'Itaú') AS boletos_itau
-                FROM (SELECT e.*, (e.rec AND e.dp BETWEEN e.gdate AND ({ef_g}) + 1) AS pago FROM elig e) x
+                FROM (SELECT e.*, (e.rec AND e.dp >= e.dv AND e.dp BETWEEN e.gdate AND ({ef_g}) + 1) AS pago FROM elig e) x
                 GROUP BY 1
             )
             SELECT f.dia, f.clientes, f.faturado,
