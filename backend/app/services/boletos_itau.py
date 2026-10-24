@@ -23,14 +23,23 @@ MAX_ZIP = 60 * 1024 * 1024
 MAX_ARQUIVOS = 600
 MAX_PAGINAS = 6
 
-_RE_DATA = re.compile(r"\b(\d{2})/(\d{2})/(\d{4})\b")
-_RE_VALOR = re.compile(r"\b\d{1,3}(?:\.\d{3})*,\d{2}\b")
+_RE_DATA = re.compile(r"(?<!\d)(\d{2})/(\d{2})/(\d{4})(?!\d)")   # sem \b: no PDF real a data vem colada no texto seguinte ("20/10/2026Núm.")
+_RE_VALOR = re.compile(r"(?<![\d.,])\d{1,3}(?:\.\d{3})*,\d{2}(?!\d)")
 _RE_LINHA = re.compile(r"\b\d{5}[.\s]?\d{5}\s+\d{5}[.\s]?\d{6}\s+\d{5}[.\s]?\d{6}\s+\d\s+\d{14}\b")
-_RE_ROTULO_NUM = re.compile(r"(?i)(nosso\s*n[úu]mero|n[º°o]?\s*do\s*documento|n[úu]mero\s*do\s*documento|seu\s*n[úu]mero)[^\n]{0,60}")
+_RE_ROTULO_NUM = re.compile(r"(?i)(nosso\s*n[úu]mero|n[º°o]?\s*do\s*documento|n[úu]m\.?\s*do\s*documento|n[úu]mero\s*do\s*documento|seu\s*n[úu]mero)[^\n]{0,60}(?:\n[^\n]{0,40})?")
 
 
 class PdfInvalido(Exception):
     pass
+
+
+def _sem_acento(t: str) -> str:
+    import unicodedata
+    return "".join(ch for ch in unicodedata.normalize("NFKD", str(t or "")) if not unicodedata.combining(ch))
+
+
+def _norm_nome(t: str) -> str:
+    return re.sub(r"[^A-Z0-9]", "", _sem_acento(t).upper())
 
 
 def so_digitos(s) -> str:
@@ -79,9 +88,14 @@ def extrair_evidencias(texto: str, nome_arquivo: str, cnpj_empresa: str = "") ->
     linha = _RE_LINHA.search(texto)
     nums = set()
     for m in _RE_ROTULO_NUM.finditer(texto):
-        nums.add(so_digitos(m.group(0)))
+        for linha_txt in m.group(0).split("\n"):             # cada linha separada: no boleto real o número vem na linha de baixo do rótulo
+            d = so_digitos(linha_txt)
+            if d:
+                nums.add(d)
     nums |= {x for x in re.findall(r"\d+", nome_arquivo or "")}
-    return {"digitos": digitos, "datas": datas, "valores": valores, "nums": nums, "tem_texto": bool(texto.strip()),
+    token = re.sub(r"[^A-Z0-9]", "", _sem_acento((nome_arquivo or "").rsplit(".", 1)[0]).upper())
+    token = token[6:] if token.startswith("BOLETO") else token
+    return {"nome_token": token, "digitos": digitos, "datas": datas, "valores": valores, "nums": nums, "tem_texto": bool(texto.strip()),
             "linha": re.sub(r"\s+", " ", linha.group(0)).strip() if linha else None, "cnpj_empresa": so_digitos(cnpj_empresa)}
 
 
@@ -132,6 +146,8 @@ def casar(ev: dict, cands: list):
         return "sem_correspondencia", None, None, "nenhum boleto em aberto com esse CNPJ, vencimento e valor"
     if len(elig) > 1:
         com_num = [e for e in elig if e[2]]
+        if len(com_num) != 1 and ev.get("nome_token"):        # o nome do arquivo (ex.: Boleto_2ETELECOM.pdf) desempata quando o número não ajuda
+            com_num = [e for e in elig if _norm_nome(e[0]["pagador"]).startswith(ev["nome_token"][:25])] if len(ev["nome_token"]) >= 4 else []
         if len(com_num) == 1:
             elig = com_num
         else:
