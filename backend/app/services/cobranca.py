@@ -12,6 +12,7 @@ Princípios (integridade / segurança):
   • Limite diário de envios e ritmo de ~1 mensagem/s. Falhas não são reenviadas sozinhas.
   • A senha do e-mail nunca é gravada em log nem devolvida pela API.
 """
+import json
 import os
 import re
 import smtplib
@@ -122,6 +123,19 @@ _DEFAULTS_CFG = {
     "cobranca_imap_porta": "993",
     "cobranca_imap_usuario": "",       # vazio = usa o mesmo usuário/senha do envio
     "cobranca_imap_senha": "",
+    # layout dos e-mails (rodapé e contatos — valem para todas as etapas; editáveis na aba Régua)
+    "email_duvida_titulo": "Ficou com alguma dúvida?",
+    "email_duvida_texto": "Nossa equipe financeira está à disposição para qualquer suporte relacionado ao seu faturamento:",
+    "email_contato_email": "contasareceber@gestorasmart.com.br",
+    "email_contato_fone": "(11) 91731-2712",
+    "email_redes_texto": "Acompanhe nossas novidades nas redes sociais",
+    "email_url_instagram": "https://www.instagram.com/gestorasmart",
+    "email_url_linkedin": "https://www.linkedin.com/company/gestora-smart/",
+    "email_rodape_email": "comunicados@gestorasmart.com.br",
+    "email_rodape_endereco": "R. das Bandeiras, 35 – Jardim Santo André – SP, 09090-780",
+    "email_rodape_copyright": "Gestora SMART © {ano} · Todos os direitos reservados.",
+    "email_rodape_descadastro": "Não quero mais receber estes e-mails",
+    "email_rodape_slogan": "SIMCARD | HARDWARE | SOFTWARE",
 }
 SEGREDOS = {"cobranca_smtp_senha", "umbler_token", "cobranca_imap_senha"}
 
@@ -135,7 +149,7 @@ def carregar_cfg(db: Session) -> dict:
     except Exception:
         return cfg
     for k, v in rows:
-        if v is not None and (str(v).strip() != "" or k in ("cobranca_smtp_host", "cobranca_smtp_usuario", "cobranca_smtp_senha", "whatsapp_pausado_motivo", "whatsapp_telefone_teste", "umbler_token", "umbler_org_id", "umbler_from_phone", "umbler_base_url", "whatsapp_canal_estado", "regua_lancamento_desde", "regua_feriados_extra", "cobranca_imap_host", "cobranca_imap_usuario", "cobranca_imap_senha")):
+        if v is not None and (str(v).strip() != "" or k in ("cobranca_smtp_host", "cobranca_smtp_usuario", "cobranca_smtp_senha", "whatsapp_pausado_motivo", "whatsapp_telefone_teste", "umbler_token", "umbler_org_id", "umbler_from_phone", "umbler_base_url", "whatsapp_canal_estado", "regua_lancamento_desde", "regua_feriados_extra", "email_url_instagram", "email_url_linkedin", "cobranca_imap_host", "cobranca_imap_usuario", "cobranca_imap_senha")):
             cfg[k] = str(v).strip()
     return cfg
 
@@ -335,6 +349,28 @@ def corpo_html(texto: str, rodape: str) -> str:
             + "".join(paras) + f'<p style="margin:18px 0 0;color:#777;font-size:12px">{escape(rodape)}</p></div>')
 
 
+# Campos do layout editáveis POR ETAPA (cobranca_etapas.layout = JSON). Vazio = padrão. Aceitam {campos} como o texto.
+LAYOUT_ETAPA = {"titulo": 200, "preheader": 200, "secao_titulo": 120, "secao_sub": 200, "card_valor": 120, "card_venc": 120}
+# Campos GLOBAIS (rodapé/contatos) = chaves email_* de system_settings. Limite de tamanho de cada um:
+LAYOUT_GLOBAL = {"duvida_titulo": 120, "duvida_texto": 400, "contato_email": 120, "contato_fone": 40, "redes_texto": 120,
+                 "url_instagram": 200, "url_linkedin": 200, "rodape_email": 120, "rodape_endereco": 200,
+                 "rodape_copyright": 200, "rodape_descadastro": 120, "rodape_slogan": 80}
+
+
+def layout_etapa(et) -> dict:
+    """Layout salvo da etapa, só com os campos conhecidos (texto vazio = usa o padrão)."""
+    try:
+        d = json.loads(getattr(et, "layout", None) or "{}")
+        d = d if isinstance(d, dict) else {}
+    except (ValueError, TypeError):
+        d = {}
+    return {k: str(d.get(k) or "").strip()[:n] for k, n in LAYOUT_ETAPA.items()}
+
+
+def layout_global(cfg: dict) -> dict:
+    return {k: str((cfg or {}).get("email_" + k, _DEFAULTS_CFG["email_" + k]) or "").strip() for k in LAYOUT_GLOBAL}
+
+
 # ── identidade visual dos e-mails: modelo HTML da marca (email_assets/modelo_email.html) ──────────
 # Imagens vão ANEXADAS ao e-mail (cid:) — não dependem de "carregar imagens" nem de hospedagem.
 _ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "email_assets")
@@ -365,14 +401,15 @@ def html_com_imagens(html: str, inline: list) -> str:
     return re.sub(r"cid:([a-z-]+)", lambda m: mapa.get(m.group(1), m.group(0)), html)
 
 
-def exemplo_email(et, assunto: str, texto: str, cfg: dict, hoje: date, origem: str) -> dict:
+def exemplo_email(et, assunto: str, texto: str, cfg: dict, hoje: date, origem: str, layout: dict = None) -> dict:
     """E-mail COMPLETO (HTML) de exemplo da etapa, com os textos digitados e um cliente fictício — só para a prévia."""
     from types import SimpleNamespace as N
     dias = getattr(et, "dias", 0) or 0
     venc = hoje + timedelta(days=10) if et.chave == ETAPA_LANCAMENTO else hoje - timedelta(days=dias)
     e = N(nome="Cliente Exemplo LTDA", valor=1240.50, vencimento=venc, origem=origem,
           link="https://www.asaas.com/i/exemplo" if origem == "asaas" else None)
-    ef = N(assunto=assunto, texto=texto, anexa_boleto=bool(getattr(et, "anexa_boleto", False)), chave=et.chave)
+    ef = N(assunto=assunto, texto=texto, anexa_boleto=bool(getattr(et, "anexa_boleto", False)), chave=et.chave,
+           layout=json.dumps(layout) if layout is not None else getattr(et, "layout", None))
     linha = "34191.09008 61207.727808 71234.567890 1 11110000124050"
     if et.chave == ETAPA_LANCAMENTO:
         b = {"valor": 1240.50, "venc": venc, "link": e.link, "anexo": None if origem == "asaas" else {"bytes": b"%PDF", "linha": linha}}
@@ -417,18 +454,38 @@ def secao_html(titulo: str, subtitulo: str, cartoes: list = None, extra: str = "
 
 
 def layout_email(titulo: str, corpo_paras: str, secao: str, cfg: dict = None, preheader: str = "") -> str:
-    """Monta o e-mail final a partir do modelo da marca. `corpo_paras` e `secao` já vêm com HTML seguro (escapado)."""
+    """Monta o e-mail final a partir do modelo da marca. `corpo_paras` e `secao` já vêm com HTML seguro (escapado).
+    Rodapé/contatos vêm das configurações (email_*); tudo é escapado aqui."""
     try:
         with open(os.path.join(_ASSETS, "modelo_email.html"), encoding="utf-8") as f:
             m = f.read()
     except OSError:
         return f"<html><body>{corpo_paras}{secao}</body></html>"
+    g = layout_global(cfg)
     a, b = _titulo_em_duas_linhas(titulo)
     ano = str(datetime.now(ZoneInfo("America/Sao_Paulo")).year)
-    for k, v in (("{{TITLE}}", escape(titulo)), ("{{PREHEADER}}", escape(preheader or titulo)), ("{{H1A}}", escape(a)),
-                 ("{{H1B}}", escape(b)), ("{{CORPO}}", corpo_paras), ("{{SECAO}}", secao), ("{{ANO}}", ano)):
-        m = m.replace(k, v)
-    return m
+    from urllib.parse import quote_plus
+
+    def url_ok(u):
+        return u if re.match(r"^https://[^\s\"'<>]+$", u or "") else ""
+    redes = ""
+    for chave, cid, nome in (("url_instagram", "icone-instagram", "Instagram"), ("url_linkedin", "icone-linkedin", "LinkedIn")):
+        u = url_ok(g[chave])
+        if u:
+            redes += (f'<td style="padding:0 14px 0 0;"><a href="{escape(u, quote=True)}" target="_blank" style="text-decoration:none;">'
+                      f'<img src="cid:{cid}" width="22" height="22" alt="{nome}" style="display:block;width:22px;height:22px;border:0;"></a></td>')
+    em = lambda v: escape(re.sub(r"[^A-Za-z0-9._%+@-]", "", v or ""), quote=True)
+    slogan = escape(g["rodape_slogan"]).replace(" | ", "&nbsp;|&nbsp;")
+    mapa = dict((("TITLE", escape(titulo)), ("PREHEADER", escape(preheader or titulo)), ("H1A", escape(a)),
+                 ("H1B", escape(b)), ("CORPO", corpo_paras), ("SECAO", secao),
+                 ("DUVIDA_TITULO", escape(g["duvida_titulo"])), ("DUVIDA_TEXTO", escape(g["duvida_texto"])),
+                 ("CONTATO_EMAIL", em(g["contato_email"])), ("CONTATO_FONE", escape(g["contato_fone"])),
+                 ("REDES_TEXTO", escape(g["redes_texto"])), ("TD_REDES", redes),
+                 ("RODAPE_EMAIL", em(g["rodape_email"])), ("ENDERECO", escape(g["rodape_endereco"])),
+                 ("MAPS_URL", "https://www.google.com/maps/search/?api=1&amp;query=" + quote_plus(g["rodape_endereco"])),
+                 ("COPYRIGHT", escape(g["rodape_copyright"].replace("{ano}", ano))),
+                 ("DESCADASTRO_TEXTO", escape(g["rodape_descadastro"])), ("SLOGAN", slogan)))
+    return re.sub(r"\{\{([A-Z_0-9]+)\}\}", lambda x: mapa.get(x.group(1), x.group(0)), m)
 
 
 def _kv(rotulo: str, valor: str) -> str:
@@ -475,10 +532,13 @@ def montar_email(e, et, cfg: dict, hoje: date, anexo: dict = None, link_atual: s
                f'<a href="{escape(e.link, quote=True)}" style="display:inline-block;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:13px 26px">Ver fatura e pagar</a></td></tr></table>')
     else:
         cta = ''
-    cartoes = [("icone-banco", brl(e.valor), f"Boleto bancário · competência {competencia_de(venc) if venc else '-'}"),
-               ("icone-calendario", venc.strftime("%d/%m/%Y") if venc else "-", "Data de vencimento")]
-    secao = secao_html("Dados do boleto", "Confira as informações e a forma de pagamento:", cartoes, cta)
-    html = layout_email(assunto, "".join(paras), secao, cfg, preheader=re.sub(r"\s+", " ", corpo)[:110])
+    lay = layout_etapa(et)
+    prazo = _int(cfg["regua_prazo_bloqueio_dias"], 3)
+    campo = lambda v: renderizar("", v, e, hoje, prazo, anexa=levaboleto)[1] if v else ""      # layout aceita {campos} como o texto
+    cartoes = [("icone-banco", brl(e.valor), campo(lay["card_valor"]) or f"Boleto bancário · competência {competencia_de(venc) if venc else '-'}"),
+               ("icone-calendario", venc.strftime("%d/%m/%Y") if venc else "-", campo(lay["card_venc"]) or "Data de vencimento")]
+    secao = secao_html(campo(lay["secao_titulo"]) or "Dados do boleto", campo(lay["secao_sub"]) or "Confira as informações e a forma de pagamento:", cartoes, cta)
+    html = layout_email(campo(lay["titulo"]) or assunto, "".join(paras), secao, cfg, preheader=campo(lay["preheader"]) or re.sub(r"\s+", " ", corpo)[:110])
     anexos = []
     if itau and anexo and anexo.get("bytes"):
         comp = (competencia_de(venc) if venc else "boleto").replace("/", "-")
@@ -639,7 +699,7 @@ def gerar_fila(db: Session, hoje: date = None) -> dict:
     criados = {e.chave: 0 for e in etapas}
     criados[ETAPA_CONSENTIMENTO] = 0
     criados[ETAPA_LANCAMENTO] = 0
-    sem_contato = ignorados = sem_telefone = sem_template = 0
+    sem_contato = ignorados = sem_telefone = sem_template = sem_autorizacao = 0
     for et in etapas:
         # offset = hoje - vencimento; a etapa é gerada só na sua faixa (vence hoje = só no dia; lembrete = só antes do vencimento)
         lo, hi = faixa_geracao(et, janela)
@@ -648,7 +708,7 @@ def gerar_fila(db: Session, hoje: date = None) -> dict:
         canais = [c for c in str(et.canais or "").split(",") if c in ("email", "tarefa", "whatsapp")]
         # etapa de e-mail mais avançada que também já "vale" para o boleto tem prioridade (ex.: boleto 7 dias vencido
         # recebe só "bloqueio", não também "vence hoje" e "atraso")
-        mais_avancadas = [x.dias for x in etapas if x.chave != et.chave and x.dias > et.dias and "email" in str(x.canais or "").split(",")]
+        mais_avancadas = [x.dias for x in etapas if x.chave != et.chave and x.dias > et.dias and envia_msg(x)]
         for b in _boletos_abertos(db, d_de, d_ate, fresco):
             offset = (hoje - b["venc"]).days
             if any(d <= offset for d in mais_avancadas):
@@ -670,6 +730,8 @@ def gerar_fila(db: Session, hoje: date = None) -> dict:
                 if canal == "whatsapp":
                     tel = telefones.get(b["id_smart"]) or telefones.get(b["cnpj"])
                     st = consent.get(b["id_smart"])
+                    if st != "aceitou" and "email" not in canais:
+                        sem_autorizacao += 1                   # etapa só de WhatsApp e o cliente ainda não autorizou: nada sai para ele
                     if not tel:
                         sem_telefone += 1
                     elif st == "aceitou":
@@ -712,6 +774,7 @@ def gerar_fila(db: Session, hoje: date = None) -> dict:
     db.commit()
     return {"data": hoje.isoformat(), "criados": criados, "total_criados": sum(criados.values()),
             "sem_contato": sem_contato, "ignorados": ignorados, "sem_telefone": sem_telefone, "sem_template": sem_template,
+            "sem_autorizacao": sem_autorizacao,
             "frescor": fresco}
 
 
@@ -906,8 +969,12 @@ def montar_email_lancamento(e, et, cfg: dict, hoje: date, boletos: list) -> dict
     tabela = ('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0"><tr>'
               f'<th {th}>Boleto</th><th {th}>Vencimento</th><th {th}>Valor</th><th></th></tr>'
               + "".join(linhas_html) + '</table>')
-    secao = secao_html("Seus boletos" if n > 1 else "Seu boleto", "Confira os vencimentos e a forma de pagamento:", None, tabela)
-    html = layout_email(assunto, paras, secao, cfg, preheader=re.sub(r"\s+", " ", corpo)[:110])
+    lay = layout_etapa(et)
+    prazo = _int(cfg["regua_prazo_bloqueio_dias"], 3)
+    campo = lambda v: renderizar("", v, x, hoje, prazo, anexa=True, link_txt=link_txt)[1] if v else ""
+    secao = secao_html(campo(lay["secao_titulo"]) or ("Seus boletos" if n > 1 else "Seu boleto"),
+                       campo(lay["secao_sub"]) or "Confira os vencimentos e a forma de pagamento:", None, tabela)
+    html = layout_email(campo(lay["titulo"]) or assunto, paras, secao, cfg, preheader=campo(lay["preheader"]) or re.sub(r"\s+", " ", corpo)[:110])
     return {"assunto": assunto, "texto": "\n".join(txt), "html": html, "anexos": anexos, "inline": imagens_inline()}
 
 
@@ -989,10 +1056,22 @@ def faixa_envio(et, janela: int) -> tuple:
     return et.dias, et.dias + janela + 2
 
 
+def canais_da_etapa(et) -> list:
+    return [c for c in str(getattr(et, "canais", "") or "").split(",") if c]
+
+
+def envia_msg(et) -> bool:
+    """A etapa manda mensagem ao cliente (e-mail e/ou WhatsApp). Etapa só de tarefa interna não conta."""
+    return any(c in ("email", "whatsapp") for c in canais_da_etapa(et))
+
+
 def etapa_ainda_vale(et, e, etapas: list, hoje: date, janela: int) -> tuple:
-    """(ok, motivo). Impede texto errado: etapa expirada, desligada, ou já superada por uma etapa mais avançada."""
+    """(ok, motivo). Impede texto errado: etapa expirada, desligada, canal desligado, ou já superada por uma etapa mais avançada."""
     if not et.ativa:
         return False, "etapa desligada"
+    canal = getattr(e, "canal", None)
+    if canal in ("email", "whatsapp") and canal not in canais_da_etapa(et):
+        return False, f"{'e-mail' if canal == 'email' else 'WhatsApp'} desligado nesta etapa"
     if not e.vencimento:
         return True, ""
     offset = (hoje - e.vencimento).days
@@ -1000,7 +1079,7 @@ def etapa_ainda_vale(et, e, etapas: list, hoje: date, janela: int) -> tuple:
     if not lo <= offset <= hi:
         return False, f"etapa fora do prazo (boleto com {offset} dia(s) de defasagem)"
     for x in etapas:
-        if x.chave != et.chave and x.ativa and x.dias > et.dias and x.chave not in (ETAPA_CONSENTIMENTO, ETAPA_LANCAMENTO) and "email" in str(x.canais or "").split(",") and x.dias <= offset:
+        if x.chave != et.chave and x.ativa and x.dias > et.dias and x.chave not in (ETAPA_CONSENTIMENTO, ETAPA_LANCAMENTO) and envia_msg(x) and x.dias <= offset:
             return False, f"superada pela etapa “{x.nome}”"
     return True, ""
 

@@ -72,11 +72,11 @@
     <!-- Contato -->
     <tr>
       <td class="px" style="padding:36px 48px 44px 48px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#374151;">
-        <p style="margin:0 0 6px 0;font-size:18px;line-height:24px;font-weight:bold;color:#111827;">Ficou com alguma dúvida?</p>
-        <p style="margin:0 0 6px 0;">Nossa equipe financeira está à disposição para qualquer suporte relacionado ao seu faturamento:</p>
+        <p style="margin:0 0 6px 0;font-size:18px;line-height:24px;font-weight:bold;color:#111827;">{{DUVIDA_TITULO}}</p>
+        <p style="margin:0 0 6px 0;">{{DUVIDA_TEXTO}}</p>
         <p style="margin:0;">
-          <a href="mailto:contasareceber@gestorasmart.com.br" style="color:#1a8a3c;font-weight:bold;text-decoration:none;">contasareceber@gestorasmart.com.br</a>
-          &nbsp;|&nbsp; <span style="color:#111827;font-weight:bold;">(11) 91731-2712</span>
+          <a href="mailto:{{CONTATO_EMAIL}}" style="color:#1a8a3c;font-weight:bold;text-decoration:none;">{{CONTATO_EMAIL}}</a>
+          &nbsp;|&nbsp; <span style="color:#111827;font-weight:bold;">{{CONTATO_FONE}}</span>
         </p>
       </td>
     </tr>
@@ -96,10 +96,9 @@
                   <td class="fdiv" width="1" style="width:1px;background-color:#2a3138;font-size:0;line-height:0;">&nbsp;</td>
                   <td class="fdiv" width="18" style="width:18px;font-size:0;line-height:0;">&nbsp;</td>
                   <td class="fcol" width="130" valign="top" style="width:130px;font-family:Arial,Helvetica,sans-serif;">
-                    <p style="margin:0 0 12px 0;font-size:12px;line-height:17px;color:#c4cad1;">Acompanhe nossas novidades nas redes sociais</p>
+                    <p style="margin:0 0 12px 0;font-size:12px;line-height:17px;color:#c4cad1;">{{REDES_TEXTO}}</p>
                     <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
-                      <td style="padding:0 14px 0 0;"><a href="https://www.instagram.com/gestorasmart" target="_blank" style="text-decoration:none;"><img src="cid:icone-instagram" width="22" height="22" alt="Instagram" style="display:block;width:22px;height:22px;border:0;"></a></td>
-                      <td><a href="https://www.linkedin.com/company/gestora-smart/" target="_blank" style="text-decoration:none;"><img src="cid:icone-linkedin" width="22" height="22" alt="LinkedIn" style="display:block;width:22px;height:22px;border:0;"></a></td>
+                      {{TD_REDES}}
                     </tr></table>
                   </td>
                   <td class="fdiv" width="18" style="width:18px;font-size:0;line-height:0;">&nbsp;</td>
@@ -109,11 +108,11 @@
                     <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                       <tr>
                         <td valign="top" width="20" style="width:20px;padding:2px 0 0 0;"><img src="cid:icone-email" width="13" alt="" style="display:block;width:13px;height:auto;border:0;"></td>
-                        <td valign="top" style="padding:0 0 14px 0;font-size:12px;line-height:17px;"><a href="mailto:comunicados@gestorasmart.com.br" style="color:#e6e9ed;text-decoration:none;">comunicados@gestorasmart.<wbr>com.br</a></td>
+                        <td valign="top" style="padding:0 0 14px 0;font-size:12px;line-height:17px;"><a href="mailto:{{RODAPE_EMAIL}}" style="color:#e6e9ed;text-decoration:none;">{{RODAPE_EMAIL}}</a></td>
                       </tr>
                       <tr>
                         <td valign="top" width="20" style="width:20px;padding:2px 0 0 0;"><img src="cid:icone-local" width="12" alt="" style="display:block;width:12px;height:auto;border:0;"></td>
-                        <td valign="top" style="font-size:12px;line-height:17px;"><a href="https://www.google.com/maps/search/?api=1&amp;query=R.+das+Bandeiras,+35+-+Jardim,+Santo+Andr%C3%A9+-+SP,+09090-780" target="_blank" style="color:#3d7be0;text-decoration:underline;"><span style="white-space:nowrap;">R. das Bandeiras, 35 – Jardim</span><br><span style="white-space:nowrap;">Santo André – SP, 09090-780</span></a></td>
+                        <td valign="top" style="font-size:12px;line-height:17px;"><a href="{{MAPS_URL}}" target="_blank" style="color:#3d7be0;text-decoration:underline;">{{ENDERECO}}</a></td>
                       </tr>
                     </table>
                   </td>
@@ -129,11 +128,11 @@
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td class="fcol" valign="middle" style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:17px;color:#9aa3ad;">
-                    Gestora SMART &copy; {{ANO}} &middot; Todos os direitos reservados.<br>
-                    <a href="mailto:comunicados@gestorasmart.com.br?subject=Descadastrar" style="color:#9aa3ad;text-decoration:underline;">Não quero mais receber estes e-mails</a>
+                    {{COPYRIGHT}}<br>
+                    <a href="mailto:{{RODAPE_EMAIL}}?subject=Descadastrar" style="color:#9aa3ad;text-decoration:underline;">{{DESCADASTRO_TEXTO}}</a>
                   </td>
                   <td class="fcol fright" align="right" valign="middle" style="font-family:Arial,Helvetica,sans-serif;font-size:9px;line-height:14px;letter-spacing:2px;color:#8b949e;white-space:nowrap;">
-                    SIMCARD &nbsp;|&nbsp; HARDWARE &nbsp;|&nbsp; SOFTWARE
+                    {{SLOGAN}}
                   </td>
                 </tr>
               </table>

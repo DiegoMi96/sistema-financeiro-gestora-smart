@@ -297,7 +297,7 @@ def _etapa_dict(e: CobrancaEtapa) -> dict:
     return {"chave": e.chave, "nome": e.nome, "ordem": e.ordem, "ativa": bool(e.ativa), "dias": e.dias,
             "canais": [c for c in (e.canais or "").split(",") if c], "modo": e.modo, "assunto": e.assunto or "", "texto": e.texto or "",
             "wa_template_id": e.wa_template_id or "", "wa_params": [c for c in (e.wa_params or "").split(",") if c],
-            "anexa_boleto": bool(e.anexa_boleto)}
+            "anexa_boleto": bool(e.anexa_boleto), "wa_texto": e.wa_texto or "", "layout": svc.layout_etapa(e)}
 
 
 @router.get("/etapas")
@@ -316,6 +316,27 @@ class EtapaIn(BaseModel):
     texto: Optional[str] = None
     wa_template_id: Optional[str] = None
     wa_params: Optional[List[str]] = None
+    wa_texto: Optional[str] = None
+    layout: Optional[dict] = None
+
+
+def _limpa_layout(d: dict, campos: dict) -> dict:
+    """Só campos conhecidos, texto simples, tamanho limitado. Tudo é escapado na hora de montar o e-mail."""
+    return {k: re.sub(r"[\x00-\x08\x0b-\x1f]", "", str(d.get(k) or "")).strip()[:n] for k, n in campos.items() if k in d}
+
+
+def _valida_global(d: dict) -> dict:
+    out = _limpa_layout(d, svc.LAYOUT_GLOBAL)
+    for k in ("url_instagram", "url_linkedin"):
+        if out.get(k) and not re.match(r"^https://[^\s\"'<>]+$", out[k]):
+            raise HTTPException(400, "Os links das redes sociais precisam começar com https:// (ou ficar vazios para esconder o ícone).")
+    for k in ("contato_email", "rodape_email"):
+        if k in out and not re.match(r"^[^@\s<>\"']+@[^@\s<>\"']+\.[^@\s<>\"']+$", out[k]):
+            raise HTTPException(400, "E-mail inválido nos contatos do e-mail.")
+    for k in ("duvida_titulo", "duvida_texto", "contato_fone", "rodape_endereco", "rodape_copyright", "rodape_descadastro", "rodape_slogan", "redes_texto"):
+        if k in out and not out[k]:
+            raise HTTPException(400, "Nenhum texto do rodapé/contatos pode ficar vazio.")
+    return out
 
 
 @router.put("/etapas/{chave}")
@@ -331,8 +352,15 @@ def salvar_etapa(chave: str, body: EtapaIn, current_user=_admin, db: Session = D
     if body.canais is not None:
         if any(c not in ("email", "tarefa", "whatsapp") for c in body.canais):
             raise HTTPException(400, "Canal inválido.")
-        if "tarefa" not in body.canais and e.chave != svc.ETAPA_CONSENTIMENTO and "email" not in body.canais:
-            raise HTTPException(400, "O e-mail é obrigatório nas etapas da régua (o WhatsApp é adicional).")
+        if "tarefa" not in body.canais and e.chave != svc.ETAPA_CONSENTIMENTO and not any(c in body.canais for c in ("email", "whatsapp")):
+            raise HTTPException(400, "A etapa precisa de pelo menos um canal ligado (e-mail ou WhatsApp).")
+        if "email" not in body.canais and "tarefa" not in body.canais and e.chave != svc.ETAPA_CONSENTIMENTO:
+            if e.chave == svc.ETAPA_LANCAMENTO:
+                raise HTTPException(400, "O aviso de lançamento só sai por e-mail por enquanto (o WhatsApp dele ainda não existe).")
+            if not (body.wa_template_id or e.wa_template_id):
+                raise HTTPException(400, "Para desligar o e-mail desta etapa, primeiro informe o ID do template do WhatsApp dela.")
+        if "whatsapp" in body.canais and e.chave == svc.ETAPA_LANCAMENTO:
+            raise HTTPException(400, "O WhatsApp do aviso de lançamento ainda não existe.")
         e.canais = ",".join(body.canais)
     if body.modo is not None:
         if body.modo not in ("aprovar", "automatico"):
@@ -350,6 +378,12 @@ def salvar_etapa(chave: str, body: EtapaIn, current_user=_admin, db: Session = D
         if any(c not in svc.CAMPOS_WA for c in body.wa_params):
             raise HTTPException(400, "Campo inválido na lista de parâmetros.")
         e.wa_params = ",".join(body.wa_params)
+    if body.wa_texto is not None:
+        e.wa_texto = body.wa_texto.strip()[:1500] or None
+    if body.layout is not None:
+        atual = svc.layout_etapa(e)
+        atual.update(_limpa_layout(body.layout, svc.LAYOUT_ETAPA))
+        e.layout = json.dumps({k: v for k, v in atual.items() if v}, ensure_ascii=False) or None
     if body.ativa is not None:
         e.ativa = body.ativa
     e.updated_by = current_user.id
@@ -362,6 +396,8 @@ class PreviaIn(BaseModel):
     assunto: str = Field("", max_length=300)
     texto: str = Field("", max_length=4000)
     origem: str = Field("asaas", pattern="^(asaas|itau)$")     # só para a prévia visual: link da fatura x PDF anexado
+    layout: Optional[dict] = None                               # edições ainda não salvas do layout da etapa
+    layout_global: Optional[dict] = None                        # edições ainda não salvas do rodapé/contatos
 
 
 @router.post("/etapas/{chave}/previa")
@@ -376,10 +412,37 @@ def previa_etapa(chave: str, body: PreviaIn, current_user=_ler, db: Session = De
     et = db.get(CobrancaEtapa, chave)
     if et and "email" in (et.canais or ""):
         try:
-            html = svc.exemplo_email(et, body.assunto, body.texto, cfg, svc.hoje_br(), body.origem)["html"]
+            if body.layout_global:
+                cfg = {**cfg, **{"email_" + k: v for k, v in _limpa_layout(body.layout_global, svc.LAYOUT_GLOBAL).items() if v}}
+            lay = None
+            if body.layout is not None:
+                lay = _limpa_layout(body.layout, svc.LAYOUT_ETAPA)
+            html = svc.exemplo_email(et, body.assunto, body.texto, cfg, svc.hoje_br(), body.origem, lay)["html"]
         except Exception:                                      # prévia visual nunca derruba a edição da etapa
             log.exception("prévia visual da etapa %s", chave)
     return {"assunto": assunto, "corpo": corpo, "exemplo": e.nome, "html": html}
+
+
+# ── layout global do e-mail (rodapé e contatos) ───────────────────────────────
+
+@router.get("/layout-global")
+def ler_layout_global(current_user=_ler, db: Session = Depends(get_db)):
+    cfg = svc.carregar_cfg(db)
+    return {"layout": svc.layout_global(cfg), "limites": svc.LAYOUT_GLOBAL, "padrao": {k: svc._DEFAULTS_CFG["email_" + k] for k in svc.LAYOUT_GLOBAL}}
+
+
+class LayoutGlobalIn(BaseModel):
+    layout: dict
+
+
+@router.put("/layout-global")
+def salvar_layout_global(body: LayoutGlobalIn, current_user=_admin, db: Session = Depends(get_db)):
+    novo = _valida_global(body.layout)
+    for k, v in novo.items():
+        _set_setting(db, "email_" + k, v)
+    _audit(db, current_user, "cobranca.layout_global", {"campos": sorted(novo)})
+    db.commit()
+    return {"layout": svc.layout_global(svc.carregar_cfg(db))}
 
 
 # ── configuração (chave geral, modo teste, e-mail) ────────────────────────────

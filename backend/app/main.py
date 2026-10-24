@@ -133,6 +133,8 @@ def _run_migrations():
         ("billing_cycles", "data_fim",              "DATE"),
         ("asaas_payments_sync", "original_due_date", "DATE"),
         ("asaas_payments_sync", "date_created", "DATE"),                 # quando o boleto foi criado no Asaas (régua: aviso de lançamento)
+        ("cobranca_etapas", "wa_texto", "TEXT"),
+        ("cobranca_etapas", "layout", "TEXT"),
         ("cobranca_etapas", "anexa_boleto", "BOOLEAN DEFAULT FALSE"),    # etapa que leva o boleto (PDF do Itaú / link do Asaas)
         ("billing_client_summaries", "total_clube",      "FLOAT DEFAULT 0"),
         ("billing_client_summaries", "total_desc_clube", "FLOAT DEFAULT 0"),

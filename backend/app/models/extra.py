@@ -177,6 +177,8 @@ class CobrancaEtapa(Base):
     anexa_boleto = Column(Boolean, default=False)     # a etapa leva o boleto (PDF do Itaú / link do Asaas) e segura o envio sem ele
     wa_template_id = Column(String(80))               # ID do template aprovado na Umbler (WhatsApp)
     wa_params   = Column(String(200))                 # ordem dos campos enviados ao template: "nome,valor,vencimento"
+    wa_texto    = Column(Text)                        # cópia do texto do template aprovado (só para a prévia na tela; o que vale é o da Umbler)
+    layout      = Column(Text)                        # JSON com os textos editáveis do layout do e-mail desta etapa
     updated_at  = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     updated_by  = Column(Integer)
 
