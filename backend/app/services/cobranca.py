@@ -12,6 +12,7 @@ Princípios (integridade / segurança):
   • Limite diário de envios e ritmo de ~1 mensagem/s. Falhas não são reenviadas sozinhas.
   • A senha do e-mail nunca é gravada em log nem devolvida pela API.
 """
+import os
 import re
 import smtplib
 import ssl
@@ -289,7 +290,7 @@ def competencia_de(venc: date) -> str:
     return f"{MESES[m]}/{a}"
 
 
-def renderizar(etapa_assunto: str, etapa_texto: str, e, hoje: date, prazo_bloqueio: int = 3, anexa: bool = True) -> tuple:
+def renderizar(etapa_assunto: str, etapa_texto: str, e, hoje: date, prazo_bloqueio: int = 3, anexa: bool = True, link_txt: str = None) -> tuple:
     """Troca os {campos} (troca simples — campo desconhecido fica como está). Devolve (assunto, texto_puro)."""
     venc = e.vencimento
     atraso = max(0, (hoje - venc).days) if venc else 0
@@ -297,7 +298,7 @@ def renderizar(etapa_assunto: str, etapa_texto: str, e, hoje: date, prazo_bloque
     if origem == "itau" and anexa:
         link = "O boleto está anexado a este e-mail (PDF). Se preferir, copie a linha digitável abaixo e pague no aplicativo do seu banco."
     elif origem == "lancamento":
-        link = "Os boletos estão listados abaixo (PDF anexado ou link da fatura)."
+        link = link_txt or "Os boletos estão listados abaixo."
     elif origem == "itau":
         link = "Para receber a segunda via do boleto, responda este e-mail."
     elif e.link:
@@ -334,6 +335,78 @@ def corpo_html(texto: str, rodape: str) -> str:
             + "".join(paras) + f'<p style="margin:18px 0 0;color:#777;font-size:12px">{escape(rodape)}</p></div>')
 
 
+# ── identidade visual dos e-mails: modelo HTML da marca (email_assets/modelo_email.html) ──────────
+# Imagens vão ANEXADAS ao e-mail (cid:) — não dependem de "carregar imagens" nem de hospedagem.
+_ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "email_assets")
+_CACHE: dict = {}
+_IMAGENS = ("logo-topo", "cabecalho-decoracao", "icone-banco", "icone-calendario", "icone-email", "icone-instagram",
+            "icone-linkedin", "icone-local", "logo-rodape-branco")
+
+
+def _ler(nome: str) -> bytes:
+    if nome not in _CACHE:
+        try:
+            with open(os.path.join(_ASSETS, nome), "rb") as f:
+                _CACHE[nome] = f.read()
+        except OSError:
+            _CACHE[nome] = b""
+    return _CACHE[nome]
+
+
+def imagens_inline() -> list:
+    """[(cid, bytes_png)] das imagens do modelo. Arquivo ausente = imagem some, o e-mail sai igual."""
+    return [(n, _ler(n + ".png")) for n in _IMAGENS if _ler(n + ".png")]
+
+
+def _titulo_em_duas_linhas(t: str) -> tuple:
+    """Divide o título como no modelo: começo em preto, final em verde."""
+    p = t.split()
+    if len(p) < 3:
+        return t, ""
+    k = max(1, round(len(p) * 0.6))
+    return " ".join(p[:k]), " ".join(p[k:])
+
+
+def secao_html(titulo: str, subtitulo: str, cartoes: list = None, extra: str = "") -> str:
+    """Bloco 'O que muda' do modelo: barrinha verde, título, até 2 cartões (ícone, destaque, texto) e HTML extra."""
+    out = ('<tr><td class="px" style="padding:36px 48px 0 48px;font-family:Arial,Helvetica,sans-serif;">'
+           '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td width="36" style="width:36px;height:3px;line-height:3px;font-size:0;background-color:#3cc46a;">&nbsp;</td></tr></table>'
+           f'<p style="margin:14px 0 4px 0;font-size:24px;line-height:30px;font-weight:bold;color:#111827;">{escape(titulo)}</p>'
+           + (f'<p style="margin:0;font-size:15px;line-height:22px;color:#6b7280;">{escape(subtitulo)}</p>' if subtitulo else '') + '</td></tr>')
+    if cartoes:
+        def card(ic, destaque, txt, esq):
+            pad = "4px 20px 4px 0px" if esq else "4px 0px 4px 20px"
+            return (f'<td class="col" width="275" valign="top" style="width:255px;padding:{pad};">'
+                    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr>'
+                    f'<td width="44" valign="top" style="width:36px;padding:0 8px 0 0;"><img src="cid:{ic}" width="36" height="36" alt="" style="display:block;width:36px;height:36px;border:0;"></td>'
+                    '<td valign="top" style="font-family:Arial,Helvetica,sans-serif;">'
+                    f'<p style="margin:2px 0 4px 0;font-size:14px;line-height:19px;font-weight:bold;color:#111827;">{escape(destaque)}</p>'
+                    f'<p style="margin:0;font-size:13px;line-height:19px;color:#5b6472;">{escape(txt)}</p></td></tr></table></td>')
+        celulas = card(*cartoes[0], True)
+        if len(cartoes) > 1:
+            celulas += ('<td class="col-gap" width="1" style="width:1px;background-color:#e5e7eb;font-size:0;line-height:0;">&nbsp;</td>' + card(*cartoes[1], False))
+        out += ('<tr><td class="cards" style="padding:24px 24px 0 24px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="table-layout:fixed;">'
+                f'<tr>{celulas}</tr></table></td></tr>')
+    if extra:
+        out += f'<tr><td class="px" style="padding:24px 48px 0 48px;font-family:Arial,Helvetica,sans-serif;">{extra}</td></tr>'
+    return out
+
+
+def layout_email(titulo: str, corpo_paras: str, secao: str, cfg: dict = None, preheader: str = "") -> str:
+    """Monta o e-mail final a partir do modelo da marca. `corpo_paras` e `secao` já vêm com HTML seguro (escapado)."""
+    try:
+        with open(os.path.join(_ASSETS, "modelo_email.html"), encoding="utf-8") as f:
+            m = f.read()
+    except OSError:
+        return f"<html><body>{corpo_paras}{secao}</body></html>"
+    a, b = _titulo_em_duas_linhas(titulo)
+    ano = str(datetime.now(ZoneInfo("America/Sao_Paulo")).year)
+    for k, v in (("{{TITLE}}", escape(titulo)), ("{{PREHEADER}}", escape(preheader or titulo)), ("{{H1A}}", escape(a)),
+                 ("{{H1B}}", escape(b)), ("{{CORPO}}", corpo_paras), ("{{SECAO}}", secao), ("{{ANO}}", ano)):
+        m = m.replace(k, v)
+    return m
+
+
 def _kv(rotulo: str, valor: str) -> str:
     return (f'<tr><td style="padding:6px 0;color:#6b7280;font-size:13px;width:38%">{escape(rotulo)}</td>'
             f'<td style="padding:6px 0;color:#111827;font-size:14px;font-weight:600">{escape(valor)}</td></tr>')
@@ -361,38 +434,33 @@ def montar_email(e, et, cfg: dict, hoje: date, anexo: dict = None, link_atual: s
         texto += f"\n\nLinha digitável:\n{linha}"
     texto += "\n\n— Resumo —\n" + "\n".join(resumo_txt)
 
-    # HTML: cartão com resumo + botão (Asaas) ou aviso de anexo + linha digitável (Itaú)
+    # HTML com a identidade da marca: texto, bloco de pagamento (botão Asaas / PDF + linha digitável Itaú) e dados do boleto
     paras = []
     for bloco in corpo.split("\n\n"):
         h = escape(bloco).replace("\n", "<br>")
         h = re.sub(r"(https?://[^\s<]+)", r'<a href="\1" style="color:#15803d">\1</a>', h)
-        paras.append(f'<p style="margin:0 0 14px;font-size:14px;color:#374151;line-height:1.6">{h}</p>')
+        paras.append(f'<p style="margin:0 0 16px 0;">{h}</p>')
     if itau:
-        cta = ('<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 14px;margin:16px 0;font-size:14px;color:#14532d">'
+        cta = ('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:6px 0 18px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px"><tr><td style="padding:14px 18px;font-size:14px;color:#14532d">'
                '<b>O boleto está anexado a este e-mail (PDF).</b>'
-               + (f'<div style="margin-top:8px;font-size:12px;color:#166534">Linha digitável (copie e cole no app do banco):</div>'
-                  f'<div style="font-family:Consolas,Menlo,monospace;font-size:13px;color:#111827;word-break:break-all;margin-top:2px">{escape(linha)}</div>' if linha else '')
-               + '</div>')
+               + (f'<div style="margin-top:10px;font-size:12px;color:#166534">Linha digitável (copie e cole no app do banco):</div>'
+                  f'<div style="font-family:Consolas,Menlo,monospace;font-size:13px;color:#111827;word-break:break-all;margin-top:3px">{escape(linha)}</div>' if linha else '')
+               + '</td></tr></table>')
     elif e.link:
-        cta = (f'<div style="margin:18px 0"><a href="{escape(e.link, quote=True)}" style="display:inline-block;background:#16a34a;color:#ffffff;'
-               'text-decoration:none;font-weight:700;font-size:14px;padding:12px 22px;border-radius:8px">Ver fatura e pagar</a></div>')
+        cta = (f'<table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 20px"><tr><td style="background:#16a34a;border-radius:8px">'
+               f'<a href="{escape(e.link, quote=True)}" style="display:inline-block;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:13px 26px">Ver fatura e pagar</a></td></tr></table>')
     else:
         cta = ''
-    resumo = ('<table role="presentation" style="width:100%;border-collapse:collapse;margin:8px 0 4px;border-top:1px solid #e5e7eb">'
-              + _kv("Competência", competencia_de(venc) if venc else "-") + _kv("Valor", brl(e.valor))
-              + _kv("Vencimento", venc.strftime("%d/%m/%Y") if venc else "-") + _kv("Forma de pagamento", "Boleto bancário") + '</table>')
-    rodape = f'Gestora Smart · Contas a Receber · {cfg["cobranca_email_remetente"]}'
-    html = ('<div style="background:#f3f4f6;padding:24px 12px;font-family:Arial,Helvetica,sans-serif">'
-            '<div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">'
-            '<div style="background:#16a34a;color:#ffffff;padding:14px 22px;font-size:15px;font-weight:700">Gestora Smart</div>'
-            '<div style="padding:22px">' + "".join(paras) + cta + resumo + '</div>'
-            f'<div style="padding:12px 22px;background:#f9fafb;color:#6b7280;font-size:12px;border-top:1px solid #e5e7eb">{escape(rodape)}</div></div></div>')
+    cartoes = [("icone-banco", brl(e.valor), f"Boleto bancário · competência {competencia_de(venc) if venc else '-'}"),
+               ("icone-calendario", venc.strftime("%d/%m/%Y") if venc else "-", "Data de vencimento")]
+    secao = secao_html("Dados do boleto", "Confira as informações e a forma de pagamento:", cartoes, cta)
+    html = layout_email(assunto, "".join(paras), secao, cfg, preheader=re.sub(r"\s+", " ", corpo)[:110])
     anexos = []
     if itau and anexo and anexo.get("bytes"):
         comp = (competencia_de(venc) if venc else "boleto").replace("/", "-")
         nome_cli = re.sub(r"[^A-Za-z0-9]+", "_", (e.nome or "cliente"))[:40].strip("_")
         anexos.append((f"Boleto_{comp}_{nome_cli}.pdf", anexo["bytes"], "application/pdf"))
-    return {"assunto": assunto, "texto": texto, "html": html, "anexos": anexos}
+    return {"assunto": assunto, "texto": texto, "html": html, "anexos": anexos, "inline": imagens_inline()}
 
 
 # ── frescor dos dados de pagamento ─────────────────────────────────────────────
@@ -772,7 +840,16 @@ def montar_email_lancamento(e, et, cfg: dict, hoje: date, boletos: list) -> dict
         pass
     x = _E()
     x.nome, x.valor, x.vencimento, x.link, x.origem = e.nome, round(sum(b["valor"] for b in boletos), 2), min(b["venc"] for b in boletos), None, "lancamento"
-    assunto, corpo = renderizar(et.assunto, et.texto, x, hoje, anexa=True)
+    so_pdf = all(b.get("anexo") and not b.get("link") for b in boletos)       # Itaú: boleto em PDF anexado
+    so_link = all(b.get("link") for b in boletos)                             # Asaas: link da fatura
+    plural = len(boletos) > 1
+    if so_pdf:
+        link_txt = ("Os boletos estão anexados a este e-mail (PDF)." if plural else "O boleto está anexado a este e-mail (PDF).")
+    elif so_link:
+        link_txt = ("O link de cada fatura está logo abaixo." if plural else "O link da fatura está logo abaixo.")
+    else:
+        link_txt = "Os boletos estão listados abaixo: PDF anexado (Itaú) ou link da fatura (Asaas)."
+    assunto, corpo = renderizar(et.assunto, et.texto, x, hoje, anexa=True, link_txt=link_txt)
     n = len(boletos)
     txt = [corpo, "", "Seus boletos:"]
     linhas_html, anexos = [], []
@@ -797,20 +874,19 @@ def montar_email_lancamento(e, et, cfg: dict, hoje: date, boletos: list) -> dict
                            f'<td style="padding:10px 0;border-top:1px solid #e5e7eb;text-align:right">{acao}</td></tr>')
     if n > 1:
         txt.append(f"Total: {brl(x.valor)}")
-    paras = "".join(f'<p style="margin:0 0 14px;font-size:14px;color:#374151;line-height:1.6">{escape(bl).replace(chr(10), "<br>")}</p>' for bl in corpo.split("\n\n"))
-    tabela = ('<table role="presentation" style="width:100%;border-collapse:collapse;margin:8px 0"><tr><th align="left" style="font-size:12px;color:#9ca3af;padding-bottom:6px">Boleto</th>'
-              '<th align="left" style="font-size:12px;color:#9ca3af;padding-bottom:6px">Vencimento</th><th align="left" style="font-size:12px;color:#9ca3af;padding-bottom:6px">Valor</th><th></th></tr>'
+    paras = "".join(f'<p style="margin:0 0 16px 0;">{escape(bl).replace(chr(10), "<br>")}</p>' for bl in corpo.split("\n\n"))
+    th = 'align="left" style="font-size:12px;color:#9ca3af;padding-bottom:6px;font-weight:bold"'
+    tabela = ('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0"><tr>'
+              f'<th {th}>Boleto</th><th {th}>Vencimento</th><th {th}>Valor</th><th></th></tr>'
               + "".join(linhas_html) + '</table>')
-    rodape = f'Gestora Smart · Contas a Receber · {cfg["cobranca_email_remetente"]}'
-    html = ('<div style="background:#f3f4f6;padding:24px 12px;font-family:Arial,Helvetica,sans-serif"><div style="max-width:600px;margin:0 auto;background:#ffffff;'
-            'border-radius:12px;overflow:hidden;border:1px solid #e5e7eb"><div style="background:#16a34a;color:#ffffff;padding:14px 22px;font-size:15px;font-weight:700">Gestora Smart</div>'
-            f'<div style="padding:22px">{paras}{tabela}</div><div style="padding:12px 22px;background:#f9fafb;color:#6b7280;font-size:12px;border-top:1px solid #e5e7eb">{escape(rodape)}</div></div></div>')
-    return {"assunto": assunto, "texto": "\n".join(txt), "html": html, "anexos": anexos}
+    secao = secao_html("Seus boletos" if n > 1 else "Seu boleto", "Confira os vencimentos e a forma de pagamento:", None, tabela)
+    html = layout_email(assunto, paras, secao, cfg, preheader=re.sub(r"\s+", " ", corpo)[:110])
+    return {"assunto": assunto, "texto": "\n".join(txt), "html": html, "anexos": anexos, "inline": imagens_inline()}
 
 
 # ── envio ──────────────────────────────────────────────────────────────────────
 
-def _enviar_smtp(cfg: dict, para: list, assunto: str, texto: str, html: str, anexos: list = None) -> str:
+def _enviar_smtp(cfg: dict, para: list, assunto: str, texto: str, html: str, anexos: list = None, inline: list = None) -> str:
     msg = EmailMessage()
     msg["Subject"] = assunto
     msg["From"] = f'{cfg["cobranca_email_nome"]} <{cfg["cobranca_email_remetente"]}>'
@@ -821,6 +897,8 @@ def _enviar_smtp(cfg: dict, para: list, assunto: str, texto: str, html: str, ane
     msg["Message-ID"] = mid
     msg.set_content(texto)
     msg.add_alternative(html, subtype="html")
+    for cid, dados in (inline or []):                       # logos embutidos (cid:) — aparecem sem pedir "carregar imagens"
+        msg.get_payload()[1].add_related(dados, "image", "png", cid=f"<{cid}>", disposition="inline")
     for nome, dados, tipo in (anexos or []):
         principal, _, sub = tipo.partition("/")
         msg.add_attachment(dados, maintype=principal, subtype=sub, filename=nome)
@@ -1092,7 +1170,7 @@ def processar_aprovados(db: Session, limite: int = 500) -> dict:
                 if teste:
                     efetivo = [cfg["regua_email_teste"]]
                     assunto = f"[TESTE — seria para {', '.join(lista)}] {assunto}"
-                mid = _enviar_smtp(cfg, efetivo, assunto, msgm["texto"], msgm["html"], msgm["anexos"])
+                mid = _enviar_smtp(cfg, efetivo, assunto, msgm["texto"], msgm["html"], msgm["anexos"], msgm.get("inline"))
             except Exception as ex:                                 # nunca derruba o lote; nunca grava a senha
                 db.rollback()
                 e = db.get(CobrancaEnvio, eid)
