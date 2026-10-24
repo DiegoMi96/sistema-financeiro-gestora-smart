@@ -54,21 +54,22 @@ export default function AttentionPage() {
   const [importing, setImporting] = useState(false)
 
   const { data: rows = [], isLoading } = useQuery({
-    queryKey: ['attention', search, motivo],
-    queryFn: () => attentionApi.list({ search: search || undefined, motivo: motivo || undefined }).then(r => r.data),
+    queryKey: ['attention', search],
+    queryFn: () => attentionApi.list({ search: search || undefined }).then(r => r.data),
   })
 
   const refresh = () => qc.invalidateQueries({ queryKey: ['attention'] })
 
-  const handleDelete = async (a) => {
-    if (!window.confirm(`Remover ${a.nome || a.id_smart} (${MOTIVO_BY[a.motivo]?.label}) da lista de atenção?\n\nNos próximos ciclos o motor deixa de aplicar essa regra.`)) return
+  const handleDelete = async (g) => {
+    const lista = g.motivos.map(m => MOTIVO_BY[m]?.label || m).join(', ')
+    if (!window.confirm(`Remover ${g.nome || g.id_smart} (${lista}) da lista de atenção?\n\nNos próximos ciclos o motor deixa de aplicar ${g.rows.length > 1 ? 'essas regras' : 'essa regra'}.`)) return
     try {
-      await attentionApi.remove(a.id)
+      for (const r of g.rows) await attentionApi.remove(r.id)
       toast.success('Removido da lista')
-      refresh()
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Erro ao remover')
     }
+    refresh()
   }
 
   const handleImport = async (e) => {
@@ -89,8 +90,29 @@ export default function AttentionPage() {
     }
   }
 
-  const total = rows.length
-  const porMotivo = Object.fromEntries(MOTIVOS.map(m => [m.value, rows.filter(r => r.motivo === m.value).length]))
+  // Uma linha por CLIENTE: os motivos dele (Ativação, Cancelamento…) ficam juntos, separados por vírgula.
+  // No banco continua uma linha por motivo (é assim que o motor de faturamento lê); aqui só agrupamos a visualização.
+  const ordemMotivo = Object.fromEntries(MOTIVOS.map((m, i) => [m.value, i]))
+  const gruposMap = new Map()
+  for (const r of rows) {
+    if (!gruposMap.has(r.id_smart)) gruposMap.set(r.id_smart, { id_smart: r.id_smart, nome: r.nome, cnpj: r.cnpj, rows: [] })
+    gruposMap.get(r.id_smart).rows.push(r)
+  }
+  const todosGrupos = [...gruposMap.values()].map(g => {
+    const rs = [...g.rows].sort((a, b) => (ordemMotivo[a.motivo] ?? 99) - (ordemMotivo[b.motivo] ?? 99))
+    const comProp = rs.filter(r => r.motivo === 'ativacao' || r.motivo === 'cancelamento')
+    const desc = rs.find(r => r.motivo === 'desconto' && r.desconto_valor)
+    return {
+      ...g, rows: rs, first: rs[0], motivos: rs.map(r => r.motivo),
+      nome: g.nome || rs.find(r => r.nome)?.nome,
+      proporcional: comProp.length ? (comProp.some(r => r.proporcional) ? 'sim' : 'nao') : null,
+      desconto: desc ? descontoTxt(desc) : '—',
+      obs: [...new Set(rs.map(r => (r.obs || '').trim()).filter(Boolean))].join(' · '),
+    }
+  })
+  const grupos = motivo ? todosGrupos.filter(g => g.motivos.includes(motivo)) : todosGrupos
+  const total = todosGrupos.length
+  const porMotivo = Object.fromEntries(MOTIVOS.map(m => [m.value, todosGrupos.filter(g => g.motivos.includes(m.value)).length]))
   const filtrando = !!(search || motivo)
 
   return (
@@ -157,7 +179,7 @@ export default function AttentionPage() {
       <div className="gs-card overflow-hidden">
         {isLoading ? (
           <div className="p-8 text-center text-gray-400 text-sm">Carregando…</div>
-        ) : rows.length === 0 ? (
+        ) : grupos.length === 0 ? (
           <div className="p-12 text-center">
             <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <AlertTriangle size={24} className="text-gray-300" />
@@ -179,9 +201,9 @@ export default function AttentionPage() {
               <colgroup>
                 <col style={{ width: '14%' }} />
                 <col style={{ width: '12%' }} />
-                <col style={{ width: '15%' }} />
+                <col style={{ width: '13%' }} />
                 <col style={{ width: '9%' }} />
-                <col style={{ width: '16%' }} />
+                <col style={{ width: '24%' }} />
                 <col style={{ width: '8%' }} />
                 <col />
                 <col style={{ width: '90px' }} />
@@ -199,29 +221,34 @@ export default function AttentionPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {rows.map(a => {
-                  const m = MOTIVO_BY[a.motivo]
+                {grupos.map(g => {
+                  const a = g.first
                   return (
-                    <tr key={a.id} className="hover:bg-gray-50/60">
-                      <td className="px-4 py-3 font-medium text-gray-800 truncate" title={a.nome || ''}>{a.nome || <span className="text-gray-300">—</span>}</td>
-                      <td className="px-4 py-3 text-gray-600 whitespace-nowrap tabular-nums">{fmtDoc(a.cnpj)}</td>
-                      <td className="px-4 py-3 text-gray-500 font-mono text-xs truncate" title={a.id_smart}>{a.id_smart}</td>
+                    <tr key={g.id_smart} className="hover:bg-gray-50/60">
+                      <td className="px-4 py-3 font-medium text-gray-800 truncate" title={g.nome || ''}>{g.nome || <span className="text-gray-300">—</span>}</td>
+                      <td className="px-4 py-3 text-gray-600 whitespace-nowrap tabular-nums">{fmtDoc(g.cnpj)}</td>
+                      <td className="px-4 py-3 text-gray-500 font-mono text-xs truncate" title={g.id_smart}>{g.id_smart}</td>
                       <td className="px-4 py-3 text-center">
-                        {a.motivo === 'desconto' || a.motivo === 'sem_arredondamento' || a.motivo === 'sem_clube'
+                        {g.proporcional === null
                           ? <span className="text-gray-300">—</span>
-                          : <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${a.proporcional ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
-                              {a.proporcional ? 'Sim' : 'Não'}
+                          : <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${g.proporcional === 'sim' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                              {g.proporcional === 'sim' ? 'Sim' : 'Não'}
                             </span>}
                       </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className={`inline-block whitespace-nowrap px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${m?.cor || ''}`}>{m?.label || a.motivo}</span>
+                      <td className="px-4 py-3 text-center text-[13px] leading-snug">
+                        {g.motivos.map((mv, i) => (
+                          <span key={mv}>
+                            <span className={`font-semibold ${(MOTIVO_BY[mv]?.cor || '').split(' ').find(c => c.startsWith('text-')) || 'text-gray-700'}`}>{MOTIVO_BY[mv]?.label || mv}</span>
+                            {i < g.motivos.length - 1 && <span className="text-gray-400">, </span>}
+                          </span>
+                        ))}
                       </td>
-                      <td className="px-4 py-3 text-center tabular-nums text-gray-700">{descontoTxt(a)}</td>
-                      <td className="px-4 py-3 text-gray-600 truncate" title={a.obs || ''}>{a.obs || <span className="text-gray-300">—</span>}</td>
+                      <td className="px-4 py-3 text-center tabular-nums text-gray-700">{g.desconto}</td>
+                      <td className="px-4 py-3 text-gray-600 truncate" title={g.obs || ''}>{g.obs || <span className="text-gray-300">—</span>}</td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">
                         <button onClick={() => setEditing(a)} title="Editar"
                           className="p-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 mr-1.5"><Pencil size={13} /></button>
-                        <button onClick={() => handleDelete(a)} title="Remover"
+                        <button onClick={() => handleDelete(g)} title="Remover"
                           className="p-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50"><Trash2 size={13} /></button>
                       </td>
                     </tr>
