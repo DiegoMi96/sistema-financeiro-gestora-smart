@@ -136,6 +136,9 @@ def _run_migrations():
         ("client_profiles", "telefone2", "VARCHAR(30)"),
         ("client_profiles", "email2", "VARCHAR(150)"),
         ("client_profiles", "cnpj_manual", "BOOLEAN DEFAULT FALSE"),
+        ("client_profiles", "arquivado", "BOOLEAN DEFAULT FALSE"),
+        ("client_profiles", "arquivado_em", "TIMESTAMPTZ"),
+        ("client_profiles", "arquivado_motivo", "VARCHAR(200)"),
         ("cobranca_etapas", "wa_texto", "TEXT"),
         ("cobranca_etapas", "layout", "TEXT"),
         ("cobranca_etapas", "anexa_boleto", "BOOLEAN DEFAULT FALSE"),    # etapa que leva o boleto (PDF do Itaú / link do Asaas)

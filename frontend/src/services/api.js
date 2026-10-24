@@ -109,6 +109,8 @@ export const clientsApi = {
   list:        (params)          => api.get('/clients', { params }),
   get:         (idSmart)         => api.get(`/clients/${idSmart}`),
   update:      (idSmart, data)   => api.patch(`/clients/${idSmart}`, data),
+  arquivar:    (idSmart)         => api.post(`/clients/${idSmart}/arquivar`),
+  restaurar:   (idSmart)         => api.post(`/clients/${idSmart}/restaurar`),
   export:      ()                => api.get('/clients/export', { responseType: 'blob' }),
   import:      (formData)        => api.post('/clients/import', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   // Bancos

@@ -63,7 +63,7 @@ function Field({ label, value, onChange, readOnly, placeholder, type = 'text', o
 }
 
 // ── Modal de edição de cliente ─────────────────────────────────────────────
-function EditModal({ profile, banks, onClose }) {
+function EditModal({ profile, banks, onClose, podeArquivar }) {
   const qc = useQueryClient()
   const [form, setForm] = useState({
     cnpj:        profile.cnpj        || '',
@@ -97,6 +97,21 @@ function EditModal({ profile, banks, onClose }) {
     onError: (e) => toast.error(e.response?.data?.detail || 'Erro ao salvar'),
   })
 
+  const arq = useMutation({
+    mutationFn: () => (profile.arquivado ? clientsApi.restaurar(profile.id_smart) : clientsApi.arquivar(profile.id_smart)),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['clients'] })
+      toast.success(profile.arquivado ? 'Cliente restaurado' : `Cliente arquivado${res.data?.itens_da_fila_cancelados ? ` · ${res.data.itens_da_fila_cancelados} item(ns) da fila de cobrança cancelado(s)` : ''}`)
+      onClose()
+    },
+    onError: (e) => toast.error(e.response?.data?.detail || 'Erro'),
+  })
+  const alternarArquivo = () => {
+    const msg = profile.arquivado
+      ? 'Restaurar este cliente? Ele volta para a lista e para a régua de cobrança.'
+      : 'Arquivar este cliente? Ele some da lista e sai da régua de cobrança (os itens dele ainda na fila serão cancelados). Nada é apagado e dá para restaurar quando quiser.'
+    if (window.confirm(msg)) arq.mutate()
+  }
   const set = (k) => (v) => setForm(f => ({ ...f, [k]: v }))
   const erros = {
     cnpj: form.cnpj.replace(/\D/g, '') !== (profile.cnpj || '').replace(/\D/g, '') && !cnpjOuCpfValido(form.cnpj) ? 'CNPJ/CPF inválido (confira os dígitos)' : '',
@@ -188,7 +203,14 @@ function EditModal({ profile, banks, onClose }) {
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 p-4 border-t border-gray-100">
+        <div className="flex items-center gap-3 p-4 border-t border-gray-100">
+          {podeArquivar && (
+            <button onClick={alternarArquivo} disabled={arq.isPending}
+              className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${profile.arquivado ? 'border-green-200 text-green-700 hover:bg-green-50' : 'border-red-200 text-red-600 hover:bg-red-50'}`}>
+              {profile.arquivado ? 'Restaurar cliente' : 'Arquivar cliente'}
+            </button>
+          )}
+          <div className="flex-1" />
           <button onClick={onClose}
             className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
             Cancelar
@@ -311,6 +333,7 @@ export default function ClientsPage() {
   const [editing,   setEditing]   = useState(null)
   const [showBanks, setShowBanks] = useState(false)
   const [showMenu,  setShowMenu]  = useState(false)
+  const [soArquivados, setSoArquivados] = useState(false)   // false = só os ativos (padrão) · true = só os arquivados
 
   useEffect(() => {
     const handler = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setShowMenu(false) }
@@ -324,8 +347,8 @@ export default function ClientsPage() {
   })
 
   const { data, isLoading } = useQuery({
-    queryKey: ['clients', page, search],
-    queryFn: () => clientsApi.list({ page, limit: 50, search }).then(r => r.data),
+    queryKey: ['clients', page, search, soArquivados],
+    queryFn: () => clientsApi.list({ page, limit: 50, search, arquivados: soArquivados ? 'so' : 'nao' }).then(r => r.data),
     placeholderData: (previousData) => previousData,
   })
 
@@ -348,8 +371,8 @@ export default function ClientsPage() {
     mutationFn: (fd) => clientsApi.import(fd),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['clients'] })
-      const { created, updated, skipped, erros = [], avisos = [], total_avisos = 0 } = res.data
-      toast.success(`Importado: ${created} criados · ${updated} atualizados · ${skipped} ignorados`)
+      const { created, updated, skipped, erros = [], avisos = [], total_avisos = 0, arquivados = 0, restaurados = 0 } = res.data
+      toast.success(`Importado: ${created} criados · ${updated} atualizados · ${skipped} ignorados${arquivados ? ` · ${arquivados} arquivados` : ''}${restaurados ? ` · ${restaurados} restaurados` : ''}`)
       if (erros.length) toast.error(`${erros.length} linha(s) com dado inválido foram puladas. Ex.: ${erros[0]}`, { duration: 9000 })
       if (total_avisos) toast(`${total_avisos} linha(s) com CNPJ diferente do cadastro: a planilha não altera CNPJ (corrija pela tela do cliente). Ex.: ${avisos[0]}`, { duration: 10000, icon: '⚠️' })
     },
@@ -375,7 +398,7 @@ export default function ClientsPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="gs-page-title">Clientes</h1>
-          <p className="gs-page-sub">{total > 0 ? `${total} clientes cadastrados` : 'Nenhum cliente ainda'}</p>
+          <p className="gs-page-sub">{total > 0 ? `${total} ${soArquivados ? 'clientes arquivados' : 'clientes cadastrados'}` : (soArquivados ? 'Nenhum cliente arquivado' : 'Nenhum cliente ainda')}</p>
         </div>
         {podeEditar && <div className="flex items-center gap-2 flex-wrap">
           <button onClick={() => setShowBanks(true)} className="gs-btn gs-btn-outline">
@@ -429,6 +452,12 @@ export default function ClientsPage() {
             <X size={14} />
           </button>
         )}
+        {(data?.arquivados_total > 0 || soArquivados) && (
+          <button onClick={() => { setSoArquivados(v => !v); setPage(1) }}
+            className={`text-xs px-2.5 py-1 rounded-lg border whitespace-nowrap ${soArquivados ? 'bg-green-50 border-green-200 text-green-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
+            {soArquivados ? '← Voltar aos ativos' : `Arquivados (${data?.arquivados_total ?? 0})`}
+          </button>
+        )}
       </div>
 
       {/* Tabela */}
@@ -462,7 +491,7 @@ export default function ClientsPage() {
                 <tr key={p.id_smart} className="gs-tr border-t border-gray-100">
                   {/* Cliente — alinhado à esquerda */}
                   <td className="gs-td">
-                    <p className="text-xs font-medium text-gray-900 truncate">{p.nome || '—'}</p>
+                    <p className="text-xs font-medium text-gray-900 truncate">{p.nome || '—'}{p.arquivado && <span className="ml-1.5 px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 text-[10px] font-medium">Arquivado</span>}</p>
                     <p className="text-xs text-gray-400 mt-0.5">{p.id_smart}</p>
                   </td>
                   {/* CNPJ — centralizado, nowrap */}
@@ -540,7 +569,7 @@ export default function ClientsPage() {
       </div>
 
       {/* Modais */}
-      {editing   && <EditModal profile={editing} banks={banksData} onClose={() => setEditing(null)} />}
+      {editing   && <EditModal profile={editing} banks={banksData} podeArquivar={podeEditar} onClose={() => setEditing(null)} />}
       {showBanks && <BanksModal onClose={() => setShowBanks(false)} />}
     </div>
   )

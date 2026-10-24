@@ -7,10 +7,10 @@ from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 import pandas as pd
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from sqlalchemy import text
+from sqlalchemy import text, func
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal, get_db
@@ -153,6 +153,7 @@ def _profile_out(p: ClientProfile, bank_nome: str | None = None) -> dict:
         "telefone": tel_limpo_ou_cru(p.telefone), "telefone_fmt": tel_fmt(p.telefone),
         "telefone2": tel_limpo_ou_cru(p.telefone2), "telefone2_fmt": tel_fmt(p.telefone2),
         "email": p.email, "email2": p.email2, "cnpj_manual": bool(p.cnpj_manual),
+        "arquivado": bool(p.arquivado), "arquivado_em": p.arquivado_em.isoformat() if p.arquivado_em else None, "arquivado_motivo": p.arquivado_motivo,
         "logradouro": p.logradouro, "numero": p.numero,
         "complemento": p.complemento, "bairro": p.bairro,
         "cep": p.cep, "cidade": p.cidade, "estado": p.estado,
@@ -218,9 +219,14 @@ def list_profiles(
     limit: int = 50,
     search: str = "",
     banco_id: Optional[int] = None,
+    arquivados: str = Query("nao", pattern="^(nao|so|todos)$"),     # nao = só os ativos (padrão) · so = só arquivados · todos
     db: Session = Depends(get_db),
 ):
     q = db.query(ClientProfile)
+    if arquivados == "nao":
+        q = q.filter(func.coalesce(ClientProfile.arquivado, False).is_(False))
+    elif arquivados == "so":
+        q = q.filter(ClientProfile.arquivado.is_(True))
     if search:
         like = f"%{search}%"
         q = q.filter(
@@ -238,6 +244,7 @@ def list_profiles(
         "total": total,
         "page": page,
         "pages": max(1, -(-total // limit)),
+        "arquivados_total": db.query(func.count(ClientProfile.id_smart)).filter(ClientProfile.arquivado.is_(True)).scalar() or 0,
         "items": [_profile_out(p) for p in profiles],
     }
 
@@ -265,12 +272,13 @@ def export_clients(db: Session = Depends(get_db), current_user=Depends(get_curre
         "cidade":      p.cidade      or "",
         "estado":      p.estado      or "",
         "banco":       p.bank.nome   if p.bank else "",
+        "arquivado":   "sim" if p.arquivado else "não",
     } for p in profiles]
 
     df = pd.DataFrame(rows, columns=[
         "id_smart", "nome", "cnpj", "telefone", "telefone2", "email", "email2",
         "logradouro", "numero", "complemento", "bairro", "cep", "cidade", "estado",
-        "banco",
+        "banco", "arquivado",
     ])
     # texto que começa com = + - @ viraria fórmula no Excel (injeção): neutraliza
     _neutro = lambda x: ("'" + x) if isinstance(x, str) and x[:1] in ("=", "+", "-", "@") else x
@@ -292,6 +300,46 @@ def get_profile(id_smart: str, db: Session = Depends(get_db)):
     p = db.get(ClientProfile, id_smart)
     if not p:
         raise HTTPException(404, "Cliente não encontrado")
+    return _profile_out(p)
+
+
+class ArquivarIn(BaseModel):
+    motivo: Optional[str] = None
+
+
+def _arquivar(db: Session, p: ClientProfile, user, motivo: Optional[str]) -> int:
+    """Marca como arquivado e cancela o que ainda estava na fila de cobrança dele. Devolve quantos itens da fila foram cancelados."""
+    p.arquivado, p.arquivado_em, p.arquivado_motivo = True, datetime.now(timezone.utc), (motivo or "").strip()[:200] or None
+    n = db.execute(text("""UPDATE cobranca_envios SET status = 'cancelado', erro = 'cliente arquivado'
+                            WHERE id_smart = :i AND status IN ('pendente','aprovado','sem_contato','sem_boleto')"""), {"i": p.id_smart}).rowcount or 0
+    _audit(db, user, "clients.arquivar", {"id_smart": p.id_smart, "motivo": p.arquivado_motivo, "itens_da_fila_cancelados": n})
+    return n
+
+
+def _restaurar(db: Session, p: ClientProfile, user):
+    p.arquivado, p.arquivado_em, p.arquivado_motivo = False, None, None
+    _audit(db, user, "clients.restaurar", {"id_smart": p.id_smart})
+
+
+@router.post("/{id_smart}/arquivar", dependencies=[_require_edit_client])
+def arquivar_cliente(id_smart: str, data: ArquivarIn = ArquivarIn(), db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    p = db.get(ClientProfile, id_smart)
+    if not p:
+        raise HTTPException(404, "Cliente não encontrado")
+    n = _arquivar(db, p, current_user, data.motivo)
+    db.commit()
+    db.refresh(p)
+    return {**_profile_out(p), "itens_da_fila_cancelados": n}
+
+
+@router.post("/{id_smart}/restaurar", dependencies=[_require_edit_client])
+def restaurar_cliente(id_smart: str, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    p = db.get(ClientProfile, id_smart)
+    if not p:
+        raise HTTPException(404, "Cliente não encontrado")
+    _restaurar(db, p, current_user)
+    db.commit()
+    db.refresh(p)
     return _profile_out(p)
 
 
@@ -488,6 +536,9 @@ _COL_MAP = {
     "estado":      "estado",
     "uf":          "estado",
     "banco":       "_banco_nome",  # nome do banco — lookup no DB
+    "arquivado":   "_arquivado",   # sim/não: arquivar ou restaurar pela planilha (vazio = não mexe)
+    "situação":    "_arquivado",
+    "situacao":    "_arquivado",
 }
 
 EDITABLE = {"telefone","telefone2","email","email2","logradouro","numero","complemento","bairro","cep","cidade","estado"}
@@ -520,6 +571,7 @@ async def import_clients(file: UploadFile = File(...), db: Session = Depends(get
 
     updated = created = skipped = 0
     erros, avisos = [], []
+    arquivados_planilha = restaurados_planilha = 0
     for n, (_, row) in enumerate(df.iterrows(), start=2):
         id_smart = _campo_limpo("id_smart", row.get("id_smart")) if "id_smart" in df.columns else None
         cnpj_raw = re.sub(r"\D", "", str(row.get("cnpj", "") or "")) if "cnpj" in df.columns else None
@@ -573,6 +625,17 @@ async def import_clients(file: UploadFile = File(...), db: Session = Depends(get
         for k, v in novos.items():
             setattr(p, k, v)
 
+        if "_arquivado" in df.columns:
+            v = str(row.get("_arquivado", "") or "").strip().lower()
+            if v in ("sim", "s", "1", "true", "arquivado", "inativo"):
+                if not p.arquivado:
+                    _arquivar(db, p, current_user, "arquivado pela planilha")
+                    arquivados_planilha += 1
+            elif v in ("não", "nao", "n", "0", "false", "ativo"):
+                if p.arquivado:
+                    _restaurar(db, p, current_user)
+                    restaurados_planilha += 1
+
         if "_banco_nome" in df.columns:
             bn = str(row.get("_banco_nome", "") or "").strip().lower()
             if bn and bn in banks_by_name:
@@ -582,4 +645,5 @@ async def import_clients(file: UploadFile = File(...), db: Session = Depends(get
 
     _audit(db, current_user, "clients.import", {"criados": created, "atualizados": updated, "ignorados": skipped, "arquivo": (file.filename or "")[:80]})
     db.commit()
-    return {"created": created, "updated": updated, "skipped": skipped, "erros": erros[:20], "avisos": avisos[:20], "total_avisos": len(avisos)}
+    return {"created": created, "updated": updated, "skipped": skipped, "erros": erros[:20], "avisos": avisos[:20], "total_avisos": len(avisos),
+            "arquivados": arquivados_planilha, "restaurados": restaurados_planilha}

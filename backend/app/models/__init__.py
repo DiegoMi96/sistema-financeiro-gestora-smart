@@ -261,6 +261,9 @@ class ClientProfile(Base):
     email       = Column(String(150), nullable=True)             # principal (obrigatório na edição)
     email2      = Column(String(150), nullable=True)             # opcional
     cnpj_manual = Column(Boolean, default=False)                 # CNPJ corrigido à mão: a sincronização não sobrescreve
+    arquivado   = Column(Boolean, default=False)                 # fora da lista padrão e fora da régua de cobrança (nada é apagado)
+    arquivado_em = Column(DateTime(timezone=True), nullable=True)
+    arquivado_motivo = Column(String(200), nullable=True)
     logradouro  = Column(String(200), nullable=True)
     numero      = Column(String(20),  nullable=True)
     complemento = Column(String(100), nullable=True)

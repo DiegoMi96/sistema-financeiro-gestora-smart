@@ -591,8 +591,14 @@ def _excluidos(db: Session) -> set:
 
 
 def _pausados(db: Session, hoje: date) -> set:
-    return {r[0] for r in db.execute(_t(
+    """Clientes fora da régua: pausados (temporário) e ARQUIVADOS no cadastro (até restaurar)."""
+    ids = {r[0] for r in db.execute(_t(
         "SELECT id_smart FROM cobranca_pausas WHERE ativa AND (ate IS NULL OR ate >= :h)"), {"h": hoje})}
+    try:
+        ids |= {r[0] for r in db.execute(_t("SELECT id_smart FROM client_profiles WHERE COALESCE(arquivado, false)"))}
+    except Exception:
+        db.rollback()
+    return ids
 
 
 # ── geração da fila ────────────────────────────────────────────────────────────
@@ -1222,7 +1228,7 @@ def processar_aprovados(db: Session, limite: int = 500) -> dict:
                 if et is None:
                     e.status, e.erro = "cancelado", "etapa não existe mais"; res["descartados"] += 1; db.commit(); continue
                 if e.id_smart in _pausados(db, hoje):
-                    e.status, e.erro = "cancelado", "cliente pausado na régua"; res["descartados"] += 1; db.commit(); continue
+                    e.status, e.erro = "cancelado", "cliente pausado ou arquivado na régua"; res["descartados"] += 1; db.commit(); continue
                 if not _fonte_fresca(e, fresco):
                     e.status, e.erro = "aprovado", "dados de pagamento desatualizados — envio adiado"
                     e.tentativas = max(0, (e.tentativas or 1) - 1)
@@ -1412,7 +1418,7 @@ def processar_whatsapp(db: Session, limite: int = 500) -> dict:
                 if et is None:
                     e.status, e.erro = "cancelado", "etapa não existe mais"; res["descartados"] += 1; db.commit(); continue
                 if e.id_smart in _pausados(db, hoje):
-                    e.status, e.erro = "cancelado", "cliente pausado na régua"; res["descartados"] += 1; db.commit(); continue
+                    e.status, e.erro = "cancelado", "cliente pausado ou arquivado na régua"; res["descartados"] += 1; db.commit(); continue
                 if not et.ativa or not et.wa_template_id:
                     devolve("etapa desligada ou sem template do WhatsApp"); continue
                 ja_hoje = db.execute(_t("""SELECT 1 FROM cobranca_envios WHERE canal='whatsapp' AND status='enviado' AND id_smart=:s AND id<>:i
