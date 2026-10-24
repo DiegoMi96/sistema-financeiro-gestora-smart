@@ -358,6 +358,30 @@ def imagens_inline() -> list:
     return [(n, _ler(n + ".png")) for n in _IMAGENS if _ler(n + ".png")]
 
 
+def html_com_imagens(html: str, inline: list) -> str:
+    """Troca cid:<nome> por data URI — para mostrar o e-mail numa prévia na tela (o e-mail enviado usa as imagens anexadas)."""
+    import base64
+    mapa = {n: "data:image/png;base64," + base64.b64encode(d).decode() for n, d in inline}
+    return re.sub(r"cid:([a-z-]+)", lambda m: mapa.get(m.group(1), m.group(0)), html)
+
+
+def exemplo_email(et, assunto: str, texto: str, cfg: dict, hoje: date, origem: str) -> dict:
+    """E-mail COMPLETO (HTML) de exemplo da etapa, com os textos digitados e um cliente fictício — só para a prévia."""
+    from types import SimpleNamespace as N
+    dias = getattr(et, "dias", 0) or 0
+    venc = hoje + timedelta(days=10) if et.chave == ETAPA_LANCAMENTO else hoje - timedelta(days=dias)
+    e = N(nome="Cliente Exemplo LTDA", valor=1240.50, vencimento=venc, origem=origem,
+          link="https://www.asaas.com/i/exemplo" if origem == "asaas" else None)
+    ef = N(assunto=assunto, texto=texto, anexa_boleto=bool(getattr(et, "anexa_boleto", False)), chave=et.chave)
+    linha = "34191.09008 61207.727808 71234.567890 1 11110000124050"
+    if et.chave == ETAPA_LANCAMENTO:
+        b = {"valor": 1240.50, "venc": venc, "link": e.link, "anexo": None if origem == "asaas" else {"bytes": b"%PDF", "linha": linha}}
+        m = montar_email_lancamento(e, ef, cfg, hoje, [b])
+    else:
+        m = montar_email(e, ef, cfg, hoje, {"bytes": b"%PDF", "linha": linha} if origem == "itau" else None)
+    return {"assunto": m["assunto"], "html": html_com_imagens(m["html"], m["inline"])}
+
+
 def _titulo_em_duas_linhas(t: str) -> tuple:
     """Divide o título como no modelo: começo em preto, final em verde."""
     p = t.split()
@@ -858,20 +882,23 @@ def montar_email_lancamento(e, et, cfg: dict, hoje: date, boletos: list) -> dict
         txt.append(f"- {rot}: vencimento {b['venc'].strftime('%d/%m/%Y')} — {brl(b['valor'])}" + (f" — {b['link']}" if b.get("link") else " — PDF anexado"))
         if b.get("anexo") and b["anexo"].get("linha"):
             txt.append(f"  Linha digitável: {b['anexo']['linha']}")
-        acao = ""
+        acao, linha_html = "", ""
         if b.get("link"):
             acao = (f'<a href="{escape(b["link"], quote=True)}" style="display:inline-block;background:#16a34a;color:#ffffff;text-decoration:none;'
                     'font-weight:700;font-size:13px;padding:8px 16px;border-radius:6px">Ver fatura e pagar</a>')
         elif b.get("anexo"):
             acao = '<span style="color:#166534;font-size:13px"><b>PDF anexado</b></span>'
             if b["anexo"].get("linha"):
-                acao += f'<div style="font-family:Consolas,Menlo,monospace;font-size:12px;color:#111827;margin-top:4px;word-break:break-all">{escape(b["anexo"]["linha"])}</div>'
+                linha_html = (f'<tr><td colspan="4" style="padding:0 0 10px 0"><div style="font-size:11px;color:#6b7280;margin:0 0 2px 0">Linha digitável (copie e cole no app do banco):</div>'
+                              f'<div style="font-family:Consolas,Menlo,monospace;font-size:12px;color:#111827;word-break:break-all">{escape(b["anexo"]["linha"])}</div></td></tr>')
             nome_cli = re.sub(r"[^A-Za-z0-9]+", "_", (e.nome or "cliente"))[:30].strip("_")
             anexos.append((f"Boleto_{b['venc'].strftime('%d-%m-%Y')}_{nome_cli}_{i}.pdf", b["anexo"]["bytes"], "application/pdf"))
-        linhas_html.append(f'<tr><td style="padding:10px 0;border-top:1px solid #e5e7eb;font-size:13px;color:#6b7280">{escape(rot)}</td>'
-                           f'<td style="padding:10px 0;border-top:1px solid #e5e7eb;font-size:14px;color:#111827"><b>{b["venc"].strftime("%d/%m/%Y")}</b></td>'
-                           f'<td style="padding:10px 0;border-top:1px solid #e5e7eb;font-size:14px;color:#111827"><b>{escape(brl(b["valor"]))}</b></td>'
-                           f'<td style="padding:10px 0;border-top:1px solid #e5e7eb;text-align:right">{acao}</td></tr>')
+        topo = "border-top:1px solid #e5e7eb;" if i > 1 else ""
+        pad_b = "0" if linha_html else "10px"
+        linhas_html.append(f'<tr><td style="padding:10px 8px {pad_b} 0;{topo}font-size:13px;color:#6b7280;white-space:nowrap">{escape(rot)}</td>'
+                           f'<td style="padding:10px 8px {pad_b} 0;{topo}font-size:14px;color:#111827;white-space:nowrap"><b>{b["venc"].strftime("%d/%m/%Y")}</b></td>'
+                           f'<td style="padding:10px 8px {pad_b} 0;{topo}font-size:14px;color:#111827;white-space:nowrap"><b>{escape(brl(b["valor"]))}</b></td>'
+                           f'<td style="padding:10px 0 {pad_b} 0;{topo}text-align:right">{acao}</td></tr>{linha_html}')
     if n > 1:
         txt.append(f"Total: {brl(x.valor)}")
     paras = "".join(f'<p style="margin:0 0 16px 0;">{escape(bl).replace(chr(10), "<br>")}</p>' for bl in corpo.split("\n\n"))

@@ -2,6 +2,7 @@
 Ver services/cobranca.py para as regras de segurança."""
 import ipaddress
 import json
+import logging
 import re
 import socket
 from datetime import date, datetime, timedelta, timezone
@@ -21,6 +22,8 @@ from app.services import cobranca as svc
 from app.services import umbler
 from app.services import devolucoes
 from app.services import boletos_itau as bi
+
+log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/cobranca", tags=["Cobrança"])
 _ler = Depends(require_permission("can_edit_billing"))          # analista: ver, gerar fila, aprovar, pausar
@@ -358,6 +361,7 @@ def salvar_etapa(chave: str, body: EtapaIn, current_user=_admin, db: Session = D
 class PreviaIn(BaseModel):
     assunto: str = Field("", max_length=300)
     texto: str = Field("", max_length=4000)
+    origem: str = Field("asaas", pattern="^(asaas|itau)$")     # só para a prévia visual: link da fatura x PDF anexado
 
 
 @router.post("/etapas/{chave}/previa")
@@ -368,7 +372,14 @@ def previa_etapa(chave: str, body: PreviaIn, current_user=_ler, db: Session = De
         e = CobrancaEnvio(nome="Cliente Exemplo LTDA", valor=1240.50, vencimento=svc.hoje_br(), link="https://www.asaas.com/i/exemplo")
     cfg = svc.carregar_cfg(db)
     assunto, corpo = svc.renderizar(body.assunto, body.texto, e, svc.hoje_br(), svc._int(cfg["regua_prazo_bloqueio_dias"], 3))
-    return {"assunto": assunto, "corpo": corpo, "exemplo": e.nome}
+    html = None
+    et = db.get(CobrancaEtapa, chave)
+    if et and "email" in (et.canais or ""):
+        try:
+            html = svc.exemplo_email(et, body.assunto, body.texto, cfg, svc.hoje_br(), body.origem)["html"]
+        except Exception:                                      # prévia visual nunca derruba a edição da etapa
+            log.exception("prévia visual da etapa %s", chave)
+    return {"assunto": assunto, "corpo": corpo, "exemplo": e.nome, "html": html}
 
 
 # ── configuração (chave geral, modo teste, e-mail) ────────────────────────────

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { cobrancaApi } from '../../services/api'
@@ -57,12 +57,37 @@ export default function ReguaTab({ admin }) {
   )
 }
 
+const ALTURA_EMAIL = 1250
+// E-mail mostrado em tamanho de computador (640 px) e reduzido para caber na coluna; rola na vertical.
+function PreviaEmail({ html }) {
+  const ref = useRef(null)
+  const [largura, setLargura] = useState(640)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const medir = () => setLargura(el.clientWidth || 640)
+    medir()
+    const ro = new ResizeObserver(medir)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  const escala = Math.min(1, largura / 640)
+  return (
+    <div ref={ref} className="w-full border border-gray-200 rounded-lg bg-gray-100 overflow-y-auto overflow-x-hidden" style={{ height: 560 }}>
+      <div style={{ height: ALTURA_EMAIL * escala, overflow: 'hidden' }}>
+        <iframe title="Prévia do e-mail" sandbox="" srcDoc={html} style={{ width: 640, height: ALTURA_EMAIL, border: 0, transform: `scale(${escala})`, transformOrigin: 'top left' }} />
+      </div>
+    </div>
+  )
+}
+
 function EditorEtapa({ etapa, campos, camposWa, admin, onClose, onSave }) {
   const [dias, setDias] = useState(etapa.dias)
   const [modo, setModo] = useState(etapa.modo)
   const [assunto, setAssunto] = useState(etapa.assunto)
   const [texto, setTexto] = useState(etapa.texto)
   const [previa, setPrevia] = useState(null)
+  const [origem, setOrigem] = useState('asaas')   // só afeta a prévia: Asaas = link da fatura, Itaú = PDF anexado
   const [waId, setWaId] = useState(etapa.wa_template_id || '')
   const [waParams, setWaParams] = useState(etapa.wa_params || [])
   const email = etapa.canais.includes('email')
@@ -71,9 +96,9 @@ function EditorEtapa({ etapa, campos, camposWa, admin, onClose, onSave }) {
 
   useEffect(() => {
     if (!email) return
-    const t = setTimeout(() => cobrancaApi.previaEtapa(etapa.chave, { assunto, texto }).then(r => setPrevia(r.data)).catch(() => {}), 350)
+    const t = setTimeout(() => cobrancaApi.previaEtapa(etapa.chave, { assunto, texto, origem }).then(r => setPrevia(r.data)).catch(() => {}), 350)
     return () => clearTimeout(t)
-  }, [assunto, texto])  // eslint-disable-line react-hooks/exhaustive-deps
+  }, [assunto, texto, origem])  // eslint-disable-line react-hooks/exhaustive-deps
 
   const inserir = c => setTexto(t => `${t}{${c}}`)
 
@@ -102,11 +127,24 @@ function EditorEtapa({ etapa, campos, camposWa, admin, onClose, onSave }) {
             {admin && <div className="flex flex-wrap gap-1.5">{campos.map(c => <button key={c} onClick={() => inserir(c)} className="text-xs px-2 py-0.5 rounded bg-blue-50 text-blue-700">{`{${c}}`}</button>)}</div>}
           </div>
           <div>
-            <p className="text-xs text-gray-500 mb-1">Prévia{previa?.exemplo ? ` — ${previa.exemplo}` : ''}</p>
-            <div className="bg-gray-50 rounded-lg p-3 text-sm">
-              <p className="font-medium text-gray-800">{previa?.assunto}</p>
-              <pre className="mt-2 whitespace-pre-wrap font-sans text-gray-700">{previa?.corpo}</pre>
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs text-gray-500">Prévia do e-mail{previa?.exemplo ? ` — ${previa.exemplo}` : ''}</p>
+              {['lancamento', 'vence_hoje'].includes(etapa.chave) && (
+                <div className="flex gap-1">
+                  {[['asaas', 'Asaas (link)'], ['itau', 'Itaú (PDF)']].map(([v, t]) => (
+                    <button key={v} onClick={() => setOrigem(v)} className={`text-xs px-2 py-0.5 rounded ${origem === v ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600'}`}>{t}</button>
+                  ))}
+                </div>
+              )}
             </div>
+            <p className="text-sm font-medium text-gray-800 mb-2">Assunto: {previa?.assunto}</p>
+            {previa?.html ? (
+              <PreviaEmail html={previa.html} />
+            ) : (
+              <div className="bg-gray-50 rounded-lg p-3 text-sm">
+                <pre className="whitespace-pre-wrap font-sans text-gray-700">{previa?.corpo}</pre>
+              </div>
+            )}
           </div>
         </div>
       ) : etapa.chave === 'tarefa' ? <p className="text-sm text-gray-600">Esta etapa cria uma tarefa na fila para o analista ligar para o cliente. Não envia mensagem.</p> : null}
