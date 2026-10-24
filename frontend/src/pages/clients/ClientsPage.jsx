@@ -18,28 +18,46 @@ const fmtCnpj = (v = '') => {
   return v
 }
 const fmtCep = (v = '') => v.replace(/\D/g,'').replace(/(\d{5})(\d{3})/,'$1-$2')
+// Telefone padrão: celular (11) 9 1731-2712 · fixo (11) 1731-2712. Aceita "11917312712.0" (decimal do Excel) e digitação parcial.
+const digitosTel = (v = '') => String(v ?? '').replace(/\.0+$/, '').replace(/\D/g, '').replace(/^0+/, '').replace(/^55(?=\d{10,11}$)/, '').slice(0, 11)
 const fmtTelefone = (v = '') => {
-  const d = v.replace(/\D/g, '')
-  if (d.length === 11) return d.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
-  if (d.length === 10) return d.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3')
-  return v
+  const d = digitosTel(v)
+  if (!d) return ''
+  if (d.length <= 2) return `(${d}`
+  if (d.length === 11) return `(${d.slice(0, 2)}) ${d[2]} ${d.slice(3, 7)}-${d.slice(7)}`
+  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`
+  if (d.length >= 3 && d[2] === '9') {                       // celular ainda sendo digitado
+    const r = d.slice(3)
+    return `(${d.slice(0, 2)}) ${d[2]}${r ? ' ' + r.slice(0, 4) : ''}${r.length > 4 ? '-' + r.slice(4) : ''}`
+  }
+  return `(${d.slice(0, 2)}) ${d.slice(2, 6)}${d.length > 6 ? '-' + d.slice(6) : ''}`
 }
+const telValido = (v = '') => { const d = digitosTel(v); return d.length === 10 || (d.length === 11 && d[2] === '9') }
+const cnpjOuCpfValido = (v = '') => {
+  const d = v.replace(/\D/g, '')
+  if (!/^\d+$/.test(d) || new Set(d).size === 1) return false
+  if (d.length === 11) { for (const n of [9, 10]) { let s = 0; for (let i = 0; i < n; i++) s += +d[i] * (n + 1 - i); if (+d[n] !== (s * 10 % 11) % 10) return false } return true }
+  if (d.length === 14) { for (const [n, pw] of [[12, [5,4,3,2,9,8,7,6,5,4,3,2]], [13, [6,5,4,3,2,9,8,7,6,5,4,3,2]]]) { const r = pw.reduce((a, w, i) => a + +d[i] * w, 0) % 11; if (+d[n] !== (r < 2 ? 0 : 11 - r)) return false } return true }
+  return false
+}
+const emailOk = (v = '') => /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(v.trim())
 
 // ── Input padronizado ──────────────────────────────────────────────────────
-function Field({ label, value, onChange, readOnly, placeholder, type = 'text' }) {
+function Field({ label, value, onChange, readOnly, placeholder, type = 'text', obrigatorio, erro }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
+      <label className="block text-xs font-medium text-gray-500 mb-1">{label}{obrigatorio && <span className="text-red-500"> *</span>}</label>
       {readOnly
         ? <div className="gs-input bg-gray-50 text-gray-500 cursor-not-allowed">{value || '—'}</div>
         : <input
             type={type}
-            className="gs-input w-full"
+            className={`gs-input w-full ${erro ? 'border-red-300' : ''}`}
             value={value || ''}
             onChange={e => onChange(e.target.value)}
             placeholder={placeholder}
           />
       }
+      {erro && !readOnly && <p className="text-xs text-red-500 mt-1">{erro}</p>}
     </div>
   )
 }
@@ -48,8 +66,11 @@ function Field({ label, value, onChange, readOnly, placeholder, type = 'text' })
 function EditModal({ profile, banks, onClose }) {
   const qc = useQueryClient()
   const [form, setForm] = useState({
-    telefone:    profile.telefone    || '',
+    cnpj:        profile.cnpj        || '',
+    telefone:    fmtTelefone(profile.telefone  || ''),
+    telefone2:   fmtTelefone(profile.telefone2 || ''),
     email:       profile.email       || '',
+    email2:      profile.email2      || '',
     logradouro:  profile.logradouro  || '',
     numero:      profile.numero      || '',
     complemento: profile.complemento || '',
@@ -63,6 +84,9 @@ function EditModal({ profile, banks, onClose }) {
   const mut = useMutation({
     mutationFn: () => clientsApi.update(profile.id_smart, {
       ...form,
+      cnpj: form.cnpj.replace(/\D/g, ''),
+      telefone: digitosTel(form.telefone),
+      telefone2: digitosTel(form.telefone2),
       banco_id: form.banco_id || null,
     }),
     onSuccess: () => {
@@ -70,10 +94,18 @@ function EditModal({ profile, banks, onClose }) {
       toast.success('Cliente atualizado')
       onClose()
     },
-    onError: () => toast.error('Erro ao salvar'),
+    onError: (e) => toast.error(e.response?.data?.detail || 'Erro ao salvar'),
   })
 
   const set = (k) => (v) => setForm(f => ({ ...f, [k]: v }))
+  const erros = {
+    cnpj: form.cnpj.replace(/\D/g, '') !== (profile.cnpj || '').replace(/\D/g, '') && !cnpjOuCpfValido(form.cnpj) ? 'CNPJ/CPF inválido (confira os dígitos)' : '',
+    telefone: !form.telefone ? 'Informe o telefone principal' : !telValido(form.telefone) ? 'Telefone inválido — use DDD + número' : '',
+    telefone2: form.telefone2 && !telValido(form.telefone2) ? 'Telefone inválido — use DDD + número' : '',
+    email: !form.email ? 'Informe o e-mail principal' : !emailOk(form.email) ? 'E-mail inválido (um só neste campo)' : '',
+    email2: form.email2 && !emailOk(form.email2) ? 'E-mail inválido (um só neste campo)' : '',
+  }
+  const temErro = Object.values(erros).some(Boolean)
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
@@ -82,7 +114,7 @@ function EditModal({ profile, banks, onClose }) {
         <div className="flex items-center justify-between p-5 border-b border-gray-100">
           <div>
             <h2 className="font-semibold text-gray-900">{profile.nome || profile.id_smart}</h2>
-            <p className="text-xs text-gray-500 mt-0.5">{fmtCnpj(profile.cnpj || '')} · {profile.id_smart}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{profile.id_smart}</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X size={18} />
@@ -90,12 +122,22 @@ function EditModal({ profile, banks, onClose }) {
         </div>
 
         <div className="overflow-y-auto p-5 space-y-5">
+          {/* CNPJ / CPF */}
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Documento</p>
+            <Field label="CNPJ / CPF" value={fmtCnpj(form.cnpj)} onChange={v => set('cnpj')(v.replace(/\D/g, '').slice(0, 14))} placeholder="00.000.000/0000-00" erro={erros.cnpj} />
+            {profile.cnpj_manual && <p className="text-xs text-gray-400 mt-1">Corrigido manualmente: a sincronização com o Asaas não sobrescreve.</p>}
+            <p className="text-xs text-gray-400 mt-1">O código do cliente ({profile.id_smart}) não muda, mesmo corrigindo o CNPJ.</p>
+          </div>
+
           {/* Contato */}
           <div>
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Contato</p>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Telefone" value={form.telefone} onChange={set('telefone')} placeholder="(11) 99999-9999" />
-              <Field label="E-mail" value={form.email} onChange={set('email')} placeholder="contato@empresa.com.br" type="email" />
+              <Field label="Telefone principal" obrigatorio value={form.telefone} onChange={v => set('telefone')(fmtTelefone(v))} placeholder="(11) 9 1731-2712" erro={erros.telefone} />
+              <Field label="Telefone 2 (opcional)" value={form.telefone2} onChange={v => set('telefone2')(fmtTelefone(v))} placeholder="(11) 9 1731-2712" erro={erros.telefone2} />
+              <Field label="E-mail principal" obrigatorio value={form.email} onChange={set('email')} placeholder="contato@empresa.com.br" type="email" erro={erros.email} />
+              <Field label="E-mail 2 (opcional)" value={form.email2} onChange={set('email2')} placeholder="financeiro@empresa.com.br" type="email" erro={erros.email2} />
             </div>
           </div>
 
@@ -132,10 +174,15 @@ function EditModal({ profile, banks, onClose }) {
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Banco / Faturamento</p>
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">Banco de destino do boleto</label>
-              <select className="gs-input w-full" value={form.banco_id || 0} onChange={e => set('banco_id')(Number(e.target.value))}>
-                <option value={0}>— Sem banco definido —</option>
-                {banks.map(b => <option key={b.id} value={b.id}>{b.nome}</option>)}
-              </select>
+              <div className="flex gap-2">
+                {banks.filter(b => ['asaas', 'itaú', 'itau'].includes((b.nome || '').trim().toLowerCase())).map(b => (
+                  <button key={b.id} type="button" onClick={() => set('banco_id')(b.id)}
+                    className={`gs-btn flex-1 justify-center ${form.banco_id === b.id ? 'gs-btn-dark' : 'gs-btn-outline'}`}>
+                    {b.nome}
+                  </button>
+                ))}
+              </div>
+              {!form.banco_id && <p className="text-xs text-amber-600 mt-1">Este cliente está sem banco definido: escolha Asaas ou Itaú.</p>}
             </div>
           </div>
         </div>
@@ -146,7 +193,7 @@ function EditModal({ profile, banks, onClose }) {
             className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
             Cancelar
           </button>
-          <button onClick={() => mut.mutate()} disabled={mut.isPending} className="gs-btn gs-btn-dark">
+          <button onClick={() => mut.mutate()} disabled={mut.isPending || temErro} title={temErro ? 'Corrija os campos em vermelho' : ''} className="gs-btn gs-btn-dark disabled:opacity-50">
             <Check size={14} />
             {mut.isPending ? 'Salvando...' : 'Salvar'}
           </button>
@@ -301,9 +348,10 @@ export default function ClientsPage() {
     mutationFn: (fd) => clientsApi.import(fd),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['clients'] })
-      const { created, updated, skipped, erros = [] } = res.data
+      const { created, updated, skipped, erros = [], avisos = [], total_avisos = 0 } = res.data
       toast.success(`Importado: ${created} criados · ${updated} atualizados · ${skipped} ignorados`)
       if (erros.length) toast.error(`${erros.length} linha(s) com dado inválido foram puladas. Ex.: ${erros[0]}`, { duration: 9000 })
+      if (total_avisos) toast(`${total_avisos} linha(s) com CNPJ diferente do cadastro: a planilha não altera CNPJ (corrija pela tela do cliente). Ex.: ${avisos[0]}`, { duration: 10000, icon: '⚠️' })
     },
     onError: (e) => toast.error(e.response?.data?.detail || 'Erro na importação'),
   })
@@ -423,19 +471,19 @@ export default function ClientsPage() {
                   </td>
                   {/* Contato — centralizado */}
                   <td className="gs-td text-center">
-                    {p.telefone && (
-                      <p className="flex items-center justify-center gap-1 text-xs text-gray-700">
+                    {[p.telefone, p.telefone2].filter(Boolean).map((t, i) => (
+                      <p key={'t' + i} className="flex items-center justify-center gap-1 text-xs text-gray-700">
                         <Phone size={10} className="text-gray-400 flex-shrink-0" />
-                        {fmtTelefone(p.telefone)}
+                        {fmtTelefone(t)}
                       </p>
-                    )}
-                    {p.email && (
-                      <p className="flex items-center justify-center gap-1 text-xs text-gray-400 truncate" title={p.email}>
+                    ))}
+                    {[p.email, p.email2].filter(Boolean).map((m, i) => (
+                      <p key={'m' + i} className="flex items-center justify-center gap-1 text-xs text-gray-400 truncate" title={m}>
                         <Mail size={10} className="flex-shrink-0" />
-                        <span className="truncate">{p.email}</span>
+                        <span className="truncate">{m}</span>
                       </p>
-                    )}
-                    {!p.telefone && !p.email && <span className="text-gray-300 text-xs">—</span>}
+                    ))}
+                    {!p.telefone && !p.email && !p.telefone2 && !p.email2 && <span className="text-gray-300 text-xs">—</span>}
                   </td>
                   {/* Endereço — 1 linha com tooltip completo */}
                   <td className="gs-td text-gray-600" style={{fontSize:'11px'}}>

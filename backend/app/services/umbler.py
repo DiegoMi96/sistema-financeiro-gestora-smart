@@ -54,7 +54,7 @@ def so_digitos(s) -> str:
 
 def normalizar_telefone(s) -> Optional[str]:
     """Celular brasileiro → +55DDNNNNNNNNN (E.164). Fixo (10 dígitos) e lixo → None (não tem WhatsApp)."""
-    d = so_digitos(s)
+    d = so_digitos(re.sub(r"\.0+$", "", str(s or "").strip()))      # '11948019452.0' (número vindo do Excel como decimal) = 11948019452
     d = d.lstrip("0")
     if len(d) in (12, 13) and d.startswith("55"):
         d = d[2:]

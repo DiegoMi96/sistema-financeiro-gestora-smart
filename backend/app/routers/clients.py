@@ -39,8 +39,11 @@ class BankUpdate(BaseModel):
     nome:           Optional[str] = None
 
 class ProfileUpdate(BaseModel):
+    cnpj:        Optional[str] = None
     telefone:    Optional[str] = None
+    telefone2:   Optional[str] = None
     email:       Optional[str] = None
+    email2:      Optional[str] = None
     logradouro:  Optional[str] = None
     numero:      Optional[str] = None
     complemento: Optional[str] = None
@@ -53,8 +56,49 @@ class ProfileUpdate(BaseModel):
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-_LIMITES = {"telefone": 30, "email": 150, "logradouro": 200, "numero": 20, "complemento": 100, "bairro": 100, "cep": 10, "cidade": 100, "estado": 2}
+_LIMITES = {"telefone": 30, "telefone2": 30, "email": 150, "email2": 150, "logradouro": 200, "numero": 20, "complemento": 100, "bairro": 100, "cep": 10, "cidade": 100, "estado": 2}
 _UFS = {"AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"}
+
+
+def tel_limpo(v) -> str:
+    """Telefone → só dígitos (DDD + número). Aceita '(11) 9 1731-2712', '+55 11 91731-2712' e '11917312712.0' (decimal do Excel).
+    Levanta ValueError se não for um telefone brasileiro de 10 (fixo) ou 11 (celular, começa com 9) dígitos."""
+    d = re.sub(r"\D", "", re.sub(r"\.0+$", "", str(v or "").strip())).lstrip("0")
+    if len(d) in (12, 13) and d.startswith("55"):
+        d = d[2:]
+    if len(d) not in (10, 11) or not 11 <= int(d[:2]) <= 99 or (len(d) == 11 and d[2] != "9"):
+        raise ValueError("telefone inválido: use DDD + número, ex.: (11) 9 1731-2712")
+    return d
+
+
+def tel_fmt(v) -> Optional[str]:
+    """(11) 9 1731-2712 (celular) ou (11) 1731-2712 (fixo). Valor que não for telefone válido volta como veio (sem inventar)."""
+    if v in (None, ""):
+        return None
+    try:
+        d = tel_limpo(v)
+    except ValueError:
+        return str(v)
+    return f"({d[:2]}) {d[2]} {d[3:7]}-{d[7:]}" if len(d) == 11 else f"({d[:2]}) {d[2:6]}-{d[6:]}"
+
+
+def doc_valido(d: str) -> bool:
+    """CPF (11) ou CNPJ (14) com dígitos verificadores corretos."""
+    if not d.isdigit() or len(set(d)) == 1:
+        return False
+    if len(d) == 11:
+        for n in (9, 10):
+            s = sum(int(d[i]) * (n + 1 - i) for i in range(n))
+            if int(d[n]) != (s * 10 % 11) % 10:
+                return False
+        return True
+    if len(d) == 14:
+        for n, pesos in ((12, [5,4,3,2,9,8,7,6,5,4,3,2]), (13, [6,5,4,3,2,9,8,7,6,5,4,3,2])):
+            r = sum(int(d[i]) * pesos[i] for i in range(n)) % 11
+            if int(d[n]) != (0 if r < 2 else 11 - r):
+                return False
+        return True
+    return False
 
 
 def _campo_limpo(campo: str, valor):
@@ -65,12 +109,14 @@ def _campo_limpo(campo: str, valor):
     v = str(valor).strip()
     if v.lower() in ("", "nan", "none", "null"):
         return None
-    if campo == "email":
+    if campo in ("email", "email2"):
         from app.services.cobranca import emails_validos
         lista = emails_validos(v)
         if not lista:
             raise ValueError("e-mail inválido")
-        v = ", ".join(lista)
+        if len(re.split(r"[;,\s]+", v.strip())) > 1:
+            raise ValueError("informe um único e-mail neste campo (use o campo opcional para o segundo)")
+        v = lista[0]
     elif campo == "estado":
         v = v.upper()
         if v not in _UFS:
@@ -80,9 +126,8 @@ def _campo_limpo(campo: str, valor):
         if len(d) != 8:
             raise ValueError("CEP deve ter 8 dígitos")
         v = d
-    elif campo == "telefone":
-        if not re.fullmatch(r"[0-9 ()+\-]{8,30}", v):
-            raise ValueError("telefone inválido")
+    elif campo in ("telefone", "telefone2"):
+        v = tel_limpo(v)
     if len(v) > _LIMITES.get(campo, 255):
         raise ValueError(f"texto muito longo (máx. {_LIMITES.get(campo, 255)})")
     return v
@@ -91,6 +136,13 @@ def _campo_limpo(campo: str, valor):
 def _audit(db: Session, user, acao: str, detalhes: dict):
     db.add(AuditLog(user_id=getattr(user, "id", None), action=acao, entity="client", details=detalhes))
 
+def tel_limpo_ou_cru(v):
+    try:
+        return tel_limpo(v) if v else None
+    except ValueError:
+        return v
+
+
 def _bank_out(b: Bank) -> dict:
     # só o nome: agência/conta/PIX saíram da tela e da API (24/10/2026, pedido do Diego); as colunas seguem no banco, intactas
     return {"id": b.id, "nome": b.nome}
@@ -98,7 +150,9 @@ def _bank_out(b: Bank) -> dict:
 def _profile_out(p: ClientProfile, bank_nome: str | None = None) -> dict:
     return {
         "id_smart": p.id_smart, "nome": p.nome, "cnpj": p.cnpj,
-        "telefone": p.telefone, "email": p.email,
+        "telefone": tel_limpo_ou_cru(p.telefone), "telefone_fmt": tel_fmt(p.telefone),
+        "telefone2": tel_limpo_ou_cru(p.telefone2), "telefone2_fmt": tel_fmt(p.telefone2),
+        "email": p.email, "email2": p.email2, "cnpj_manual": bool(p.cnpj_manual),
         "logradouro": p.logradouro, "numero": p.numero,
         "complemento": p.complemento, "bairro": p.bairro,
         "cep": p.cep, "cidade": p.cidade, "estado": p.estado,
@@ -199,8 +253,10 @@ def export_clients(db: Session = Depends(get_db), current_user=Depends(get_curre
         "id_smart":    p.id_smart    or "",
         "nome":        p.nome        or "",
         "cnpj":        p.cnpj        or "",
-        "telefone":    p.telefone    or "",
+        "telefone":    tel_fmt(p.telefone)  or "",
+        "telefone2":   tel_fmt(p.telefone2) or "",
         "email":       p.email       or "",
+        "email2":      p.email2      or "",
         "logradouro":  p.logradouro  or "",
         "numero":      p.numero      or "",
         "complemento": p.complemento or "",
@@ -212,7 +268,7 @@ def export_clients(db: Session = Depends(get_db), current_user=Depends(get_curre
     } for p in profiles]
 
     df = pd.DataFrame(rows, columns=[
-        "id_smart", "nome", "cnpj", "telefone", "email",
+        "id_smart", "nome", "cnpj", "telefone", "telefone2", "email", "email2",
         "logradouro", "numero", "complemento", "bairro", "cep", "cidade", "estado",
         "banco",
     ])
@@ -252,16 +308,36 @@ def update_profile(id_smart: str, data: ProfileUpdate, db: Session = Depends(get
                 raise HTTPException(400, "Banco não encontrado")
             p.banco_id = data.banco_id
     alterados = {}
-    for k, v in data.model_dump(exclude_none=True, exclude={"banco_id"}).items():
+    payload = data.model_dump(exclude_none=True, exclude={"banco_id", "cnpj"})
+    if data.cnpj is not None:                      # correção do CNPJ/CPF do cadastro
+        novo = re.sub(r"\D", "", data.cnpj)
+        atual = re.sub(r"\D", "", p.cnpj or "")
+        if novo != atual:
+            if not doc_valido(novo):
+                raise HTTPException(400, "Campo 'cnpj': CNPJ/CPF inválido (confira os dígitos)")
+            outro = db.query(ClientProfile).filter(ClientProfile.cnpj == novo, ClientProfile.id_smart != id_smart).first()
+            if outro:
+                raise HTTPException(400, f"Campo 'cnpj': já existe outro cliente com esse CNPJ/CPF ({outro.nome or outro.id_smart})")
+            alterados["cnpj"] = [p.cnpj, novo]
+            p.cnpj = novo
+            p.cnpj_manual = True
+    for k, v in payload.items():
+        atual = getattr(p, k)
+        if k in ("telefone", "telefone2") and atual and str(v).strip() in (str(atual), tel_fmt(atual)):
+            continue                                # valor igual ao que já está (mesmo antigo/sem formato): não revalida
         try:
             limpo = _campo_limpo(k, v)
         except ValueError as ex:
             raise HTTPException(400, f"Campo '{k}': {ex}")
         if str(v).strip() == "":                  # o usuário apagou o campo de propósito
             limpo = None
-        if getattr(p, k) != limpo:
-            alterados[k] = [getattr(p, k), limpo] if k in ("email", "telefone") else "alterado"
+        if atual != limpo:
+            alterados[k] = [atual, limpo] if k in ("email", "email2", "telefone", "telefone2") else "alterado"
             setattr(p, k, limpo)
+    if "telefone" in payload and not p.telefone:                   # principal é obrigatório quando o campo é enviado; o 2º é opcional
+        raise HTTPException(400, "Informe o telefone principal (o segundo é opcional).")
+    if "email" in payload and not p.email:
+        raise HTTPException(400, "Informe o e-mail principal (o segundo é opcional).")
     p.updated_at = datetime.now(timezone.utc)
     if alterados or data.banco_id is not None:
         _audit(db, current_user, "clients.editar", {"id_smart": id_smart, "campos": alterados, "banco_id": data.banco_id})
@@ -301,7 +377,8 @@ async def _run_sync(rows: list):
                     p = ClientProfile(id_smart=id_smart)
                     db.add(p)
 
-                p.cnpj = cpf_cnpj_clean
+                if not p.cnpj_manual:                      # CNPJ corrigido à mão pelo usuário não é sobrescrito
+                    p.cnpj = cpf_cnpj_clean
                 # Nome: Asaas > billing_client_summaries > valor existente
                 p.nome = (asaas_customer or {}).get("name") or nome_billing or p.nome or ""
 
@@ -389,8 +466,15 @@ _COL_MAP = {
     "telefone":    "telefone",
     "celular":     "telefone",
     "fone":        "telefone",
+    "telefone2":   "telefone2",
+    "telefone 2":  "telefone2",
+    "celular2":    "telefone2",
+    "celular 2":   "telefone2",
     "email":       "email",
     "e-mail":      "email",
+    "email2":      "email2",
+    "email 2":     "email2",
+    "e-mail 2":    "email2",
     "logradouro":  "logradouro",
     "rua":         "logradouro",
     "endereco":    "logradouro",
@@ -406,7 +490,7 @@ _COL_MAP = {
     "banco":       "_banco_nome",  # nome do banco — lookup no DB
 }
 
-EDITABLE = {"telefone","email","logradouro","numero","complemento","bairro","cep","cidade","estado"}
+EDITABLE = {"telefone","telefone2","email","email2","logradouro","numero","complemento","bairro","cep","cidade","estado"}
 
 
 @router.post("/import", dependencies=[_require_edit_client])
@@ -435,7 +519,7 @@ async def import_clients(file: UploadFile = File(...), db: Session = Depends(get
     banks_by_name = {b.nome.lower(): b.id for b in db.query(Bank).all()}
 
     updated = created = skipped = 0
-    erros = []
+    erros, avisos = [], []
     for n, (_, row) in enumerate(df.iterrows(), start=2):
         id_smart = _campo_limpo("id_smart", row.get("id_smart")) if "id_smart" in df.columns else None
         cnpj_raw = re.sub(r"\D", "", str(row.get("cnpj", "") or "")) if "cnpj" in df.columns else None
@@ -463,6 +547,18 @@ async def import_clients(file: UploadFile = File(...), db: Session = Depends(get
             continue
 
         p = db.get(ClientProfile, id_smart)
+        if p is None and cnpj_raw:                      # cliente NOVO: o CNPJ/CPF precisa ser válido e não pode já existir em outro cliente
+            if not doc_valido(cnpj_raw):
+                erros.append(f"linha {n}: CNPJ/CPF inválido ({cnpj_raw}) — cliente novo não foi criado")
+                skipped += 1
+                continue
+            dup = db.query(ClientProfile).filter(ClientProfile.cnpj == cnpj_raw).first()
+            if dup:
+                erros.append(f"linha {n}: esse CNPJ/CPF já está cadastrado em {dup.nome or dup.id_smart} ({dup.id_smart}) — não criei duplicado")
+                skipped += 1
+                continue
+        if p is not None and cnpj_raw and re.sub(r"\D", "", p.cnpj or "") != cnpj_raw:
+            avisos.append(f"linha {n}: o CNPJ da planilha ({cnpj_raw}) é diferente do cadastro ({p.cnpj}) — a planilha não altera CNPJ; corrija pela tela do cliente")
         if p is None:
             p = ClientProfile(id_smart=id_smart)
             if cnpj_raw:
@@ -486,4 +582,4 @@ async def import_clients(file: UploadFile = File(...), db: Session = Depends(get
 
     _audit(db, current_user, "clients.import", {"criados": created, "atualizados": updated, "ignorados": skipped, "arquivo": (file.filename or "")[:80]})
     db.commit()
-    return {"created": created, "updated": updated, "skipped": skipped, "erros": erros[:20]}
+    return {"created": created, "updated": updated, "skipped": skipped, "erros": erros[:20], "avisos": avisos[:20], "total_avisos": len(avisos)}

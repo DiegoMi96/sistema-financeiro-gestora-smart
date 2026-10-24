@@ -573,10 +573,11 @@ def mapa_contatos(db: Session) -> dict:
                                 FROM asaas_customers_sync WHERE COALESCE(email,'') <> ''""")):
         for k in filter(None, (r.ref, r.c)):
             out.setdefault(k, {"email": r.email, "origem": "asaas"})
-    for r in db.execute(_t("""SELECT id_smart, regexp_replace(COALESCE(cnpj,''), '\\D', '', 'g') AS c, email
-                                FROM client_profiles WHERE COALESCE(email,'') <> ''""")):
+    for r in db.execute(_t("""SELECT id_smart, regexp_replace(COALESCE(cnpj,''), '\\D', '', 'g') AS c, email, email2
+                                FROM client_profiles WHERE COALESCE(email,'') <> '' OR COALESCE(email2,'') <> ''""")):
+        lista = ", ".join(x for x in (r.email, r.email2) if x and str(x).strip())       # principal + opcional
         for k in filter(None, (r.id_smart, r.c)):
-            out[k] = {"email": r.email, "origem": "cadastro"}
+            out[k] = {"email": lista, "origem": "cadastro"}
     return out
 
 
@@ -635,9 +636,9 @@ def mapa_telefones(db: Session) -> dict:
         if tel:
             for k in filter(None, (r.ref, r.c)):
                 out.setdefault(k, tel)
-    for r in db.execute(_t("""SELECT id_smart, regexp_replace(COALESCE(cnpj,''), '\\D', '', 'g') AS c, telefone
-                                FROM client_profiles WHERE COALESCE(telefone,'') <> ''""")):
-        tel = normalizar_telefone(r.telefone)
+    for r in db.execute(_t("""SELECT id_smart, regexp_replace(COALESCE(cnpj,''), '\\D', '', 'g') AS c, telefone, telefone2
+                                FROM client_profiles WHERE COALESCE(telefone,'') <> '' OR COALESCE(telefone2,'') <> ''""")):
+        tel = normalizar_telefone(r.telefone) or normalizar_telefone(r.telefone2)       # o principal; se não for celular, o opcional
         if tel:
             for k in filter(None, (r.id_smart, r.c)):
                 out[k] = tel

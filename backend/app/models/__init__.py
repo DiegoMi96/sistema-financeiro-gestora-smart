@@ -256,8 +256,11 @@ class ClientProfile(Base):
     id_smart    = Column(String(50),  primary_key=True)          # ss_CNPJDIGITS
     nome        = Column(String(255), nullable=True)              # read-only (vem do Asaas/billing)
     cnpj        = Column(String(20),  nullable=True, index=True) # read-only
-    telefone    = Column(String(30),  nullable=True)
-    email       = Column(String(150), nullable=True)
+    telefone    = Column(String(30),  nullable=True)             # principal (obrigatório na edição) — só dígitos
+    telefone2   = Column(String(30),  nullable=True)             # opcional
+    email       = Column(String(150), nullable=True)             # principal (obrigatório na edição)
+    email2      = Column(String(150), nullable=True)             # opcional
+    cnpj_manual = Column(Boolean, default=False)                 # CNPJ corrigido à mão: a sincronização não sobrescreve
     logradouro  = Column(String(200), nullable=True)
     numero      = Column(String(20),  nullable=True)
     complemento = Column(String(100), nullable=True)
