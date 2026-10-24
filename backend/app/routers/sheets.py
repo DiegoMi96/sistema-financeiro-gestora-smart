@@ -1,7 +1,7 @@
 """
 Router: /sheets — Indicadores Mensais + integração Google Sheets
 """
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Header
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -111,16 +111,16 @@ def save_config(
 @router.get("/sync")
 def sync_tab(
     tab: str,
-    x_api_key: Optional[str] = Header(None),
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """Devolve o CSV de uma aba da planilha — substitui o /api/sync do server.js
-    legado (porta 3000). Autenticação por x-api-key (mesmo header que o HTML da
-    Controladoria já envia), validada contra 'sheets_sync_api_key' em settings.
-    Aditivo: nada é servido por aqui até o nginx repontar /api/sync -> :8000."""
-    expected = _get_setting(db, "sheets_sync_api_key")
-    if not expected or x_api_key != expected:
-        raise HTTPException(401, "Não autorizado")
+    legado (porta 3000). Autenticação pelo login real do sistema (mesmo token
+    da sessão principal) + permissão can_view_controladoria — substituiu a
+    antiga chave fixa (x-api-key), que estava embutida no HTML público e
+    exposta a qualquer pessoa (corrigido 24/10/2026)."""
+    if not get_permission(current_user, "can_view_controladoria", db):
+        raise HTTPException(403, "Sem permissão")
     sid, sa = _get_sheets_config(db)
     if not sid or not sa:
         raise HTTPException(503, "Planilha não configurada")
@@ -135,14 +135,14 @@ def sync_tab(
 
 @router.post("/cache/clear")
 def cache_clear(
-    x_api_key: Optional[str] = Header(None),
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """Compat com o /api/cache/clear do legado. Como o /sync sempre lê fresco,
-    não há cache a limpar — retorna ok para o HTML seguir o fluxo."""
-    expected = _get_setting(db, "sheets_sync_api_key")
-    if not expected or x_api_key != expected:
-        raise HTTPException(401, "Não autorizado")
+    não há cache a limpar — retorna ok para o HTML seguir o fluxo.
+    Exige login real (mesma correção do /sync — ver nota acima)."""
+    if not get_permission(current_user, "can_view_controladoria", db):
+        raise HTTPException(403, "Sem permissão")
     return {"ok": True}
 
 

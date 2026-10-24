@@ -2693,6 +2693,15 @@ function _clearBF(email) {
   try { const d = JSON.parse(localStorage.getItem(BF_KEY)||'{}'); delete d[email]; localStorage.setItem(BF_KEY,JSON.stringify(d)); } catch(e) {}
 }
 
+// Autenticação real nas chamadas à API: usa o MESMO token de sessão do sistema
+// principal (localStorage 'token', definido pelo login em sistema.gestorasmart.com.br).
+// Substituiu a antiga chave fixa 'GestoraSmart2026', que ficava embutida neste
+// arquivo público e dava acesso aos dados a qualquer pessoa (corrigido 24/10/2026).
+function _authHeaders(extra) {
+  const token = (function () { try { return localStorage.getItem('token') || ''; } catch (e) { return ''; } })();
+  return Object.assign({ 'Authorization': 'Bearer ' + token }, extra || {});
+}
+
 function loadUsers() {
   try { const s = localStorage.getItem(USERS_KEY); if (s) return JSON.parse(s); } catch(e) {}
   return null;
@@ -2702,7 +2711,7 @@ function saveUsers(users) {
   // Sincroniza com servidor (fire-and-forget)
   fetch('/api/auth/users', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-api-key': GSM_API_KEY },
+    headers: _authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(users)
   }).catch(() => {});
 }
@@ -2740,7 +2749,7 @@ function ensureAdminUser() {
   const users = loadUsers();
   if (!users || users.length === 0) {
     // Verifica servidor antes de mostrar wizard (dispositivo novo pode ter usuários no servidor)
-    fetch('/api/auth/users', { headers: { 'x-api-key': GSM_API_KEY } })
+    fetch('/api/auth/users', { headers: _authHeaders() })
       .then(r => r.ok ? r.json() : [])
       .then(srvUsers => {
         if (Array.isArray(srvUsers) && srvUsers.length > 0) {
@@ -2792,7 +2801,7 @@ async function doLogin() {
   try {
     const resp = await fetch('/api/auth/verify', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': GSM_API_KEY },
+      headers: _authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ email, pass })
     });
 
@@ -2930,7 +2939,9 @@ const CACHE_KEY      = 'gsm_data_cache';
 const CACHE_VERSION  = 5;                        // incrementar ao mudar estrutura do saidasData/pool
 const PAGE_KEY       = 'gsm_last_page';
 const CACHE_STALE_MS = 4 * 60 * 60 * 1000;      // 4 horas
-const GSM_API_KEY    = 'GestoraSmart2026';       // chave da API (sync + auth)
+// Chave fixa 'GestoraSmart2026' removida em 24/10/2026 (ficava exposta a qualquer
+// pessoa neste HTML público). As chamadas à API agora usam _authHeaders(), com o
+// token real da sessão (ver função logo acima de loadUsers()).
 // restoreLastPage() (27/08/2026) e seu flag _restoreLastPageChecked precisam
 // existir ANTES da IIFE tryAutoLogin, que já chama restoreLastPage() — mesmo
 // motivo do PAGE_KEY/CACHE_KEY acima (ver comentários "C-01 TDZ" mais abaixo).
@@ -6352,7 +6363,7 @@ function _fmtUltimo(raw) {
 // Busca dados frescos de usuários do servidor — mantém último acesso atualizado para o admin
 async function _refreshUsersFromServer() {
   try {
-    const r = await fetch('/api/auth/users', { headers: { 'x-api-key': GSM_API_KEY } });
+    const r = await fetch('/api/auth/users', { headers: _authHeaders() });
     if (!r.ok) return;
     const srv = await r.json();
     if (!Array.isArray(srv) || srv.length === 0) return;
@@ -6962,10 +6973,10 @@ document.getElementById('compareSelect')?.addEventListener('change', function ()
 });
 
 // ========== Google Sheets Sync ==========
-// ✅ Backend proxy — planilha protegida no servidor Digital Ocean
-const API_SECRET = 'GestoraSmart2026';
+// ✅ Backend proxy — planilha protegida no servidor Digital Ocean.
+// Autenticação pelo login real (token da sessão) — não por chave fixa (ver _authHeaders()).
 const SHEET_CSV  = (tab) => `/api/sync?tab=${encodeURIComponent(tab)}`;
-const API_HEADERS = { 'x-api-key': API_SECRET };
+const API_HEADERS = _authHeaders();
 
 function parseCSV(text) {
   // Normaliza CRLF e CR isolado para LF antes de processar
