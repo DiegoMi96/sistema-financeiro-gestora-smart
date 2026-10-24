@@ -7,7 +7,7 @@ import { Chip, EntregaChip, Modal, Confirmar, brl, dataBR, horaBR } from './ui'
 
 const FILTROS = [
   ['pendente', 'Aguardando aprovação'], ['aprovado,enviando', 'Aprovados'], ['enviado', 'Enviados'],
-  ['sem_contato', 'Sem e-mail'], ['devolvido', 'Devolvidos'], ['falhou', 'Falhas'], ['resolvido,cancelado,concluido', 'Resolvidos / removidos'],
+  ['sem_boleto', 'Aguardando boleto'], ['sem_contato', 'Sem e-mail'], ['devolvido', 'Devolvidos'], ['falhou', 'Falhas'], ['resolvido,cancelado,concluido', 'Resolvidos / removidos'],
 ]
 
 export default function FilaTab({ resumo, onChange }) {
@@ -61,7 +61,7 @@ export default function FilaTab({ resumo, onChange }) {
     try { setPrevia((await cobrancaApi.previaEnvio(id)).data) } catch { toast.error('Não foi possível abrir a prévia') }
   }
 
-  const marcarTodos = e => setSel(e.target.checked ? Object.fromEntries(itens.filter(i => ['pendente', 'falhou', 'sem_contato', 'aprovado'].includes(i.status)).map(i => [i.id, true])) : {})
+  const marcarTodos = e => setSel(e.target.checked ? Object.fromEntries(itens.filter(i => ['pendente', 'falhou', 'sem_contato', 'sem_boleto', 'aprovado'].includes(i.status)).map(i => [i.id, true])) : {})
 
   return (
     <div className="p-5 space-y-4">
@@ -104,7 +104,7 @@ export default function FilaTab({ resumo, onChange }) {
           <span className="text-gray-600">{ids.length} selecionado(s)</span>
           {status === 'pendente' && <button onClick={() => aprovar({ ids }, ids.length)} className="px-3 py-1.5 rounded-lg bg-green-600 text-white">Aprovar selecionados</button>}
           {status === 'falhou' && <button onClick={() => setConf({ titulo: 'Reenviar', texto: 'Antes de reenviar, confirme que a mensagem NÃO saiu: para e-mail, olhe a caixa de enviados; para WhatsApp, a conversa na Umbler. Reenviar sem conferir pode duplicar a cobrança.', rotulo: 'Reenviar', ok: () => rodar(() => cobrancaApi.reenviar({ ids }), d => `${d.reenfileirados} reenfileirado(s)`) })} className="px-3 py-1.5 rounded-lg border border-gray-300 flex items-center gap-1"><RotateCcw size={12} /> Reenviar</button>}
-          {['pendente', 'aprovado', 'sem_contato', 'falhou'].some(s => status.includes(s)) &&
+          {['pendente', 'aprovado', 'sem_contato', 'sem_boleto', 'falhou'].some(s => status.includes(s)) &&
             <button onClick={() => setConf({ titulo: 'Remover da fila', texto: `Remover ${ids.length} item(ns)? Eles não serão enviados.`, rotulo: 'Remover', perigo: true, ok: () => rodar(() => cobrancaApi.cancelar({ ids, motivo: 'removido pelo analista' }), d => `${d.cancelados} removido(s)`) })} className="px-3 py-1.5 rounded-lg border border-gray-300 flex items-center gap-1"><Trash2 size={12} /> Remover</button>}
         </div>
       )}
@@ -113,7 +113,7 @@ export default function FilaTab({ resumo, onChange }) {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-xs text-gray-500">
             <tr>
-              <th className="w-8 px-3 py-2"><input type="checkbox" onChange={marcarTodos} checked={itens.length > 0 && itens.filter(i => ['pendente', 'falhou', 'sem_contato', 'aprovado'].includes(i.status)).every(i => sel[i.id]) && ids.length > 0} /></th>
+              <th className="w-8 px-3 py-2"><input type="checkbox" onChange={marcarTodos} checked={itens.length > 0 && itens.filter(i => ['pendente', 'falhou', 'sem_contato', 'sem_boleto', 'aprovado'].includes(i.status)).every(i => sel[i.id]) && ids.length > 0} /></th>
               <th className="text-left px-3 py-2">Etapa</th><th className="text-left px-3 py-2">Cliente</th><th className="text-left px-3 py-2">Enviar para</th>
               <th className="text-left px-3 py-2">Vencimento</th><th className="text-right px-3 py-2">Valor</th><th className="text-left px-3 py-2">Situação</th><th className="w-24 px-3 py-2"></th>
             </tr>
@@ -122,7 +122,7 @@ export default function FilaTab({ resumo, onChange }) {
             {itens.length === 0 && <tr><td colSpan={8} className="px-3 py-10 text-center text-gray-400">{isFetching ? 'Carregando…' : 'Nada por aqui.'}</td></tr>}
             {itens.map(i => (
               <tr key={i.id} className="border-t border-gray-100 hover:bg-gray-50/60">
-                <td className="px-3 py-2"><input type="checkbox" checked={!!sel[i.id]} disabled={!['pendente', 'falhou', 'sem_contato', 'aprovado'].includes(i.status)} onChange={e => setSel(s => ({ ...s, [i.id]: e.target.checked }))} /></td>
+                <td className="px-3 py-2"><input type="checkbox" checked={!!sel[i.id]} disabled={!['pendente', 'falhou', 'sem_contato', 'sem_boleto', 'aprovado'].includes(i.status)} onChange={e => setSel(s => ({ ...s, [i.id]: e.target.checked }))} /></td>
                 <td className="px-3 py-2 whitespace-nowrap"><span className="inline-flex items-center gap-1.5">{i.canal === 'whatsapp' ? <MessageCircle size={14} className="text-green-600" /> : i.canal === 'email' ? <Mail size={14} className="text-gray-400" /> : null}{nomes[i.etapa] || i.etapa}</span></td>
                 <td className="px-3 py-2"><p className="truncate max-w-[240px] text-gray-800">{i.nome}</p><p className="text-xs text-gray-400">{i.id_smart} · {i.origem === 'itau' ? 'Itaú' : 'Asaas'}</p></td>
                 <td className="px-3 py-2 text-gray-600"><p className="truncate max-w-[220px]">{i.canal === 'whatsapp' ? (i.telefone || <span className="text-red-600">sem telefone válido</span>) : (i.destino || <span className="text-red-600">sem e-mail válido</span>)}</p>{i.destino_efetivo && i.destino_efetivo !== i.destino ? <p className="text-xs text-amber-700 truncate max-w-[220px]">modo teste: enviado para {i.destino_efetivo}</p> : i.destino_origem && <p className="text-xs text-gray-400">do {i.destino_origem}</p>}</td>
@@ -156,6 +156,8 @@ export default function FilaTab({ resumo, onChange }) {
       {previa && (
         <Modal titulo={previa.enviado ? 'Mensagem enviada' : 'Prévia da mensagem'} onClose={() => setPrevia(null)} largo>
           <p className="text-xs text-gray-500">Para: {previa.para}</p>
+          {previa.anexo && <p className="text-xs text-green-700 mt-1">Anexo: {previa.anexo}</p>}
+          {previa.sem_boleto && <p className="text-xs bg-amber-50 text-amber-800 rounded px-2 py-1 mt-1">Este e-mail está sem o boleto/link e não será enviado até o boleto ser anexado (aba Boletos Itaú) ou o link existir no Asaas.</p>}
           <p className="text-sm font-medium text-gray-800 mt-1">{previa.assunto}</p>
           <pre className="mt-3 text-sm text-gray-700 whitespace-pre-wrap font-sans bg-gray-50 rounded-lg p-3">{previa.corpo}</pre>
         </Modal>

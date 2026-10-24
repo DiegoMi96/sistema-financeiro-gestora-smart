@@ -2,7 +2,7 @@
 Modelos adicionais — Gestora Smart v1.2
 Adiciona ao models/__init__.py existente
 """
-from sqlalchemy import Column, String, Integer, Float, Boolean, DateTime, Date, Text, ForeignKey, Enum, JSON, UniqueConstraint
+from sqlalchemy import Column, String, Integer, Float, Boolean, DateTime, Date, Text, ForeignKey, Enum, JSON, LargeBinary, UniqueConstraint
 from sqlalchemy.sql import func
 from app.database import Base
 import enum
@@ -275,3 +275,20 @@ class CobrancaDevolucaoLida(Base):
 
     message_id = Column(String(300), primary_key=True)
     lida_em    = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class CobrancaBoletoItau(Base):
+    """PDF do boleto do Itaú, enviado pelo analista e vinculado ao boleto (nosso_numero de itau_boletos).
+    Guardado no banco (vai junto no backup). É o que a régua anexa no e-mail das cobranças do Itaú."""
+    __tablename__ = "cobranca_boletos_itau"
+
+    id             = Column(Integer, primary_key=True)
+    nosso_numero   = Column(String(50), nullable=False, unique=True, index=True)
+    arquivo_nome   = Column(String(255))
+    tamanho        = Column(Integer)
+    sha256         = Column(String(64))
+    linha_digitavel = Column(String(80))
+    pdf            = Column(LargeBinary, nullable=False)
+    vinculo        = Column(String(10), default="dados")      # nosso | dados | manual
+    enviado_por    = Column(Integer)
+    enviado_em     = Column(DateTime(timezone=True), server_default=func.now())

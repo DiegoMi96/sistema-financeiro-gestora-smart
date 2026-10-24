@@ -8,6 +8,7 @@ import FilaTab from './FilaTab'
 import ReguaTab from './ReguaTab'
 import PausasTab from './PausasTab'
 import DevolvidosTab from './DevolvidosTab'
+import BoletosItauTab from './BoletosItauTab'
 import WhatsAppTab from './WhatsAppTab'
 import ConfigTab from './ConfigTab'
 
@@ -42,7 +43,7 @@ export default function CobrancaPage() {
     finally { setGerando(false) }
   }
 
-  const tabs = [['fila', 'Fila de envios'], ['regua', 'Régua'], ['whatsapp', 'WhatsApp'], ['devolvidos', 'E-mails devolvidos'], ['pausas', 'Pausas'], ...(admin ? [['config', 'Configuração']] : [])]
+  const tabs = [['fila', 'Fila de envios'], ['regua', 'Régua'], ['boletos', 'Boletos Itaú'], ['whatsapp', 'WhatsApp'], ['devolvidos', 'E-mails devolvidos'], ['pausas', 'Pausas'], ...(admin ? [['config', 'Configuração']] : [])]
   const pend = r?.contagem?.pendente || 0
 
   return (
@@ -96,11 +97,13 @@ export default function CobrancaPage() {
               className={`flex items-center gap-1.5 px-5 py-3.5 text-sm font-medium border-b-2 whitespace-nowrap ${tab === k ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>
               {l}
               {k === 'fila' && pend > 0 && <span className="ml-1 px-1.5 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs">{pend}</span>}
+              {k === 'boletos' && (r?.contagem?.sem_boleto || 0) > 0 && <span className="ml-1 px-1.5 py-0.5 bg-red-100 text-red-700 rounded-full text-xs">{r.contagem.sem_boleto}</span>}
             </button>
           ))}
         </div>
         {tab === 'fila' && <FilaTab resumo={r} onChange={refresh} />}
         {tab === 'regua' && <ReguaTab admin={admin} />}
+        {tab === 'boletos' && <BoletosItauTab onChange={refresh} />}
         {tab === 'whatsapp' && <WhatsAppTab resumo={r} />}
         {tab === 'devolvidos' && <DevolvidosTab onChange={refresh} />}
         {tab === 'pausas' && <PausasTab onChange={refresh} />}

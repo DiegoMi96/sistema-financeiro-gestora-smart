@@ -1,12 +1,14 @@
 """Régua de cobrança (aba "Cobrança" do Faturamento): fila, aprovação, etapas, pausas e configuração.
 Ver services/cobranca.py para as regras de segurança."""
 import ipaddress
+import json
 import re
 import socket
 from datetime import date, datetime, timedelta, timezone
 from typing import List, Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, UploadFile
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from sqlalchemy import func, text
 from sqlalchemy.orm import Session
@@ -18,6 +20,7 @@ from app.core.permissions import require_permission
 from app.services import cobranca as svc
 from app.services import umbler
 from app.services import devolucoes
+from app.services import boletos_itau as bi
 
 router = APIRouter(prefix="/cobranca", tags=["Cobrança"])
 _ler = Depends(require_permission("can_edit_billing"))          # analista: ver, gerar fila, aprovar, pausar
@@ -173,8 +176,15 @@ def previa_envio(envio_id: int, current_user=_ler, db: Session = Depends(get_db)
         params = svc.params_whatsapp(et, e, svc.hoje_br(), svc._int(cfg["regua_prazo_bloqueio_dias"], 3))
         return {"assunto": f"WhatsApp — {et.nome}", "corpo": f"Template: {et.wa_template_id or '(não configurado)'}\nCampos enviados, na ordem: " + " | ".join(params)
                 + "\n\nO texto final é o do template aprovado na Umbler.", "para": e.telefone, "enviado": False}
-    assunto, corpo = svc.renderizar(et.assunto, et.texto, e, svc.hoje_br(), svc._int(cfg["regua_prazo_bloqueio_dias"], 3))
-    return {"assunto": assunto, "corpo": corpo, "para": e.destino, "enviado": False}
+    anexo = None
+    if e.origem == "itau":
+        r = db.execute(text("SELECT linha_digitavel, arquivo_nome FROM cobranca_boletos_itau WHERE nosso_numero = :n"), {"n": e.boleto_ref.split(":")[1]}).fetchone()
+        if r:
+            anexo = {"bytes": b"x", "linha": r[0]}
+    m = svc.montar_email(e, et, cfg, svc.hoje_br(), anexo)
+    return {"assunto": m["assunto"], "corpo": m["texto"], "para": e.destino, "enviado": False,
+            "anexo": m["anexos"][0][0] if m["anexos"] else None,
+            "sem_boleto": e.status == "sem_boleto" or (e.origem == "itau" and not anexo) or (e.origem != "itau" and not (e.link or "").startswith("http"))}
 
 
 class IdsIn(BaseModel):
@@ -237,7 +247,7 @@ def aprovar(body: IdsIn, background_tasks: BackgroundTasks, current_user=_ler, d
 def cancelar(body: IdsIn, current_user=_ler, db: Session = Depends(get_db)):
     if not body.ids:
         raise HTTPException(400, "Informe os itens.")
-    n = (db.query(CobrancaEnvio).filter(CobrancaEnvio.id.in_(body.ids), CobrancaEnvio.status.in_(["pendente", "aprovado", "sem_contato", "falhou"]))
+    n = (db.query(CobrancaEnvio).filter(CobrancaEnvio.id.in_(body.ids), CobrancaEnvio.status.in_(["pendente", "aprovado", "sem_contato", "sem_boleto", "falhou"]))
          .update({"status": "cancelado", "erro": (body.motivo or "removido pelo analista")[:300]}, synchronize_session=False))
     _audit(db, current_user, "cobranca.cancelar", {"qtd": n, "ids": body.ids[:50], "motivo": body.motivo})
     db.commit()
@@ -721,3 +731,121 @@ def liberar_email(body: EmailIn, current_user=_ler, db: Session = Depends(get_db
     _audit(db, current_user, "cobranca.liberar_email", {"email": body.email.strip().lower()})
     db.commit()
     return {"liberados": n}
+
+
+# ── Boletos do Itaú (PDF anexado no e-mail) ───────────────────────────────────
+
+_NOSSO_OK = re.compile(r"^[0-9A-Za-z\-/.]{1,50}$")
+
+
+@router.get("/boletos-itau")
+def listar_boletos_itau(search: str = "", so_sem_pdf: bool = False, page: int = Query(1, ge=1), limit: int = Query(50, ge=1, le=200),
+                        current_user=_ler, db: Session = Depends(get_db)):
+    """Boletos do Itaú em aberto e se já têm o PDF no sistema."""
+    base = """FROM itau_boletos i LEFT JOIN cobranca_boletos_itau b ON b.nosso_numero = i.nosso_numero
+              WHERE i.data_pagamento IS NULL AND i.data_baixa IS NULL AND COALESCE(i.status,'') NOT IN ('paga','cancelada') AND COALESCE(i.valor_titulo,0) > 0
+                AND (:q = '' OR i.pagador ILIKE :like OR i.nosso_numero = :q OR regexp_replace(COALESCE(i.cpf_cnpj,''), '\\D', '', 'g') LIKE :qd)"""
+    p = {"q": search.strip(), "like": f"%{search.strip()}%", "qd": f"%{re.sub(r'[^0-9]', '', search) or '§'}%"}
+    filtro = " AND b.id IS NULL" if so_sem_pdf else ""
+    total = db.execute(text(f"SELECT count(*) {base}{filtro}"), p).scalar()
+    sem = db.execute(text(f"SELECT count(*) {base} AND b.id IS NULL"), p).scalar()
+    rows = db.execute(text(f"""SELECT i.nosso_numero, i.pagador, i.cpf_cnpj, i.valor_titulo, i.data_vencimento, (b.id IS NOT NULL) AS tem_pdf,
+                                      b.arquivo_nome, b.enviado_em, b.vinculo, (b.linha_digitavel IS NOT NULL) AS tem_linha
+                               {base}{filtro} ORDER BY (b.id IS NULL) DESC, i.data_vencimento, i.pagador LIMIT :l OFFSET :o"""),
+                      {**p, "l": limit, "o": (page - 1) * limit}).mappings().all()
+    itens = [{**dict(r), "data_vencimento": r["data_vencimento"].isoformat() if r["data_vencimento"] else None,
+              "enviado_em": r["enviado_em"].isoformat() if r["enviado_em"] else None} for r in rows]
+    return {"total": total, "sem_pdf": sem, "page": page, "pages": max(1, -(-total // limit)), "itens": itens}
+
+
+@router.post("/boletos-itau/upload")
+async def upload_boletos_itau(files: List[UploadFile] = File(...), modo: str = Form("analisar"), atribuicoes: str = Form("{}"),
+                              substituir: bool = Form(False), current_user=_ler, db: Session = Depends(get_db)):
+    """modo=analisar: lê os PDFs/ZIP e mostra com qual boleto cada um casaria (NÃO grava nada).
+    modo=vincular: grava os que casaram com segurança (ou que o analista atribuiu à mão em `atribuicoes`: {arquivo: nosso_numero})."""
+    if modo not in ("analisar", "vincular"):
+        raise HTTPException(400, "Modo inválido.")
+    try:
+        manual = json.loads(atribuicoes or "{}")
+        if not isinstance(manual, dict):
+            raise ValueError
+    except ValueError:
+        raise HTTPException(400, "Atribuições inválidas.")
+    brutos, total = [], 0
+    for f in files:
+        conteudo = await f.read()
+        total += len(conteudo)
+        if total > bi.MAX_ZIP * 2:
+            raise HTTPException(400, "Arquivos grandes demais de uma vez.")
+        brutos.append((f.filename or "arquivo", conteudo))
+    try:
+        arquivos = bi.expandir_arquivos(brutos)
+    except bi.PdfInvalido as ex:
+        raise HTTPException(400, str(ex))
+    cnpj_emp = db.execute(text("SELECT value FROM system_settings WHERE key = 'empresa_cnpj'")).scalar() or "35.775.152/0001-40"
+    cands = bi.candidatos_abertos(db)
+    por_nosso = {c["nosso_numero"]: c for c in cands}
+    usados, itens = set(), []
+    for nome, conteudo, erro_pre in arquivos[:bi.MAX_ARQUIVOS]:
+        it = {"arquivo": nome, "status": "", "motivo": "", "boleto": None, "vinculo": None, "linha": False}
+        try:
+            if erro_pre or conteudo is None:
+                raise bi.PdfInvalido(erro_pre or "arquivo vazio")
+            texto = bi.validar_e_ler(conteudo)
+            ev = bi.extrair_evidencias(texto, nome, cnpj_emp)
+            it["linha"] = bool(ev["linha"])
+            if nome in manual and manual[nome] in por_nosso:
+                st, c, vinc, mot = "ok", por_nosso[manual[nome]], "manual", "vínculo manual"
+            else:
+                st, c, vinc, mot = bi.casar(ev, cands)
+            it.update(status=st, motivo=mot, vinculo=vinc)
+            if c and st == "divergente":                         # só sugere; gravar exige vínculo manual do analista
+                it["boleto"] = {"nosso_numero": c["nosso_numero"], "pagador": c["pagador"], "valor": float(c["valor_titulo"] or 0),
+                                "vencimento": c["data_vencimento"].isoformat() if c["data_vencimento"] else None, "tem_pdf": bool(c["tem_pdf"])}
+            elif c:
+                it["boleto"] = {"nosso_numero": c["nosso_numero"], "pagador": c["pagador"], "valor": float(c["valor_titulo"] or 0),
+                                "vencimento": c["data_vencimento"].isoformat() if c["data_vencimento"] else None, "tem_pdf": bool(c["tem_pdf"])}
+                if c["nosso_numero"] in usados:
+                    it.update(status="duplicado", motivo="outro arquivo deste lote já vai para este boleto")
+                elif c["tem_pdf"] and not substituir:
+                    it.update(status="ja_tem", motivo="este boleto já tem PDF (marque 'substituir' para trocar)")
+                elif modo == "vincular":
+                    r = bi.salvar(db, c["nosso_numero"], nome, conteudo, ev["linha"], vinc or "dados", current_user.id, substituir)
+                    it["status"] = "vinculado" if r == "novo" else "substituido"
+                    usados.add(c["nosso_numero"])
+                else:
+                    usados.add(c["nosso_numero"])
+        except bi.PdfInvalido as ex:
+            it.update(status="invalido", motivo=str(ex))
+        itens.append(it)
+    resumo = {}
+    for it in itens:
+        resumo[it["status"]] = resumo.get(it["status"], 0) + 1
+    if modo == "vincular":
+        _audit(db, current_user, "cobranca.boletos_itau_vincular", {"resumo": resumo, "arquivos": len(itens)})
+    db.commit()
+    return {"modo": modo, "resumo": resumo, "itens": itens, "total": len(itens)}
+
+
+@router.get("/boletos-itau/{nosso}/pdf")
+def baixar_boleto_itau(nosso: str, current_user=_ler, db: Session = Depends(get_db)):
+    if not _NOSSO_OK.match(nosso):
+        raise HTTPException(400, "Número inválido.")
+    r = db.execute(text("SELECT pdf, arquivo_nome FROM cobranca_boletos_itau WHERE nosso_numero = :n"), {"n": nosso}).fetchone()
+    if not r:
+        raise HTTPException(404, "Boleto não encontrado.")
+    return Response(content=bytes(r[0]), media_type="application/pdf",
+                    headers={"Content-Disposition": 'inline; filename="boleto.pdf"', "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store"})
+
+
+@router.delete("/boletos-itau/{nosso}")
+def remover_boleto_itau(nosso: str, current_user=_ler, db: Session = Depends(get_db)):
+    """Remove o PDF; os e-mails ainda não enviados desse boleto voltam a 'aguardando boleto'."""
+    if not _NOSSO_OK.match(nosso):
+        raise HTTPException(400, "Número inválido.")
+    n = db.execute(text("DELETE FROM cobranca_boletos_itau WHERE nosso_numero = :n"), {"n": nosso}).rowcount
+    seg = db.execute(text("""UPDATE cobranca_envios SET status='sem_boleto', erro='PDF do boleto removido — suba novamente'
+                              WHERE origem='itau' AND canal='email' AND status IN ('pendente','aprovado') AND boleto_ref LIKE :r"""), {"r": f"itau:{nosso}:%"}).rowcount
+    _audit(db, current_user, "cobranca.boleto_itau_remover", {"nosso_numero": nosso, "emails_segurados": seg})
+    db.commit()
+    return {"removidos": n, "emails_segurados": seg}

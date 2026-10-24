@@ -271,8 +271,13 @@ def renderizar(etapa_assunto: str, etapa_texto: str, e, hoje: date, prazo_bloque
     """Troca os {campos} (troca simples — campo desconhecido fica como está). Devolve (assunto, texto_puro)."""
     venc = e.vencimento
     atraso = max(0, (hoje - venc).days) if venc else 0
-    link = (f"Segunda via do boleto: {e.link}" if e.link
-            else "Para receber a segunda via do boleto, responda este e-mail.")
+    origem = getattr(e, "origem", None)
+    if origem == "itau":
+        link = "O boleto está anexado a este e-mail (PDF). Se preferir, copie a linha digitável abaixo e pague no aplicativo do seu banco."
+    elif e.link:
+        link = f"Ver a fatura e pagar: {e.link}"
+    else:
+        link = "Para receber a segunda via do boleto, responda este e-mail."
     vals = {
         "nome": (e.nome or "").strip() or "cliente",
         "valor": brl(e.valor),
@@ -301,6 +306,66 @@ def corpo_html(texto: str, rodape: str) -> str:
         paras.append(f'<p style="margin:0 0 14px">{h}</p>')
     return ('<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#222;line-height:1.5">'
             + "".join(paras) + f'<p style="margin:18px 0 0;color:#777;font-size:12px">{escape(rodape)}</p></div>')
+
+
+def _kv(rotulo: str, valor: str) -> str:
+    return (f'<tr><td style="padding:6px 0;color:#6b7280;font-size:13px;width:38%">{escape(rotulo)}</td>'
+            f'<td style="padding:6px 0;color:#111827;font-size:14px;font-weight:600">{escape(valor)}</td></tr>')
+
+
+def montar_email(e, et, cfg: dict, hoje: date, anexo: dict = None, link_atual: str = None) -> dict:
+    """Monta a notificação COMPLETA de cobrança: assunto, texto, HTML e anexo.
+      • Itaú  → o boleto em PDF vai ANEXADO (+ linha digitável para copiar e colar, quando o PDF a traz);
+      • Asaas → botão/link da fatura (invoice_url).
+    O bloco de pagamento é sempre garantido, mesmo que o texto da etapa tenha sido editado sem o campo {link}.
+    `anexo` = {'nome', 'bytes', 'linha'} do boleto do Itaú; `link_atual` = link mais recente do Asaas."""
+    if link_atual and not e.link:
+        e.link = link_atual
+    assunto, corpo = renderizar(et.assunto, et.texto, e, hoje, _int(cfg["regua_prazo_bloqueio_dias"], 3))
+    itau = getattr(e, "origem", None) == "itau"
+    linha = (anexo or {}).get("linha")
+    pagar_txt = ""
+    if "{link}" not in (et.texto or ""):                      # garantia: o texto editado perdeu o campo — o bloco entra sozinho
+        _, pagar_txt = renderizar("", "{link}", e, hoje)
+    texto = corpo + (("\n\n" + pagar_txt) if pagar_txt else "")
+    venc = e.vencimento
+    resumo_txt = [f"Competência: {competencia_de(venc) if venc else '-'}", f"Valor: {brl(e.valor)}", f"Vencimento: {venc.strftime('%d/%m/%Y') if venc else '-'}"]
+    if itau and linha:
+        texto += f"\n\nLinha digitável:\n{linha}"
+    texto += "\n\n— Resumo —\n" + "\n".join(resumo_txt)
+
+    # HTML: cartão com resumo + botão (Asaas) ou aviso de anexo + linha digitável (Itaú)
+    paras = []
+    for bloco in corpo.split("\n\n"):
+        h = escape(bloco).replace("\n", "<br>")
+        h = re.sub(r"(https?://[^\s<]+)", r'<a href="\1" style="color:#15803d">\1</a>', h)
+        paras.append(f'<p style="margin:0 0 14px;font-size:14px;color:#374151;line-height:1.6">{h}</p>')
+    if itau:
+        cta = ('<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 14px;margin:16px 0;font-size:14px;color:#14532d">'
+               '<b>O boleto está anexado a este e-mail (PDF).</b>'
+               + (f'<div style="margin-top:8px;font-size:12px;color:#166534">Linha digitável (copie e cole no app do banco):</div>'
+                  f'<div style="font-family:Consolas,Menlo,monospace;font-size:13px;color:#111827;word-break:break-all;margin-top:2px">{escape(linha)}</div>' if linha else '')
+               + '</div>')
+    elif e.link:
+        cta = (f'<div style="margin:18px 0"><a href="{escape(e.link, quote=True)}" style="display:inline-block;background:#16a34a;color:#ffffff;'
+               'text-decoration:none;font-weight:700;font-size:14px;padding:12px 22px;border-radius:8px">Ver fatura e pagar</a></div>')
+    else:
+        cta = ''
+    resumo = ('<table role="presentation" style="width:100%;border-collapse:collapse;margin:8px 0 4px;border-top:1px solid #e5e7eb">'
+              + _kv("Competência", competencia_de(venc) if venc else "-") + _kv("Valor", brl(e.valor))
+              + _kv("Vencimento", venc.strftime("%d/%m/%Y") if venc else "-") + _kv("Forma de pagamento", "Boleto bancário") + '</table>')
+    rodape = f'Gestora Smart · Contas a Receber · {cfg["cobranca_email_remetente"]}'
+    html = ('<div style="background:#f3f4f6;padding:24px 12px;font-family:Arial,Helvetica,sans-serif">'
+            '<div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">'
+            '<div style="background:#16a34a;color:#ffffff;padding:14px 22px;font-size:15px;font-weight:700">Gestora Smart</div>'
+            '<div style="padding:22px">' + "".join(paras) + cta + resumo + '</div>'
+            f'<div style="padding:12px 22px;background:#f9fafb;color:#6b7280;font-size:12px;border-top:1px solid #e5e7eb">{escape(rodape)}</div></div></div>')
+    anexos = []
+    if itau and anexo and anexo.get("bytes"):
+        comp = (competencia_de(venc) if venc else "boleto").replace("/", "-")
+        nome_cli = re.sub(r"[^A-Za-z0-9]+", "_", (e.nome or "cliente"))[:40].strip("_")
+        anexos.append((f"Boleto_{comp}_{nome_cli}.pdf", anexo["bytes"], "application/pdf"))
+    return {"assunto": assunto, "texto": texto, "html": html, "anexos": anexos}
 
 
 # ── frescor dos dados de pagamento ─────────────────────────────────────────────
@@ -365,17 +430,19 @@ def _boletos_abertos(db: Session, de: date, ate: date, fresco: dict) -> list:
             cnpj = so_digitos(r.customer_cpf_cnpj)
             itens.append(dict(origem="asaas", ref=f"asaas:{r.asaas_id}:{r.due_date.isoformat()}", cnpj=cnpj,
                               id_smart=id_canonico(r.external_reference, cnpj), nome=r.customer_name,
-                              valor=float(r.value), venc=r.due_date, link=r.invoice_url, desc=(r.description or "")[:300]))
+                              valor=float(r.value), venc=r.due_date, link=r.invoice_url, desc=(r.description or "")[:300],
+                              boleto_ok=bool((r.invoice_url or "").startswith("http"))))
     if fresco["itau_ok"]:
         for r in db.execute(_t("""
-            SELECT nosso_numero, pagador, cpf_cnpj, valor_titulo, data_vencimento
-              FROM itau_boletos
-             WHERE data_pagamento IS NULL AND data_baixa IS NULL AND COALESCE(status,'') NOT IN ('paga','cancelada')
-               AND data_vencimento BETWEEN :d AND :a AND COALESCE(valor_titulo,0) > 0"""), {"d": de, "a": ate}):
+            SELECT i.nosso_numero, i.pagador, i.cpf_cnpj, i.valor_titulo, i.data_vencimento,
+                   EXISTS (SELECT 1 FROM cobranca_boletos_itau b WHERE b.nosso_numero = i.nosso_numero) AS tem_pdf
+              FROM itau_boletos i
+             WHERE i.data_pagamento IS NULL AND i.data_baixa IS NULL AND COALESCE(i.status,'') NOT IN ('paga','cancelada')
+               AND i.data_vencimento BETWEEN :d AND :a AND COALESCE(i.valor_titulo,0) > 0"""), {"d": de, "a": ate}):
             cnpj = so_digitos(r.cpf_cnpj)
             itens.append(dict(origem="itau", ref=f"itau:{r.nosso_numero}:{r.data_vencimento.isoformat()}", cnpj=cnpj,
                               id_smart=f"ss_{cnpj}" if cnpj else None, nome=r.pagador, valor=float(r.valor_titulo),
-                              venc=r.data_vencimento, link=None, desc=""))
+                              venc=r.data_vencimento, link=None, desc="", boleto_ok=bool(r.tem_pdf)))
     return itens
 
 
@@ -501,15 +568,21 @@ def gerar_fila(db: Session, hoje: date = None) -> dict:
                     continue
                 status = "pendente"
                 destino = ", ".join(lista) if canal == "email" else None
-                if canal == "email" and lista:             # chegou e-mail depois: item que estava "sem e-mail" volta a pendente
-                    db.execute(_t("""UPDATE cobranca_envios SET status='pendente', destino=:d, destino_origem=:o, erro=NULL
-                                      WHERE etapa=:e AND boleto_ref=:r AND canal='email' AND status='sem_contato'"""),
-                               {"d": destino[:400], "o": c.get("origem"), "e": et.chave, "r": b["ref"]})
-                if canal == "email" and not lista:
-                    status = "sem_contato"
+                erro_novo = None
+                if canal == "email":
+                    if not lista:
+                        status = "sem_contato"
+                    elif not b.get("boleto_ok", True):        # e-mail SEMPRE com o boleto (Itaú: PDF) ou o link da fatura (Asaas)
+                        status = "sem_boleto"
+                        erro_novo = ("boleto do Itaú ainda não foi enviado ao sistema (aba Boletos Itaú)" if b["origem"] == "itau"
+                                     else "fatura do Asaas sem link — conferir o boleto no Asaas")
+                    # item que esperava contato/boleto e agora está completo (ou o contrário) é reavaliado
+                    db.execute(_t("""UPDATE cobranca_envios SET status=:st, destino=COALESCE(:d, destino), destino_origem=COALESCE(:o, destino_origem), erro=:er
+                                      WHERE etapa=:e AND boleto_ref=:r AND canal='email' AND status IN ('sem_contato','sem_boleto') AND status <> :st"""),
+                               {"st": status, "d": (destino[:400] if destino else None), "o": c.get("origem") if lista else None, "er": erro_novo, "e": et.chave, "r": b["ref"]})
                 if _inserir(db, etapa=et.chave, canal=canal, ref=b["ref"], status=status, destino=destino or (", ".join(bruta) if devolvido else None),
                             destino_origem=c.get("origem") if (lista or devolvido) else None,
-                            erro=("e-mail devolvido anteriormente: " + ", ".join(bruta)) if (canal == "email" and devolvido) else None, **base):
+                            erro=erro_novo or (("e-mail devolvido anteriormente: " + ", ".join(bruta)) if (canal == "email" and devolvido) else None), **base):
                     criados[et.chave] += 1
                     if status == "sem_contato":
                         sem_contato += 1
@@ -521,7 +594,7 @@ def gerar_fila(db: Session, hoje: date = None) -> dict:
 
 # ── envio ──────────────────────────────────────────────────────────────────────
 
-def _enviar_smtp(cfg: dict, para: list, assunto: str, texto: str, html: str) -> str:
+def _enviar_smtp(cfg: dict, para: list, assunto: str, texto: str, html: str, anexos: list = None) -> str:
     msg = EmailMessage()
     msg["Subject"] = assunto
     msg["From"] = f'{cfg["cobranca_email_nome"]} <{cfg["cobranca_email_remetente"]}>'
@@ -532,6 +605,9 @@ def _enviar_smtp(cfg: dict, para: list, assunto: str, texto: str, html: str) -> 
     msg["Message-ID"] = mid
     msg.set_content(texto)
     msg.add_alternative(html, subtype="html")
+    for nome, dados, tipo in (anexos or []):
+        principal, _, sub = tipo.partition("/")
+        msg.add_attachment(dados, maintype=principal, subtype=sub, filename=nome)
     host, porta = cfg["cobranca_smtp_host"], _int(cfg["cobranca_smtp_porta"], 587)
     ctx = ssl.create_default_context()
     if cfg["cobranca_smtp_seguranca"] == "ssl":
@@ -738,13 +814,33 @@ def processar_aprovados(db: Session, limite: int = 500) -> dict:
                 lista = [x for x in emails_validos(e.destino) if x not in invalidos]
                 if not lista:
                     e.status, e.erro = "sem_contato", "sem e-mail válido (ou e-mail devolvido antes)"; db.commit(); continue
-                assunto, corpo = renderizar(et.assunto, et.texto, e, hoje, _int(cfg["regua_prazo_bloqueio_dias"], 3))
+                # e-mail SEMPRE com o boleto (Itaú: PDF anexado) ou o link da fatura (Asaas): sem isso, segura e avisa (não é falha)
+                anexo, link_atual = None, None
+                if e.origem == "itau":
+                    r = db.execute(_t("SELECT pdf, linha_digitavel FROM cobranca_boletos_itau WHERE nosso_numero = :n"), {"n": e.boleto_ref.split(":")[1]}).fetchone()
+                    if r:
+                        anexo = {"bytes": bytes(r[0]), "linha": r[1]}
+                else:
+                    link_atual = db.execute(_t("SELECT invoice_url FROM asaas_payments_sync WHERE asaas_id = :a"), {"a": e.boleto_ref.split(":")[1]}).scalar()
+                    if not (link_atual or e.link or "").startswith("http"):
+                        link_atual = None
+                if (e.origem == "itau" and not anexo) or (e.origem != "itau" and not (link_atual or e.link)):
+                    e.status = "sem_boleto"
+                    e.erro = ("boleto do Itaú não encontrado no sistema — suba o PDF na aba Boletos Itaú" if e.origem == "itau"
+                              else "fatura do Asaas sem link — conferir no Asaas")
+                    e.tentativas = max(0, (e.tentativas or 1) - 1)
+                    db.commit()
+                    res["descartados"] += 1
+                    continue
+                msgm = montar_email(e, et, cfg, hoje, anexo, link_atual)
+                assunto, corpo = msgm["assunto"], msgm["texto"]
+                if msgm["anexos"]:
+                    corpo += f"\n\n[anexo: {msgm['anexos'][0][0]}]"
                 efetivo = lista
                 if teste:
                     efetivo = [cfg["regua_email_teste"]]
                     assunto = f"[TESTE — seria para {', '.join(lista)}] {assunto}"
-                rodape = "Gestora Smart · Contas a Receber · " + cfg["cobranca_email_remetente"]
-                mid = _enviar_smtp(cfg, efetivo, assunto, corpo, corpo_html(corpo, rodape))
+                mid = _enviar_smtp(cfg, efetivo, assunto, msgm["texto"], msgm["html"], msgm["anexos"])
             except Exception as ex:                                 # nunca derruba o lote; nunca grava a senha
                 db.rollback()
                 e = db.get(CobrancaEnvio, eid)

@@ -12,6 +12,7 @@ export const STATUS = {
   falhou:      { rotulo: 'Falhou', cls: 'bg-red-50 text-red-700' },
   devolvido:   { rotulo: 'E-mail devolvido', cls: 'bg-red-50 text-red-700' },
   sem_contato: { rotulo: 'Sem e-mail', cls: 'bg-red-50 text-red-700' },
+  sem_boleto:  { rotulo: 'Aguardando boleto', cls: 'bg-amber-50 text-amber-800' },
   resolvido:   { rotulo: 'Resolvido (pagou)', cls: 'bg-gray-100 text-gray-600' },
   cancelado:   { rotulo: 'Removido', cls: 'bg-gray-100 text-gray-600' },
   concluido:   { rotulo: 'Concluído', cls: 'bg-green-50 text-green-700' },
