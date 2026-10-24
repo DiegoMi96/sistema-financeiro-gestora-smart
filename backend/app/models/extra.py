@@ -84,6 +84,7 @@ class AsaasPaymentSync(Base):
     value_original   = Column(Float)   # preenchido pelo Asaas quando há juros/multa (originalValue)
     net_value        = Column(Float)
     due_date         = Column(Date, index=True)
+    date_created     = Column(Date)   # dateCreated do Asaas: quando o boleto foi criado (aviso de lançamento da régua)
     original_due_date = Column(Date)   # vencimento ORIGINAL (originalDueDate do Asaas) — usado só pelo Comissionamento dos analistas
     payment_date     = Column(Date)
     credit_date      = Column(Date)
@@ -173,6 +174,7 @@ class CobrancaEtapa(Base):
     modo        = Column(String(12), default="aprovar")  # aprovar = analista aprova cada envio | automatico
     assunto     = Column(String(200))
     texto       = Column(Text)                        # corpo (texto puro, com {campos})
+    anexa_boleto = Column(Boolean, default=False)     # a etapa leva o boleto (PDF do Itaú / link do Asaas) e segura o envio sem ele
     wa_template_id = Column(String(80))               # ID do template aprovado na Umbler (WhatsApp)
     wa_params   = Column(String(200))                 # ordem dos campos enviados ao template: "nome,valor,vencimento"
     updated_at  = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
@@ -289,6 +291,23 @@ class CobrancaBoletoItau(Base):
     sha256         = Column(String(64))
     linha_digitavel = Column(String(80))
     pdf            = Column(LargeBinary, nullable=False)
+    valor_pdf      = Column(Float)                            # valor/vencimento do boleto NO MOMENTO do vínculo (detecta PDF desatualizado)
+    venc_pdf       = Column(Date)
     vinculo        = Column(String(10), default="dados")      # nosso | dados | manual
     enviado_por    = Column(Integer)
     enviado_em     = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class CobrancaEnvioBoleto(Base):
+    """Boletos incluídos num e-mail de LANÇAMENTO (um e-mail por cliente com todos os boletos novos dele).
+    boleto_ref único: o mesmo boleto nunca entra em dois avisos de lançamento."""
+    __tablename__ = "cobranca_envio_boletos"
+
+    id          = Column(Integer, primary_key=True)
+    envio_id    = Column(Integer, nullable=False, index=True)
+    boleto_ref  = Column(String(120), nullable=False, unique=True)     # asaas:<id>:<venc> | itau:<nosso>:<venc>
+    origem      = Column(String(10))                                   # asaas | itau
+    ref_id      = Column(String(60))                                   # asaas_id ou nosso_numero
+    vencimento  = Column(Date)
+    valor       = Column(Float)
+    link        = Column(String(500))

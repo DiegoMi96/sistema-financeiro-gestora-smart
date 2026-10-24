@@ -215,12 +215,12 @@ def _upsert_payments(db: Session, payments: list, customers: dict):
                 asaas_id, customer_id, customer_name, customer_cpf_cnpj,
                 value, value_original, net_value, due_date, original_due_date, payment_date, credit_date,
                 status, billing_type, description, external_reference,
-                invoice_url, invoice_number, synced_at
+                invoice_url, invoice_number, date_created, synced_at
             ) VALUES (
                 :asaas_id, :customer_id, :customer_name, :customer_cpf_cnpj,
                 :value, :value_original, :net_value, :due_date, :original_due_date, :payment_date, :credit_date,
                 :status, :billing_type, :description, :external_reference,
-                :invoice_url, :invoice_number, :now
+                :invoice_url, :invoice_number, :date_created, :now
             )
             ON CONFLICT (asaas_id) DO UPDATE SET
                 customer_name     = EXCLUDED.customer_name,
@@ -238,6 +238,7 @@ def _upsert_payments(db: Session, payments: list, customers: dict):
                 external_reference= EXCLUDED.external_reference,
                 invoice_url       = EXCLUDED.invoice_url,
                 invoice_number    = EXCLUDED.invoice_number,
+                date_created      = COALESCE(EXCLUDED.date_created, asaas_payments_sync.date_created),
                 synced_at         = EXCLUDED.synced_at
         """), {
             "asaas_id":          p.get("id"),
@@ -249,6 +250,7 @@ def _upsert_payments(db: Session, payments: list, customers: dict):
             "net_value":         p.get("netValue"),
             "due_date":          _d(p.get("dueDate")),
             "original_due_date": _d(p.get("originalDueDate")),
+            "date_created":      _d(p.get("dateCreated")),
             "payment_date":      _d(p.get("paymentDate")),
             "credit_date":       _d(p.get("creditDate")),
             "status":            p.get("status"),

@@ -34,12 +34,14 @@ export default function ReguaTab({ admin }) {
               <p className="text-sm font-medium text-gray-800">{e.nome}</p>
               <p className="text-xs text-gray-500">
                 {e.chave === 'consentimento' ? 'Enviado uma vez por cliente, antes da 1ª mensagem por WhatsApp · o analista aprova'
+                  : e.chave === 'lancamento' ? 'Disparado pela emissão do boleto · 1 e-mail por cliente com todos os boletos novos dele · o analista aprova'
                   : `${prazo(e.dias)} · ${e.canais.map(c => CANAIS[c]).join(' + ')}${e.canais.includes('email') ? (e.modo === 'automatico' ? ' · e-mail envia sozinho' : ' · o analista aprova') : ''}`}
+                {e.anexa_boleto && ' · leva o boleto (PDF do Itaú / link do Asaas)'}
                 {e.canais.includes('whatsapp') && e.chave !== 'consentimento' && (e.wa_template_id ? ` · template ${e.wa_template_id}` : ' · falta o template do WhatsApp')}
                 {e.chave === 'consentimento' && !e.wa_template_id && ' · falta o template do WhatsApp'}
               </p>
             </div>
-            {admin && e.chave !== 'consentimento' && e.canais.includes('email') && (
+            {admin && e.chave !== 'consentimento' && e.chave !== 'lancamento' && e.canais.includes('email') && (
               <label className="text-xs text-gray-600 flex items-center gap-1.5 cursor-pointer">
                 <input type="checkbox" checked={e.canais.includes('whatsapp')} onChange={ev => salvar(e.chave, { canais: ev.target.checked ? ['email', 'whatsapp'] : ['email'] }, ev.target.checked ? 'WhatsApp ligado na etapa' : 'WhatsApp desligado na etapa')} />
                 + WhatsApp
@@ -49,7 +51,7 @@ export default function ReguaTab({ admin }) {
           </div>
         ))}
       </div>
-      <p className="text-xs text-gray-400">O e-mail é sempre obrigatório. O WhatsApp é adicional e só vai para quem autorizou. O texto do WhatsApp é o do template aprovado na Umbler.</p>
+      <p className="text-xs text-gray-400">O e-mail é sempre obrigatório. As etapas que levam o boleto (Lançamento e Vencimento) só saem com o PDF do Itaú / link do Asaas. O WhatsApp é adicional e só vai para quem autorizou. O texto do WhatsApp é o do template aprovado na Umbler.</p>
       {edit && <EditorEtapa etapa={edit} campos={data.campos} camposWa={data.campos_whatsapp || []} admin={admin} onClose={() => setEdit(null)} onSave={async b => { if (await salvar(edit.chave, b)) setEdit(null) }} />}
     </div>
   )
@@ -77,7 +79,7 @@ function EditorEtapa({ etapa, campos, camposWa, admin, onClose, onSave }) {
 
   return (
     <Modal titulo={`Etapa: ${etapa.nome}`} onClose={onClose} largo>
-      <div className={`grid grid-cols-2 gap-3 mb-4 ${etapa.chave === 'consentimento' ? 'hidden' : ''}`}>
+      <div className={`grid grid-cols-2 gap-3 mb-4 ${['consentimento', 'lancamento'].includes(etapa.chave) ? 'hidden' : ''}`}>
         <label className="text-xs text-gray-500">Prazo (dias; negativo = antes do vencimento)
           <input type="number" value={dias} disabled={!admin} onChange={e => setDias(parseInt(e.target.value || '0', 10))} className="w-full border border-gray-200 rounded-lg p-2 text-sm mt-1 text-gray-800" />
         </label>
@@ -126,7 +128,7 @@ function EditorEtapa({ etapa, campos, camposWa, admin, onClose, onSave }) {
       {admin && (
         <div className="flex justify-end gap-2 mt-5">
           <button onClick={onClose} className="text-sm px-3 py-1.5 rounded-lg border border-gray-200">Cancelar</button>
-          <button onClick={() => { if (modo === 'automatico' && etapa.modo !== 'automatico' && !window.confirm('Esta etapa passará a ENVIAR SOZINHA, sem aprovação do analista (dentro da janela de envio e só com a chave geral ligada). Confirmar?')) return; onSave({ ...(etapa.chave === 'consentimento' ? {} : { dias, modo }), ...(email ? { assunto, texto } : {}), ...(whats ? { wa_template_id: waId, wa_params: waParams } : {}) }) }} className="text-sm px-3 py-1.5 rounded-lg bg-green-600 text-white">Salvar</button>
+          <button onClick={() => { if (modo === 'automatico' && etapa.modo !== 'automatico' && !window.confirm('Esta etapa passará a ENVIAR SOZINHA, sem aprovação do analista (dentro da janela de envio e só com a chave geral ligada). Confirmar?')) return; onSave({ ...(['consentimento', 'lancamento'].includes(etapa.chave) ? (etapa.chave === 'lancamento' ? { modo } : {}) : { dias, modo }), ...(email ? { assunto, texto } : {}), ...(whats ? { wa_template_id: waId, wa_params: waParams } : {}) }) }} className="text-sm px-3 py-1.5 rounded-lg bg-green-600 text-white">Salvar</button>
         </div>
       )}
     </Modal>

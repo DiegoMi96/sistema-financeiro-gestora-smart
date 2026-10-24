@@ -184,7 +184,7 @@ def expandir_arquivos(arquivos: list) -> list:
     return out
 
 
-def salvar(db: Session, nosso: str, nome: str, conteudo: bytes, linha, vinculo: str, user_id: int, substituir: bool) -> str:
+def salvar(db: Session, nosso: str, nome: str, conteudo: bytes, linha, vinculo: str, user_id: int, substituir: bool, valor=None, venc=None) -> str:
     """Grava/atualiza o PDF do boleto. Devolve 'novo' | 'substituido' | 'ja_existe'."""
     sha = hashlib.sha256(conteudo).hexdigest()
     ex = db.execute(_t("SELECT id, sha256 FROM cobranca_boletos_itau WHERE nosso_numero = :n"), {"n": nosso}).fetchone()
@@ -192,13 +192,13 @@ def salvar(db: Session, nosso: str, nome: str, conteudo: bytes, linha, vinculo: 
         return "ja_existe"
     if ex:
         db.execute(_t("""UPDATE cobranca_boletos_itau SET arquivo_nome=:a, tamanho=:t, sha256=:s, linha_digitavel=:l, pdf=:p, vinculo=:v,
-                          enviado_por=:u, enviado_em=now() WHERE nosso_numero=:n"""),
-                   {"a": (nome or "")[:255], "t": len(conteudo), "s": sha, "l": linha, "p": conteudo, "v": vinculo, "u": user_id, "n": nosso})
+                          enviado_por=:u, enviado_em=now(), valor_pdf=:vp, venc_pdf=:dp WHERE nosso_numero=:n"""),
+                   {"a": (nome or "")[:255], "t": len(conteudo), "s": sha, "l": linha, "p": conteudo, "v": vinculo, "u": user_id, "n": nosso, "vp": valor, "dp": venc})
         res = "substituido"
     else:
-        db.execute(_t("""INSERT INTO cobranca_boletos_itau (nosso_numero, arquivo_nome, tamanho, sha256, linha_digitavel, pdf, vinculo, enviado_por)
-                          VALUES (:n, :a, :t, :s, :l, :p, :v, :u)"""),
-                   {"a": (nome or "")[:255], "t": len(conteudo), "s": sha, "l": linha, "p": conteudo, "v": vinculo, "u": user_id, "n": nosso})
+        db.execute(_t("""INSERT INTO cobranca_boletos_itau (nosso_numero, arquivo_nome, tamanho, sha256, linha_digitavel, pdf, vinculo, enviado_por, valor_pdf, venc_pdf)
+                          VALUES (:n, :a, :t, :s, :l, :p, :v, :u, :vp, :dp)"""),
+                   {"a": (nome or "")[:255], "t": len(conteudo), "s": sha, "l": linha, "p": conteudo, "v": vinculo, "u": user_id, "n": nosso, "vp": valor, "dp": venc})
         res = "novo"
     # itens de e-mail que esperavam este boleto voltam para a fila de aprovação
     db.execute(_t("""UPDATE cobranca_envios SET status='pendente', erro=NULL

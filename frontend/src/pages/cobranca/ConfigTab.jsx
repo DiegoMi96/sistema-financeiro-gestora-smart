@@ -118,6 +118,16 @@ export default function ConfigTab({ onChange }) {
         </div>
       </section>
       <section className="space-y-3">
+        <p className="text-sm font-semibold text-gray-800">Aviso de lançamento do ciclo</p>
+        <p className="text-xs text-gray-500">Quando um boleto é <b>emitido</b> (Itaú: data de emissão; Asaas: data de criação), o cliente recebe UM e-mail com todos os boletos novos dele (PDF do Itaú anexado / link do Asaas), depois da sua aprovação na Fila. Só entram boletos emitidos a partir da data abaixo — deixe em branco para manter o aviso desligado. Ao ligar para o próximo ciclo, coloque a data do dia do lançamento, para não avisar boletos antigos.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Campo rotulo="Avisar boletos emitidos a partir de"><input type="date" className={inp} value={f.lancamento_desde || ''} onChange={e => set('lancamento_desde', e.target.value)} /></Campo>
+          <Campo rotulo="E só os emitidos nos últimos (dias)"><input type="number" min="1" max="60" className={inp} value={f.lancamento_janela_dias || 10} onChange={e => set('lancamento_janela_dias', parseInt(e.target.value || '10', 10))} /></Campo>
+        </div>
+        <button onClick={() => salvar({ lancamento_desde: f.lancamento_desde || '', lancamento_janela_dias: f.lancamento_janela_dias || 10 })} className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50">Salvar aviso de lançamento</button>
+      </section>
+
+      <section className="space-y-3">
         <p className="text-sm font-semibold text-gray-800">Horário de envio</p>
         <p className="text-xs text-gray-500">Vale para e-mail e WhatsApp. O cliente <b>nunca</b> recebe em sábado, domingo ou feriado nacional (inclui Carnaval, Sexta-feira Santa e Corpus Christi). O que for aprovado fora da janela espera e sai na próxima.</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 items-end">

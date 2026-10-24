@@ -138,7 +138,7 @@ def _env_dict(e: CobrancaEnvio) -> dict:
             "erro": e.erro, "tentativas": e.tentativas, "destino_efetivo": e.destino_efetivo,
             "enviado_em": e.enviado_em.isoformat() if e.enviado_em else None,
             "gerado_em": e.gerado_em.isoformat() if e.gerado_em else None,
-            "telefone": e.telefone, "entrega": e.entrega, "entrega_erro": e.entrega_erro,
+            "telefone": e.telefone, "entrega": e.entrega, "entrega_erro": e.entrega_erro, "descricao": e.descricao,
             "entrega_em": e.entrega_em.isoformat() if e.entrega_em else None}
 
 
@@ -176,15 +176,22 @@ def previa_envio(envio_id: int, current_user=_ler, db: Session = Depends(get_db)
         params = svc.params_whatsapp(et, e, svc.hoje_br(), svc._int(cfg["regua_prazo_bloqueio_dias"], 3))
         return {"assunto": f"WhatsApp — {et.nome}", "corpo": f"Template: {et.wa_template_id or '(não configurado)'}\nCampos enviados, na ordem: " + " | ".join(params)
                 + "\n\nO texto final é o do template aprovado na Umbler.", "para": e.telefone, "enviado": False}
+    if e.etapa == svc.ETAPA_LANCAMENTO:
+        est, dado = svc.preparar_lancamento(db, e, svc.hoje_br())
+        if est != "ok":
+            return {"assunto": et.assunto, "corpo": f"Este aviso não será enviado agora: {dado}", "para": e.destino, "enviado": False, "anexo": None, "sem_boleto": est == "segurar"}
+        m = svc.montar_email_lancamento(e, et, cfg, svc.hoje_br(), dado)
+        return {"assunto": m["assunto"], "corpo": m["texto"], "para": e.destino, "enviado": False,
+                "anexo": ", ".join(a[0] for a in m["anexos"]) or None, "sem_boleto": False}
     anexo = None
-    if e.origem == "itau":
+    if e.origem == "itau" and et.anexa_boleto:
         r = db.execute(text("SELECT linha_digitavel, arquivo_nome FROM cobranca_boletos_itau WHERE nosso_numero = :n"), {"n": e.boleto_ref.split(":")[1]}).fetchone()
         if r:
             anexo = {"bytes": b"x", "linha": r[0]}
     m = svc.montar_email(e, et, cfg, svc.hoje_br(), anexo)
     return {"assunto": m["assunto"], "corpo": m["texto"], "para": e.destino, "enviado": False,
             "anexo": m["anexos"][0][0] if m["anexos"] else None,
-            "sem_boleto": e.status == "sem_boleto" or (e.origem == "itau" and not anexo) or (e.origem != "itau" and not (e.link or "").startswith("http"))}
+            "sem_boleto": bool(et.anexa_boleto) and (e.status == "sem_boleto" or (e.origem == "itau" and not anexo) or (e.origem != "itau" and not (e.link or "").startswith("http")))}
 
 
 class IdsIn(BaseModel):
@@ -215,7 +222,7 @@ def aprovar(body: IdsIn, background_tasks: BackgroundTasks, current_user=_ler, d
         if not (svc.emails_validos(e.destino) if e.canal == "email" else bool(e.telefone)):
             continue
         et = por_chave.get(e.etapa)
-        if et is not None and e.etapa != svc.ETAPA_CONSENTIMENTO:
+        if et is not None and e.etapa not in (svc.ETAPA_CONSENTIMENTO, svc.ETAPA_LANCAMENTO):
             ok, motivo = svc.etapa_ainda_vale(et, e, etapas, hoje, janela)
             if not ok:                                    # item velho (ex.: lembrete de boleto já vencido): não aprova, não envia
                 e.status, e.erro = "resolvido", motivo
@@ -286,7 +293,8 @@ def concluir_tarefas(body: IdsIn, current_user=_ler, db: Session = Depends(get_d
 def _etapa_dict(e: CobrancaEtapa) -> dict:
     return {"chave": e.chave, "nome": e.nome, "ordem": e.ordem, "ativa": bool(e.ativa), "dias": e.dias,
             "canais": [c for c in (e.canais or "").split(",") if c], "modo": e.modo, "assunto": e.assunto or "", "texto": e.texto or "",
-            "wa_template_id": e.wa_template_id or "", "wa_params": [c for c in (e.wa_params or "").split(",") if c]}
+            "wa_template_id": e.wa_template_id or "", "wa_params": [c for c in (e.wa_params or "").split(",") if c],
+            "anexa_boleto": bool(e.anexa_boleto)}
 
 
 @router.get("/etapas")
@@ -380,6 +388,8 @@ class ConfigIn(BaseModel):
     horario_inicio: Optional[str] = None       # "09:00"
     horario_fim: Optional[str] = None          # "18:00"
     feriados_extra: Optional[str] = None
+    lancamento_desde: Optional[str] = None     # "2026-11-20" ou "" (desligado)
+    lancamento_janela_dias: Optional[int] = None
     imap_host: Optional[str] = None
     imap_porta: Optional[int] = None
     imap_usuario: Optional[str] = None
@@ -403,6 +413,7 @@ def ler_config(current_user=_admin, db: Session = Depends(get_db)):
             "smtp_seguranca": c["cobranca_smtp_seguranca"], "smtp_usuario": c["cobranca_smtp_usuario"],
             "smtp_senha_configurada": bool(c["cobranca_smtp_senha"]), "smtp_configurado": svc.smtp_configurado(c),
             "horario_inicio": c["regua_horario_inicio"], "horario_fim": c["regua_horario_fim"], "feriados_extra": c["regua_feriados_extra"],
+            "lancamento_desde": c["regua_lancamento_desde"], "lancamento_janela_dias": svc._int(c["regua_lancamento_janela_dias"], 10),
             "imap_host": c["cobranca_imap_host"], "imap_porta": svc._int(c["cobranca_imap_porta"], 993), "imap_usuario": c["cobranca_imap_usuario"],
             "imap_senha_configurada": bool(c["cobranca_imap_senha"]), "imap_configurado": svc.imap_configurado(c),
             "whatsapp_ativo": c["whatsapp_ativo"] == "1", "whatsapp_pausado_motivo": c["whatsapp_pausado_motivo"],
@@ -469,6 +480,15 @@ def salvar_config(body: ConfigIn, current_user=_admin, db: Session = Depends(get
         if any(not re.fullmatch(r"\d{1,2}/\d{1,2}(/\d{4})?", t) for t in itens):
             raise HTTPException(400, "Feriados extras: use datas no formato 25/01 (todo ano) ou 08/04/2026, separadas por vírgula.")
         mapa["regua_feriados_extra"] = ", ".join(itens)
+    if body.lancamento_desde is not None:
+        v = body.lancamento_desde.strip()
+        if v and svc._data_cfg(v) is None:
+            raise HTTPException(400, "Data do aviso de lançamento inválida (use AAAA-MM-DD).")
+        mapa["regua_lancamento_desde"] = v
+    if body.lancamento_janela_dias is not None:
+        if not 1 <= body.lancamento_janela_dias <= 60:
+            raise HTTPException(400, "A janela do aviso de lançamento fica entre 1 e 60 dias.")
+        mapa["regua_lancamento_janela_dias"] = str(body.lancamento_janela_dias)
     if body.imap_host is not None and body.imap_host.strip() != c["cobranca_imap_host"]:
         h = body.imap_host.strip()
         if h and not _host_publico(h):
@@ -810,7 +830,7 @@ async def upload_boletos_itau(files: List[UploadFile] = File(...), modo: str = F
                 elif c["tem_pdf"] and not substituir:
                     it.update(status="ja_tem", motivo="este boleto já tem PDF (marque 'substituir' para trocar)")
                 elif modo == "vincular":
-                    r = bi.salvar(db, c["nosso_numero"], nome, conteudo, ev["linha"], vinc or "dados", current_user.id, substituir)
+                    r = bi.salvar(db, c["nosso_numero"], nome, conteudo, ev["linha"], vinc or "dados", current_user.id, substituir, c["valor_titulo"], c["data_vencimento"])
                     it["status"] = "vinculado" if r == "novo" else "substituido"
                     usados.add(c["nosso_numero"])
                 else:
@@ -822,6 +842,7 @@ async def upload_boletos_itau(files: List[UploadFile] = File(...), modo: str = F
     for it in itens:
         resumo[it["status"]] = resumo.get(it["status"], 0) + 1
     if modo == "vincular":
+        svc.reavaliar_lancamentos(db)                       # avisos de lançamento que esperavam estes PDFs voltam para aprovação
         _audit(db, current_user, "cobranca.boletos_itau_vincular", {"resumo": resumo, "arquivos": len(itens)})
     db.commit()
     return {"modo": modo, "resumo": resumo, "itens": itens, "total": len(itens)}
@@ -846,6 +867,7 @@ def remover_boleto_itau(nosso: str, current_user=_ler, db: Session = Depends(get
     n = db.execute(text("DELETE FROM cobranca_boletos_itau WHERE nosso_numero = :n"), {"n": nosso}).rowcount
     seg = db.execute(text("""UPDATE cobranca_envios SET status='sem_boleto', erro='PDF do boleto removido — suba novamente'
                               WHERE origem='itau' AND canal='email' AND status IN ('pendente','aprovado') AND boleto_ref LIKE :r"""), {"r": f"itau:{nosso}:%"}).rowcount
+    svc.reavaliar_lancamentos(db)
     _audit(db, current_user, "cobranca.boleto_itau_remover", {"nosso_numero": nosso, "emails_segurados": seg})
     db.commit()
     return {"removidos": n, "emails_segurados": seg}
