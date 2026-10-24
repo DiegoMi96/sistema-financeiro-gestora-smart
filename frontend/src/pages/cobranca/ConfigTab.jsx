@@ -8,6 +8,8 @@ export default function ConfigTab({ onChange }) {
   const qc = useQueryClient()
   const { data, isError } = useQuery({ queryKey: ['cobranca-config'], queryFn: () => cobrancaApi.config().then(r => r.data), staleTime: 0 })
   const [f, setF] = useState(null)
+  const [etapaTeste, setEtapaTeste] = useState('vence_hoje')
+  const [origemTeste, setOrigemTeste] = useState('asaas')
   const [senha, setSenha] = useState('')
   const [tokenUmbler, setTokenUmbler] = useState('')
   const [senhaImap, setSenhaImap] = useState('')
@@ -25,7 +27,7 @@ export default function ConfigTab({ onChange }) {
     finally { setOcupado(false) }
   }
   const testar = async () => {
-    try { const { data: d } = await cobrancaApi.smtpTeste(); toast.success(`E-mail de teste enviado para ${d.para}`) }
+    try { const { data: d } = await cobrancaApi.smtpTeste({ etapa: etapaTeste, origem: origemTeste }); toast.success(`E-mail de teste (${d.etapa}) enviado para ${d.para}`) }
     catch (e) { toast.error(e.response?.data?.detail || 'Falha no teste') }
   }
   const set = (k, v) => setF(x => ({ ...x, [k]: v }))
@@ -114,6 +116,12 @@ export default function ConfigTab({ onChange }) {
         </div>
         <div className="flex gap-2">
           <button onClick={() => salvar({ remetente: f.remetente, smtp_host: f.smtp_host, smtp_porta: f.smtp_porta, smtp_seguranca: f.smtp_seguranca, smtp_usuario: f.smtp_usuario, ...(senha ? { smtp_senha: senha } : {}) })} className="text-sm px-3 py-1.5 rounded-lg bg-green-600 text-white">Salvar e-mail</button>
+          <select value={etapaTeste} onChange={e => setEtapaTeste(e.target.value)} className="text-sm border border-gray-200 rounded-lg p-1.5 text-gray-700" aria-label="Etapa do e-mail de teste">
+            <option value="lancamento">Lançamento do ciclo</option><option value="lembrete">Lembrete</option><option value="vence_hoje">Vencimento</option><option value="atraso">Em atraso</option><option value="bloqueio">Aviso de bloqueio</option>
+          </select>
+          <select value={origemTeste} onChange={e => setOrigemTeste(e.target.value)} className="text-sm border border-gray-200 rounded-lg p-1.5 text-gray-700" aria-label="Formato do boleto">
+            <option value="asaas">Asaas (link)</option><option value="itau">Itaú (PDF)</option>
+          </select>
           <button onClick={testar} disabled={!f.smtp_configurado} className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40">Enviar e-mail de teste</button>
         </div>
       </section>

@@ -165,7 +165,7 @@ export const cobrancaApi = {
   salvarLayoutGlobal: (body)   => api.put('/cobranca/layout-global', body),
   config:        ()            => api.get('/cobranca/config'),
   salvarConfig:  (body)        => api.put('/cobranca/config', body),
-  smtpTeste:     ()            => api.post('/cobranca/smtp-teste'),
+  smtpTeste:     (body)        => api.post('/cobranca/smtp-teste', body || {}),
   autorizacoes:  (params)      => api.get('/cobranca/whatsapp/autorizacoes', { params }),
   decidirAutorizacao: (id, status, motivo = '') => api.put(`/cobranca/whatsapp/autorizacoes/${id}`, { status, motivo }),
   atualizarEstados: ()         => api.post('/cobranca/whatsapp/atualizar-estados'),

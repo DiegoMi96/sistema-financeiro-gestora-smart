@@ -416,7 +416,7 @@ def exemplo_email(et, assunto: str, texto: str, cfg: dict, hoje: date, origem: s
         m = montar_email_lancamento(e, ef, cfg, hoje, [b])
     else:
         m = montar_email(e, ef, cfg, hoje, {"bytes": b"%PDF", "linha": linha} if origem == "itau" else None)
-    return {"assunto": m["assunto"], "html": html_com_imagens(m["html"], m["inline"])}
+    return {"assunto": m["assunto"], "html": html_com_imagens(m["html"], m["inline"]), "html_cid": m["html"], "texto": m["texto"], "inline": m["inline"]}
 
 
 def _titulo_em_duas_linhas(t: str) -> tuple:

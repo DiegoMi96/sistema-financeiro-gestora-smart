@@ -631,20 +631,31 @@ def salvar_config(body: ConfigIn, current_user=_admin, db: Session = Depends(get
     return ler_config(current_user, db)
 
 
+class SmtpTesteIn(BaseModel):
+    etapa: str = Field("vence_hoje", max_length=30)
+    origem: str = Field("asaas", pattern="^(asaas|itau)$")
+
+
 @router.post("/smtp-teste")
-def smtp_teste(current_user=_admin, db: Session = Depends(get_db)):
-    """Envia um e-mail de teste do remetente para ele mesmo — confirma servidor, usuário e senha."""
+def smtp_teste(body: Optional[SmtpTesteIn] = None, current_user=_admin, db: Session = Depends(get_db)):
+    """Envia para o próprio remetente o e-mail REAL de uma etapa (layout completo, cliente fictício, sem PDF) —
+    confirma servidor, usuário e senha e mostra como o cliente vai ver."""
+    body = body or SmtpTesteIn()
     c = svc.carregar_cfg(db)
     if not svc.smtp_configurado(c):
         raise HTTPException(400, "Preencha servidor, usuário e senha do e-mail.")
+    et = db.get(CobrancaEtapa, body.etapa)
+    if not et or "email" not in (et.canais or ""):
+        et = db.get(CobrancaEtapa, "vence_hoje")
     try:
-        svc._enviar_smtp(c, [c["cobranca_email_remetente"]], "Teste da régua de cobrança — Gestora Smart",
-                         "Este é um e-mail de teste da régua de cobrança. Se você recebeu, o envio está configurado.",
-                         svc.corpo_html("Este é um e-mail de teste da régua de cobrança. Se você recebeu, o envio está configurado.", "Gestora Smart"))
+        m = svc.exemplo_email(et, et.assunto or "", et.texto or "", c, svc.hoje_br(), body.origem)
+        svc._enviar_smtp(c, [c["cobranca_email_remetente"]], "[TESTE DE LAYOUT] " + m["assunto"], m["texto"], m["html_cid"], None, m["inline"])
     except Exception as ex:
         msg = str(ex).replace(c["cobranca_smtp_senha"], "•••") if c["cobranca_smtp_senha"] else str(ex)
         raise HTTPException(400, f"Não foi possível enviar: {msg[:200]}")
-    return {"ok": True, "para": c["cobranca_email_remetente"]}
+    _audit(db, current_user, "cobranca.smtp_teste", {"etapa": et.chave, "origem": body.origem})
+    db.commit()
+    return {"ok": True, "para": c["cobranca_email_remetente"], "etapa": et.nome}
 
 
 # ── pausas ─────────────────────────────────────────────────────────────────────
