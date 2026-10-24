@@ -786,6 +786,12 @@ def target_in_scope(scope: str, target_role: "UserRole", target_custom_role_key:
     return area == scope and tier == "analista"
 
 
+# Permissões criadas depois de os perfis serem salvos na Gestão de Acessos. Um perfil salvo antes NÃO tem essa chave; sem este
+# tratamento ela viraria False para todo mundo (inclusive Admin) até alguém reabrir e salvar cada perfil. Aqui, chave ausente =
+# vale o padrão do role (ROLE_PERMISSIONS). Aplica-se SÓ a estas chaves, para não conceder acesso a permissões antigas.
+PERMISSOES_NOVAS_COM_PADRAO = {"can_view_fat_clientes"}
+
+
 def _get_custom_role_permissions(role_key: str, db) -> dict | None:
     """Busca permissões de um perfil personalizado armazenado em system_settings."""
     try:
@@ -836,7 +842,9 @@ def get_permission(user, permission: str, db=None) -> bool:
     if custom_role_key and db is not None:
         custom_perms = _get_custom_role_permissions(custom_role_key, db)
         if custom_perms is not None:
-            return custom_perms.get(permission, False)
+            # permissão criada DEPOIS de o perfil ser salvo na Gestão de Acessos: o perfil ainda não "decidiu" → usa o padrão do role
+            if not (permission in PERMISSOES_NOVAS_COM_PADRAO and permission not in custom_perms):
+                return custom_perms.get(permission, False)
 
     role_str = user.role.value if hasattr(user.role, 'value') else str(user.role)
 
@@ -844,7 +852,8 @@ def get_permission(user, permission: str, db=None) -> bool:
     if db is not None:
         override = _get_role_override(role_str, db)
         if override is not None:
-            return override.get(permission, False)
+            if not (permission in PERMISSOES_NOVAS_COM_PADRAO and permission not in override):
+                return override.get(permission, False)
 
     # 4. Padrão hardcoded
     role_defaults = ROLE_PERMISSIONS.get(user.role, {})
