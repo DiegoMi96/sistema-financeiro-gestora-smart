@@ -68,7 +68,7 @@ const PERM_SECTIONS = [
     ['can_view_fat_ciclos',         'Ciclos de faturamento'],
     ['can_view_fat_ciclo_detalhe',  'Detalhe do ciclo'],
     ['can_view_fat_cliente_detalhe','Detalhe do cliente'],
-    ['can_view_fat_clientes','Aba Clientes (cadastro)'],
+    ['can_view_fat_clientes','Aba Clientes (cadastro) — exige acesso ao Faturamento'],
     ['can_edit_billing',            'Ajustes (visualizar e editar)'],
     ['can_approve_billing',         'Aprovar faturamento'],
     ['can_create_adjustment',       'Criar ajustes'],

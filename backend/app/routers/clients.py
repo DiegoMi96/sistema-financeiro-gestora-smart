@@ -20,9 +20,10 @@ from app.models import AuditLog, Bank, ClientProfile, BillingLine, BillingCycle
 from app.config import settings
 from app.services.asaas_client import get_asaas_client
 
-# Segurança: todos os endpoints de clientes exigem login E a permissão própria `can_view_fat_clientes` (liberada por usuário/perfil na
-# Gestão de Acessos) — o cadastro tem CNPJ, e-mail, telefone, endereço e contas bancárias (LGPD). Não basta acessar o Faturamento.
-router = APIRouter(prefix="/clients", tags=["clients"], dependencies=[Depends(require_permission("can_view_fat_clientes"))])
+# Segurança: todos os endpoints de clientes exigem login, acesso ao módulo Faturamento (`can_view_faturamento` — a aba mora lá) E a
+# habilitação própria `can_view_fat_clientes` (por usuário/perfil na Gestão de Acessos) — o cadastro tem CNPJ, e-mail, telefone,
+# endereço e contas bancárias (LGPD). Uma sem a outra não basta.
+router = APIRouter(prefix="/clients", tags=["clients"], dependencies=[Depends(require_permission("can_view_faturamento")), Depends(require_permission("can_view_fat_clientes"))])
 
 # Escrita (criar/editar/importar/sincronizar) exige can_edit_billing.
 # Leitura = qualquer usuário logado (igual à tela /clientes no app).
