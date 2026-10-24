@@ -27,8 +27,10 @@ export const MODULES = [
     nav: [
       { to: '/dashboard', label: 'Painel', permission: 'can_view_dashboard' },
       { to: '/faturamento',        label: 'Faturamento',      permission: 'can_view_fat_ciclos' },
+      { to: '/clientes',           label: 'Clientes'          },
       { to: '/ajustes',            label: 'Ajustes',          permission: 'can_edit_billing' },
       { to: '/atencao',            label: 'Atenção',          permission: 'can_edit_billing' },
+      { to: '/cobranca',           label: 'Cobrança',         permission: 'can_edit_billing' },
       { to: '/comissao-analistas',  label: 'Comissionamento',  permission: 'can_view_fat_comissao' },
       { to: '/configuracoes',      label: 'Configurações',    permission: 'can_manage_users' },
     ],

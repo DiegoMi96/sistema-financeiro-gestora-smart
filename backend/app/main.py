@@ -14,6 +14,7 @@ import app.models.comissionamento  # ComissaoExtrato
 # Importa routers
 from app.routers import auth, billing, dashboard
 from app.routers.settings import router as settings_router
+from app.routers.cobranca import router as cobranca_router
 from app.routers.analyst      import router as analyst_router
 from app.services.asaas_client import router as asaas_router
 from app.routers.previsibilidade import router as previsibilidade_router
@@ -225,7 +226,8 @@ _run_migrations()
 async def lifespan(app: FastAPI):
     from app.services.asaas_sync import sync_loop
     from app.services.comissionamento_retention import retention_loop
-    tasks = [asyncio.create_task(sync_loop()), asyncio.create_task(retention_loop())]
+    from app.services.cobranca import regua_loop
+    tasks = [asyncio.create_task(sync_loop()), asyncio.create_task(retention_loop()), asyncio.create_task(regua_loop())]
     yield
     for task in tasks:
         task.cancel()
@@ -257,6 +259,7 @@ app.add_middleware(
 # ── Routers ───────────────────────────────────────────────────
 app.include_router(auth.router)
 app.include_router(billing.router)
+app.include_router(cobranca_router)   # régua de cobrança (aba Cobrança do Faturamento)
 app.include_router(dashboard.router)
 app.include_router(analyst_router)
 app.include_router(asaas_router)

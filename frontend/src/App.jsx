@@ -17,10 +17,12 @@ const BillingCyclePage         = lazy(() => import('./pages/billing/BillingCycle
 const ClientDetailPage         = lazy(() => import('./pages/billing/ClientDetailPage'))
 const AdjustmentsPage          = lazy(() => import('./pages/billing/AdjustmentsPage'))
 const AttentionPage            = lazy(() => import('./pages/billing/AttentionPage'))
+const CobrancaPage             = lazy(() => import('./pages/cobranca/CobrancaPage'))
 const ContestationPage         = lazy(() => import('./pages/contestation/ContestationPage'))
 const ContestationCyclePage    = lazy(() => import('./pages/contestation/ContestationCyclePage'))
 const AllcomPage               = lazy(() => import('./pages/contestation/AllcomPage'))
 const UsersPage                = lazy(() => import('./pages/auth/UsersPage'))
+const ClientsPage              = lazy(() => import('./pages/clients/ClientsPage'))
 const SettingsPage             = lazy(() => import('./pages/settings/SettingsPage'))
 const OrganoPage               = lazy(() => import('./pages/organograma/OrganoPage'))
 const IndicadoresPage          = lazy(() => import('./pages/controladoria/IndicadoresPage'))
@@ -142,10 +144,8 @@ function AppRoutes() {
           />
           <Route path="/dashboard-analista" element={<Navigate to="/dashboard" replace />} />
 
-          {/* Aba Clientes removida do menu em 21/10/2026 (pouco usada; o cadastro continua no banco e
-              alimenta nomes do faturamento e a busca da Atenção). A página segue em pages/clients/ClientsPage.jsx.
-              Link/favorito antigo vai para o painel. */}
-          <Route path="/clientes" element={<Navigate to="/dashboard" replace />} />
+          {/* Clientes */}
+          <Route path="/clientes" element={<ClientsPage />} />
 
           {/* Faturamento — rotas protegidas 01/08/2026 (antes ficavam sem
               PrivateRoute nenhum; bug que deixava Suporte Técnico ver
@@ -155,6 +155,7 @@ function AppRoutes() {
           <Route path="/faturamento/:cycleId/cliente/:idSmart"    element={<PrivateRoute permission="can_view_fat_cliente_detalhe"><ClientDetailPage /></PrivateRoute>} />
           <Route path="/ajustes"                                  element={<PrivateRoute permission="can_edit_billing"><AdjustmentsPage /></PrivateRoute>} />
           <Route path="/comissao-analistas"                       element={<PrivateRoute permission="can_view_fat_comissao"><AnalystCommissionPage /></PrivateRoute>} />
+          <Route path="/cobranca"                                 element={<PrivateRoute permission="can_edit_billing"><CobrancaPage /></PrivateRoute>} />
           <Route path="/atencao"                                  element={<PrivateRoute permission="can_edit_billing"><AttentionPage /></PrivateRoute>} />
 
           <Route path="/contestacao"             element={<PrivateRoute permission="can_view_cont_ciclos"><ContestationPage /></PrivateRoute>} />

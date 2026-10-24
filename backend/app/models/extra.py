@@ -154,3 +154,124 @@ class VencidoNota(Base):
     vencimento_planejado = Column(Date, nullable=True)
     observacao           = Column(Text, nullable=True)
     updated_at           = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ══════════════════════════════════════════════════════════════
+# RÉGUA DE COBRANÇA (e-mail / lembretes) — aba "Cobrança" do Faturamento
+# ══════════════════════════════════════════════════════════════
+
+class CobrancaEtapa(Base):
+    """Uma etapa da régua (lembrete, vence hoje, atraso, bloqueio, tarefa). Prazo, canal e texto editáveis."""
+    __tablename__ = "cobranca_etapas"
+
+    chave       = Column(String(30), primary_key=True)
+    nome        = Column(String(80), nullable=False)
+    ordem       = Column(Integer, default=0)
+    ativa       = Column(Boolean, default=True)
+    dias        = Column(Integer, default=0)          # relativo ao vencimento: -5 = 5 dias antes, 3 = 3 dias depois
+    canais      = Column(String(60), default="email") # lista separada por vírgula: email | tarefa
+    modo        = Column(String(12), default="aprovar")  # aprovar = analista aprova cada envio | automatico
+    assunto     = Column(String(200))
+    texto       = Column(Text)                        # corpo (texto puro, com {campos})
+    wa_template_id = Column(String(80))               # ID do template aprovado na Umbler (WhatsApp)
+    wa_params   = Column(String(200))                 # ordem dos campos enviados ao template: "nome,valor,vencimento"
+    updated_at  = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    updated_by  = Column(Integer)
+
+
+class CobrancaEnvio(Base):
+    """Item da fila/histórico: uma mensagem (ou tarefa) de uma etapa para um boleto.
+    Chave de idempotência: etapa + boleto_ref + canal — a mesma etapa nunca é gerada/enviada duas vezes para o mesmo boleto."""
+    __tablename__ = "cobranca_envios"
+
+    id           = Column(Integer, primary_key=True, index=True)
+    etapa        = Column(String(30), nullable=False, index=True)
+    canal        = Column(String(10), nullable=False)               # email | tarefa
+    boleto_ref   = Column(String(120), nullable=False)              # asaas:<id>:<vencimento> | itau:<nosso_numero>:<vencimento>
+    origem       = Column(String(10))                               # asaas | itau
+    id_smart     = Column(String(40), index=True)
+    cnpj         = Column(String(20))
+    nome         = Column(String(300))
+    destino      = Column(String(400))                              # e-mail(s) do cliente (separados por vírgula)
+    destino_origem = Column(String(20))                             # cadastro | asaas
+    vencimento   = Column(Date)
+    valor        = Column(Float)
+    link         = Column(String(500))
+    descricao    = Column(String(300))
+    # pendente → aprovado → enviando → enviado | falhou | cancelado | resolvido (pagou) | sem_contato | concluido (tarefa)
+    status       = Column(String(14), nullable=False, default="pendente", index=True)
+    erro         = Column(Text)
+    tentativas   = Column(Integer, default=0)
+    assunto_enviado = Column(String(300))
+    corpo_enviado   = Column(Text)
+    destino_efetivo = Column(String(400))                           # para onde realmente foi (modo teste muda)
+    message_id   = Column(String(200))
+    gerado_em    = Column(DateTime(timezone=True), server_default=func.now())
+    aprovado_por = Column(Integer)
+    aprovado_em  = Column(DateTime(timezone=True))
+    enviado_em   = Column(DateTime(timezone=True))
+    # WhatsApp (Umbler): telefone e acompanhamento do estado da mensagem
+    telefone     = Column(String(20))                               # E.164 do cliente (+5511…)
+    provider_msg_id  = Column(String(100), index=True)
+    provider_chat_id = Column(String(100))
+    entrega      = Column(String(14))                               # processando | enviada | entregue | lida | falhou
+    entrega_em   = Column(DateTime(timezone=True))
+    entrega_erro = Column(Text)
+    entrega_checada_em = Column(DateTime(timezone=True))
+    modo_teste   = Column(Boolean, default=False)                   # enviado em MODO TESTE (não conta como cobrança real)
+    reservado_em = Column(DateTime(timezone=True))                  # quando o envio foi reservado (relógio do "envio interrompido")
+
+    __table_args__ = (UniqueConstraint("etapa", "boleto_ref", "canal", name="uq_cobranca_envio_etapa_boleto_canal"),)
+
+
+class CobrancaPausa(Base):
+    """Cliente fora da régua (negociação, promessa de pagamento). ate nulo = sem prazo."""
+    __tablename__ = "cobranca_pausas"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    id_smart   = Column(String(40), nullable=False, index=True)
+    ate        = Column(Date)
+    motivo     = Column(String(300))
+    ativa      = Column(Boolean, default=True)
+    criado_por = Column(Integer)
+    criado_em  = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class CobrancaWhatsConsent(Base):
+    """Autorização do cliente para receber cobrança por WhatsApp (uma por cliente).
+    Sem linha = ainda não perguntamos. Com ela o e-mail continua sendo o canal obrigatório."""
+    __tablename__ = "cobranca_whatsapp_consent"
+
+    id_smart     = Column(String(40), primary_key=True)
+    # pedido_enviado | aceitou | recusou | sem_whatsapp | respondeu_outro
+    status       = Column(String(16), nullable=False, default="pedido_enviado")
+    telefone     = Column(String(20))
+    chat_id      = Column(String(100))
+    pedido_em    = Column(DateTime(timezone=True))
+    respondido_em = Column(DateTime(timezone=True))
+    resposta_texto = Column(String(400))                            # última resposta do cliente que não era sim/não
+    origem       = Column(String(12), default="resposta")           # resposta | manual
+    atualizado_por = Column(Integer)
+    motivo       = Column(String(300))                              # decisão manual: como/quando o cliente respondeu
+    checado_em   = Column(DateTime(timezone=True))                  # última vez que lemos o chat (rodízio)
+    atualizado_em = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class CobrancaEmailInvalido(Base):
+    """Endereço que DEVOLVEU (falha permanente). A régua não gera nem envia para ele até alguém corrigir o cadastro."""
+    __tablename__ = "cobranca_emails_invalidos"
+
+    email        = Column(String(200), primary_key=True)
+    motivo       = Column(String(400))
+    codigo       = Column(String(20))                   # ex.: 5.1.1
+    envio_id     = Column(Integer)
+    detectado_em = Column(DateTime(timezone=True), server_default=func.now())
+    liberado     = Column(Boolean, default=False)       # o analista confirmou que o endereço voltou a funcionar
+
+
+class CobrancaDevolucaoLida(Base):
+    """Mensagens de devolução já processadas (pelo Message-ID da própria devolução) — a caixa nunca é alterada."""
+    __tablename__ = "cobranca_devolucoes_lidas"
+
+    message_id = Column(String(300), primary_key=True)
+    lida_em    = Column(DateTime(timezone=True), server_default=func.now())
