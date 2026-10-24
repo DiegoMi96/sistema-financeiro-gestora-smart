@@ -175,6 +175,7 @@ export const cobrancaApi = {
   emailsInvalidos: ()          => api.get('/cobranca/emails-invalidos'),
   liberarEmail:  (email)       => api.post('/cobranca/emails-invalidos/liberar', { email }),
   boletosItau:   (params)      => api.get('/cobranca/boletos-itau', { params }),
+  ciclosBoletosItau: ()        => api.get('/cobranca/boletos-itau/ciclos'),
   uploadBoletosItau: (fd)      => api.post('/cobranca/boletos-itau/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 300000 }),
   pdfBoletoItau: (nosso)       => api.get(`/cobranca/boletos-itau/${encodeURIComponent(nosso)}/pdf`, { responseType: 'blob' }),
   removerBoletoItau: (nosso)   => api.delete(`/cobranca/boletos-itau/${encodeURIComponent(nosso)}`),

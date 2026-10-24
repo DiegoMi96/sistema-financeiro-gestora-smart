@@ -113,10 +113,23 @@ def _numero_confere(nosso: str, nums: set) -> bool:
     return False
 
 
+# Ciclo do boleto = mês de EMISSÃO (mesmo critério do aviso de lançamento). Sem data de emissão: mês anterior ao vencimento.
+CICLO_SQL = "COALESCE(to_char(i.data_emissao, 'YYYY-MM'), to_char(i.data_vencimento - interval '1 month', 'YYYY-MM'))"
+_MESES = ["", "janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
+
+
+def rotulo_ciclo(c: str) -> str:
+    try:
+        a, m = c.split("-")
+        return f"{_MESES[int(m)]}/{a}"
+    except (ValueError, IndexError):
+        return c or "—"
+
+
 def candidatos_abertos(db: Session) -> list:
     """Boletos do Itaú ainda em aberto (candidatos a receber um PDF)."""
     rows = db.execute(_t("""SELECT i.nosso_numero, i.pagador, regexp_replace(COALESCE(i.cpf_cnpj,''), '\\D', '', 'g') AS doc,
-                                   i.valor_titulo, i.data_vencimento, (b.id IS NOT NULL) AS tem_pdf
+                                   i.valor_titulo, i.data_vencimento, (b.id IS NOT NULL) AS tem_pdf, """ + CICLO_SQL + """ AS ciclo
                               FROM itau_boletos i LEFT JOIN cobranca_boletos_itau b ON b.nosso_numero = i.nosso_numero
                              WHERE i.data_pagamento IS NULL AND i.data_baixa IS NULL AND COALESCE(i.status,'') NOT IN ('paga','cancelada')
                                AND COALESCE(i.valor_titulo,0) > 0""")).mappings().all()

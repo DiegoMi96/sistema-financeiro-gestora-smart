@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { UploadCloud, FileText, Trash2, Search, CheckCircle2 } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -15,6 +15,7 @@ const ST = {
   ambiguo:             { rotulo: 'Mais de um boleto', cls: 'bg-amber-50 text-amber-800' },
   sem_correspondencia: { rotulo: 'Não achei o boleto', cls: 'bg-red-50 text-red-700' },
   ilegivel:            { rotulo: 'PDF sem texto', cls: 'bg-red-50 text-red-700' },
+  outro_ciclo:         { rotulo: 'É de outro ciclo', cls: 'bg-amber-50 text-amber-800' },
   invalido:            { rotulo: 'Arquivo inválido', cls: 'bg-red-50 text-red-700' },
 }
 
@@ -28,21 +29,28 @@ export default function BoletosItauTab({ onChange }) {
   const [ocupado, setOcupado] = useState(false)
   const [busca, setBusca] = useState('')
   const [soSem, setSoSem] = useState(true)
+  const [ciclo, setCiclo] = useState('')          // mês de emissão escolhido (obrigatório para subir PDFs)
+  const [todos, setTodos] = useState(false)   // false = só o ciclo atual (vencimento de hoje em diante); true = inclui os já vencidos
   const [page, setPage] = useState(1)
 
+  const { data: ciclos } = useQuery({ queryKey: ['cobranca-boletos-itau-ciclos'], queryFn: () => cobrancaApi.ciclosBoletosItau().then(r => r.data), staleTime: 0 })
+  useEffect(() => { if (!ciclo && ciclos?.length) setCiclo(ciclos[0].ciclo) }, [ciclos])  // eslint-disable-line react-hooks/exhaustive-deps
+  const rotuloCiclo = (ciclos || []).find(c => c.ciclo === ciclo)?.rotulo || ''
   const { data, refetch } = useQuery({
-    queryKey: ['cobranca-boletos-itau', busca, soSem, page],
-    queryFn: () => cobrancaApi.boletosItau({ search: busca, so_sem_pdf: soSem, page, limit: 50 }).then(r => r.data),
+    queryKey: ['cobranca-boletos-itau', ciclo, busca, soSem, todos, page],
+    enabled: !!ciclo,
+    queryFn: () => cobrancaApi.boletosItau({ search: busca, so_sem_pdf: soSem, escopo: todos ? 'todos' : 'ciclo', ciclo, page, limit: 50 }).then(r => r.data),
     staleTime: 0, placeholderData: prev => prev,
   })
   const { data: semPdf } = useQuery({
-    queryKey: ['cobranca-boletos-itau-sem'], queryFn: () => cobrancaApi.boletosItau({ so_sem_pdf: true, limit: 200 }).then(r => r.data.itens), staleTime: 0,
+    queryKey: ['cobranca-boletos-itau-sem', ciclo], enabled: !!ciclo, queryFn: () => cobrancaApi.boletosItau({ so_sem_pdf: true, escopo: 'todos', ciclo, limit: 200 }).then(r => r.data.itens), staleTime: 0,
   })
 
   const enviar = async (lista, modo) => {
     const fd = new FormData()
     lista.forEach(f => fd.append('files', f))
     fd.append('modo', modo)
+    fd.append('ciclo', ciclo)
     fd.append('atribuicoes', JSON.stringify(manual))
     fd.append('substituir', substituir ? 'true' : 'false')
     return (await cobrancaApi.uploadBoletosItau(fd)).data
@@ -67,7 +75,7 @@ export default function BoletosItauTab({ onChange }) {
       const r = await enviar(arquivos, 'vincular')
       const n = (r.resumo.vinculado || 0) + (r.resumo.substituido || 0)
       toast.success(`${n} boleto(s) vinculado(s). Os e-mails desses boletos voltaram para aprovação.`)
-      setAnalise(r); setArquivos([]); setManual({}); refetch(); qc.invalidateQueries({ queryKey: ['cobranca-boletos-itau-sem'] }); onChange()
+      setAnalise(r); setArquivos([]); setManual({}); refetch(); qc.invalidateQueries({ queryKey: ['cobranca-boletos-itau-sem'] }); qc.invalidateQueries({ queryKey: ['cobranca-boletos-itau-ciclos'] }); onChange()
     } catch (er) { toast.error(er.response?.data?.detail || 'Erro ao vincular') } finally { setOcupado(false) }
   }
   const verPdf = async (nosso) => {
@@ -75,12 +83,12 @@ export default function BoletosItauTab({ onChange }) {
   }
   const remover = async (nosso) => {
     if (!window.confirm('Remover o PDF deste boleto? Os e-mails ainda não enviados dele ficam aguardando boleto.')) return
-    try { await cobrancaApi.removerBoletoItau(nosso); toast.success('PDF removido'); refetch(); qc.invalidateQueries({ queryKey: ['cobranca-boletos-itau-sem'] }); onChange() } catch { toast.error('Erro ao remover') }
+    try { await cobrancaApi.removerBoletoItau(nosso); toast.success('PDF removido'); refetch(); qc.invalidateQueries({ queryKey: ['cobranca-boletos-itau-sem'] }); qc.invalidateQueries({ queryKey: ['cobranca-boletos-itau-ciclos'] }); onChange() } catch { toast.error('Erro ao remover') }
   }
 
   const itens = analise?.itens || []
   const prontos = itens.filter(i => (i.status === 'ok' && analise.modo === 'analisar') || manual[i.arquivo]).length
-  const precisaManual = i => ['divergente', 'ambiguo', 'sem_correspondencia', 'ilegivel'].includes(i.status)
+  const precisaManual = i => ['divergente', 'ambiguo', 'sem_correspondencia', 'ilegivel', 'outro_ciclo'].includes(i.status)
 
   return (
     <div className="p-5 space-y-5">
@@ -89,9 +97,20 @@ export default function BoletosItauTab({ onChange }) {
         <p className="text-xs text-gray-500">Boleto sem PDF fica como “Aguardando boleto” na Fila e o e-mail não é enviado até o PDF estar aqui.</p>
       </div>
 
+      <div className="max-w-xl">
+        <label className="text-xs text-gray-600 block">A qual ciclo pertencem estes boletos? <span className="text-gray-400">(mês de emissão — obrigatório)</span>
+          <select value={ciclo} onChange={e => { setCiclo(e.target.value); setManual({}); setAnalise(null); setArquivos([]); setPage(1) }} disabled={ocupado || !(ciclos || []).length}
+            className="w-full border border-gray-200 rounded-lg p-2 text-sm mt-1 text-gray-800">
+            {!(ciclos || []).length && <option value="">Nenhum boleto do Itaú em aberto — suba a planilha do Itaú primeiro</option>}
+            {(ciclos || []).map(c => <option key={c.ciclo} value={c.ciclo}>Ciclo de {c.rotulo} — {c.abertos} em aberto · {c.sem_pdf} sem PDF</option>)}
+          </select>
+        </label>
+        <p className="text-xs text-gray-400 mt-1">O sistema só liga o PDF a um boleto <b>deste ciclo</b>. Se um PDF for de outro ciclo, ele avisa e não grava.</p>
+      </div>
+
       <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center">
         <input ref={inputRef} type="file" accept=".pdf,.zip" multiple className="hidden" onChange={escolher} />
-        <button onClick={() => inputRef.current?.click()} disabled={ocupado} className="gs-btn gs-btn-dark inline-flex items-center gap-2"><UploadCloud size={15} /> {ocupado ? 'Lendo…' : 'Escolher PDFs ou ZIP'}</button>
+        <button onClick={() => inputRef.current?.click()} disabled={ocupado || !ciclo} className="gs-btn gs-btn-dark inline-flex items-center gap-2 disabled:opacity-50"><UploadCloud size={15} /> {ocupado ? 'Lendo…' : ciclo ? `Escolher PDFs ou ZIP do ciclo de ${rotuloCiclo}` : 'Escolha o ciclo acima'}</button>
         <p className="text-xs text-gray-400 mt-2">Até 2 MB por PDF · só PDFs de boleto · nada é gravado antes da sua confirmação</p>
       </div>
 
@@ -135,10 +154,14 @@ export default function BoletosItauTab({ onChange }) {
 
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-3">
-          <p className="text-sm font-semibold text-gray-800">Boletos do Itaú em aberto {data ? <span className="text-gray-400 font-normal">· {data.total} na lista · {data.sem_pdf} sem PDF</span> : null}</p>
-          <label className="text-xs text-gray-600 flex items-center gap-1.5 cursor-pointer ml-auto"><input type="checkbox" checked={soSem} onChange={e => { setSoSem(e.target.checked); setPage(1) }} /> só os sem PDF</label>
+          <p className="text-sm font-semibold text-gray-800">Boletos do Itaú em aberto {data ? <span className="text-gray-400 font-normal">· ciclo de {rotuloCiclo} · {data.total} {todos ? 'na lista' : 'a vencer'} · {data.sem_pdf} sem PDF</span> : null}</p>
+          <label className="text-xs text-gray-600 flex items-center gap-1.5 cursor-pointer ml-auto"><input type="checkbox" checked={todos} onChange={e => { setTodos(e.target.checked); setPage(1) }} /> incluir já vencidos</label>
+          <label className="text-xs text-gray-600 flex items-center gap-1.5 cursor-pointer"><input type="checkbox" checked={soSem} onChange={e => { setSoSem(e.target.checked); setPage(1) }} /> só os sem PDF</label>
           <div className="relative"><Search size={13} className="absolute left-2.5 top-2.5 text-gray-400" /><input value={busca} onChange={e => { setBusca(e.target.value); setPage(1) }} placeholder="Cliente, CNPJ ou nº" className="text-xs border border-gray-200 rounded-lg pl-7 pr-2 py-1.5 w-52" /></div>
         </div>
+        {data && !todos && data.vencidos_sem_pdf > 0 && (
+          <p className="text-xs text-gray-500">{data.vencidos_sem_pdf} boleto(s) já vencido(s) deste ciclo sem PDF ficaram de fora da lista: o PDF só é usado no Lançamento e no Vencimento, e o aviso de atraso e o de bloqueio saem só com texto. Marque “incluir já vencidos” para vê-los.</p>
+        )}
         <div className="overflow-x-auto border border-gray-100 rounded-lg">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-xs text-gray-500"><tr><th className="text-left px-3 py-2">Cliente</th><th className="text-left px-3 py-2">Nº</th><th className="text-left px-3 py-2">Vencimento</th><th className="text-right px-3 py-2">Valor</th><th className="text-left px-3 py-2">PDF</th><th className="w-20" /></tr></thead>

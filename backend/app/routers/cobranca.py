@@ -844,32 +844,58 @@ _NOSSO_OK = re.compile(r"^[0-9A-Za-z\-/.]{1,50}$")
 
 
 @router.get("/boletos-itau")
-def listar_boletos_itau(search: str = "", so_sem_pdf: bool = False, page: int = Query(1, ge=1), limit: int = Query(50, ge=1, le=200),
+def listar_boletos_itau(search: str = "", so_sem_pdf: bool = False, escopo: str = Query("ciclo", pattern="^(ciclo|todos)$"),
+                        ciclo: str = Query("", pattern=r"^(\d{4}-(0[1-9]|1[0-2]))?$"),
+                        page: int = Query(1, ge=1), limit: int = Query(50, ge=1, le=200),
                         current_user=_ler, db: Session = Depends(get_db)):
-    """Boletos do Itaú em aberto e se já têm o PDF no sistema."""
+    """Boletos do Itaú em aberto e se já têm o PDF no sistema. escopo=ciclo (padrão): só os que vencem de hoje em diante —
+    são os únicos que podem precisar de PDF (Lançamento e Vencimento); os já vencidos (atraso/bloqueio) saem só em texto."""
     base = """FROM itau_boletos i LEFT JOIN cobranca_boletos_itau b ON b.nosso_numero = i.nosso_numero
               WHERE i.data_pagamento IS NULL AND i.data_baixa IS NULL AND COALESCE(i.status,'') NOT IN ('paga','cancelada') AND COALESCE(i.valor_titulo,0) > 0
                 AND (:q = '' OR i.pagador ILIKE :like OR i.nosso_numero = :q OR regexp_replace(COALESCE(i.cpf_cnpj,''), '\\D', '', 'g') LIKE :qd)"""
     p = {"q": search.strip(), "like": f"%{search.strip()}%", "qd": f"%{re.sub(r'[^0-9]', '', search) or '§'}%"}
+    if ciclo:                                                  # só os boletos emitidos naquele mês (o ciclo escolhido)
+        base += f" AND {bi.CICLO_SQL} = :ciclo"
+        p["ciclo"] = ciclo
+    hoje = svc.hoje_br()
+    fora = db.execute(text(f"SELECT count(*) {base} AND b.id IS NULL AND i.data_vencimento < :h"), {**p, "h": hoje}).scalar()   # vencidos sem PDF (não precisam)
+    if escopo == "ciclo":
+        base += " AND i.data_vencimento >= :h"
+        p["h"] = hoje
     filtro = " AND b.id IS NULL" if so_sem_pdf else ""
     total = db.execute(text(f"SELECT count(*) {base}{filtro}"), p).scalar()
     sem = db.execute(text(f"SELECT count(*) {base} AND b.id IS NULL"), p).scalar()
-    rows = db.execute(text(f"""SELECT i.nosso_numero, i.pagador, i.cpf_cnpj, i.valor_titulo, i.data_vencimento, (b.id IS NOT NULL) AS tem_pdf,
+    rows = db.execute(text(f"""SELECT i.nosso_numero, i.pagador, i.cpf_cnpj, i.valor_titulo, i.data_vencimento, (b.id IS NOT NULL) AS tem_pdf, {bi.CICLO_SQL} AS ciclo,
                                       b.arquivo_nome, b.enviado_em, b.vinculo, (b.linha_digitavel IS NOT NULL) AS tem_linha
                                {base}{filtro} ORDER BY (b.id IS NULL) DESC, i.data_vencimento, i.pagador LIMIT :l OFFSET :o"""),
                       {**p, "l": limit, "o": (page - 1) * limit}).mappings().all()
     itens = [{**dict(r), "data_vencimento": r["data_vencimento"].isoformat() if r["data_vencimento"] else None,
               "enviado_em": r["enviado_em"].isoformat() if r["enviado_em"] else None} for r in rows]
-    return {"total": total, "sem_pdf": sem, "page": page, "pages": max(1, -(-total // limit)), "itens": itens}
+    return {"total": total, "sem_pdf": sem, "escopo": escopo, "vencidos_sem_pdf": fora, "page": page, "pages": max(1, -(-total // limit)), "itens": itens}
+
+
+@router.get("/boletos-itau/ciclos")
+def ciclos_boletos_itau(current_user=_ler, db: Session = Depends(get_db)):
+    """Ciclos (mês de emissão) com boletos do Itaú em aberto, do mais novo para o mais antigo. Para escolher o ciclo ao subir os PDFs."""
+    rows = db.execute(text(f"""SELECT {bi.CICLO_SQL} AS ciclo, count(*) AS abertos, count(*) FILTER (WHERE b.id IS NULL) AS sem_pdf,
+                                      count(*) FILTER (WHERE b.id IS NULL AND i.data_vencimento >= :h) AS sem_pdf_a_vencer
+                                 FROM itau_boletos i LEFT JOIN cobranca_boletos_itau b ON b.nosso_numero = i.nosso_numero
+                                WHERE i.data_pagamento IS NULL AND i.data_baixa IS NULL AND COALESCE(i.status,'') NOT IN ('paga','cancelada')
+                                  AND COALESCE(i.valor_titulo,0) > 0
+                                GROUP BY 1 ORDER BY 1 DESC"""), {"h": svc.hoje_br()}).mappings().all()
+    return [{**dict(r), "rotulo": bi.rotulo_ciclo(r["ciclo"])} for r in rows]
 
 
 @router.post("/boletos-itau/upload")
 async def upload_boletos_itau(files: List[UploadFile] = File(...), modo: str = Form("analisar"), atribuicoes: str = Form("{}"),
-                              substituir: bool = Form(False), current_user=_ler, db: Session = Depends(get_db)):
+                              substituir: bool = Form(False), ciclo: str = Form(""), current_user=_ler, db: Session = Depends(get_db)):
     """modo=analisar: lê os PDFs/ZIP e mostra com qual boleto cada um casaria (NÃO grava nada).
-    modo=vincular: grava os que casaram com segurança (ou que o analista atribuiu à mão em `atribuicoes`: {arquivo: nosso_numero})."""
+    modo=vincular: grava os que casaram com segurança (ou que o analista atribuiu à mão em `atribuicoes`: {arquivo: nosso_numero}).
+    `ciclo` (AAAA-MM, mês de emissão) é OBRIGATÓRIO: o PDF só casa com boleto desse ciclo; se casar com boleto de outro ciclo, avisa e não grava."""
     if modo not in ("analisar", "vincular"):
         raise HTTPException(400, "Modo inválido.")
+    if not re.match(r"^\d{4}-(0[1-9]|1[0-2])$", ciclo or ""):
+        raise HTTPException(400, "Escolha o ciclo (mês de emissão) a que estes boletos pertencem.")
     try:
         manual = json.loads(atribuicoes or "{}")
         if not isinstance(manual, dict):
@@ -888,8 +914,11 @@ async def upload_boletos_itau(files: List[UploadFile] = File(...), modo: str = F
     except bi.PdfInvalido as ex:
         raise HTTPException(400, str(ex))
     cnpj_emp = db.execute(text("SELECT value FROM system_settings WHERE key = 'empresa_cnpj'")).scalar() or "35.775.152/0001-40"
-    cands = bi.candidatos_abertos(db)
+    todos = bi.candidatos_abertos(db)
+    cands = [c for c in todos if c["ciclo"] == ciclo]                        # só boletos do ciclo escolhido
+    outros = [c for c in todos if c["ciclo"] != ciclo]
     por_nosso = {c["nosso_numero"]: c for c in cands}
+    por_nosso_outros = {c["nosso_numero"]: c for c in outros}
     usados, itens = set(), []
     for nome, conteudo, erro_pre in arquivos[:bi.MAX_ARQUIVOS]:
         it = {"arquivo": nome, "status": "", "motivo": "", "boleto": None, "vinculo": None, "linha": False}
@@ -901,10 +930,17 @@ async def upload_boletos_itau(files: List[UploadFile] = File(...), modo: str = F
             it["linha"] = bool(ev["linha"])
             if nome in manual and manual[nome] in por_nosso:
                 st, c, vinc, mot = "ok", por_nosso[manual[nome]], "manual", "vínculo manual"
+            elif nome in manual and manual[nome] in por_nosso_outros:
+                st, c, vinc, mot = "outro_ciclo", por_nosso_outros[manual[nome]], None, f"esse boleto é do ciclo {bi.rotulo_ciclo(por_nosso_outros[manual[nome]]['ciclo'])}, não do ciclo escolhido ({bi.rotulo_ciclo(ciclo)})"
             else:
                 st, c, vinc, mot = bi.casar(ev, cands)
+                if st == "sem_correspondencia":                    # não achou no ciclo: avisa se é de outro ciclo (nunca grava)
+                    st2, c2, _v, _m = bi.casar(ev, outros)
+                    if c2 is not None and st2 in ("ok", "divergente"):
+                        st, c, vinc = "outro_ciclo", c2, None
+                        mot = f"este PDF é de um boleto do ciclo {bi.rotulo_ciclo(c2['ciclo'])}, não do ciclo escolhido ({bi.rotulo_ciclo(ciclo)}): confira o ciclo"
             it.update(status=st, motivo=mot, vinculo=vinc)
-            if c and st == "divergente":                         # só sugere; gravar exige vínculo manual do analista
+            if c and st in ("divergente", "outro_ciclo"):          # só sugere/avisa; gravar exige vínculo manual (e do ciclo escolhido)
                 it["boleto"] = {"nosso_numero": c["nosso_numero"], "pagador": c["pagador"], "valor": float(c["valor_titulo"] or 0),
                                 "vencimento": c["data_vencimento"].isoformat() if c["data_vencimento"] else None, "tem_pdf": bool(c["tem_pdf"])}
             elif c:
