@@ -34,19 +34,9 @@ _require_edit_client = Depends(require_permission("can_edit_billing"))
 
 class BankCreate(BaseModel):
     nome:           str
-    agencia:        Optional[str] = None
-    conta:          Optional[str] = None
-    digito:         Optional[str] = None
-    tipo_chave_pix: Optional[str] = None
-    chave_pix:      Optional[str] = None
 
 class BankUpdate(BaseModel):
     nome:           Optional[str] = None
-    agencia:        Optional[str] = None
-    conta:          Optional[str] = None
-    digito:         Optional[str] = None
-    tipo_chave_pix: Optional[str] = None
-    chave_pix:      Optional[str] = None
 
 class ProfileUpdate(BaseModel):
     telefone:    Optional[str] = None
@@ -102,11 +92,8 @@ def _audit(db: Session, user, acao: str, detalhes: dict):
     db.add(AuditLog(user_id=getattr(user, "id", None), action=acao, entity="client", details=detalhes))
 
 def _bank_out(b: Bank) -> dict:
-    return {
-        "id": b.id, "nome": b.nome, "agencia": b.agencia,
-        "conta": b.conta, "digito": b.digito,
-        "tipo_chave_pix": b.tipo_chave_pix, "chave_pix": b.chave_pix,
-    }
+    # só o nome: agência/conta/PIX saíram da tela e da API (24/10/2026, pedido do Diego); as colunas seguem no banco, intactas
+    return {"id": b.id, "nome": b.nome}
 
 def _profile_out(p: ClientProfile, bank_nome: str | None = None) -> dict:
     return {
@@ -222,17 +209,12 @@ def export_clients(db: Session = Depends(get_db), current_user=Depends(get_curre
         "cidade":      p.cidade      or "",
         "estado":      p.estado      or "",
         "banco":       p.bank.nome   if p.bank else "",
-        "agencia":     p.bank.agencia if p.bank else "",
-        "conta":       p.bank.conta   if p.bank else "",
-        "digito":      p.bank.digito  if p.bank else "",
-        "tipo_chave_pix": p.bank.tipo_chave_pix if p.bank else "",
-        "chave_pix":   p.bank.chave_pix if p.bank else "",
     } for p in profiles]
 
     df = pd.DataFrame(rows, columns=[
         "id_smart", "nome", "cnpj", "telefone", "email",
         "logradouro", "numero", "complemento", "bairro", "cep", "cidade", "estado",
-        "banco", "agencia", "conta", "digito", "tipo_chave_pix", "chave_pix",
+        "banco",
     ])
     # texto que começa com = + - @ viraria fórmula no Excel (injeção): neutraliza
     _neutro = lambda x: ("'" + x) if isinstance(x, str) and x[:1] in ("=", "+", "-", "@") else x

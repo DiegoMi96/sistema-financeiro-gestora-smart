@@ -9,7 +9,6 @@ import {
 } from 'lucide-react'
 
 const ESTADOS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO']
-const TIPO_PIX = ['cpf','cnpj','email','telefone','aleatoria']
 
 // ── Formatação ─────────────────────────────────────────────────────────────
 const fmtCnpj = (v = '') => {
@@ -163,7 +162,7 @@ function BanksModal({ onClose }) {
   const { data: banks = [] } = useQuery({ queryKey: ['banks'], queryFn: () => clientsApi.banks().then(r => r.data) })
   const [creating, setCreating] = useState(false)
   const [editing, setEditing]   = useState(null) // bank object
-  const emptyForm = { nome:'', agencia:'', conta:'', digito:'', tipo_chave_pix:'', chave_pix:'' }
+  const emptyForm = { nome:'' }
   const [form, setForm] = useState(emptyForm)
 
   const createMut = useMutation({
@@ -182,7 +181,7 @@ function BanksModal({ onClose }) {
     onError: (e) => toast.error(e.response?.data?.detail || 'Banco em uso'),
   })
 
-  const startEdit = (b) => { setEditing(b); setForm({ nome:b.nome, agencia:b.agencia||'', conta:b.conta||'', digito:b.digito||'', tipo_chave_pix:b.tipo_chave_pix||'', chave_pix:b.chave_pix||'' }); setCreating(false) }
+  const startEdit = (b) => { setEditing(b); setForm({ nome:b.nome }); setCreating(false) }
   const startCreate = () => { setEditing(null); setForm(emptyForm); setCreating(true) }
   const cancel = () => { setCreating(false); setEditing(null); setForm(emptyForm) }
   const set = (k) => (v) => setForm(f => ({...f,[k]:v}))
@@ -193,31 +192,6 @@ function BanksModal({ onClose }) {
         <div className="col-span-2">
           <label className="block text-xs font-medium text-gray-500 mb-1">Nome da instituição *</label>
           <input className="gs-input w-full" value={form.nome} onChange={e=>set('nome')(e.target.value)} placeholder="Ex: Itaú, Asaas, Bradesco" />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Agência</label>
-          <input className="gs-input w-full" value={form.agencia} onChange={e=>set('agencia')(e.target.value)} placeholder="0000" />
-        </div>
-        <div className="flex gap-2">
-          <div className="flex-1">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Conta</label>
-            <input className="gs-input w-full" value={form.conta} onChange={e=>set('conta')(e.target.value)} placeholder="00000000" />
-          </div>
-          <div className="w-16">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Dígito</label>
-            <input className="gs-input w-full" value={form.digito} onChange={e=>set('digito')(e.target.value)} placeholder="0" />
-          </div>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Tipo da chave Pix</label>
-          <select className="gs-select w-full" value={form.tipo_chave_pix} onChange={e=>set('tipo_chave_pix')(e.target.value)}>
-            <option value="">— Sem Pix —</option>
-            {TIPO_PIX.map(t=><option key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Chave Pix</label>
-          <input className="gs-input w-full" value={form.chave_pix} onChange={e=>set('chave_pix')(e.target.value)} placeholder="Chave" disabled={!form.tipo_chave_pix} />
         </div>
       </div>
       <div className="flex justify-end gap-2 pt-1">
@@ -253,9 +227,6 @@ function BanksModal({ onClose }) {
               <div className="flex items-center justify-between py-2.5 border-b last:border-0">
                 <div>
                   <p className="text-sm font-medium text-gray-900">{b.nome}</p>
-                  <p className="text-xs text-gray-400">
-                    {[b.agencia && `Ag ${b.agencia}`, b.conta && `C/C ${b.conta}${b.digito?'-'+b.digito:''}`, b.chave_pix && `Pix: ${b.chave_pix}`].filter(Boolean).join(' · ') || 'Sem dados bancários'}
-                  </p>
                 </div>
                 <div className="flex gap-1">
                   <button onClick={() => startEdit(b)} className="p-1.5 rounded hover:bg-gray-100 text-gray-500"><Pencil size={13} /></button>
