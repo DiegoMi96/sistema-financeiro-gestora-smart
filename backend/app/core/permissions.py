@@ -61,6 +61,7 @@ ALL_PERMISSIONS = [
     "can_view_fat_ciclos",           # Lista de ciclos
     "can_view_fat_ciclo_detalhe",    # Detalhe do ciclo
     "can_view_fat_cliente_detalhe",  # Detalhe do cliente
+    "can_view_fat_clientes",         # Aba Clientes (cadastro: CNPJ, e-mail, telefone, endereço) — só quem for liberado (24/10/2026)
     "can_view_fat_diagnostico_ia",   # Diagnóstico IA
     # Contestação — páginas visíveis (granular, 01/08/2026)
     "can_view_cont_ciclos",          # Lista de ciclos de contestação
@@ -144,6 +145,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_fat_ciclos":           True,
         "can_view_fat_ciclo_detalhe":    True,
         "can_view_fat_cliente_detalhe":  True,"can_view_fat_diagnostico_ia":   True,
+        "can_view_fat_clientes":         True,
         "can_view_cont_ciclos":          True,
         "can_view_cont_ciclo_detalhe":   True,
         "can_view_cont_allcom":          True,
@@ -216,6 +218,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_fat_ciclos":           True,
         "can_view_fat_ciclo_detalhe":    True,
         "can_view_fat_cliente_detalhe":  True,"can_view_fat_diagnostico_ia":   True,
+        "can_view_fat_clientes":         True,
         "can_view_cont_ciclos":          True,
         "can_view_cont_ciclo_detalhe":   True,
         "can_view_cont_allcom":          True,
@@ -288,6 +291,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_fat_ciclos":           True,
         "can_view_fat_ciclo_detalhe":    True,
         "can_view_fat_cliente_detalhe":  True,"can_view_fat_diagnostico_ia":   True,
+        "can_view_fat_clientes":         True,
         "can_view_cont_ciclos":          False,
         "can_view_cont_ciclo_detalhe":   False,
         "can_view_cont_allcom":          False,
@@ -360,6 +364,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_fat_ciclos":           False,
         "can_view_fat_ciclo_detalhe":    False,
         "can_view_fat_cliente_detalhe":  False,"can_view_fat_diagnostico_ia":   False,
+        "can_view_fat_clientes":         False,
         "can_view_cont_ciclos":          True,
         "can_view_cont_ciclo_detalhe":   True,
         "can_view_cont_allcom":          True,
@@ -432,6 +437,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_fat_ciclos":           True,
         "can_view_fat_ciclo_detalhe":    True,
         "can_view_fat_cliente_detalhe":  True,"can_view_fat_diagnostico_ia":   True,
+        "can_view_fat_clientes":         False,
         "can_view_cont_ciclos":          False,
         "can_view_cont_ciclo_detalhe":   False,
         "can_view_cont_allcom":          False,
@@ -504,6 +510,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_fat_ciclos":           True,
         "can_view_fat_ciclo_detalhe":    True,
         "can_view_fat_cliente_detalhe":  True,"can_view_fat_diagnostico_ia":   True,
+        "can_view_fat_clientes":         True,
         "can_view_cont_ciclos":          False,
         "can_view_cont_ciclo_detalhe":   False,
         "can_view_cont_allcom":          False,
@@ -576,6 +583,7 @@ ROLE_PERMISSIONS: dict[UserRole, dict[str, bool]] = {
         "can_view_fat_ciclos":           True,
         "can_view_fat_ciclo_detalhe":    True,
         "can_view_fat_cliente_detalhe":  True,"can_view_fat_diagnostico_ia":   True,
+        "can_view_fat_clientes":         False,
         "can_view_cont_ciclos":          False,
         "can_view_cont_ciclo_detalhe":   False,
         "can_view_cont_allcom":          False,
@@ -682,7 +690,7 @@ ROLE_TIER = {
 MODULE_PERMISSIONS = {
     "FATURAMENTO": [
         "can_view_faturamento", "can_view_fat_ciclos", "can_view_fat_ciclo_detalhe",
-        "can_view_fat_cliente_detalhe", "can_edit_billing", "can_view_fat_diagnostico_ia",
+        "can_view_fat_cliente_detalhe", "can_view_fat_clientes", "can_edit_billing", "can_view_fat_diagnostico_ia",
         "can_approve_billing", "can_create_adjustment", "can_approve_adjustment",
         "can_upload_files", "can_sync_asaas", "can_view_financial_values",
         "can_export_excel", "can_export_pdf",

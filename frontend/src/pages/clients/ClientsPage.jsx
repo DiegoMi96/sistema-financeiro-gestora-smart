@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { clientsApi } from '../../services/api'
+import { useAuth } from '../../contexts/AuthContext'
 import toast from 'react-hot-toast'
 import {
   Search, Upload, Download, Building2, Pencil, X, Check,
@@ -282,6 +283,8 @@ function BanksModal({ onClose }) {
 // ── Página principal ───────────────────────────────────────────────────────
 export default function ClientsPage() {
   const qc      = useQueryClient()
+  const { can } = useAuth()
+  const podeEditar = can('can_edit_billing')          // ver a lista: quem acessa o Faturamento; editar/importar/exportar/bancos: só quem edita
   const fileRef = useRef(null)
   const menuRef = useRef(null)
 
@@ -327,8 +330,9 @@ export default function ClientsPage() {
     mutationFn: (fd) => clientsApi.import(fd),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['clients'] })
-      const { created, updated, skipped } = res.data
+      const { created, updated, skipped, erros = [] } = res.data
       toast.success(`Importado: ${created} criados · ${updated} atualizados · ${skipped} ignorados`)
+      if (erros.length) toast.error(`${erros.length} linha(s) com dado inválido foram puladas. Ex.: ${erros[0]}`, { duration: 9000 })
     },
     onError: (e) => toast.error(e.response?.data?.detail || 'Erro na importação'),
   })
@@ -354,7 +358,7 @@ export default function ClientsPage() {
           <h1 className="gs-page-title">Clientes</h1>
           <p className="gs-page-sub">{total > 0 ? `${total} clientes cadastrados` : 'Nenhum cliente ainda'}</p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        {podeEditar && <div className="flex items-center gap-2 flex-wrap">
           <button onClick={() => setShowBanks(true)} className="gs-btn gs-btn-outline">
             <Landmark size={14} /> Bancos
           </button>
@@ -389,7 +393,7 @@ export default function ClientsPage() {
             )}
           </div>
           <input ref={fileRef} type="file" accept=".xlsx" className="hidden" onChange={handleFile} />
-        </div>
+        </div>}
       </div>
 
       {/* Barra de busca */}
@@ -484,13 +488,13 @@ export default function ClientsPage() {
                   </td>
                   {/* Ações — centralizado */}
                   <td className="gs-td text-center" style={{paddingRight:'28px'}}>
-                    <button
+                    {podeEditar && <button
                       onClick={() => setEditing(p)}
                       title="Editar cliente"
                       className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors"
                     >
                       <Pencil size={14} />
-                    </button>
+                    </button>}
                   </td>
                 </tr>
               ))}

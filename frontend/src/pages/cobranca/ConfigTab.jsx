@@ -14,7 +14,7 @@ export default function ConfigTab({ onChange }) {
   const [avancado, setAvancado] = useState(false)
   const [conf, setConf] = useState(null)
   const [ocupado, setOcupado] = useState(false)
-  useEffect(() => { if (data) setF({ ...data }) }, [data])
+  useEffect(() => { if (data) setF({ ...data, smtp_seguranca: ['starttls', 'ssl'].includes(data.smtp_seguranca) ? data.smtp_seguranca : 'starttls' }) }, [data])
   if (isError) return <div className="p-8 text-center text-sm text-red-500">Não foi possível carregar a configuração (sem permissão ou servidor indisponível).</div>
   if (!f) return <div className="p-8 text-center text-sm text-gray-400">Carregando…</div>
 

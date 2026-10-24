@@ -13,7 +13,9 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      # Somente o próprio servidor (24/10/2026): o Docker ignora o firewall (ufw) em portas publicadas, então "5432:5432"
+      # deixava o Postgres aberto para a internet. Acesso de fora: túnel SSH (ssh -L 5432:127.0.0.1:5432 root@servidor).
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -41,7 +43,8 @@ services:
       FRONTEND_URL:    ${FRONTEND_URL:-http://localhost:3000}
       DEBUG:           ${DEBUG:-false}
     ports:
-      - "8000:8000"
+      # Somente o próprio servidor: o site chega aqui pelo nginx (127.0.0.1:8000) e pela rede interna do Docker.
+      - "127.0.0.1:8000:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -71,7 +74,7 @@ services:
       # arquivo real no servidor estava com "4000:80" (editado direto, nunca
       # sincronizado com o git) enquanto este arquivo dizia "3000:80". Um
       # `git pull` no servidor teria revertido para 3000 e derrubado o site.
-      - "4000:80"
+      - "127.0.0.1:4000:80"
     depends_on:
       - backend
     deploy:
@@ -103,7 +106,7 @@ services:
       GUARDIAO_SMSMARKET_USER:     ${GUARDIAO_SMSMARKET_USER:-}
       GUARDIAO_SMSMARKET_PASSWORD: ${GUARDIAO_SMSMARKET_PASSWORD:-}
     ports:
-      - "3002:3000"
+      - "127.0.0.1:3002:3000"
     depends_on:
       - backend
     deploy:
@@ -135,7 +138,7 @@ services:
       CANCELAMENTO_SHEET_ID: ${CANCELAMENTO_SHEET_ID:-}
       SAIDA_SHEET_ID: ${SAIDA_SHEET_ID:-}
     ports:
-      - "3003:3000"
+      - "127.0.0.1:3003:3000"
     depends_on:
       - backend
     volumes:

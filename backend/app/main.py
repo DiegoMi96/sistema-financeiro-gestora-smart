@@ -166,6 +166,7 @@ def _run_migrations():
         cols.append(("users", "can_view_fat_ciclos", "BOOLEAN"))
         cols.append(("users", "can_view_fat_ciclo_detalhe", "BOOLEAN"))
         cols.append(("users", "can_view_fat_cliente_detalhe", "BOOLEAN"))
+        cols.append(("users", "can_view_fat_clientes", "BOOLEAN"))
         cols.append(("users", "can_view_fat_diagnostico_ia", "BOOLEAN"))
         cols.append(("users", "can_view_cont_ciclos", "BOOLEAN"))
         cols.append(("users", "can_view_cont_ciclo_detalhe", "BOOLEAN"))

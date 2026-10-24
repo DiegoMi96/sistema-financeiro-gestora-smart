@@ -123,6 +123,7 @@ class User(Base):
     can_view_fat_ciclos            = Column(Boolean, default=None)
     can_view_fat_ciclo_detalhe     = Column(Boolean, default=None)
     can_view_fat_cliente_detalhe   = Column(Boolean, default=None)
+    can_view_fat_clientes          = Column(Boolean, default=None)
     can_view_fat_diagnostico_ia    = Column(Boolean, default=None)
     can_view_cont_ciclos           = Column(Boolean, default=None)
     can_view_cont_ciclo_detalhe    = Column(Boolean, default=None)

@@ -145,7 +145,7 @@ function AppRoutes() {
           <Route path="/dashboard-analista" element={<Navigate to="/dashboard" replace />} />
 
           {/* Clientes */}
-          <Route path="/clientes" element={<ClientsPage />} />
+          <Route path="/clientes" element={<PrivateRoute permission="can_view_fat_clientes"><ClientsPage /></PrivateRoute>} />
 
           {/* Faturamento — rotas protegidas 01/08/2026 (antes ficavam sem
               PrivateRoute nenhum; bug que deixava Suporte Técnico ver

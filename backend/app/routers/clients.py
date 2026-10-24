@@ -16,13 +16,13 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal, get_db
 from app.core.permissions import require_permission
 from app.routers.auth import get_current_user
-from app.models import Bank, ClientProfile, BillingLine, BillingCycle
+from app.models import AuditLog, Bank, ClientProfile, BillingLine, BillingCycle
 from app.config import settings
 from app.services.asaas_client import get_asaas_client
 
-# Segurança: todos os endpoints de clientes exigem login (o frontend já envia o
-# token via api.js). Fecha o acesso anônimo à base de clientes (dados LGPD).
-router = APIRouter(prefix="/clients", tags=["clients"], dependencies=[Depends(get_current_user)])
+# Segurança: todos os endpoints de clientes exigem login E a permissão própria `can_view_fat_clientes` (liberada por usuário/perfil na
+# Gestão de Acessos) — o cadastro tem CNPJ, e-mail, telefone, endereço e contas bancárias (LGPD). Não basta acessar o Faturamento.
+router = APIRouter(prefix="/clients", tags=["clients"], dependencies=[Depends(require_permission("can_view_fat_clientes"))])
 
 # Escrita (criar/editar/importar/sincronizar) exige can_edit_billing.
 # Leitura = qualquer usuário logado (igual à tela /clientes no app).
@@ -62,6 +62,44 @@ class ProfileUpdate(BaseModel):
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+_LIMITES = {"telefone": 30, "email": 150, "logradouro": 200, "numero": 20, "complemento": 100, "bairro": 100, "cep": 10, "cidade": 100, "estado": 2}
+_UFS = {"AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"}
+
+
+def _campo_limpo(campo: str, valor):
+    """Normaliza e valida UM campo do cadastro. Devolve o valor limpo ou levanta ValueError com a mensagem para o usuário.
+    Vazio/'nan'/'none' vira None (não apaga nem grava lixo)."""
+    if valor is None:
+        return None
+    v = str(valor).strip()
+    if v.lower() in ("", "nan", "none", "null"):
+        return None
+    if campo == "email":
+        from app.services.cobranca import emails_validos
+        lista = emails_validos(v)
+        if not lista:
+            raise ValueError("e-mail inválido")
+        v = ", ".join(lista)
+    elif campo == "estado":
+        v = v.upper()
+        if v not in _UFS:
+            raise ValueError("UF inválida")
+    elif campo == "cep":
+        d = re.sub(r"\D", "", v)
+        if len(d) != 8:
+            raise ValueError("CEP deve ter 8 dígitos")
+        v = d
+    elif campo == "telefone":
+        if not re.fullmatch(r"[0-9 ()+\-]{8,30}", v):
+            raise ValueError("telefone inválido")
+    if len(v) > _LIMITES.get(campo, 255):
+        raise ValueError(f"texto muito longo (máx. {_LIMITES.get(campo, 255)})")
+    return v
+
+
+def _audit(db: Session, user, acao: str, detalhes: dict):
+    db.add(AuditLog(user_id=getattr(user, "id", None), action=acao, entity="client", details=detalhes))
+
 def _bank_out(b: Bank) -> dict:
     return {
         "id": b.id, "nome": b.nome, "agencia": b.agencia,
@@ -86,41 +124,44 @@ def _profile_out(p: ClientProfile, bank_nome: str | None = None) -> dict:
 # BANCOS
 # ══════════════════════════════════════════════════════════════════════════════
 
-@router.get("/banks")
+@router.get("/banks", dependencies=[_require_edit_client])
 def list_banks(db: Session = Depends(get_db)):
     return [_bank_out(b) for b in db.query(Bank).order_by(Bank.nome).all()]
 
 
 @router.post("/banks", status_code=201, dependencies=[_require_edit_client])
-def create_bank(data: BankCreate, db: Session = Depends(get_db)):
+def create_bank(data: BankCreate, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     if db.query(Bank).filter(Bank.nome == data.nome).first():
         raise HTTPException(400, "Já existe um banco com esse nome")
     b = Bank(**data.model_dump())
     db.add(b)
+    _audit(db, current_user, "clients.banco_criar", {"nome": data.nome})
     db.commit()
     db.refresh(b)
     return _bank_out(b)
 
 
 @router.patch("/banks/{bank_id}", dependencies=[_require_edit_client])
-def update_bank(bank_id: int, data: BankUpdate, db: Session = Depends(get_db)):
+def update_bank(bank_id: int, data: BankUpdate, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     b = db.get(Bank, bank_id)
     if not b:
         raise HTTPException(404, "Banco não encontrado")
     for k, v in data.model_dump(exclude_none=True).items():
         setattr(b, k, v)
+    _audit(db, current_user, "clients.banco_editar", {"id": bank_id, "campos": list(data.model_dump(exclude_none=True).keys())})
     db.commit()
     db.refresh(b)
     return _bank_out(b)
 
 
 @router.delete("/banks/{bank_id}", status_code=204, dependencies=[_require_edit_client])
-def delete_bank(bank_id: int, db: Session = Depends(get_db)):
+def delete_bank(bank_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     b = db.get(Bank, bank_id)
     if not b:
         raise HTTPException(404, "Banco não encontrado")
     if b.profiles:
         raise HTTPException(400, "Banco em uso — remova a associação dos clientes antes")
+    _audit(db, current_user, "clients.banco_remover", {"id": bank_id, "nome": b.nome})
     db.delete(b)
     db.commit()
 
@@ -159,8 +200,8 @@ def list_profiles(
     }
 
 
-@router.get("/export")
-def export_clients(db: Session = Depends(get_db)):
+@router.get("/export", dependencies=[_require_edit_client])
+def export_clients(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     """Exporta todos os perfis de clientes como planilha Excel."""
     profiles = db.query(ClientProfile).order_by(
         text("CASE WHEN nome IS NULL OR nome = '' THEN 1 ELSE 0 END, nome ASC")
@@ -192,6 +233,10 @@ def export_clients(db: Session = Depends(get_db)):
         "logradouro", "numero", "complemento", "bairro", "cep", "cidade", "estado",
         "banco", "agencia", "conta", "digito", "tipo_chave_pix", "chave_pix",
     ])
+    # texto que começa com = + - @ viraria fórmula no Excel (injeção): neutraliza
+    _neutro = lambda x: ("'" + x) if isinstance(x, str) and x[:1] in ("=", "+", "-", "@") else x
+    df = df.map(_neutro) if hasattr(df, "map") else df.applymap(_neutro)
+    _audit(db, current_user, "clients.export", {"linhas": len(rows)}); db.commit()
     buf = io.BytesIO()
     df.to_excel(buf, index=False, sheet_name="Clientes")
     buf.seek(0)
@@ -212,7 +257,7 @@ def get_profile(id_smart: str, db: Session = Depends(get_db)):
 
 
 @router.patch("/{id_smart}", dependencies=[_require_edit_client])
-def update_profile(id_smart: str, data: ProfileUpdate, db: Session = Depends(get_db)):
+def update_profile(id_smart: str, data: ProfileUpdate, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     p = db.get(ClientProfile, id_smart)
     if not p:
         raise HTTPException(404, "Cliente não encontrado")
@@ -223,9 +268,20 @@ def update_profile(id_smart: str, data: ProfileUpdate, db: Session = Depends(get
             if not db.get(Bank, data.banco_id):
                 raise HTTPException(400, "Banco não encontrado")
             p.banco_id = data.banco_id
+    alterados = {}
     for k, v in data.model_dump(exclude_none=True, exclude={"banco_id"}).items():
-        setattr(p, k, v)
+        try:
+            limpo = _campo_limpo(k, v)
+        except ValueError as ex:
+            raise HTTPException(400, f"Campo '{k}': {ex}")
+        if str(v).strip() == "":                  # o usuário apagou o campo de propósito
+            limpo = None
+        if getattr(p, k) != limpo:
+            alterados[k] = [getattr(p, k), limpo] if k in ("email", "telefone") else "alterado"
+            setattr(p, k, limpo)
     p.updated_at = datetime.now(timezone.utc)
+    if alterados or data.banco_id is not None:
+        _audit(db, current_user, "clients.editar", {"id_smart": id_smart, "campos": alterados, "banco_id": data.banco_id})
     db.commit()
     db.refresh(p)
     return _profile_out(p)
@@ -295,11 +351,17 @@ async def _run_sync(rows: list):
 
 
 @router.post("/sync-asaas", dependencies=[_require_edit_client])
-async def sync_from_asaas(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+async def sync_from_asaas(background_tasks: BackgroundTasks, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     """
     Inicia sincronização em background: busca CNPJs dos últimos 3 meses no billing,
     consulta o Asaas e faz upsert nos client_profiles.
     """
+    ult = db.execute(text("SELECT value FROM system_settings WHERE key = 'clients_sync_ultima'")).scalar()
+    try:
+        if ult and (datetime.now(timezone.utc) - datetime.fromisoformat(ult)).total_seconds() < 300:
+            raise HTTPException(429, "Já há uma sincronização recente. Aguarde 5 minutos.")
+    except ValueError:
+        pass
     ym_cutoff = _build_ym_cutoff()
     rows = db.execute(text("""
         SELECT bl.id_smart,
@@ -319,6 +381,11 @@ async def sync_from_asaas(background_tasks: BackgroundTasks, db: Session = Depen
     if not rows:
         return {"status": "ok", "total": 0, "message": "Nenhum cliente nos últimos 3 meses"}
 
+    agora = datetime.now(timezone.utc).isoformat()
+    if not db.execute(text("UPDATE system_settings SET value = :v, updated_at = now() WHERE key = 'clients_sync_ultima'"), {"v": agora}).rowcount:
+        db.execute(text("INSERT INTO system_settings (key, value) VALUES ('clients_sync_ultima', :v)"), {"v": agora})
+    _audit(db, current_user, "clients.sync_asaas", {"total": len(rows)})
+    db.commit()
     background_tasks.add_task(_run_sync, list(rows))
     return {"status": "started", "total": len(rows), "message": f"Sincronizando {len(rows)} clientes em background. Atualize a lista em alguns minutos."}
 
@@ -360,12 +427,16 @@ EDITABLE = {"telefone","email","logradouro","numero","complemento","bairro","cep
 
 
 @router.post("/import", dependencies=[_require_edit_client])
-async def import_clients(file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def import_clients(file: UploadFile = File(...), db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     content = await file.read()
+    if len(content) > 5 * 1024 * 1024:
+        raise HTTPException(400, "Arquivo muito grande (máx. 5 MB).")
     try:
-        df = pd.read_excel(io.BytesIO(content))
+        df = pd.read_excel(io.BytesIO(content), dtype=str)
     except Exception:
         raise HTTPException(400, "Arquivo inválido — envie um .xlsx")
+    if len(df) > 20000:
+        raise HTTPException(400, "Planilha com linhas demais (máx. 20.000).")
 
     # Normalizar cabeçalhos
     df.columns = [str(c).strip().lower() for c in df.columns]
@@ -381,14 +452,30 @@ async def import_clients(file: UploadFile = File(...), db: Session = Depends(get
     banks_by_name = {b.nome.lower(): b.id for b in db.query(Bank).all()}
 
     updated = created = skipped = 0
-    for _, row in df.iterrows():
-        id_smart = str(row.get("id_smart", "")).strip() if "id_smart" in df.columns else None
-        cnpj_raw = re.sub(r"\D", "", str(row.get("cnpj", ""))) if "cnpj" in df.columns else None
+    erros = []
+    for n, (_, row) in enumerate(df.iterrows(), start=2):
+        id_smart = _campo_limpo("id_smart", row.get("id_smart")) if "id_smart" in df.columns else None
+        cnpj_raw = re.sub(r"\D", "", str(row.get("cnpj", "") or "")) if "cnpj" in df.columns else None
 
         # Resolver id_smart a partir do cnpj se necessário
         if not id_smart and cnpj_raw:
             id_smart = f"ss_{cnpj_raw}"
-        if not id_smart:
+        if not id_smart or not re.fullmatch(r"ss_\d{6,20}", id_smart):
+            skipped += 1
+            continue
+
+        novos, invalido = {}, None
+        for field in EDITABLE:
+            if field in df.columns:
+                try:
+                    limpo = _campo_limpo(field, row.get(field))
+                except ValueError as ex:
+                    invalido = f"linha {n}: {field} — {ex}"
+                    break
+                if limpo is not None:
+                    novos[field] = limpo
+        if invalido:                                   # linha com dado ruim é pulada inteira (nada pela metade) e relatada
+            erros.append(invalido)
             skipped += 1
             continue
 
@@ -396,26 +483,24 @@ async def import_clients(file: UploadFile = File(...), db: Session = Depends(get
         if p is None:
             p = ClientProfile(id_smart=id_smart)
             if cnpj_raw:
-                p.cnpj = cnpj_raw
+                p.cnpj = cnpj_raw[:20]
             if "nome" in df.columns:
-                p.nome = str(row.get("nome", "")).strip() or None
+                nome = _campo_limpo("nome", row.get("nome"))
+                p.nome = nome[:255] if nome else None
             db.add(p)
             created += 1
         else:
             updated += 1
-
-        for field in EDITABLE:
-            if field in df.columns:
-                val = row.get(field)
-                if pd.notna(val) and str(val).strip():
-                    setattr(p, field, str(val).strip())
+        for k, v in novos.items():
+            setattr(p, k, v)
 
         if "_banco_nome" in df.columns:
-            bn = str(row.get("_banco_nome", "")).strip().lower()
+            bn = str(row.get("_banco_nome", "") or "").strip().lower()
             if bn and bn in banks_by_name:
                 p.banco_id = banks_by_name[bn]
 
         p.updated_at = datetime.now(timezone.utc)
 
+    _audit(db, current_user, "clients.import", {"criados": created, "atualizados": updated, "ignorados": skipped, "arquivo": (file.filename or "")[:80]})
     db.commit()
-    return {"created": created, "updated": updated, "skipped": skipped}
+    return {"created": created, "updated": updated, "skipped": skipped, "erros": erros[:20]}
