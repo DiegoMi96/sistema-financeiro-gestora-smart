@@ -41,6 +41,29 @@ DIAS = (10, 15, 20, 25)
 
 MARGEM_META_PADRAO = 5.0   # % — o time bate a meta com 95% dela
 
+# Exceções PONTUAIS da janela de "pago em dia", por (ano, mês, dia do vencimento).
+# Pedido do Diego (26/10/2026): o vencimento dia 25 de outubro/2026 caiu num domingo; a regra padrão de
+# fim de semana (ver nota "VENCIMENTO EM FIM DE SEMANA" acima) daria a janela 25→27 (vencimento até 1 dia
+# depois do 1º dia útil). Ele pediu, só para este mês, considerar pago em dia de sexta 23 a segunda 26
+# (inclui pagamento ANTES do vencimento, por causa do fim de semana). Vale só para o(s) mês(es) aqui
+# listado(s) — a regra geral (e os próximos meses com vencimento em fim de semana) não muda.
+JANELAS_ESPECIAIS = {
+    (2026, 10, 25): (date(2026, 10, 23), date(2026, 10, 26)),
+}
+
+
+def _janela_especial_sql(year: int, month: int) -> Optional[str]:
+    """CASE (fragmento SQL) com as janelas especiais deste mês, por dia do vencimento — ou None se não há
+    nenhuma (aí vale só a regra padrão). Usado para SUBSTITUIR a janela padrão quando o dia bate."""
+    overrides = {dia: janela for (y, m, dia), janela in JANELAS_ESPECIAIS.items() if y == year and m == month}
+    if not overrides:
+        return None
+    partes = " ".join(
+        f"WHEN {dia} THEN e.dp BETWEEN DATE '{ini.isoformat()}' AND DATE '{fim.isoformat()}'"
+        for dia, (ini, fim) in overrides.items()
+    )
+    return f"CASE EXTRACT(DAY FROM e.gdate)::int {partes} ELSE NULL END"
+
 
 def _margem_meta(db: Session) -> float:
     """Margem (em %) abaixo da meta que ainda conta como meta atingida. Padrão 5; ajustável sem deploy."""
@@ -164,6 +187,9 @@ def comissionamento(year: int, month: int, user_id: Optional[int] = None,
         cyc = db.execute(text("SELECT id FROM billing_cycles WHERE year = :y AND month = :m ORDER BY id DESC LIMIT 1"),
                          {"y": py, "m": pm}).scalar()
         ef_g = effective_due_date_sql("e.gdate")
+        janela_esp = _janela_especial_sql(year, month)
+        janela_padrao = f"(e.dp >= e.dv AND e.dp BETWEEN e.gdate AND ({ef_g}) + 1)"
+        pago_expr = f"(e.rec AND COALESCE(({janela_esp}), {janela_padrao}))" if janela_esp else f"(e.rec AND {janela_padrao})"
         rows = db.execute(text(f"""
             WITH bol0 AS (   -- todos os boletos (Asaas + Itaú) com vencimento no mês, valor ORIGINAL do boleto
                 -- Asaas: vale o vencimento ORIGINAL (originalDueDate), não o atual (que muda quando o boleto é remarcado)
@@ -218,7 +244,7 @@ def comissionamento(year: int, month: int, user_id: Optional[int] = None,
                        COALESCE(SUM(x.valor) FILTER (WHERE x.pago), 0) AS recebido,
                        COALESCE(SUM(x.valor) FILTER (WHERE x.pago AND x.banco = 'Itaú'), 0) AS recebido_itau,
                        COUNT(*) FILTER (WHERE x.banco = 'Itaú') AS boletos_itau
-                FROM (SELECT e.*, (e.rec AND e.dp >= e.dv AND e.dp BETWEEN e.gdate AND ({ef_g}) + 1) AS pago FROM elig e) x
+                FROM (SELECT e.*, {pago_expr} AS pago FROM elig e) x
                 GROUP BY 1
             )
             SELECT f.dia, f.clientes, f.faturado,
