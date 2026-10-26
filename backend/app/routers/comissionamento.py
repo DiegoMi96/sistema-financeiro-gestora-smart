@@ -13,10 +13,26 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.comissionamento import ComissaoExtrato, ComissaoCiclo, CadastroParceiro, ComissaoEstado, ComissaoImportacao
+from app.models.comissionamento import ComissaoExtrato, ComissaoCiclo, CadastroParceiro, ComissaoEstado, ComissaoImportacao, ConviteParceiro
 from app.core.permissions import require_permission, get_permission
 from app.routers.auth import get_current_user
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
+import re
+import secrets
+
+_CTRL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+
+
+def _limpa_nome(v: str) -> str:
+    """Mesma limpeza do cadastro público (_limpa em cadastro_publico.py): tira caracteres de
+    controle, '<' e '>' — o nome entra em telas que montam HTML (Enviar Link > Links enviados)."""
+    v = _CTRL.sub("", str(v or "")).replace("<", "").replace(">", "")
+    return " ".join(v.split())
+
+# Mesmo endereço que o front usa pra montar o link (comissionamento/index.html, PUBLIC_LINK_BASE) —
+# duplicado aqui de propósito (o front é estático, sem acesso a settings do servidor).
+PUBLIC_LINK_BASE = "https://sistema.gestorasmart.com.br/cadastro/"
+CATEGORIAS_CONVITE = {"indicador", "indicador_n2", "dealer", "projeto"}
 
 # Mesmo padrão do organograma: qualquer chamada exige login + a permissão do
 # módulo (já existe ponta a ponta desde a integração do card/rota React).
@@ -413,3 +429,90 @@ def confirmar_cadastros_parceiros(
     )
     db.commit()
     return {"confirmados": n}
+
+
+# ── Links de cadastro PERSONALIZADOS por parceiro (26/10/2026) ───────────────
+# Antes o link era genérico por categoria (/cadastro/dealer etc.), compartilhado — sem nome,
+# sem prazo que valesse de verdade e sem jeito de saber quem abriu. Agora cada envio vira um
+# "convite" com token próprio; esta lista mostra pra quem foi, há quanto tempo, quantos dias
+# faltam e se já foi visto/cadastrado. O formulário público (cadastro_publico.html) consulta
+# /public/cadastro-parceiros/convite/{token} e bloqueia o preenchimento se tiver expirado.
+
+def _convite_out(c: ConviteParceiro) -> dict:
+    hoje = date.today()
+    dias_restantes = (c.prazo - hoje).days if c.prazo else None
+    if c.cancelado:
+        status = "cancelado"
+    elif c.cadastro_id:
+        status = "cadastrado"
+    elif dias_restantes is not None and dias_restantes < 0:
+        status = "expirado"
+    elif dias_restantes is not None and dias_restantes <= 2:
+        status = "expirando"
+    else:
+        status = "ativo"
+    return {
+        "id": c.id, "categoria": c.categoria, "nome_parceiro": c.nome_parceiro,
+        "token": c.token, "link": PUBLIC_LINK_BASE + c.categoria + "?c=" + c.token,
+        "prazo": c.prazo.isoformat() if c.prazo else None,
+        "dias_restantes": dias_restantes,
+        "status": status,
+        "visualizado": c.visualizado_em is not None,
+        "visualizado_em": c.visualizado_em.isoformat() if c.visualizado_em else None,
+        "cadastrado": c.cadastro_id is not None,
+        "criado_em": c.criado_em.isoformat() if c.criado_em else None,
+        "criado_por": c.criado_por,
+    }
+
+
+class ConviteIn(BaseModel):
+    categoria: str
+    nome_parceiro: str
+    prazo: Optional[str] = None   # "AAAA-MM-DD"; vazio/None = sem prazo (não expira)
+
+
+@router.get("/convites-parceiros")
+def listar_convites(db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if not _pode(user, db, ["cadastro"]):
+        raise HTTPException(status_code=403, detail="Sem permissão")
+    rows = db.query(ConviteParceiro).filter(ConviteParceiro.cancelado == False).order_by(ConviteParceiro.criado_em.desc()).limit(500).all()  # noqa: E712
+    return [_convite_out(c) for c in rows]
+
+
+@router.post("/convites-parceiros", status_code=201)
+def criar_convite(data: ConviteIn, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if not _pode(user, db, ["cadastro"]):
+        raise HTTPException(status_code=403, detail="Sem permissão")
+    categoria = (data.categoria or "").strip().lower()
+    if categoria not in CATEGORIAS_CONVITE:
+        raise HTTPException(status_code=400, detail="Categoria inválida.")
+    nome = _limpa_nome(data.nome_parceiro)[:150]
+    if len(nome) < 2:
+        raise HTTPException(status_code=400, detail="Informe o nome do parceiro — é o que diferencia este link dos outros na lista.")
+    prazo = None
+    if data.prazo:
+        try:
+            prazo = date.fromisoformat(data.prazo)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Data de prazo inválida.")
+    conv = ConviteParceiro(
+        token=secrets.token_urlsafe(12), categoria=categoria, nome_parceiro=nome, prazo=prazo,
+        criado_por=getattr(user, "name", None),
+    )
+    db.add(conv)
+    db.commit()
+    db.refresh(conv)
+    return _convite_out(conv)
+
+
+@router.post("/convites-parceiros/{convite_id}/cancelar")
+def cancelar_convite(convite_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    """Revoga o link antes do prazo (ex.: enviado para a pessoa errada). Idempotente."""
+    if not _pode(user, db, ["cadastro"]):
+        raise HTTPException(status_code=403, detail="Sem permissão")
+    c = db.query(ConviteParceiro).filter(ConviteParceiro.id == convite_id).first()
+    if not c:
+        raise HTTPException(status_code=404, detail="Convite não encontrado")
+    c.cancelado = True
+    db.commit()
+    return {"ok": True}

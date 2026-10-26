@@ -330,6 +330,60 @@ E-mail + WhatsApp (Umbler) para boletos em aberto (Asaas + Itaú). Código: `bac
 - **Atenção — uma linha por cliente (24/10/2026):** no banco `client_attention` continua UMA LINHA POR MOTIVO (o motor `services/attention.py` lê assim, não mexer); `AttentionPage.jsx` só AGRUPA a visualização por `id_smart` (motivos separados por vírgula na coluna Motivo, que ficou mais larga; proporcional = Sim se alguma linha de ativação/cancelamento for proporcional; desconto da linha de desconto; obs únicas juntas). Filtro por motivo e contadores agora trabalham sobre os grupos; remover apaga todas as linhas do cliente (com confirmação); editar abre o formulário já com todos os motivos marcados (`/attention/lote`).
 - **Limites conhecidos (não resolvidos de propósito):** senhas/token ficam em texto puro em `system_settings` (mesmo padrão das chaves do Asaas; mascarados na API/auditoria; cifrar é evolução); sem política de retenção LGPD para `cobranca_envios`/respostas; DDDs inexistentes não são validados; aprovação/leitura de devoluções em caixa muito cheia olha só as últimas 300 mensagens; feriados municipais só pela lista `regua_feriados_extra`; deploy durante a janela de envio pode deixar um item `enviando` (vira `falhou` após 10 min — conferir antes de reenviar).
 
+## Comissionamento — links de cadastro de parceiro personalizados (26/10/2026)
+
+Pedido do Diego: "em cadastros de parceiros, poderia ter um link de link expirados e dias
+restantes, pois mandei alguns links para alguns parceiros e não tenho visualizações desses
+clientes". Antes o link (`/cadastro/<categoria>`, `comissionamento/index.html` > Cadastro de
+Parceiros > Enviar Link) era GENÉRICO por categoria — o mesmo link compartilhado com qualquer
+pessoa — e o "prazo" (`?prazo=AAAA-MM-DD`) era só um texto informativo no formulário: nada no
+servidor guardava, validava ou bloqueava depois de vencido.
+
+Agora cada link gerado vira um registro no servidor (tabela `comissao_convites_parceiros`,
+model `ConviteParceiro` em `models/comissionamento.py`): token próprio (`secrets.token_urlsafe`),
+nome do parceiro, categoria, prazo (opcional, Diego escolhe a data exata no calendário — sem
+prazo padrão fixo), quando foi criado/por quem, quando foi VISUALIZADO pela 1ª vez (marcado no
+GET público) e se já virou um cadastro (`cadastro_id`, ligado quando o parceiro conclui o
+formulário com aquele token).
+
+- **Backend:**
+  - `routers/cadastro_publico.py`: `GET /public/cadastro-parceiros/convite/{token}` (público,
+    sem login) — valida o token, marca a 1ª visualização, devolve categoria/prazo/`expirado`.
+    Token desconhecido/cancelado → 404 (o formulário trata como link genérico, sem bloquear —
+    nunca quebra por link digitado errado). `POST /public/cadastro-parceiros` ganhou o campo
+    `convite` (opcional): se o token aponta pra um convite com prazo VENCIDO, a submissão é
+    recusada com 400 mesmo chamando a API direto (defesa em camadas — o bloqueio da tela não é
+    a única trava). Ao concluir com sucesso (ou no reenvio em 10 min = duplo clique), liga
+    `convite.cadastro_id` ao cadastro.
+  - `routers/comissionamento.py`: `POST/GET /comissionamento/convites-parceiros` (criar/listar,
+    exige `can_view_com_cadastro`) e `POST /comissionamento/convites-parceiros/{id}/cancelar`
+    (revoga antes do prazo). Lista calcula `dias_restantes` e `status`
+    (ativo/expirando ≤2 dias/expirado/cadastrado/cancelado) na hora, não grava nada calculado.
+    Nome do parceiro passa por `_limpa_nome` (mesma limpeza do `_limpa` do cadastro público:
+    tira `< >` e caracteres de controle — o nome entra em tela que monta HTML).
+- **Front (`comissionamento/index.html`):** modal "Enviar Link" ganhou o campo "Nome do
+  parceiro" (obrigatório — é o que diferencia os links na lista) e `cadGerarLink()` passou a
+  criar o convite no servidor (antes só concatenava a categoria+prazo localmente, sem persistir
+  nada). Nova seção "Links enviados" dentro do mesmo modal, recarregada toda vez que o modal
+  abre: nome, categoria, dias restantes, selo de status, selo "Visualizado" e botões
+  Copiar/Cancelar. `cadEsc()` escapa o nome antes de montar o HTML da lista (defesa extra —
+  o servidor já limpa, mas a lista não depende disso).
+- **Front (`comissionamento/cadastro_publico.html`):** lê `?c=<token>` (além do `?tipo=`/
+  `?prazo=` antigos, que continuam funcionando para qualquer link já em circulação). Se o
+  convite existir e tiver prazo, o aviso de prazo na tela passa a usar esse valor (autoritativo,
+  do servidor) em vez do `?prazo=` cru da URL. Se `expirado:true`, o formulário inteiro é
+  escondido e aparece o cartão "Este link expirou — peça um novo ao seu executivo" (`#expirado`,
+  mesmo estilo visual do `#done`). O token vai junto no payload de envio (`convite`), pro
+  servidor religar na hora de validar/gravar.
+- **Teste:** `t_convite_parceiro.py` (19 checks: criar/listar/permissão, consulta pública,
+  visualização refletindo na lista do admin, bloqueio de submissão com link vencido mesmo via
+  API direta, vínculo cadastro↔convite, cancelar). Verificado visualmente no navegador (gerar
+  link real pela tela, abrir no lado público, confirmar "Visualizado" aparecendo no admin, e o
+  bloqueio de um link com prazo vencido).
+- **Fica para depois, se o Diego pedir:** nenhum mecanismo força usar o link PERSONALIZADO em
+  vez do antigo genérico por categoria — os dois convivem; a Controladoria de dados reais
+  (quantos parceiros ainda usam o link velho) não foi medida.
+
 ## Comissionamento dos analistas — exceção pontual de janela (26/10/2026)
 
 `routers/analyst_commission.py` tem `JANELAS_ESPECIAIS`: dict `{(ano, mês, dia_vencimento): (ini, fim)}` com exceções PONTUAIS da janela de "pago em dia", aplicadas só ao mês exato listado (não mexe na regra geral de fim de semana, nem em outros meses, nem em outros dias do mesmo mês). Pedido do Diego (26/10/2026): outubro/2026, vencimento dia 25 (domingo) — considerar pago de sexta 23 a segunda 26 (a regra padrão de fim de semana daria 25 a 27: vencimento até 1 dia depois do 1º dia útil). A exceção também permite pagamento ANTES do vencimento (a regra padrão nunca conta antecipado). `_janela_especial_sql(year, month)` gera o CASE SQL só se houver exceção cadastrada para aquele (ano, mês); combinado via `COALESCE` com a janela padrão (`janela_padrao`) — dias sem exceção continuam 100% na regra de sempre. Testado: outubro/dia 25 com a janela nova, outubro/dia 20 (dia útil comum) sem a exceção, novembro/dia 15 (também cai num domingo) com a regra PADRÃO intacta (confirma que a exceção não vaza para outros meses). Para adicionar uma exceção pontual num mês futuro, é só acrescentar uma entrada no dict (sem migração, sem UI — decisão + ajuste de código a cada caso). Teste: `t_comissao_janela.py` (6 checks). **Nota:** o texto fixo da tela (`AnalystCommissionPage.jsx`, "pagamento antecipado ou atrasado não conta") descreve a regra GERAL e não reflete a exceção pontual deste mês — informativo, não afeta o cálculo real.

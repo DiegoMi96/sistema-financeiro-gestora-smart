@@ -7,7 +7,7 @@ pode ter centenas de milhares de linhas) — o mesmo dado que hoje monta o extra
 mas persistido pra sobreviver a F5 e ficar disponível por até 1 ano (retenção em
 app/services/comissionamento_retention.py).
 """
-from sqlalchemy import Column, String, Integer, JSON, DateTime, Boolean, UniqueConstraint
+from sqlalchemy import Column, String, Integer, JSON, DateTime, Date, Boolean, UniqueConstraint
 from sqlalchemy.sql import func
 from app.database import Base
 
@@ -94,6 +94,34 @@ class CadastroParceiro(Base):
     criado_em     = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     importado_em  = Column(DateTime(timezone=True))
     importado_por = Column(Integer)
+
+
+class ConviteParceiro(Base):
+    """
+    Link de cadastro PERSONALIZADO por parceiro (token único), com prazo e rastreio de
+    abertura — pedido do Diego (26/10/2026): antes o link era genérico por categoria
+    (/cadastro/dealer etc., o mesmo para qualquer pessoa), sem nome, sem prazo que valesse
+    de verdade (o "?prazo=" antigo era só um texto informativo no formulário — nada no
+    servidor validava, e o link nunca expirava de fato) e sem jeito de saber quem abriu.
+    Agora cada envio gera um token; a tela "Cadastro de Parceiros" > "Enviar Link" lista
+    todos, com dias restantes e se já foi visualizado/cadastrado.
+    """
+    __tablename__ = "comissao_convites_parceiros"
+
+    id             = Column(Integer, primary_key=True, index=True)
+    token          = Column(String(32), nullable=False, unique=True, index=True)
+    # indicador | indicador_n2 | dealer | projeto
+    categoria      = Column(String(20), nullable=False)
+    nome_parceiro  = Column(String(150), nullable=False)
+    # Data-limite escolhida no calendário ao gerar o link. Nulo = sem prazo (nunca expira).
+    prazo          = Column(Date)
+    criado_em      = Column(DateTime(timezone=True), server_default=func.now())
+    criado_por     = Column(String(150))
+    # Preenchido na 1ª vez que o link é aberto (GET público) — não confirma cadastro, só abertura.
+    visualizado_em = Column(DateTime(timezone=True))
+    # Preenchido quando o parceiro CONCLUI o cadastro por este link (liga ao CadastroParceiro).
+    cadastro_id    = Column(Integer)
+    cancelado      = Column(Boolean, nullable=False, default=False)
 
 
 class ComissaoEstado(Base):

@@ -18,7 +18,7 @@ from pydantic import BaseModel, ValidationError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.comissionamento import CadastroParceiro, ComissaoCiclo
+from app.models.comissionamento import CadastroParceiro, ComissaoCiclo, ConviteParceiro
 
 router = APIRouter(prefix="/public/cadastro-parceiros", tags=["cadastro-publico"])
 
@@ -67,6 +67,9 @@ class CadastroIn(BaseModel):
     cienteNotaFiscal: bool = False
     # Campo-isca: um humano nunca vê nem preenche. Robô que preenche tudo cai aqui.
     website: str = ""
+    # Token do link personalizado (?c=...), se o parceiro veio por um link rastreado/com prazo.
+    # Vazio = link genérico de sempre (categoria), sem vínculo.
+    convite: str = ""
 
 
 def _validar_e_limpar(c: CadastroIn) -> dict:
@@ -153,6 +156,27 @@ def listar_executivos(response: Response, db: Session = Depends(get_db)):
     return {"nomes": _nomes_executivos(db)}
 
 
+@router.get("/convite/{token}")
+def consultar_convite(token: str, db: Session = Depends(get_db)):
+    """Público: o formulário chama ao abrir um link personalizado (?c=<token>) para saber a
+    categoria/prazo e se já expirou — e, de brinde, marca a 1ª visualização (não confirma
+    cadastro, só que alguém abriu o link). Token desconhecido: 404 (link digitado errado
+    ou copiado pela metade; o formulário trata isso como link genérico, sem bloquear)."""
+    conv = db.query(ConviteParceiro).filter(ConviteParceiro.token == token[:32]).first()
+    if not conv or conv.cancelado:
+        raise HTTPException(status_code=404, detail="Link não encontrado.")
+    if not conv.visualizado_em:
+        conv.visualizado_em = datetime.now(timezone.utc)
+        db.commit()
+    expirado = bool(conv.prazo and datetime.now(timezone.utc).date() > conv.prazo)
+    return {
+        "categoria": conv.categoria,
+        "nome_parceiro": conv.nome_parceiro,
+        "prazo": conv.prazo.isoformat() if conv.prazo else None,
+        "expirado": expirado,
+    }
+
+
 async def _ler_corpo_limitado(request: Request) -> bytes:
     declarado = request.headers.get("content-length")
     if declarado and declarado.isdigit() and int(declarado) > MAX_BODY_BYTES:
@@ -177,6 +201,16 @@ async def receber_cadastro(request: Request, db: Session = Depends(get_db)):
     # Robô: preencheu o campo escondido. Responde "ok" para ele não insistir, e não grava.
     if dados_in.website.strip():
         return {"ok": True, "id": 0}
+
+    # Link personalizado (?c=<token>): revalida o prazo no SERVIDOR mesmo que o formulário já
+    # tenha bloqueado na tela (defesa em camadas — quem chama a API direto também é barrado).
+    convite = None
+    if dados_in.convite.strip():
+        convite = db.query(ConviteParceiro).filter(
+            ConviteParceiro.token == dados_in.convite.strip()[:32], ConviteParceiro.cancelado == False  # noqa: E712
+        ).first()
+        if convite and convite.prazo and datetime.now(timezone.utc).date() > convite.prazo:
+            raise HTTPException(status_code=400, detail="Este link expirou. Peça um novo ao seu executivo.")
 
     try:
         dados = _validar_e_limpar(dados_in)
@@ -203,6 +237,9 @@ async def receber_cadastro(request: Request, db: Session = Depends(get_db)):
         .first()
     )
     if recente:
+        if convite and not convite.cadastro_id:
+            convite.cadastro_id = recente.id
+            db.commit()
         return {"ok": True, "id": recente.id}
 
     if ip:
@@ -221,4 +258,7 @@ async def receber_cadastro(request: Request, db: Session = Depends(get_db)):
     db.add(novo)
     db.commit()
     db.refresh(novo)
+    if convite and not convite.cadastro_id:
+        convite.cadastro_id = novo.id
+        db.commit()
     return {"ok": True, "id": novo.id}

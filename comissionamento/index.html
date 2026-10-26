@@ -179,6 +179,26 @@ input[type=text],input[type=number],input[type=month],input[type=date],select,te
 .ml-copy{background:#e3f2ec;color:#166B4A;border:none;margin:4px;border-radius:6px;padding:0 16px;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap}
 .ml-copy:hover{background:#cfe9dd}
 .ml-note{font-size:11px;color:#777;margin-top:8px;line-height:1.5}
+/* ─── Links de cadastro personalizados — lista "Links enviados" (26/10/2026) ─── */
+.ml-invites{margin-top:18px;padding-top:16px;border-top:1px solid #ecebe6}
+.ml-invites-empty{font-size:12px;color:#999;padding:10px 2px}
+.ml-invites-list{display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto}
+.ml-invite-row{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #ecebe6;border-radius:8px;padding:9px 12px}
+.ml-invite-main{flex:1;min-width:0}
+.ml-invite-nome{font-size:12.5px;font-weight:700;color:#1a1a18;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ml-invite-meta{font-size:10.5px;color:#888;margin-top:2px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ml-invite-badge{font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:10px;white-space:nowrap}
+.ml-invite-badge.st-ativo{background:#e3f2ec;color:#166B4A}
+.ml-invite-badge.st-expirando{background:#fdf0da;color:#9a6a0a}
+.ml-invite-badge.st-expirado{background:#fbe6e6;color:#a33}
+.ml-invite-badge.st-cadastrado{background:#e8eefc;color:#2d4fa0}
+.ml-invite-badge.st-cancelado{background:#f1f0ec;color:#999}
+.ml-invite-badge.visto{background:#eef2ff;color:#4f5fae}
+.ml-invite-acoes{display:flex;gap:4px;flex-shrink:0}
+.ml-invite-acoes button{background:#f3f2ee;border:none;color:#555;font-size:10.5px;font-weight:700;padding:5px 9px;border-radius:6px;cursor:pointer;white-space:nowrap}
+.ml-invite-acoes button:hover{background:#e7e5df}
+.ml-invite-acoes button.perigo{color:#a33}
+.ml-invite-acoes button.perigo:hover{background:#fbe6e6}
 /* ─── Modal Novo Vendedor — layout novo (só este modal) ─── */
 #cadModalVendedor .modal-card{max-width:640px;background:#fff;border-radius:14px}
 #cadModalVendedor .modal-card-hdr{border-bottom:none;background:#fff;align-items:flex-start;padding:20px 24px 4px}
@@ -1233,6 +1253,10 @@ iframe.active{display:block}
         <p class="ml-how-s">Escolha a categoria, gere o link e envie para a pessoa preencher os próprios dados — inclusive a quem ela fica vinculada. Assim que ela salvar, o cadastro já aparece direto em "Novo Cadastro" — sem precisar de código nenhum.</p>
       </div>
       <div class="cad-grid">
+        <div class="full">
+          <label class="cad-lbl">Nome do parceiro <span class="req">*</span></label>
+          <input type="text" id="cad_link_nome" placeholder="Ex: Distribuidora XPTO, ou o nome da pessoa">
+        </div>
         <div>
           <label class="cad-lbl">Categoria <span class="req">*</span></label>
           <select id="cad_link_categoria">
@@ -1254,7 +1278,11 @@ iframe.active{display:block}
           <input type="text" id="cad_invite_link" readonly placeholder="Clique em “Gerar link de cadastro” para criar o link do parceiro…">
           <button class="ml-copy" onclick="cadCopiarLink()">Copiar</button>
         </div>
-        <p class="ml-note">O link já abre o formulário na categoria escolhida. Se você definir um prazo, ele aparece para o parceiro na página de cadastro.</p>
+        <p class="ml-note">O link é exclusivo deste parceiro: se você definir um prazo, o formulário bloqueia sozinho depois dele vencer. Abaixo, a lista de todos os links já enviados — com quem visualizou e quantos dias faltam.</p>
+      </div>
+      <div class="ml-invites">
+        <p class="ml-result-lbl" style="margin-top:4px">Links enviados</p>
+        <div id="cadInvitesList" class="ml-invites-list"><p class="ml-invites-empty">Carregando…</p></div>
       </div>
     </div>
   </div>
@@ -1488,7 +1516,7 @@ function cadAbrirModal(qual) {
   document.getElementById('cadDropdownMenu').classList.remove('open');
   document.getElementById(CAD_MODAL_ID[qual]).classList.add('open');
   if (qual === 'novo') { cadEditando = null; cadModalModoNovo(); renderCadastro(); cadClearForm(); cadCategoriaChanged(); }
-  if (qual === 'link') { document.getElementById('cad_link_prazo').value = ''; document.getElementById('cad_invite_link').value = ''; }
+  if (qual === 'link') { document.getElementById('cad_link_nome').value = ''; document.getElementById('cad_link_prazo').value = ''; document.getElementById('cad_invite_link').value = ''; cadCarregarConvites(); }
   if (qual === 'vendedor') { document.getElementById('cadv_nome').value = ''; ['cadv_obj', 'cadv_m1', 'cadv_m2', 'cadv_sm'].forEach(id => document.getElementById(id).value = ''); }
 }
 
@@ -3100,23 +3128,122 @@ function cadRenderList() {
 // nesse servidor — fica pendente até decidir o que fazer lá.
 const PUBLIC_LINK_BASE = 'https://sistema.gestorasmart.com.br/cadastro/';
 
-function cadGerarLink() {
-  const tipo = document.getElementById('cad_link_categoria').value;
-  // Prazo de preenchimento (opcional, pedido do Diego 29/09/2026) — vai como
-  // querystring de verdade (?prazo=...), então sobrevive ao rewrite do nginx
-  // (que só reescreve internamente, no servidor — o navegador continua
-  // enxergando exatamente a URL que ele abriu, prazo incluso).
-  const prazo = document.getElementById('cad_link_prazo').value;
-  let url = PUBLIC_LINK_BASE + tipo;
-  if (prazo) url += '?prazo=' + encodeURIComponent(prazo);
-  document.getElementById('cad_invite_link').value = url;
+// Links de cadastro PERSONALIZADOS por parceiro (26/10/2026, pedido do Diego: "poderia ter
+// um link de links expirados e dias restantes, pois mandei alguns links para alguns
+// parceiros e não tenho visualizações desses clientes"). Antes era só um link genérico por
+// categoria com um "?prazo=" decorativo (nada no servidor validava nem guardava quem
+// recebeu). Agora cada link vira um registro no servidor (token próprio, prazo que
+// realmente bloqueia o formulário depois de vencido, e visualização registrada na 1ª
+// abertura) — a lista "Links enviados" abaixo mostra todos, com dias restantes e status.
+// Defesa extra: o nome já vem limpo do servidor (tira < > e caracteres de controle, igual
+// ao cadastro público), mas a lista monta HTML via template string — escapa de novo aqui
+// também, sem depender de nada de fora deste arquivo.
+function cadEsc(s) {
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function cadAuthHeader() {
+  let tok = null;
+  try { tok = localStorage.getItem('token'); } catch {}
+  return tok ? { Authorization: 'Bearer ' + tok } : null;
+}
+
+async function cadGerarLink() {
+  const nome = document.getElementById('cad_link_nome').value.trim();
+  const categoria = document.getElementById('cad_link_categoria').value;
+  const prazo = document.getElementById('cad_link_prazo').value || null;
+  if (!nome) { showCadToast('Informe o nome do parceiro — é o que diferencia este link dos outros na lista.', true); return; }
+  const hdr = cadAuthHeader();
+  if (!hdr) { showCadToast('Sessão expirada — recarregue a página.', true); return; }
+  const btn = document.querySelector('.ml-gerar');
+  btn.disabled = true; const textoOrig = btn.textContent; btn.textContent = 'Gerando…';
+  try {
+    const r = await fetch('/api/comissionamento/convites-parceiros', {
+      method: 'POST', headers: { ...hdr, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ categoria, nome_parceiro: nome, prazo }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { showCadToast(j.detail || 'Não foi possível gerar o link.', true); return; }
+    document.getElementById('cad_invite_link').value = j.link;
+    showCadToast('Link gerado ✓');
+    cadCarregarConvites();
+  } catch (e) {
+    showCadToast('Sem conexão com o servidor.', true);
+  } finally {
+    btn.disabled = false; btn.textContent = textoOrig;
+  }
+}
+
+function cadCopiarTexto(texto) {
+  if (!texto) return;
+  navigator.clipboard?.writeText(texto).then(() => showCadToast('Link copiado ✓')).catch(() => {
+    const tmp = document.createElement('textarea'); tmp.value = texto; document.body.appendChild(tmp);
+    tmp.select(); document.execCommand('copy'); tmp.remove(); showCadToast('Link copiado ✓');
+  });
 }
 
 function cadCopiarLink() {
   const el = document.getElementById('cad_invite_link');
-  if (!el.value) { alert('Clique em "Gerar link" primeiro.'); return; }
-  el.select();
-  navigator.clipboard?.writeText(el.value).then(() => showCadToast('Link copiado ✓')).catch(() => document.execCommand('copy'));
+  if (!el.value) { alert('Clique em "Gerar link de cadastro" primeiro.'); return; }
+  cadCopiarTexto(el.value);
+}
+
+const CAD_CATEGORIA_LBL = { indicador: 'Indicador', indicador_n2: 'Indicador N2', dealer: 'Dealer', projeto: 'Projeto Especial' };
+
+function cadInviteBadge(inv) {
+  const MAP = { ativo: 'Ativo', expirando: 'Vence em breve', expirado: 'Expirado', cadastrado: 'Cadastrado', cancelado: 'Cancelado' };
+  return `<span class="ml-invite-badge st-${inv.status}">${MAP[inv.status] || inv.status}</span>`;
+}
+
+function cadInviteDiasTxt(inv) {
+  if (inv.dias_restantes === null || inv.dias_restantes === undefined) return 'sem prazo definido';
+  if (inv.dias_restantes < 0) return `venceu há ${Math.abs(inv.dias_restantes)} dia(s)`;
+  if (inv.dias_restantes === 0) return 'vence hoje';
+  return `${inv.dias_restantes} dia(s) restante(s)`;
+}
+
+async function cadCarregarConvites() {
+  const wrap = document.getElementById('cadInvitesList');
+  const hdr = cadAuthHeader();
+  if (!hdr) { wrap.innerHTML = '<p class="ml-invites-empty">Sessão expirada — recarregue a página.</p>'; return; }
+  try {
+    const r = await fetch('/api/comissionamento/convites-parceiros', { headers: hdr });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const lista = await r.json();
+    if (!lista.length) { wrap.innerHTML = '<p class="ml-invites-empty">Nenhum link gerado ainda.</p>'; return; }
+    wrap.innerHTML = lista.map(inv => `
+      <div class="ml-invite-row">
+        <div class="ml-invite-main">
+          <div class="ml-invite-nome">${cadEsc(inv.nome_parceiro)}</div>
+          <div class="ml-invite-meta">
+            <span>${CAD_CATEGORIA_LBL[inv.categoria] || inv.categoria}</span>
+            <span>· ${cadInviteDiasTxt(inv)}</span>
+            ${cadInviteBadge(inv)}
+            ${inv.visualizado ? '<span class="ml-invite-badge visto">Visualizado</span>' : ''}
+          </div>
+        </div>
+        <div class="ml-invite-acoes">
+          <button onclick="cadCopiarTexto('${inv.link}')">Copiar</button>
+          ${inv.status !== 'cancelado' && inv.status !== 'cadastrado' ? `<button class="perigo" onclick="cadCancelarConvite(${inv.id})">Cancelar</button>` : ''}
+        </div>
+      </div>`).join('');
+  } catch (e) {
+    wrap.innerHTML = '<p class="ml-invites-empty">Não foi possível carregar os links enviados.</p>';
+  }
+}
+
+async function cadCancelarConvite(id) {
+  if (!confirm('Cancelar este link? Quem ainda não preencheu não vai mais conseguir usá-lo.')) return;
+  const hdr = cadAuthHeader();
+  if (!hdr) return;
+  try {
+    const r = await fetch(`/api/comissionamento/convites-parceiros/${id}/cancelar`, { method: 'POST', headers: hdr });
+    if (!r.ok) { showCadToast('Não foi possível cancelar.', true); return; }
+    showCadToast('Link cancelado');
+    cadCarregarConvites();
+  } catch (e) {
+    showCadToast('Sem conexão com o servidor.', true);
+  }
 }
 
 function showCadToast(msg, isError) {
