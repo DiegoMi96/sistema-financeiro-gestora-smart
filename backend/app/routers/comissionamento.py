@@ -66,9 +66,9 @@ def _areas_da_chave(chave: str):
     perfil — senão quem só vê "Diretor Comercial" + Consolidada leria os números dos outros.
     "importar" (função administrativa que processa tudo) lê/grava todas as chaves de perfil.
     """
-    if chave in ("gs5_v", "dp1_dealers", "dp1_projetos", "ind1_list"):   # listas de cadastro
+    if chave in ("gs5_v", "dp1_dealers", "dp1_projetos", "ind1_list", "dp1_brokers"):   # listas de cadastro
         base = {"gs5_v": ["vendedor"], "dp1_dealers": ["dealer"], "dp1_projetos": ["projeto_especial"],
-                "ind1_list": ["indicadores"]}[chave]
+                "ind1_list": ["indicadores"], "dp1_brokers": []}[chave]   # Broker não tem painel próprio
         return base + ["cadastro", "importar"]
     if chave.startswith("gs5_"):
         return ["vendedor", "importar"]
@@ -82,7 +82,7 @@ def _areas_da_chave(chave: str):
         return ["diretor_adm", "importar"]
     if chave.startswith("go1_"):
         return ["gestor_operacoes", "importar"]
-    if chave == "imp_clientes_map":
+    if chave in ("imp_clientes_map", "imp_clientes_criado_em"):
         return ["importar"]
     if chave == "imp_dealer_fontes":     # fonte de dados das Regras de Comissão dos dealers (volume/ativações por mês)
         return ["dealer", "importar"]
@@ -241,12 +241,18 @@ def extratos_disponiveis(mes_referencia: str, db: Session = Depends(get_db), use
 # no servidor (prefixos/nomes conhecidos) — o front nunca grava chave arbitrária.
 ESTADO_CHAVES = {
     "gs5_v", "gs5_m", "gs5_d", "gs5_f", "gs5_r", "gs5_celulas", "gs5_celula_aliquotas",
-    "dp1_m", "dp1_pp", "dp1_projetos", "dp1_dealers", "dp1_rules", "dp1_bl", "dp1_precos",
+    # Modelo novo do Vendedor (27/10/2026): Equip. por Categoria, Novos
+    # Clientes, Recorrência por Canal Indireto. gs5_d (Desafio) fica aqui sem
+    # uso — não tem problema manter uma chave órfã.
+    "gs5_eq_cat", "gs5_equip_por_categoria", "gs5_novos_clientes_faixas", "gs5_novos_clientes",
+    "gs5_recorrencia", "gs5_abertura_parceiros", "gs5_pedidos_por_cnpj",
+    "dp1_m", "dp1_pp", "dp1_projetos", "dp1_dealers", "dp1_brokers", "dp1_rules", "dp1_bl", "dp1_precos",
     "ind1_m", "ind1_rules", "ind1_list",
     "dc1_cfg", "dc1_ext", "dc1_m",
     "da1_cfg", "da1_ext", "da1_m",
     "go1_cfg", "go1_ext", "go1_m",
-    "aprovacoes_mes", "cons_hist_manual", "cons_bonus_extra", "imp_dealer_fontes", "imp_clientes_map", "regras_comissao",
+    "aprovacoes_mes", "cons_hist_manual", "cons_bonus_extra", "imp_dealer_fontes", "imp_clientes_map",
+    "imp_clientes_criado_em", "regras_comissao",
 }
 
 

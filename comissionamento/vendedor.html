@@ -260,10 +260,12 @@ tr.row-editing td{background:#f9fffe !important}
             <th class="r sortable" data-k="faixa" onclick="rsOrdenar('faixa')">Faixa <span class="sa">⇅</span></th>
             <th class="r sortable" data-k="volC" onclick="rsOrdenar('volC')">Volume <span class="sa">⇅</span></th>
             <th class="r sortable" data-k="atvC" onclick="rsOrdenar('atvC')">Ativação <span class="sa">⇅</span></th>
-            <th class="r">Desafio</th>
             <th class="r sortable" data-k="eqC" onclick="rsOrdenar('eqC')">Equipamento <span class="sa">⇅</span></th>
             <th class="r">Smart GPS</th>
             <th class="r sortable" data-k="bonusCelula" onclick="rsOrdenar('bonusCelula')">Bônus Célula <span class="sa">⇅</span></th>
+            <th class="r sortable" data-k="novosClientesC" onclick="rsOrdenar('novosClientesC')">Novos Clientes <span class="sa">⇅</span></th>
+            <th class="r">Canal Indireto</th>
+            <th class="r sortable" data-k="beSmart" onclick="rsOrdenar('beSmart')">Be Smart <span class="sa">⇅</span></th>
             <th class="r sortable" data-k="frDsc" onclick="rsOrdenar('frDsc')">−Frete <span class="sa">⇅</span></th>
             <th class="r sortable" data-k="total" onclick="rsOrdenar('total')">Total <span class="sa">⇅</span></th>
             <th style="width:150px;text-align:center">Ação</th>
@@ -321,16 +323,32 @@ tr.row-editing td{background:#f9fffe !important}
       <div class="rg-note">Metas definidas trimestralmente pelo gestor.</div>
     </div>
     <div class="card">
-      <div class="rg-head"><p class="rg-title">Desafio · Bateu Levou</p><p class="rg-sub">Bonificação por atingimento de meta (acumulativa).</p></div>
-      <table class="rg-table"><thead><tr><th>Gatilho</th><th>Bonificação</th></tr></thead>
-      <tbody id="desafioBody"></tbody></table>
-      <div class="rg-note">Acumulativa — cada nível soma os anteriores.</div>
-    </div>
-    <div class="card">
-      <div class="rg-head"><p class="rg-title">Equipamentos</p><p class="rg-sub">Configure a taxa aplicada sobre o valor da venda.</p></div>
+      <div class="rg-head"><p class="rg-title">Equipamentos</p><p class="rg-sub">Taxa padrão (% do valor da venda) — vale pra quem não usa a taxa por categoria.</p></div>
       <div class="rg-field"><label class="rg-lbl">Taxa atual</label><div class="irow"><input type="number" id="r_eq" min="0" max="100" step="0.1" oninput="saveRules()"><span class="ipfx">% do valor da venda</span></div></div>
       <label class="rg-lbl">Estratégia / observação</label>
       <div class="rg-obs"><textarea id="r_eq_obs" rows="3" maxlength="300" placeholder="Ex: 2% fixo agora. Estratégia nova em andamento…" oninput="rgContaObs();saveRules()"></textarea><span class="cnt" id="r_eq_cnt">0/300</span></div>
+    </div>
+    <div class="card">
+      <div class="rg-head"><p class="rg-title">Equipamento por Categoria</p><p class="rg-sub">R$/máquina vendida. Cada vendedor escolhe na aba Metas se usa esta tabela em vez da taxa % acima.</p></div>
+      <div class="rg-field"><label class="rg-lbl">Rastreamento</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="eqc_rastreamento" min="0" step="0.01" oninput="saveEquipCat()"><span class="ipfx">/máquina</span></div></div>
+      <div class="rg-field"><label class="rg-lbl">Meios de Pagamento</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="eqc_meios_pagamento" min="0" step="0.01" oninput="saveEquipCat()"><span class="ipfx">/máquina</span></div></div>
+    </div>
+    <div class="card">
+      <div class="rg-head"><p class="rg-title">Bônus de Novos Clientes</p><p class="rg-sub">Só a faixa mais alta batida paga (não acumula).</p></div>
+      <table class="rg-table"><thead><tr><th>Qtd. clientes novos</th><th>Bonificação</th></tr></thead>
+      <tbody id="novosClientesBody"></tbody></table>
+    </div>
+    <div class="card">
+      <div class="rg-head"><p class="rg-title">Recorrência por Canal Indireto</p><p class="rg-sub">R$/mês por parceiro ativo (teto) + bônus único de abertura por categoria, pago após a carência.</p></div>
+      <div class="rg-field"><label class="rg-lbl">Valor por parceiro ativo</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="rec_valor" min="0" step="1" oninput="saveRecorrencia()"><span class="ipfx">/mês</span></div></div>
+      <div class="rg-field"><label class="rg-lbl">Teto de parceiros</label><div class="irow"><input type="number" id="rec_teto" min="0" step="1" oninput="saveRecorrencia()"></div></div>
+      <div class="rg-field"><label class="rg-lbl">Carência (meses)</label><div class="irow"><input type="number" id="rec_carencia" min="0" step="1" oninput="saveRecorrencia()"></div></div>
+      <table class="rg-table"><thead><tr><th>Categoria</th><th>Abertura</th></tr></thead><tbody>
+        <tr><td>Indicador</td><td><div class="rg-in"><span class="ipfx">R$</span><input type="number" id="rec_ab_indicador" min="0" step="1" oninput="saveRecorrencia()"></div></td></tr>
+        <tr><td>Indicador N2</td><td><div class="rg-in"><span class="ipfx">R$</span><input type="number" id="rec_ab_indicador_n2" min="0" step="1" oninput="saveRecorrencia()"></div></td></tr>
+        <tr><td>Dealer</td><td><div class="rg-in"><span class="ipfx">R$</span><input type="number" id="rec_ab_dealer" min="0" step="1" oninput="saveRecorrencia()"></div></td></tr>
+        <tr><td>Broker / Projeto Especial</td><td><div class="rg-in"><span class="ipfx">R$</span><input type="number" id="rec_ab_broker" min="0" step="1" oninput="saveRecorrencia()"></div></td></tr>
+      </tbody></table>
     </div>
     <div class="rg-stack">
       <div class="card">
@@ -341,6 +359,10 @@ tr.row-editing td{background:#f9fffe !important}
         <div class="rg-head" style="margin-bottom:12px"><p class="rg-title">Frete</p><p class="rg-sub">Limite de subsídio por vendedor/mês.</p></div>
         <div class="rg-inline"><label class="rg-lbl" for="r_frete">Limite subsidiado / vendedor / mês</label><div class="irow rg-field" style="margin:0"><span class="ipfx">R$</span><input type="number" id="r_frete" min="0" step="1" oninput="saveRules()"><span class="ipfx">/mês</span></div></div>
         <p class="rg-hint">Excedente é descontado da comissão.</p>
+      </div>
+      <div class="card">
+        <div class="rg-head" style="margin-bottom:12px"><p class="rg-title">Categoria de equipamento — por vendedor</p><p class="rg-sub">Quem tiver uma categoria marcada usa o valor fixo por máquina (Rastreamento/Meios de Pagamento) sobre o total de máquinas vendidas, em vez da taxa % padrão.</p></div>
+        <div id="equipCatVendList"></div>
       </div>
     </div>
   </div>
@@ -357,7 +379,7 @@ tr.row-editing td{background:#f9fffe !important}
 // de cada um no Painel de Metas. Usado só pro Bônus de Célula (ver DEF_CELULAS).
 const DEF_V=[
   {id:'v1',nome:'Henrique Alves',   g:{obj:750, m1:1000,m2:1250,sm:1750},salarioFixo:0},
-  {id:'v2',nome:'Patrick Rodrigues',g:{obj:750, m1:1000,m2:1250,sm:1750},salarioFixo:0},
+  {id:'v2',nome:'Patrick Rodrigues',g:{obj:750, m1:1000,m2:1250,sm:1750},salarioFixo:0,categoriaEquip:'meios_pagamento'},
   {id:'v3',nome:'Décio Moraes',     g:{obj:2500,m1:2750,m2:3000,sm:3500},salarioFixo:0},
   {id:'v4',nome:'Julia Borsato',    g:{obj:2000,m1:2250,m2:2500,sm:3000},salarioFixo:0},
   {id:'v5',nome:'Vitória Karoline', g:{obj:2500,m1:2750,m2:3000,sm:3500},salarioFixo:0},
@@ -380,18 +402,27 @@ const DEF_CELULAS=[
   {id:'c5',nome:'Patrick + Henrique',vendedorIds:['v2','v1']},
 ];
 // Alíquotas sobre o Salário Fixo — só a faixa mais alta batida (não acumula),
-// confirmado com o Diego.
-const DEF_CELULA_ALIQUOTAS={objetivo:0.07,meta1:0.13,meta2:0.25,superMeta:0.33};
+// confirmado com o Diego. Modelo novo a partir do ciclo de novembro/2026
+// (27/10/2026): 4 faixas em vez de 6, percentuais maiores.
+const DEF_CELULA_ALIQUOTAS={objetivo:0.10,meta1:0.15,meta2:0.20,superMeta:0.30};
 const DEF_F=[
-  {n:1,range:'0–70%',    min:0,  max:70, vol:0.10,atv:0.10},
-  {n:2,range:'71–90%',   min:71, max:90, vol:0.15,atv:0.15},
-  {n:3,range:'91–120%',  min:91, max:120,vol:0.25,atv:0.25},
-  {n:4,range:'121–150%', min:121,max:150,vol:0.30,atv:0.30},
-  {n:5,range:'151–200%', min:151,max:200,vol:0.40,atv:0.40},
-  {n:6,range:'>200%',    min:201,max:9999,vol:0.50,atv:0.50},
+  {n:1,range:'0–90%',    min:0,  max:90, vol:0.17,atv:0.40},
+  {n:2,range:'91–110%',  min:91, max:110,vol:0.34,atv:0.60},
+  {n:3,range:'111–130%', min:111,max:130,vol:0.54,atv:0.80},
+  {n:4,range:'131–150%', min:131,max:9999,vol:0.74,atv:1.00},
 ];
-const DEF_D=[{lbl:'Objetivo',val:200},{lbl:'Meta 1',val:300},{lbl:'Meta 2',val:400},{lbl:'Super Meta',val:500}];
 const DEF_R={eqRate:2,eqObs:'',gpsRate:100,freteLimit:250};
+// Equipamento por categoria (novo modelo) — R$/máquina, alternativa à taxa %
+// sobre valor da venda. Cada vendedor escolhe no cadastro (Metas) se usa esta
+// tabela em vez da taxa percentual padrão.
+const DEF_EQUIP_CAT={rastreamento:2.00,meios_pagamento:5.00};
+// Bônus de Novos Clientes — só a faixa mais alta batida paga (não acumula).
+const DEF_NOVOS_CLIENTES=[{qtd:3,valor:120},{qtd:5,valor:250},{qtd:7,valor:300},{qtd:9,valor:400}];
+// Recorrência por Canal Indireto — R$/mês por parceiro ativo (teto de
+// parceiros) + bônus único de abertura por categoria final do parceiro,
+// pago só depois do período de carência (confirmado 2 meses sem desistir).
+const DEF_RECORRENCIA={valorPorParceiro:50,tetoParceiros:10,mesesCarencia:2,
+  abertura:{indicador:100,indicador_n2:200,dealer:350,broker:500}};
 
 const LS={
   get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d}},
@@ -448,8 +479,14 @@ let vendedores=LS.get('gs5_v',DEF_V);
 let celulas=LS.get('gs5_celulas',DEF_CELULAS);
 let celulaAliquotas=LS.get('gs5_celula_aliquotas',DEF_CELULA_ALIQUOTAS);
 let faixas=LS.get('gs5_f',DEF_F);
-let desafio=LS.get('gs5_d',DEF_D);
 let rules=LS.get('gs5_r',DEF_R);
+let equipCat=LS.get('gs5_eq_cat',DEF_EQUIP_CAT);
+let novosClientesFaixas=LS.get('gs5_novos_clientes_faixas',DEF_NOVOS_CLIENTES);
+let recorrenciaCfg=LS.get('gs5_recorrencia',DEF_RECORRENCIA);
+// Calculados pelo Importar (shell, index.html) — este iframe só lê e soma.
+let novosClientesData=LS.get('gs5_novos_clientes',{});
+let equipCatData=LS.get('gs5_equip_por_categoria',{});
+let aberturaData=LS.get('gs5_abertura_parceiros',{});
 let mdata=LS.get('gs5_m',{});
 let editingId=null;
 
@@ -459,7 +496,13 @@ let editingId=null;
 // memória aqui — sem isso, o Importar mostra o resultado certo mas essa aba
 // continua com o dado antigo até dar F5 na página inteira. Exposta pro shell
 // chamar assim que terminar de processar uma planilha.
-function resyncMdata(){mdata=LS.get('gs5_m',{});renderResumo();buildCelulas();}
+function resyncMdata(){
+  mdata=LS.get('gs5_m',{});
+  novosClientesData=LS.get('gs5_novos_clientes',{});
+  equipCatData=LS.get('gs5_equip_por_categoria',{});
+  aberturaData=LS.get('gs5_abertura_parceiros',{});
+  renderResumo();buildCelulas();
+}
 
 // ─── RAW DATA STORE (in-memory, session only) ─────
 // rawStore[`${vid}_${mes}`] = {
@@ -488,7 +531,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   const now=new Date();
   const mv=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   document.getElementById('mesInput').value=mv;
-  buildMetas();buildFaixaTable();buildDesafioTable();loadRules();buildCelulas();loadCelulaAliquotas();renderResumo();
+  buildMetas();buildFaixaTable();loadRules();buildCelulas();loadCelulaAliquotas();
+  buildNovosClientesTable();loadEquipCat();loadRecorrencia();buildEquipCatVendList();renderResumo();
 });
 document.querySelectorAll('.tab-btn').forEach(b=>{
   b.addEventListener('click',()=>{
@@ -511,16 +555,36 @@ const brInt=v=>Math.round(v||0).toLocaleString('pt-BR');
 const parseNum=s=>+String(s).replace(/\./g,'').replace(',','.')||0;
 const fmtMes=s=>{if(!s)return'';const[y,m]=s.split('-');const ms=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];return ms[+m-1]+'/'+y;};
 const norm=(s='')=>String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,' ').trim();
+// Migra\u00e7\u00e3o \u00fanica (27/10/2026): quem j\u00e1 tinha gs5_v salvo em produ\u00e7\u00e3o antes do
+// modelo novo n\u00e3o tem o campo categoriaEquip \u2014 sem isso o Patrick voltaria
+// a cair na taxa % padr\u00e3o (ele usava o EQUIP_MANUAL antigo, agora removido).
+// undefined = nunca decidido ainda (migra); null/string = j\u00e1 decidido, n\u00e3o mexe.
+(function migrarEquipCategoriaPatrick(){
+  const p=vendedores.find(v=>norm(v.nome)==='patrick rodrigues');
+  if(p&&p.categoriaEquip===undefined){p.categoriaEquip='meios_pagamento';LS.set('gs5_v',vendedores);}
+})();
 // As faixas são definidas em pontos percentuais inteiros com um "buraco" entre
 // uma e outra (ex: 0–70 / 71–90) — sem arredondar pra baixo antes de comparar,
 // um alcance como 70,04% caía fora da faixa 1 (só vai até 70) e fora da faixa 2
 // (só começa em 71), sendo empurrado pra faixa 2 por engano. Confirmado batendo
 // com a planilha real da Claudia (Jul/26): 70,04% = Faixa 1 (10%), não Faixa 2 (15%).
 function getFaixa(alc){return faixas.find(f=>Math.floor(alc)<=f.max)||faixas[faixas.length-1];}
-function getDesafio(linhas,g){
-  const ths=[g.obj,g.m1,g.m2,g.sm];let total=0,hits=[];
-  desafio.forEach((d,i)=>{if(linhas>=ths[i]){total+=d.val;hits.push(i);}});
-  return{total,hits};
+// Parceiros (Indicador/Indicador N2/Dealer/Projeto Especial/Broker) ativos
+// vinculados ao vendedor pelo campo "Comercial" — mesmo critério (nome
+// normalizado) já usado pelo Volume linkado em impBuildEntityIndex (index.html).
+function parceirosAtivosDoVendedor(vendedorNome){
+  const nn=norm(vendedorNome);
+  const listas=[LS.get('ind1_list',[]),LS.get('dp1_dealers',[]),LS.get('dp1_projetos',[]),LS.get('dp1_brokers',[])];
+  let count=0;
+  listas.forEach(lista=>(lista||[]).forEach(e=>{
+    const ativo=(e.status||'ativo')==='ativo'; // sem campo = ativo (migração)
+    if(ativo&&norm(e.comercial||'')===nn)count++;
+  }));
+  return count;
+}
+function recorrenciaDoVendedor(vendedorNome){
+  const qtd=parceirosAtivosDoVendedor(vendedorNome);
+  return Math.min(qtd,recorrenciaCfg.tetoParceiros)*recorrenciaCfg.valorPorParceiro;
 }
 // ─── BÔNUS DE CÉLULA ───────────────────────────────
 // Volume combinado da célula (cada vendedor.linhas já inclui os parceiros
@@ -554,18 +618,45 @@ function bonusCelulaDe(vid,mes){
   const v=vendedores.find(x=>x.id===vid);
   return +(aliquota*(v?.salarioFixo||0)).toFixed(2);
 }
-// Equipamento lançado à mão (o Importar não altera) — só o Patrick. Mantém em sincronia com index.html.
-const EQUIP_MANUAL=['patrick rodrigues'];
+// Equipamento lançado à mão (o Importar não altera) — reservado pra casos
+// futuros de exceção manual. O Patrick migrou pro toggle "usa taxa por
+// categoria" (ver Regras & Config) a partir do modelo novo (27/10/2026).
+const EQUIP_MANUAL=[];
 const eqDiretoDe=vend=>EQUIP_MANUAL.includes(norm(vend.nome));
-function calcVend(d,g,bonusCelula=0,eqDireto=false){
-  const linhas=d.linhas||0,atv=d.atv||0,eq=d.eq||0,gps=d.gps||0,frete=d.frete||0,bonus=d.bonus||0;
+function calcVend(d,g,bonusCelula=0,eqDireto=false,extra={}){
+  const linhas=d.linhas||0,atv=d.atv||0,eq=d.eq||0,gps=d.gps||0,frete=d.frete||0,bonus=d.bonus||0,beSmart=d.beSmart||0;
   const alc=g.obj>0?(linhas/g.obj*100):0;
-  const fx=getFaixa(alc);const des=getDesafio(linhas,g);
-  const volC=linhas*fx.vol,atvC=atv*fx.atv,desC=des.total;
-  const eqC=eqDireto?eq:eq*(rules.eqRate/100),gpsC=gps*(rules.gpsRate/100);
+  const fx=getFaixa(alc);
+  const volC=linhas*fx.vol,atvC=atv*fx.atv;
+  // Equipamento: vendedor com uma categoria marcada (rastreamento ou meios de
+  // pagamento) em Regras & Config usa R$/máquina daquela categoria sobre o
+  // total de máquinas vendidas; sem categoria marcada, segue a regra padrão
+  // (% sobre valor da venda, ou lançamento manual direto pros casos antigos).
+  const eqC=extra.categoriaEquip
+    ? (extra.qtdEquip||0)*(equipCat[extra.categoriaEquip]||0)
+    : (eqDireto?eq:eq*(rules.eqRate/100));
+  const gpsC=gps*(rules.gpsRate/100);
   const frDsc=Math.max(0,frete-rules.freteLimit);
-  const total=volC+atvC+desC+eqC+gpsC+bonus+bonusCelula-frDsc;
-  return{linhas,atv,eq,gps,frete,bonus,bonusCelula,alc,fx,des,volC,atvC,desC,eqC,gpsC,frDsc,total};
+  const novosClientesC=extra.novosClientesValor||0;
+  const recorrenciaC=extra.recorrenciaValor||0;
+  const aberturaC=extra.aberturaValor||0;
+  const total=volC+atvC+eqC+gpsC+bonus+bonusCelula+beSmart+novosClientesC+recorrenciaC+aberturaC-frDsc;
+  return{linhas,atv,eq,gps,frete,bonus,bonusCelula,beSmart,alc,fx,volC,atvC,eqC,gpsC,frDsc,
+    novosClientesC,recorrenciaC,aberturaC,total};
+}
+// Monta o "extra" de calcVend a partir do que o Importar (index.html) já
+// calculou pra esse vendedor/mês (Novos Clientes, Equip. por categoria,
+// Abertura de parceiro) + a Recorrência (calculada ao vivo, não depende de import).
+function extraDoVendedor(vend,mes){
+  const eqCatMes=(equipCatData[mes]||{})[vend.id]||{};
+  const nc=(novosClientesData[mes]||{})[vend.id]||{};
+  return{
+    categoriaEquip:vend.categoriaEquip||null,
+    qtdEquip:eqCatMes.qtd||0,
+    novosClientesValor:nc.valor||0,
+    recorrenciaValor:recorrenciaDoVendedor(vend.nome),
+    aberturaValor:(aberturaData[mes]||{})[vend.id]||0,
+  };
 }
 function showToast(msg,color='#166B4A'){
   const t=document.getElementById('toast');t.textContent=msg;t.style.background=color;
@@ -632,8 +723,8 @@ function renderResumo(){
   // 1) calcula todos (a conta é a mesma de sempre — calcVend)
   let dados=vendedores.map(vend=>{
     const d=mdata[`${vend.id}_${mes}`]||{};
-    const c=calcVend(d,vend.g,bonusCelulaDe(vend.id,mes),eqDiretoDe(vend));
-    const isEmpty=!c.linhas&&!c.atv&&!c.eq&&!c.gps&&!c.bonus&&!c.bonusCelula;
+    const c=calcVend(d,vend.g,bonusCelulaDe(vend.id,mes),eqDiretoDe(vend),extraDoVendedor(vend,mes));
+    const isEmpty=!c.linhas&&!c.atv&&!c.eq&&!c.gps&&!c.bonus&&!c.bonusCelula&&!c.beSmart&&!c.novosClientesC&&!c.recorrenciaC&&!c.aberturaC;
     return{vend,c,isEmpty,canExport:hasRaw(vend.id,mes)};
   });
   // 2) busca + filtros (só escondem linhas; não mudam nenhum valor)
@@ -651,11 +742,12 @@ function renderResumo(){
   document.getElementById('rsBtnFiltros')?.classList.toggle('on',!!(fFaixa||fVazias));
 
   let grand=0,rows='';
-  let sumVol=0,sumAtv=0,sumDes=0,sumEq=0,sumGps=0,sumBC=0,sumFrete=0;
+  let sumVol=0,sumAtv=0,sumEq=0,sumGps=0,sumBC=0,sumNC=0,sumCI=0,sumBS=0,sumFrete=0;
   dados.forEach(({vend,c,isEmpty,canExport})=>{
     const isEditing=editingId===vend.id;
     grand+=c.total;
-    sumVol+=c.volC;sumAtv+=c.atvC;sumDes+=c.desC;sumEq+=c.eqC;sumGps+=c.gpsC;sumBC+=c.bonusCelula;sumFrete+=c.frDsc;
+    sumVol+=c.volC;sumAtv+=c.atvC;sumEq+=c.eqC;sumGps+=c.gpsC;sumBC+=c.bonusCelula;
+    sumNC+=c.novosClientesC;sumCI+=(c.recorrenciaC+c.aberturaC);sumBS+=c.beSmart;sumFrete+=c.frDsc;
     if(canExport)anyRaw=true;
 
     rows+=`<tr id="row_${vend.id}" ${isEditing?'class="row-editing"':''}>
@@ -665,10 +757,12 @@ function renderResumo(){
       <td class="r">${isEmpty?'<span class="c-dim">—</span>':`<span class="fp ${fpCls[c.fx.n-1]}" style="font-size:9px;padding:1px 6px">F${c.fx.n}</span>`}</td>
       <td class="r">${isEmpty?'<span class="c-dim">—</span>':'R$'+br2(c.volC)}</td>
       <td class="r">${isEmpty?'<span class="c-dim">—</span>':'R$'+br2(c.atvC)}</td>
-      <td class="r">${c.desC>0?'R$'+br2(c.desC):'<span class="c-dim">—</span>'}</td>
       <td class="r">${c.eqC>0?'R$'+br2(c.eqC):'<span class="c-dim">—</span>'}</td>
       <td class="r">${c.gpsC>0?'R$'+br2(c.gpsC):'<span class="c-dim">—</span>'}</td>
       <td class="r">${c.bonusCelula>0?'<span class="c-verde">+R$'+br2(c.bonusCelula)+'</span>':'<span class="c-dim">—</span>'}</td>
+      <td class="r">${c.novosClientesC>0?'<span class="c-verde">+R$'+br2(c.novosClientesC)+'</span>':'<span class="c-dim">—</span>'}</td>
+      <td class="r">${(c.recorrenciaC+c.aberturaC)>0?'<span class="c-verde">+R$'+br2(c.recorrenciaC+c.aberturaC)+'</span>':'<span class="c-dim">—</span>'}</td>
+      <td class="r">${c.beSmart>0?'R$'+br2(c.beSmart):'<span class="c-dim">—</span>'}</td>
       <td class="r">${c.frDsc>0?'<span class="c-red">-R$'+br2(c.frDsc)+'</span>':'<span class="c-dim">—</span>'}</td>
       <td class="r" style="font-weight:700;color:${isEmpty?'#bbb':'#166B4A'}">${isEmpty?'—':'R$'+br2(c.total)}</td>
       <td style="text-align:center;white-space:nowrap">
@@ -679,12 +773,12 @@ function renderResumo(){
       </td>
     </tr>
     <tr id="editrow_${vend.id}" style="display:${isEditing?'table-row':'none'}">
-      <td colspan="13" style="padding:0;background:#f9fffe">
+      <td colspan="15" style="padding:0;background:#f9fffe">
         <div class="edit-panel" id="panel_${vend.id}"></div>
       </td>
     </tr>`;
   });
-  if(!dados.length)rows=`<tr><td colspan="13"><div class="rs-empty">Nenhum vendedor encontrado para esse filtro.</div></td></tr>`;
+  if(!dados.length)rows=`<tr><td colspan="15"><div class="rs-empty">Nenhum vendedor encontrado para esse filtro.</div></td></tr>`;
 
   const filtrando=!!(q||fFaixa||fVazias);
   document.getElementById('resumoBody').innerHTML=rows;
@@ -692,10 +786,12 @@ function renderResumo(){
     <td style="padding-left:20px;color:#166B4A" colspan="4">${filtrando?'Total (filtrado)':'Total do time'}</td>
     <td class="r">R$${br2(sumVol)}</td>
     <td class="r">R$${br2(sumAtv)}</td>
-    <td class="r">${sumDes>0?'R$'+br2(sumDes):'<span class="c-dim">—</span>'}</td>
     <td class="r">${sumEq>0?'R$'+br2(sumEq):'<span class="c-dim">—</span>'}</td>
     <td class="r">${sumGps>0?'R$'+br2(sumGps):'<span class="c-dim">—</span>'}</td>
     <td class="r">${sumBC>0?'R$'+br2(sumBC):'<span class="c-dim">—</span>'}</td>
+    <td class="r">${sumNC>0?'R$'+br2(sumNC):'<span class="c-dim">—</span>'}</td>
+    <td class="r">${sumCI>0?'R$'+br2(sumCI):'<span class="c-dim">—</span>'}</td>
+    <td class="r">${sumBS>0?'R$'+br2(sumBS):'<span class="c-dim">—</span>'}</td>
     <td class="r">${sumFrete>0?'-R$'+br2(sumFrete):'<span class="c-dim">—</span>'}</td>
     <td class="r" style="color:#166B4A;font-size:15px">R$${br2(grand)}</td>
     <td></td>
@@ -728,6 +824,7 @@ function renderEditPanel(vid,mes){
       <div><label class="lbl">Smart GPS</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="e_g_${vid}" value="${d.gps||0}" min="0" step="0.01" oninput="liveCalc('${vid}')"></div></div>
       <div><label class="lbl">Frete</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="e_f_${vid}" value="${d.frete||0}" min="0" step="0.01" oninput="liveCalc('${vid}')"></div></div>
       <div><label class="lbl" style="color:#166B4A">Bônus extra</label><div class="irow"><span class="ipfx" style="color:#166B4A">R$</span><input type="number" id="e_b_${vid}" value="${d.bonus||0}" min="0" step="0.01" oninput="liveCalc('${vid}')" style="border-color:#1E9B6B"></div></div>
+      <div><label class="lbl" style="color:#166B4A">Be Smart</label><div class="irow"><span class="ipfx" style="color:#166B4A">R$</span><input type="number" id="e_bs_${vid}" value="${d.beSmart||0}" min="0" step="0.01" oninput="liveCalc('${vid}')" style="border-color:#1E9B6B"></div></div>
     </div>
     <div class="edit-obs"><label class="lbl">Observação</label><input type="text" id="e_o_${vid}" value="${d.obs||''}" placeholder="Ex: bônus campanha Q3, correção de volume…"></div>
     <div class="edit-preview" id="prev_${vid}"></div>
@@ -740,21 +837,22 @@ function renderEditPanel(vid,mes){
 function liveCalc(vid){
   const vend=vendedores.find(v=>v.id===vid);
   const mes=document.getElementById('mesInput').value;
-  const d={linhas:+document.getElementById(`e_l_${vid}`).value||0,atv:+document.getElementById(`e_a_${vid}`).value||0,eq:+document.getElementById(`e_q_${vid}`).value||0,gps:+document.getElementById(`e_g_${vid}`).value||0,frete:+document.getElementById(`e_f_${vid}`).value||0,bonus:+document.getElementById(`e_b_${vid}`).value||0};
-  const c=calcVend(d,vend.g,bonusCelulaDe(vid,mes),eqDiretoDe(vend));
-  const fpCls=['f1','f2','f3','f4','f5','f6'];
+  const d={linhas:+document.getElementById(`e_l_${vid}`).value||0,atv:+document.getElementById(`e_a_${vid}`).value||0,eq:+document.getElementById(`e_q_${vid}`).value||0,gps:+document.getElementById(`e_g_${vid}`).value||0,frete:+document.getElementById(`e_f_${vid}`).value||0,bonus:+document.getElementById(`e_b_${vid}`).value||0,beSmart:+document.getElementById(`e_bs_${vid}`).value||0};
+  const c=calcVend(d,vend.g,bonusCelulaDe(vid,mes),eqDiretoDe(vend),extraDoVendedor(vend,mes));
+  const fpCls=['f1','f2','f3','f4'];
   const ths=[vend.g.obj,vend.g.m1,vend.g.m2,vend.g.sm];
   const prev=document.getElementById(`prev_${vid}`);if(!prev)return;
   prev.innerHTML=`
     <div class="ep-faixa-row"><span class="fp ${fpCls[c.fx.n-1]}">Faixa ${c.fx.n}</span><span style="font-size:11px;color:#888">${c.alc.toFixed(0)}% do objetivo · R$${c.fx.vol.toFixed(2).replace('.',',')}/linha · ${(c.fx.atv*100).toFixed(0)}% ativação</span></div>
-    <div class="ep-des">${desafio.map((d2,i)=>{const hit=c.linhas>=ths[i];return`<div class="epd ${hit?'epd-hit':'epd-miss'}"><div class="dl">${d2.lbl}${hit?' ✓':''}</div><div class="dv">${hit?'+':''}R$${d2.val}</div><div class="ds">≥${ths[i].toLocaleString('pt-BR')}</div></div>`;}).join('')}</div>
     <div class="ep-nums">
       <div class="ep-item"><label>Volume</label><span>R$${br2(c.volC)}</span></div><span class="ep-sep">+</span>
-      <div class="ep-item"><label>Ativação</label><span>R$${br2(c.atvC)}</span></div><span class="ep-sep">+</span>
-      <div class="ep-item"><label>Desafio</label><span>R$${br2(c.desC)}</span></div>
+      <div class="ep-item"><label>Ativação</label><span>R$${br2(c.atvC)}</span></div>
       ${(c.eqC+c.gpsC)>0?`<span class="ep-sep">+</span><div class="ep-item"><label>Equip+GPS</label><span>R$${br2(c.eqC+c.gpsC)}</span></div>`:''}
       ${c.bonus>0?`<span class="ep-sep">+</span><div class="ep-item"><label style="color:#166B4A">Bônus</label><span>R$${br2(c.bonus)}</span></div>`:''}
+      ${c.beSmart>0?`<span class="ep-sep">+</span><div class="ep-item"><label style="color:#166B4A">Be Smart</label><span>R$${br2(c.beSmart)}</span></div>`:''}
       ${c.bonusCelula>0?`<span class="ep-sep">+</span><div class="ep-item"><label style="color:#166B4A">Bônus Célula</label><span>R$${br2(c.bonusCelula)}</span></div>`:''}
+      ${c.novosClientesC>0?`<span class="ep-sep">+</span><div class="ep-item"><label style="color:#166B4A">Novos Clientes</label><span>R$${br2(c.novosClientesC)}</span></div>`:''}
+      ${(c.recorrenciaC+c.aberturaC)>0?`<span class="ep-sep">+</span><div class="ep-item"><label style="color:#166B4A">Canal Indireto</label><span>R$${br2(c.recorrenciaC+c.aberturaC)}</span></div>`:''}
       ${c.frDsc>0?`<span class="ep-sep">−</span><div class="ep-item"><label style="color:#b83232">Frete</label><span style="color:#b83232">R$${br2(c.frDsc)}</span></div>`:''}
       <div style="margin-left:auto"><div class="ep-item"><label>Total</label><span class="big">R$ ${br2(c.total)}</span></div></div>
     </div>`;
@@ -762,7 +860,7 @@ function liveCalc(vid){
 function saveEdit(vid){
   const mes=document.getElementById('mesInput').value;
   if(mesAprovado(mes)){showToast('Mês aprovado — desaprove no Importar pra editar.','#b83232');return;}
-  mdata[`${vid}_${mes}`]={linhas:+document.getElementById(`e_l_${vid}`).value||0,atv:+document.getElementById(`e_a_${vid}`).value||0,eq:+document.getElementById(`e_q_${vid}`).value||0,gps:+document.getElementById(`e_g_${vid}`).value||0,frete:+document.getElementById(`e_f_${vid}`).value||0,bonus:+document.getElementById(`e_b_${vid}`).value||0,obs:document.getElementById(`e_o_${vid}`).value||''};
+  mdata[`${vid}_${mes}`]={linhas:+document.getElementById(`e_l_${vid}`).value||0,atv:+document.getElementById(`e_a_${vid}`).value||0,eq:+document.getElementById(`e_q_${vid}`).value||0,gps:+document.getElementById(`e_g_${vid}`).value||0,frete:+document.getElementById(`e_f_${vid}`).value||0,bonus:+document.getElementById(`e_b_${vid}`).value||0,beSmart:+document.getElementById(`e_bs_${vid}`).value||0,obs:document.getElementById(`e_o_${vid}`).value||''};
   if(!LS.set('gs5_m',mdata)){showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.','#b83232');return;}
   editingId=null;renderResumo();
   showToast(`${vendedores.find(v=>v.id===vid).nome} atualizado ✓`);
@@ -782,20 +880,22 @@ async function exportVendedor(vid,mes){
     }
   }
   const raw=rawStore[key]||{};
-  const c=calcVend(d,vend.g,bonusCelulaDe(vid,mes),eqDiretoDe(vend));
+  const c=calcVend(d,vend.g,bonusCelulaDe(vid,mes),eqDiretoDe(vend),extraDoVendedor(vend,mes));
   const ths=[vend.g.obj,vend.g.m1,vend.g.m2,vend.g.sm];
 
   const wb=XLSX.utils.book_new();
 
   // ── ABA RESUMO (formato idêntico ao modelo) ──
   const resumo=[
-    ['VOLUME','','ATIVAÇÃO','','BATEU / LEVOU','','COMISSÃO TOTAL',''],
-    ['OBJETIVO',vend.g.obj,'OBJETIVO',desafio[0].val,null,null,'VOLUME',c.volC],
-    ['VOLUME',c.linhas,'VOLUME',c.atv,'META 1',desafio[1].val,'ATIVAÇÃO',c.atvC],
-    ['ALCANCE',c.alc/100,null,null,'META 2',desafio[2].val,'DESAFIO',c.desC],
-    ['FAIXA',c.fx.vol,'FAIXA',c.fx.atv,'SUPER META',desafio[3].val,'Bonificação Time',c.bonusCelula],
-    ['COMISSÃO VOLUME',c.volC,'COMISSÃO ATIVAÇÃO',c.atvC,'DESAFIO MENSAL',c.desC,'EQUIPAMENTO',c.eqC],
+    ['VOLUME','','ATIVAÇÃO','','BÔNUS CÉLULA','','COMISSÃO TOTAL',''],
+    ['OBJETIVO',vend.g.obj,'OBJETIVO',vend.g.obj,null,null,'VOLUME',c.volC],
+    ['VOLUME',c.linhas,'VOLUME',c.atv,null,null,'ATIVAÇÃO',c.atvC],
+    ['ALCANCE',c.alc/100,null,null,null,null,'Bônus Célula',c.bonusCelula],
+    ['FAIXA',c.fx.vol,'FAIXA',c.fx.atv,null,null,'Novos Clientes',c.novosClientesC],
+    ['COMISSÃO VOLUME',c.volC,'COMISSÃO ATIVAÇÃO',c.atvC,null,null,'EQUIPAMENTO',c.eqC],
     [null,null,null,null,null,null,'SMART GPS',c.gpsC],
+    [null,null,null,null,null,null,'Canal Indireto',c.recorrenciaC+c.aberturaC],
+    [null,null,null,null,null,null,'Be Smart',c.beSmart],
     [null,null,null,null,null,null,'Bônus extra',d.bonus||0],
     [null,null,null,null,null,null,'Desconto Frete',c.frDsc>0?-c.frDsc:0],
   ];
@@ -862,6 +962,7 @@ function buildMetas(){
         onfocus="this.value=String(vendedores[${i}].g.sm)"></td>
       <td class="c"><button class="mt-del" onclick="removeVend(${i})" title="Remover vendedor"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 10v6M14 10v6"/></svg></button></td>
     </tr>`).join('');
+  buildEquipCatVendList();
 }
 function addVend(){vendedores.push({id:'v'+Date.now(),nome:'Novo Vendedor',g:{obj:1000,m1:1200,m2:1500,sm:2000},salarioFixo:0});buildMetas();buildCelulas();}
 function removeVend(i){if(vendedores.length<=1)return;const vid=vendedores[i].id;vendedores.splice(i,1);celulas.forEach(c=>{c.vendedorIds=c.vendedorIds.filter(x=>x!==vid);});LS.set('gs5_celulas',celulas);buildMetas();buildCelulas();}
@@ -936,10 +1037,55 @@ function buildFaixaTable(){
     <td><div class="rg-in"><span class="ipfx">R$</span><input type="number" class="rule-input" value="${f.vol.toFixed(2)}" step="0.01" onchange="faixas[${i}].vol=+this.value;LS.set('gs5_f',faixas)"></div></td>
     <td><div class="rg-in"><input type="number" class="rule-input" value="${(f.atv*100).toFixed(0)}" onchange="faixas[${i}].atv=+this.value/100;LS.set('gs5_f',faixas)"><span class="ipfx">%</span></div></td></tr>`).join('');
 }
-function buildDesafioTable(){
-  document.getElementById('desafioBody').innerHTML=desafio.map((d,i)=>`
-    <tr><td><strong>${d.lbl}</strong></td>
-    <td><div class="rg-in"><span class="ipfx">R$</span><input type="number" class="rule-input" value="${d.val}" onchange="desafio[${i}].val=+this.value;LS.set('gs5_d',desafio)"></div></td></tr>`).join('');
+function buildNovosClientesTable(){
+  document.getElementById('novosClientesBody').innerHTML=novosClientesFaixas.map((f,i)=>`
+    <tr><td><strong>${f.qtd}+ clientes</strong></td>
+    <td><div class="rg-in"><span class="ipfx">R$</span><input type="number" class="rule-input" value="${f.valor}" onchange="novosClientesFaixas[${i}].valor=+this.value;LS.set('gs5_novos_clientes_faixas',novosClientesFaixas)"></div></td></tr>`).join('');
+}
+function saveEquipCat(){
+  equipCat.rastreamento=+document.getElementById('eqc_rastreamento').value||0;
+  equipCat.meios_pagamento=+document.getElementById('eqc_meios_pagamento').value||0;
+  if(!LS.set('gs5_eq_cat',equipCat)){showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.','#b83232');return;}
+  renderResumo();
+}
+function loadEquipCat(){
+  document.getElementById('eqc_rastreamento').value=equipCat.rastreamento;
+  document.getElementById('eqc_meios_pagamento').value=equipCat.meios_pagamento;
+}
+function saveRecorrencia(){
+  recorrenciaCfg.valorPorParceiro=+document.getElementById('rec_valor').value||0;
+  recorrenciaCfg.tetoParceiros=+document.getElementById('rec_teto').value||0;
+  recorrenciaCfg.mesesCarencia=+document.getElementById('rec_carencia').value||0;
+  recorrenciaCfg.abertura.indicador=+document.getElementById('rec_ab_indicador').value||0;
+  recorrenciaCfg.abertura.indicador_n2=+document.getElementById('rec_ab_indicador_n2').value||0;
+  recorrenciaCfg.abertura.dealer=+document.getElementById('rec_ab_dealer').value||0;
+  recorrenciaCfg.abertura.broker=+document.getElementById('rec_ab_broker').value||0;
+  if(!LS.set('gs5_recorrencia',recorrenciaCfg)){showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.','#b83232');return;}
+  renderResumo();
+}
+function loadRecorrencia(){
+  document.getElementById('rec_valor').value=recorrenciaCfg.valorPorParceiro;
+  document.getElementById('rec_teto').value=recorrenciaCfg.tetoParceiros;
+  document.getElementById('rec_carencia').value=recorrenciaCfg.mesesCarencia;
+  document.getElementById('rec_ab_indicador').value=recorrenciaCfg.abertura.indicador;
+  document.getElementById('rec_ab_indicador_n2').value=recorrenciaCfg.abertura.indicador_n2;
+  document.getElementById('rec_ab_dealer').value=recorrenciaCfg.abertura.dealer;
+  document.getElementById('rec_ab_broker').value=recorrenciaCfg.abertura.broker;
+}
+function setEquipCatVend(i,valor){
+  vendedores[i].categoriaEquip=valor||null;
+  LS.set('gs5_v',vendedores);
+  renderResumo();
+}
+function buildEquipCatVendList(){
+  const OPCOES=[{v:'',l:'Nenhuma (usa taxa % padrão)'},{v:'rastreamento',l:'Rastreamento'},{v:'meios_pagamento',l:'Meios de Pagamento'}];
+  document.getElementById('equipCatVendList').innerHTML=vendedores.map((v,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px">
+      <span style="flex:1">${v.nome}</span>
+      <select onchange="setEquipCatVend(${i},this.value)">
+        ${OPCOES.map(o=>`<option value="${o.v}" ${((v.categoriaEquip||'')===o.v)?'selected':''}>${o.l}</option>`).join('')}
+      </select>
+    </div>`).join('');
 }
 function rgContaObs(){
   const t=document.getElementById('r_eq_obs'),c=document.getElementById('r_eq_cnt');

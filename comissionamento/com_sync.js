@@ -19,12 +19,18 @@
   var API = '/api/comissionamento';
   var KEYS = [
     'gs5_v', 'gs5_m', 'gs5_d', 'gs5_f', 'gs5_r', 'gs5_celulas', 'gs5_celula_aliquotas',
-    'dp1_m', 'dp1_pp', 'dp1_projetos', 'dp1_dealers', 'dp1_rules', 'dp1_bl', 'dp1_precos',
+    // Modelo novo do Vendedor (27/10/2026): Equip. por Categoria, Novos
+    // Clientes, Recorrência por Canal Indireto. gs5_d (Desafio) fica na lista
+    // sem uso — não tem problema manter uma chave órfã sincronizada.
+    'gs5_eq_cat', 'gs5_equip_por_categoria', 'gs5_novos_clientes_faixas', 'gs5_novos_clientes',
+    'gs5_recorrencia', 'gs5_abertura_parceiros', 'gs5_pedidos_por_cnpj',
+    'dp1_m', 'dp1_pp', 'dp1_projetos', 'dp1_dealers', 'dp1_brokers', 'dp1_rules', 'dp1_bl', 'dp1_precos',
     'ind1_m', 'ind1_rules', 'ind1_list',
     'dc1_cfg', 'dc1_ext', 'dc1_m',
     'da1_cfg', 'da1_ext', 'da1_m',
     'go1_cfg', 'go1_ext', 'go1_m',
-    'aprovacoes_mes', 'cons_hist_manual', 'cons_bonus_extra', 'imp_dealer_fontes', 'imp_clientes_map', 'regras_comissao'
+    'aprovacoes_mes', 'cons_hist_manual', 'cons_bonus_extra', 'imp_dealer_fontes', 'imp_clientes_map',
+    'imp_clientes_criado_em', 'regras_comissao'
   ];
   var PENDING = '__com_pending';
   var origSet = Storage.prototype.setItem;

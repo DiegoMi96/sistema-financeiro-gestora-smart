@@ -444,6 +444,7 @@ iframe.active{display:block}
 .cad-tipo-pill.indicador_n2{background:#fde3c2;color:#92400e}
 .cad-tipo-pill.dealer{background:#eaf5f0;color:#166B4A}
 .cad-tipo-pill.projeto{background:#eff6ff;color:#1d4ed8}
+.cad-tipo-pill.broker{background:#f3f0fb;color:#6d28d9}
 .cad-empty{padding:28px;text-align:center;color:#bbb;font-size:12.5px}
 /* ─── Cadastro de Parceiros — layout novo ─── */
 #frame-cadastro .cad-page-wrap{max-width:1340px}
@@ -869,8 +870,8 @@ iframe.active{display:block}
             <div id="exec_ativacao"></div>
           </div>
           <div class="ex-card">
-            <p class="ex-card-t">Desafio · Bateu Levou</p>
-            <p class="ex-card-s">Bonificação por atingimento de meta</p>
+            <p class="ex-card-t">Bônus Célula · Novos Clientes</p>
+            <p class="ex-card-s">Resultado do squad + clientes novos trazidos no mês</p>
             <div id="exec_desafio"></div>
           </div>
         </div>
@@ -919,6 +920,7 @@ iframe.active{display:block}
               <option value="indicador_n2">Indicador N2</option>
               <option value="dealer">Dealer</option>
               <option value="projeto">Projeto Especial</option>
+              <option value="broker">Broker</option>
             </select>
             <label class="cad-toolbar-check">
               <input type="checkbox" id="cad_filtro_pendente" onchange="cadPagina=1;cadRenderList()">
@@ -928,6 +930,19 @@ iframe.active{display:block}
           </div>
           <div class="cad-table-wrap" id="cad_table_wrap_pagina"></div>
           <div class="cad-pager" id="cad_pager"></div>
+        </div>
+
+        <div class="cad-list-card" style="margin-top:24px">
+          <div class="cad-list-hdr">
+            <h2>Brokers</h2>
+            <p class="cad-list-sub">Cadastro simplificado — só o essencial pra Recorrência por Canal Indireto. Já aparece na listagem acima também.</p>
+          </div>
+          <div class="cad-toolbar" style="gap:10px;flex-wrap:wrap">
+            <input type="text" id="brk_nome" placeholder="Nome / Empresa" style="flex:1;min-width:180px;height:36px;border:1px solid #d4d3ce;border-radius:8px;padding:0 12px;font-size:12.5px">
+            <input type="text" id="brk_doc" placeholder="CNPJ e/ou CPF" style="flex:1;min-width:150px;height:36px;border:1px solid #d4d3ce;border-radius:8px;padding:0 12px;font-size:12.5px">
+            <select id="brk_comercial" style="min-width:180px;height:36px;border:1px solid #d4d3ce;border-radius:8px;padding:0 12px;font-size:12.5px"></select>
+            <button type="button" class="cad-btn" onclick="brkCadastrar()">+ Cadastrar Broker</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1584,13 +1599,19 @@ const CONS_DEFAULTS = {
     { id: 'v8', nome: 'Daiane Oliveira', g: { obj: 1800, m1: 2050, m2: 2300, sm: 2800 } },
     { id: 'v9', nome: 'Renato Araujo', g: { obj: 4250, m1: 4500, m2: 4750, sm: 5250 } },
   ],
+  // Modelo novo a partir do ciclo de novembro/2026 (27/10/2026): 4 faixas em
+  // vez de 6, percentuais maiores — mesmos valores de vendedor.html (DEF_F).
   faixas: [
-    { n: 1, min: 0, max: 70, vol: 0.10, atv: 0.10 }, { n: 2, min: 71, max: 90, vol: 0.15, atv: 0.15 },
-    { n: 3, min: 91, max: 120, vol: 0.25, atv: 0.25 }, { n: 4, min: 121, max: 150, vol: 0.30, atv: 0.30 },
-    { n: 5, min: 151, max: 200, vol: 0.40, atv: 0.40 }, { n: 6, min: 201, max: 9999, vol: 0.50, atv: 0.50 },
+    { n: 1, min: 0, max: 90, vol: 0.17, atv: 0.40 }, { n: 2, min: 91, max: 110, vol: 0.34, atv: 0.60 },
+    { n: 3, min: 111, max: 130, vol: 0.54, atv: 0.80 }, { n: 4, min: 131, max: 9999, vol: 0.74, atv: 1.00 },
   ],
-  desafio: [{ lbl: 'Objetivo', val: 200 }, { lbl: 'Meta 1', val: 300 }, { lbl: 'Meta 2', val: 400 }, { lbl: 'Super Meta', val: 500 }],
   vendedorRules: { eqRate: 2, gpsRate: 100, freteLimit: 250 },
+  equipCat: { rastreamento: 2.00, meios_pagamento: 5.00 },
+  novosClientesFaixas: [{ qtd: 3, valor: 120 }, { qtd: 5, valor: 250 }, { qtd: 7, valor: 300 }, { qtd: 9, valor: 400 }],
+  recorrencia: {
+    valorPorParceiro: 50, tetoParceiros: 10, mesesCarencia: 2,
+    abertura: { indicador: 100, indicador_n2: 200, dealer: 350, broker: 500 },
+  },
   // Ione Rastrek passou a ser tratada como Dealer (não mais Projeto Especial) —
   // usa o Motor de Regras de Comissão (regraDealer/REGRAS_SEED), não a margem
   // por mensalidade normal do Dealer.
@@ -1711,7 +1732,25 @@ const CONS_DEF_CELULAS = [
   { id: 'c4', nome: 'Claudia + Daiane', vendedorIds: ['v7', 'v8'] },
   { id: 'c5', nome: 'Patrick + Henrique', vendedorIds: ['v2', 'v1'] },
 ];
-const CONS_DEF_CELULA_ALIQUOTAS = { objetivo: 0.07, meta1: 0.13, meta2: 0.25, superMeta: 0.33 };
+const CONS_DEF_CELULA_ALIQUOTAS = { objetivo: 0.10, meta1: 0.15, meta2: 0.20, superMeta: 0.30 };
+// Parceiros ativos vinculados ao vendedor (campo Comercial) — mesmo critério
+// (nome normalizado) usado pelo Volume linkado em impBuildEntityIndex, e mesma
+// função que vendedor.html tem pra calcular a Recorrência por Canal Indireto.
+function parceirosAtivosDoVendedor(vendedorNome) {
+  const nn = norm(vendedorNome);
+  const listas = [CLS.get('ind1_list', []), CLS.get('dp1_dealers', []), CLS.get('dp1_projetos', []), CLS.get('dp1_brokers', [])];
+  let count = 0;
+  listas.forEach(lista => (lista || []).forEach(e => {
+    const ativo = (e.status || 'ativo') === 'ativo';
+    if (ativo && norm(e.comercial || '') === nn) count++;
+  }));
+  return count;
+}
+function recorrenciaDoVendedor(vendedorNome) {
+  const cfg = CLS.get('gs5_recorrencia', CONS_DEFAULTS.recorrencia);
+  const qtd = parceirosAtivosDoVendedor(vendedorNome);
+  return Math.min(qtd, cfg.tetoParceiros) * cfg.valorPorParceiro;
+}
 function consBonusCelulaDe(vid, mes) {
   const vendedores = CLS.get('gs5_v', CONS_DEFAULTS.vendedores);
   const celulas = CLS.get('gs5_celulas', CONS_DEF_CELULAS);
@@ -1734,33 +1773,47 @@ function consBonusCelulaDe(vid, mes) {
   const v = vendedores.find(x => x.id === vid);
   return +(aliquota * (v?.salarioFixo || 0)).toFixed(2);
 }
+function consVendExtra(v, mes) {
+  const eqCatMes = (CLS.get('gs5_equip_por_categoria', {})[mes] || {})[v.id] || {};
+  const nc = (CLS.get('gs5_novos_clientes', {})[mes] || {})[v.id] || {};
+  return {
+    categoriaEquip: v.categoriaEquip || null,
+    qtdEquip: eqCatMes.qtd || 0,
+    novosClientesValor: nc.valor || 0,
+    recorrenciaValor: recorrenciaDoVendedor(v.nome),
+    aberturaValor: (CLS.get('gs5_abertura_parceiros', {})[mes] || {})[v.id] || 0,
+  };
+}
 function consVendedorTotais(mes) {
   const vendedores = CLS.get('gs5_v', CONS_DEFAULTS.vendedores);
   const mdata = CLS.get('gs5_m', {});
   const faixas = CLS.get('gs5_f', CONS_DEFAULTS.faixas);
-  const desafio = CLS.get('gs5_d', CONS_DEFAULTS.desafio);
   const rules = CLS.get('gs5_r', CONS_DEFAULTS.vendedorRules);
+  const equipCat = CLS.get('gs5_eq_cat', CONS_DEFAULTS.equipCat);
   return vendedores.map(v => {
     const d = mdata[`${v.id}_${mes}`] || {};
-    const linhas = d.linhas || 0, atv = d.atv || 0, eq = d.eq || 0, gps = d.gps || 0, frete = d.frete || 0, bonus = d.bonus || 0;
+    const linhas = d.linhas || 0, atv = d.atv || 0, eq = d.eq || 0, gps = d.gps || 0, frete = d.frete || 0, bonus = d.bonus || 0, beSmart = d.beSmart || 0;
     const bonusCelula = consBonusCelulaDe(v.id, mes);
+    const extra = consVendExtra(v, mes);
     const alc = v.g.obj > 0 ? (linhas / v.g.obj * 100) : 0;
     // As faixas são definidas em pontos percentuais inteiros com um "buraco"
-    // entre uma e outra (ex: 0–70 / 71–90) — sem arredondar pra baixo antes de
-    // comparar, um alcance como 70,04% caía fora da faixa 1 (que vai só até 70)
-    // e também fora da faixa 2 (que só começa em 71), sendo empurrado pra faixa
+    // entre uma e outra (ex: 0–90 / 91–110) — sem arredondar pra baixo antes de
+    // comparar, um alcance como 90,04% caía fora da faixa 1 (que vai só até 90)
+    // e também fora da faixa 2 (que só começa em 91), sendo empurrado pra faixa
     // 2 por engano. Confirmado batendo com a planilha real da Claudia (Jul/26):
-    // 70,04% de alcance = Faixa 1 (10%), não Faixa 2 (15%).
+    // o mesmo bug já corrigido pro modelo de 6 faixas vale igual pro de 4.
     const fx = faixas.find(f => Math.floor(alc) <= f.max) || faixas[faixas.length - 1] || { vol: 0, atv: 0 };
-    const ths = [v.g.obj, v.g.m1, v.g.m2, v.g.sm];
-    let desC = 0; desafio.forEach((dd, i) => { if (linhas >= ths[i]) desC += dd.val; });
     const volC = linhas * fx.vol, atvC = atv * fx.atv;
-    const eqC = EQUIP_MANUAL.includes(norm(v.nome)) ? eq : eq * ((rules.eqRate || 0) / 100), gpsC = gps * ((rules.gpsRate || 0) / 100);
+    const eqC = extra.categoriaEquip
+      ? extra.qtdEquip * (equipCat[extra.categoriaEquip] || 0)
+      : (EQUIP_MANUAL.includes(norm(v.nome)) ? eq : eq * ((rules.eqRate || 0) / 100));
+    const gpsC = gps * ((rules.gpsRate || 0) / 100);
     const frDsc = Math.max(0, frete - (rules.freteLimit || 0));
-    const total = volC + atvC + desC + eqC + gpsC + bonus + bonusCelula - frDsc;
+    const novosClientesC = extra.novosClientesValor, recorrenciaC = extra.recorrenciaValor, aberturaC = extra.aberturaValor;
+    const total = volC + atvC + eqC + gpsC + bonus + bonusCelula + beSmart + novosClientesC + recorrenciaC + aberturaC - frDsc;
     return {
-      nome: v.nome, total, hasData: !!(linhas || atv || eq || gps || bonus || bonusCelula),
-      simcard: volC + atvC + desC, bonificacao: bonus + bonusCelula, equipamento: eqC, gps: gpsC, descCanc: 0, descFrete: frDsc,
+      nome: v.nome, total, hasData: !!(linhas || atv || eq || gps || bonus || bonusCelula || beSmart || novosClientesC || recorrenciaC || aberturaC),
+      simcard: volC + atvC, bonificacao: bonus + bonusCelula + beSmart + novosClientesC + recorrenciaC + aberturaC, equipamento: eqC, gps: gpsC, descCanc: 0, descFrete: frDsc,
     };
   });
 }
@@ -1777,20 +1830,25 @@ function consVendedorTotais(mes) {
 function calcVendExec(v, mes) {
   const mdata = CLS.get('gs5_m', {});
   const faixas = CLS.get('gs5_f', CONS_DEFAULTS.faixas);
-  const desafio = CLS.get('gs5_d', CONS_DEFAULTS.desafio);
   const rules = CLS.get('gs5_r', CONS_DEFAULTS.vendedorRules);
+  const equipCat = CLS.get('gs5_eq_cat', CONS_DEFAULTS.equipCat);
   const d = mdata[`${v.id}_${mes}`] || {};
-  const linhas = d.linhas || 0, atv = d.atv || 0, eq = d.eq || 0, gps = d.gps || 0, frete = d.frete || 0, bonus = d.bonus || 0;
+  const linhas = d.linhas || 0, atv = d.atv || 0, eq = d.eq || 0, gps = d.gps || 0, frete = d.frete || 0, bonus = d.bonus || 0, beSmart = d.beSmart || 0;
   const bonusCelula = consBonusCelulaDe(v.id, mes);
+  const extra = consVendExtra(v, mes);
   const alc = v.g.obj > 0 ? (linhas / v.g.obj * 100) : 0;
   const fx = faixas.find(f => Math.floor(alc) <= f.max) || faixas[faixas.length - 1] || { n: 1, vol: 0, atv: 0 };
   const ths = [v.g.obj, v.g.m1, v.g.m2, v.g.sm];
-  let desC = 0; desafio.forEach((dd, i) => { if (linhas >= ths[i]) desC += dd.val; });
   const volC = linhas * fx.vol, atvC = atv * fx.atv;
-  const eqC = EQUIP_MANUAL.includes(norm(v.nome)) ? eq : eq * ((rules.eqRate || 0) / 100), gpsC = gps * ((rules.gpsRate || 0) / 100);
+  const eqC = extra.categoriaEquip
+    ? extra.qtdEquip * (equipCat[extra.categoriaEquip] || 0)
+    : (EQUIP_MANUAL.includes(norm(v.nome)) ? eq : eq * ((rules.eqRate || 0) / 100));
+  const gpsC = gps * ((rules.gpsRate || 0) / 100);
   const frDsc = Math.max(0, frete - (rules.freteLimit || 0));
-  const total = volC + atvC + desC + eqC + gpsC + bonus + bonusCelula - frDsc;
-  return { linhas, atv, eq, gps, frete, bonus, bonusCelula, alc, fx, volC, atvC, desC, eqC, gpsC, frDsc, total, desafio, ths };
+  const novosClientesC = extra.novosClientesValor, recorrenciaC = extra.recorrenciaValor, aberturaC = extra.aberturaValor;
+  const total = volC + atvC + eqC + gpsC + bonus + bonusCelula + beSmart + novosClientesC + recorrenciaC + aberturaC - frDsc;
+  return { linhas, atv, eq, gps, frete, bonus, bonusCelula, beSmart, alc, fx, volC, atvC, eqC, gpsC, frDsc,
+    novosClientesC, recorrenciaC, aberturaC, total, ths };
 }
 
 // Todos os parceiros cadastrados (Indicador/Indicador N2/Dealer/Projeto
@@ -1944,21 +2002,21 @@ function renderExecutivo() {
       ['% Ativação (faixa)', (c.fx.atv * 100).toFixed(0) + '%'],
     ]) + `<div class="exec-sum-footer"><span>Comissão Ativação</span><span>R$${br2c(c.atvC)}</span></div>`;
 
-    document.getElementById('exec_desafio').innerHTML =
-      `<div class="exec-des">${c.desafio.map((dd, i) => {
-        const hit = c.linhas >= c.ths[i];
-        return `<div class="exec-epd ${hit ? 'exec-epd-hit' : 'exec-epd-miss'}"><div class="dl">${dd.lbl}</div><div class="dv">${hit ? '+' : ''}R$${dd.val}</div><div class="ds">≥${c.ths[i].toLocaleString('pt-BR')}</div></div>`;
-      }).join('')}</div>` +
-      `<div class="exec-sum-footer"><span>Desafio Mensal</span><span>R$${br2c(c.desC)}</span></div>`;
+    document.getElementById('exec_desafio').innerHTML = execTabela([
+      ['Bônus Célula', 'R$' + br2c(c.bonusCelula), true],
+      ['Bônus Novos Clientes', 'R$' + br2c(c.novosClientesC), true],
+      ['Canal Indireto (recorrência + abertura)', 'R$' + br2c(c.recorrenciaC + c.aberturaC), true],
+    ]) + `<div class="exec-sum-footer"><span>Total do card</span><span>R$${br2c(c.bonusCelula + c.novosClientesC + c.recorrenciaC + c.aberturaC)}</span></div>`;
 
     const rg = CLS.get('gs5_r', CONS_DEFAULTS.vendedorRules);
     const traco = '<span style="color:#ccc">—</span>';
-    const ultimoDesafio = c.desafio.map((dd, i) => c.linhas >= c.ths[i] ? dd.lbl : null).filter(Boolean).pop();
     document.getElementById('exec_composicao').innerHTML = execComposicao([
       ['Volume', c.linhas > 0 ? `${c.linhas.toLocaleString('pt-BR')} linhas × R$ ${br2c(c.fx.vol)}` : traco, 'R$' + br2c(c.volC)],
       ['Ativação', c.atv > 0 ? `R$ ${br2c(c.atv)} × ${(c.fx.atv * 100).toFixed(0)}%` : traco, 'R$' + br2c(c.atvC)],
-      ['Desafio (Bateu Levou)', ultimoDesafio ? `${ultimoDesafio} atingida` : traco, c.desC > 0 ? 'R$' + br2c(c.desC) : traco],
       ['Bonificação Time', c.bonusCelula > 0 ? 'Bônus de célula' : traco, c.bonusCelula > 0 ? '<span style="color:#166B4A">+R$' + br2c(c.bonusCelula) + '</span>' : traco],
+      ['Novos Clientes', c.novosClientesC > 0 ? 'Maior faixa batida no mês' : traco, c.novosClientesC > 0 ? '<span style="color:#166B4A">+R$' + br2c(c.novosClientesC) + '</span>' : traco],
+      ['Canal Indireto', (c.recorrenciaC + c.aberturaC) > 0 ? 'Recorrência + abertura de parceiro' : traco, (c.recorrenciaC + c.aberturaC) > 0 ? '<span style="color:#166B4A">+R$' + br2c(c.recorrenciaC + c.aberturaC) + '</span>' : traco],
+      ['Be Smart', c.beSmart > 0 ? 'Lançamento manual (sistema externo)' : traco, c.beSmart > 0 ? '<span style="color:#166B4A">+R$' + br2c(c.beSmart) + '</span>' : traco],
       ['Bônus extra', c.bonus > 0 ? 'Lançamento manual' : traco, c.bonus > 0 ? '<span style="color:#166B4A">+R$' + br2c(c.bonus) + '</span>' : traco],
       ['Equipamento', c.eqC > 0 ? (EQUIP_MANUAL.includes(norm(v.nome)) ? 'Valor lançado manualmente' : `R$ ${br2c(c.eq)} × ${rg.eqRate || 0}%`) : traco, c.eqC > 0 ? 'R$' + br2c(c.eqC) : traco],
       ['Smart GPS', c.gpsC > 0 ? `R$ ${br2c(c.gps)} × ${rg.gpsRate || 0}%` : traco, c.gpsC > 0 ? 'R$' + br2c(c.gpsC) : traco],
@@ -2714,12 +2772,16 @@ function renderConsHistorico(mesAte) {
 // mudam o rótulo/categoria de cadastro. CAD_KEY resolve pra lista certa;
 // entry.categoria guarda qual das 4 opções foi escolhida, pra distinguir
 // Indicador de Indicador N2 dentro da mesma lista.
-const CAD_KEY = { indicador: 'ind1_list', indicador_n2: 'ind1_list', dealer: 'dp1_dealers', projeto: 'dp1_projetos' };
-const CAD_LABEL_SING = { indicador: 'Indicador', indicador_n2: 'Indicador N2', dealer: 'Dealer', projeto: 'Projeto Especial' };
-const CAD_PILL_CLASS = { indicador: 'indicador', indicador_n2: 'indicador_n2', dealer: 'dealer', projeto: 'projeto' };
-const CAD_PREFIX = { indicador: 'i', indicador_n2: 'i', dealer: 'd', projeto: 'p' };
+// Broker (27/10/2026): categoria nova e deliberadamente simples (só
+// Nome/Empresa, Documento, Comercial) — cadastro próprio fora do modal
+// grande, mas entra na mesma listagem/busca/filtro por reaproveitar o
+// mesmo CAD_KEY/CAD_LABEL_SING/etc das outras categorias.
+const CAD_KEY = { indicador: 'ind1_list', indicador_n2: 'ind1_list', dealer: 'dp1_dealers', projeto: 'dp1_projetos', broker: 'dp1_brokers' };
+const CAD_LABEL_SING = { indicador: 'Indicador', indicador_n2: 'Indicador N2', dealer: 'Dealer', projeto: 'Projeto Especial', broker: 'Broker' };
+const CAD_PILL_CLASS = { indicador: 'indicador', indicador_n2: 'indicador_n2', dealer: 'dealer', projeto: 'projeto', broker: 'broker' };
+const CAD_PREFIX = { indicador: 'i', indicador_n2: 'i', dealer: 'd', projeto: 'p', broker: 'b' };
 // Progressão de carreira dentro da Smart — usada só pra ordenar/exibir.
-const CAD_ORDEM_CARREIRA = ['indicador', 'indicador_n2', 'dealer', 'projeto'];
+const CAD_ORDEM_CARREIRA = ['indicador', 'indicador_n2', 'dealer', 'projeto', 'broker'];
 
 function cadCategoriaChanged() {
   const cat = document.getElementById('cad_categoria').value;
@@ -2730,6 +2792,38 @@ function cadPopulateComercial() {
   const vendedores = CLS.get('gs5_v', CONS_DEFAULTS.vendedores);
   const sel = document.getElementById('cad_comercial');
   sel.innerHTML = '<option value="">Selecione…</option>' + vendedores.map(v => `<option value="${v.nome}">${v.nome}</option>`).join('');
+}
+// Cadastro simplificado de Broker (27/10/2026) — só Nome/Empresa, Documento
+// e Comercial, grava direto em dp1_brokers (mesmo formato de entry das
+// outras categorias — nome/comercial/status — pra reaproveitar cadRenderList/
+// cadVer/parceirosAtivosDoVendedor sem precisar de código especial).
+function brkPopulateComercial() {
+  const vendedores = CLS.get('gs5_v', CONS_DEFAULTS.vendedores);
+  const sel = document.getElementById('brk_comercial');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Comercial…</option>' + vendedores.map(v => `<option value="${v.nome}">${v.nome}</option>`).join('');
+}
+function brkCadastrar() {
+  const nome = document.getElementById('brk_nome').value.trim();
+  const doc = document.getElementById('brk_doc').value.trim();
+  const comercial = document.getElementById('brk_comercial').value;
+  if (!nome) { showCadToast('Informe o nome / empresa do broker.', true); return; }
+  if (!comercial) { showCadToast('Selecione a qual executivo este broker está vinculado.', true); return; }
+  const docDigits = onlyDigits(doc);
+  const entry = {
+    id: CAD_PREFIX.broker + Date.now(), nome, comercial, status: 'ativo',
+    criadoEm: new Date().toISOString().slice(0, 7),
+    cnpj: docDigits.length > 11 ? doc : '', cpf: docDigits.length <= 11 ? doc : '',
+    pendente: !doc,
+  };
+  const lista = CLS.get('dp1_brokers', []);
+  lista.push(entry);
+  if (!LS_set('dp1_brokers', lista)) { showCadToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.', true); return; }
+  document.getElementById('brk_nome').value = '';
+  document.getElementById('brk_doc').value = '';
+  document.getElementById('brk_comercial').value = '';
+  cadRenderList();
+  showCadToast(`${nome} cadastrado(a) como Broker ✓`);
 }
 
 function cadClearForm() {
@@ -2753,6 +2847,7 @@ function cadContaCompoe(banco, agencia, numero, pix) {
 
 function cadDefaults(tipo) {
   if (tipo === 'indicador' || tipo === 'indicador_n2') return CONS_DEFAULTS.indicadores;
+  if (tipo === 'broker') return [];
   return tipo === 'dealer' ? CONS_DEFAULTS.dealers : CONS_DEFAULTS.projetos;
 }
 
@@ -2931,7 +3026,9 @@ function cadSalvar() {
 
   const key = CAD_KEY[tipo];
   const list = CLS.get(key, cadDefaults(tipo));
-  const entry = { id: CAD_PREFIX[tipo] + Date.now(), ...dados };
+  // criadoEm (modelo novo, 27/10/2026): mês do cadastro — base da carência do
+  // Bônus de Abertura de parceiro (recorrenciaCfg.mesesCarencia).
+  const entry = { id: CAD_PREFIX[tipo] + Date.now(), status: 'ativo', criadoEm: new Date().toISOString().slice(0, 7), ...dados };
   list.push(entry);
   set(key, list);
 
@@ -2963,27 +3060,20 @@ function cadLancamentosDo(tipo, id) {
   return [...meses].sort();
 }
 
-// Remover tira o parceiro da lista em TODOS os meses (a lista manda em tudo). Por isso: nunca remove quem tem
-// lançamento em mês já aprovado (mudaria o fechamento) e sempre pede confirmação (15/10/2026).
-function cadRemover(tipo, id) {
+// Status Ativo/Inativo (27/10/2026, modelo novo de Recorrência por Canal
+// Indireto) — substitui a remoção física: Inativo sai da contagem da
+// Recorrência mas mantém o histórico (lançamentos de meses passados
+// continuam intactos). Sem campo = Ativo (migração: cadastros antigos).
+function cadAlternarStatus(tipo, id) {
   const key = CAD_KEY[tipo];
   const lista = CLS.get(key, cadDefaults(tipo));
   const entry = lista.find(e => e.id === id);
   if (!entry) return;
-  const meses = cadLancamentosDo(tipo, id);
-  const fechados = meses.filter(m => mesAprovado(m));
-  const fmt = ms => ms.map(fmtMesC).join(', ');
-  if (fechados.length) {
-    alert(`Não dá para remover ${entry.nome}: ele tem lançamento em mês já aprovado (${fmt(fechados)}).\n\nRemover tiraria a comissão dele do fechamento desse mês.\n\nSe for um cadastro duplicado, mantenha este (ele guarda o histórico) e atualize os dados nele — ou desaprove o mês no Importar antes, se for mesmo necessário.`);
-    return;
-  }
-  const msg = meses.length
-    ? `${entry.nome} tem lançamento em ${fmt(meses)} (mês ainda aberto).\n\nRemover apaga ele de TODOS os meses e esses valores deixam de aparecer. Continuar?`
-    : `Remover ${entry.nome} do cadastro?`;
-  if (!confirm(msg)) return;
-  if (!LS_set(key, lista.filter(e => e.id !== id))) { showCadToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.', true); return; }
-  cadFecharModal('ver');
+  const novoStatus = (entry.status || 'ativo') === 'ativo' ? 'inativo' : 'ativo';
+  entry.status = novoStatus;
+  if (!LS_set(key, lista)) { showCadToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.', true); return; }
   cadRenderList();
+  showCadToast(`${entry.nome} agora está ${novoStatus === 'ativo' ? 'Ativo' : 'Inativo'} ✓`);
 }
 
 // Popup "Ver": mostra tudo o que foi preenchido, só leitura. O botão Editar fica aqui dentro.
@@ -3000,6 +3090,7 @@ function cadVer(tipo, id) {
     : 'Cadastrado no sistema';
   const itens = [
     ['Categoria', CAD_LABEL_SING[tipoReal] || tipoReal], ['Status', e.pendente ? 'Pendente (faltam dados de contato/pagamento)' : 'Completo'],
+    ['Situação', (e.status || 'ativo') === 'ativo' ? 'Ativo' : 'Inativo'],
     ['Nome', e.nome], ['Empresa', e.empresa],
     ['CPF', e.cpf || e.doc], ['CNPJ', e.cnpj],
     ['Celular', e.celular], ['Telefone', e.telefone],
@@ -3045,7 +3136,7 @@ function cadRenderList() {
   // Cards de resumo sempre contam o total real (sem aplicar busca/filtro) —
   // é a "foto" da base inteira, pra dar contexto antes de filtrar.
   const totalPendentes = todos.filter(e => e.pendente).length;
-  const porCategoria = ['indicador', 'indicador_n2', 'dealer', 'projeto'].map(tipo => ({
+  const porCategoria = CAD_ORDEM_CARREIRA.map(tipo => ({
     tipo, qtd: todos.filter(e => e._tipo === tipo).length,
   })).filter(c => c.qtd > 0);
   statsWrap.innerHTML = `
@@ -3090,7 +3181,7 @@ function cadRenderList() {
     </div>`;
 
   wrap.innerHTML = `<table><thead><tr>
-      <th>Categoria</th><th>Nome / Empresa</th><th>Documento</th><th>Cidade</th><th>Contato</th><th>Comercial</th><th>Ajuda de Custo</th><th>Status</th><th>Ações</th>
+      <th>Categoria</th><th>Nome / Empresa</th><th>Documento</th><th>Cidade</th><th>Contato</th><th>Comercial</th><th>Ajuda de Custo</th><th>Status</th><th>Situação</th><th>Ações</th>
     </tr></thead><tbody>${pagina.map(e => `
       <tr>
         <td><span class="cad-tipo-pill ${CAD_PILL_CLASS[e._tipo]}">${CAD_LABEL_SING[e._tipo]}</span></td>
@@ -3107,10 +3198,11 @@ function cadRenderList() {
         <td style="color:#888">${e.comercial || '<span style="color:#ccc">—</span>'}</td>
         <td style="color:#888">${e.ajudaCusto ? 'R$ ' + (+e.ajudaCusto).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '<span style="color:#ccc">—</span>'}</td>
         <td><span class="cad-st ${e.pendente ? 'pend' : 'ok'}" ${e.pendente ? 'title="Faltam dados de contato/pagamento (CPF, cidade, celular, e-mail ou conta) — comissão calcula normal, mas não pague sem completar."' : ''}>${e.pendente ? 'Pendente' : 'Completo'}</span></td>
+        <td><span class="cad-st ${(e.status || 'ativo') === 'ativo' ? 'ok' : 'pend'}" title="${(e.status || 'ativo') === 'ativo' ? 'Conta pro teto/valor da Recorrência por Canal Indireto do vendedor' : 'Não conta mais pra Recorrência — histórico de meses passados fica intacto'}">${(e.status || 'ativo') === 'ativo' ? 'Ativo' : 'Inativo'}</span></td>
         <td style="white-space:nowrap">
           <div class="cad-acoes">
             <button class="cad-btn-ver" onclick="cadVer('${e._tipo}','${e.id}')" title="Ver tudo o que foi preenchido (e editar)">Ver</button>
-            <button class="cad-del-btn" onclick="cadRemover('${e._tipo}','${e.id}')">Remover</button>
+            <button class="cad-del-btn" onclick="cadAlternarStatus('${e._tipo}','${e.id}')">${(e.status || 'ativo') === 'ativo' ? 'Desativar' : 'Ativar'}</button>
           </div>
         </td>
       </tr>`).join('')}</tbody></table>`;
@@ -3372,6 +3464,7 @@ window.addEventListener('storage', function (e) {
 
 function renderCadastro() {
   cadPopulateComercial();
+  brkPopulateComercial();
   cadRenderList();
 }
 
@@ -3413,6 +3506,11 @@ const impMesRefAtivacao = mes => {
 const impMesSeguinte = mes => {
   const [y, m] = mes.split('-').map(Number);
   const d = new Date(y, m, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
+const impSomaMeses = (mes, n) => {
+  const [y, m] = mes.split('-').map(Number);
+  const d = new Date(y, m - 1 + n, 1);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 };
 
@@ -3548,6 +3646,11 @@ function impProcessarPedidos() {
   const porVendedor = {}, naoIdentificados = {}, outroPerfil = {};
   const pedidosHeaders = Object.keys(impRows.pedidos[0] || {});
   const rawPorVendedor = {};
+  // Soma de Quantidade por CNPJ/CPF no mês (modelo novo do Vendedor,
+  // 27/10/2026) — base do critério de qualificação do Bônus de Novos
+  // Clientes (soma > 20 no mês de referência). Mesmo filtro de linha que já
+  // vale pro resto da função (simcard, não cancelado).
+  const porCnpj = {};
   // Diretor Comercial: Volume de vendas = TODAS as linhas do mês (vendedores,
   // indicadores, dealers, projetos e demais), mesma regra de filtro do Vendedor —
   // fora hardware (Tipo != simcard), cancelados, golpe e base inativa.
@@ -3560,6 +3663,8 @@ function impProcessarPedidos() {
     if (nome === 'golpe' || nome === 'base inativa' || !nome) return;
     const qtd = Number(r['Quantidade']) || 0;
     dcVolume += qtd;
+    const docCnpj = onlyDigits(r['CPF/CNPJ']);
+    if (docCnpj) porCnpj[docCnpj] = (porCnpj[docCnpj] || 0) + qtd;
     const ent = idx[nome];
     if (!ent) {
       naoIdentificados[r['Vendedor'] || '(vazio)'] = (naoIdentificados[r['Vendedor'] || '(vazio)'] || 0) + qtd;
@@ -3602,6 +3707,12 @@ function impProcessarPedidos() {
   });
   LS_set('gs5_m', mdata);
 
+  const pedidosPorCnpj = CLS.get('gs5_pedidos_por_cnpj', {});
+  pedidosPorCnpj[mes] = porCnpj;
+  LS_set('gs5_pedidos_por_cnpj', pedidosPorCnpj);
+  const resultadoNovosClientes = calcularNovosClientes(mes);
+  const resultadoAbertura = calcularAberturaParceiros(mes);
+
   const vendFrame = document.getElementById('frame-vendedor').contentWindow;
   Object.keys(porVendedor).forEach(vid => vendFrame?.impSetRaw?.(vid, mes, 'simcard', pedidosHeaders, rawPorVendedor[vid] || []));
 
@@ -3619,13 +3730,123 @@ function impProcessarPedidos() {
   const linhas = vendedores.filter(v => porVendedor[v.id]).map(v => [v.nome, porVendedor[v.id]]);
   const naoIdRows = Object.entries(naoIdentificados);
   const outroPerfilRows = Object.entries(outroPerfil);
+  const novosClientesRows = vendedores.filter(v => resultadoNovosClientes[v.id]).map(v => [v.nome, `${resultadoNovosClientes[v.id].qtd} cliente(s) · R$ ${br2c(resultadoNovosClientes[v.id].valor)}`]);
+  const aberturaRows = vendedores.filter(v => resultadoAbertura[v.id]).map(v => [v.nome, 'R$ ' + br2c(resultadoAbertura[v.id])]);
   document.getElementById('imp_pedidos_result').innerHTML =
     `<div class="imp-result-title">Diretor Comercial — ${fmtMesC(mes)}</div>${impResultTable(impDcLinhas(dcRes))}` +
     `<div class="imp-result-title">Volume aplicado ao mês (${fmtMesC(mes)})</div>${impResultTable(linhas)}` +
     (outroPerfilRows.length ? `<div class="imp-result-title">De outro perfil (Dealer/Indicador/Projeto Especial — não conta aqui)</div>${impResultTable(outroPerfilRows)}` : '') +
     (naoIdRows.length ? `<div class="imp-result-title">Não identificados (revisar cadastro)</div>${impResultTable(naoIdRows)}` : '') +
-    (regrasResultado.length ? `<div class="imp-result-title">Regras de Comissão recalculadas</div>${impResultTable(regrasResultado)}` : '');
+    (regrasResultado.length ? `<div class="imp-result-title">Regras de Comissão recalculadas</div>${impResultTable(regrasResultado)}` : '') +
+    `<div class="imp-result-title">Bônus de Novos Clientes — ${fmtMesC(impMesAnterior(mes))}</div>${impResultTable(novosClientesRows)}` +
+    (aberturaRows.length ? `<div class="imp-result-title">Bônus de Abertura de Parceiro pago neste ciclo</div>${impResultTable(aberturaRows)}` : '');
   impSalvarImportacao('pedidos', mes, impRows.pedidos, 'imp_pedidos_result', impFileNames.pedidos);
+}
+
+// ─── Bônus de Novos Clientes (modelo novo do Vendedor, 27/10/2026) ─────
+// Comissionamento do mês "mes" olha clientes CRIADOS no mês anterior
+// (impMesAnterior) e qualifica quem teve soma de Quantidade de Pedidos > 20
+// NESSE MESMO mês de criação (não no mês de pagamento). Premia só a faixa
+// mais alta batida (não acumula — mesmo padrão do resto do sistema).
+function calcularNovosClientes(mes) {
+  if (mesAprovado(mes)) return (CLS.get('gs5_novos_clientes', {})[mes] || {}); // mês fechado: não reprocessa
+  const mesRef = impMesAnterior(mes);
+  const criadoEmMapa = CLS.get('imp_clientes_criado_em', {});
+  const clientesMapa = CLS.get('imp_clientes_map', {});
+  const pedidosPorCnpj = (CLS.get('gs5_pedidos_por_cnpj', {})[mesRef]) || {};
+  const vendedores = CLS.get('gs5_v', CONS_DEFAULTS.vendedores);
+  const faixas = CLS.get('gs5_novos_clientes_faixas', CONS_DEFAULTS.novosClientesFaixas);
+
+  const qtdPorVendedor = {};
+  Object.keys(criadoEmMapa).forEach(docKey => {
+    if (criadoEmMapa[docKey] !== mesRef) return;
+    const doc = docKey.slice('ss_'.length);
+    if ((pedidosPorCnpj[doc] || 0) <= 20) return;
+    const nomeVendedor = clientesMapa[docKey];
+    if (!nomeVendedor) return;
+    const v = vendedores.find(x => norm(x.nome) === norm(nomeVendedor));
+    if (!v) return;
+    qtdPorVendedor[v.id] = (qtdPorVendedor[v.id] || 0) + 1;
+  });
+
+  const resultado = {};
+  Object.keys(qtdPorVendedor).forEach(vid => {
+    const qtd = qtdPorVendedor[vid];
+    const faixasBatidas = faixas.filter(f => qtd >= f.qtd);
+    if (!faixasBatidas.length) return;
+    const maior = faixasBatidas.reduce((a, b) => (b.qtd > a.qtd ? b : a));
+    resultado[vid] = { qtd, valor: maior.valor };
+  });
+
+  const dados = CLS.get('gs5_novos_clientes', {});
+  dados[mes] = resultado;
+  LS_set('gs5_novos_clientes', dados);
+  document.getElementById('frame-vendedor')?.contentWindow?.resyncMdata?.();
+  return resultado;
+}
+
+// ─── Bônus de Abertura de Parceiro (modelo novo do Vendedor, 27/10/2026) ─
+// Avaliado "mesesCarencia" meses depois do cadastro: se o parceiro gerou
+// pelo menos 1 lançamento nesse intervalo, paga pro vendedor (campo
+// Comercial) o valor da categoria ATUAL do parceiro (pode ter mudado desde o
+// cadastro); senão, nega de vez (não tenta de novo). Broker fica de fora por
+// enquanto — não tem lançamento/linha rastreada no sistema pra avaliar.
+function calcularAberturaParceiros(mes) {
+  if (mesAprovado(mes)) return (CLS.get('gs5_abertura_parceiros', {})[mes] || {});
+  const cfg = CLS.get('gs5_recorrencia', CONS_DEFAULTS.recorrencia);
+  const vendedores = CLS.get('gs5_v', CONS_DEFAULTS.vendedores);
+  const grupos = [
+    { tipo: 'indicador', key: 'ind1_list', categoriaDe: e => (e.categoria === 'indicador_n2' ? 'indicador_n2' : 'indicador') },
+    { tipo: 'dealer', key: 'dp1_dealers', categoriaDe: () => 'dealer' },
+    // Projeto Especial equivale ao Broker para efeito de comissionamento do
+    // vendedor (decidido com o Diego 27/10/2026): mesmo valor de abertura (gs5_recorrencia.abertura.broker).
+    { tipo: 'projeto', key: 'dp1_projetos', categoriaDe: () => 'broker' },
+  ];
+  const valoresPorVendedor = {};
+  grupos.forEach(g => {
+    const lista = CLS.get(g.key, []);
+    let mudou = false;
+    lista.forEach(e => {
+      if (!e.criadoEm || e.aberturaPaga || e.aberturaNegada) return;
+      const mesAvaliacao = impSomaMeses(e.criadoEm, cfg.mesesCarencia);
+      if (mes < mesAvaliacao) return; // carência ainda não terminou
+      const temLinha = cadLancamentosDo(g.tipo, e.id).some(m => m > e.criadoEm && m <= mesAvaliacao);
+      if (temLinha) {
+        const categoria = g.categoriaDe(e);
+        const valor = cfg.abertura[categoria] || 0;
+        const v = vendedores.find(x => norm(x.nome) === norm(e.comercial || ''));
+        if (v && valor) valoresPorVendedor[v.id] = (valoresPorVendedor[v.id] || 0) + valor;
+        e.aberturaPaga = true;
+      } else {
+        e.aberturaNegada = true;
+      }
+      mudou = true;
+    });
+    if (mudou) LS_set(g.key, lista);
+  });
+  // Broker: não existe lançamento/linha rastreável no sistema pra essa categoria
+  // (ao contrário de Indicador/Dealer/Projeto) — o cadastro em si já confirma o
+  // vínculo com o vendedor, então paga automaticamente ao fim da carência, sem
+  // checar atividade (decidido com o Diego 27/10/2026: "a categoria broker é
+  // apenas uma confirmação pra saber se iremos pagar pro vendedor ou não").
+  const listaBrokers = CLS.get('dp1_brokers', []);
+  let mudouBrokers = false;
+  listaBrokers.forEach(e => {
+    if (!e.criadoEm || e.aberturaPaga) return;
+    const mesAvaliacao = impSomaMeses(e.criadoEm, cfg.mesesCarencia);
+    if (mes < mesAvaliacao) return;
+    const valor = cfg.abertura.broker || 0;
+    const v = vendedores.find(x => norm(x.nome) === norm(e.comercial || ''));
+    if (v && valor) valoresPorVendedor[v.id] = (valoresPorVendedor[v.id] || 0) + valor;
+    e.aberturaPaga = true;
+    mudouBrokers = true;
+  });
+  if (mudouBrokers) LS_set('dp1_brokers', listaBrokers);
+  const dados = CLS.get('gs5_abertura_parceiros', {});
+  dados[mes] = valoresPorVendedor;
+  LS_set('gs5_abertura_parceiros', dados);
+  document.getElementById('frame-vendedor')?.contentWindow?.resyncMdata?.();
+  return valoresPorVendedor;
 }
 
 // ─── MOTOR DE REGRAS DE COMISSÃO (Dealer) ──────────────────────────────
@@ -3816,16 +4037,26 @@ function impProcessarClientes() {
   // O documento principal (CNPJ, ou CPF se não tem CNPJ) sempre vale; o CPF
   // "extra" de uma empresa só preenche o que nenhum cliente reivindicou.
   const secundarios = [];
+  // "Criado em" (modelo novo do Vendedor, 27/10/2026) — mapa à parte, pra não
+  // mudar o formato de imp_clientes_map (string com o nome do vendedor) que
+  // várias outras importações (Inventário/Equipamentos) já dependem.
+  const criadoEmMapa = {};
   impRows.clientes.forEach(r => {
     const cnpj = onlyDigits(r['CNPJ']), cpf = onlyDigits(r['CPF']);
     const doc = cnpj || cpf;
     if (!doc) { semDoc++; return; }
     const resp = (r['Vendedor'] || '').toString().trim();
     mapa['ss_' + doc] = resp;
+    // "Criado em" pode vir como Date (célula de data de verdade) ou como texto
+    // "DD/MM/AAAA" (export real do CRM traz como texto) — tenta os dois.
+    const criadoEmCel = r['Criado em'];
+    const criadoEm = impDateToMonth(criadoEmCel) || (typeof criadoEmCel === 'string' ? brDateToMonthC(criadoEmCel) : null);
+    if (criadoEm) criadoEmMapa['ss_' + doc] = criadoEm;
     if (cnpj && cpf) secundarios.push([cpf, resp]);
   });
   secundarios.forEach(([cpf, resp]) => { if (!mapa['ss_' + cpf] && resp) mapa['ss_' + cpf] = resp; });
   LS_set('imp_clientes_map', mapa);
+  LS_set('imp_clientes_criado_em', criadoEmMapa);
   document.getElementById('imp_clientes_result').innerHTML =
     `<div class="imp-status st-ok">${Object.keys(mapa).length.toLocaleString('pt-BR')} clientes carregados e prontos para cruzar com o Inventário${semDoc ? ' (' + semDoc + ' sem CPF nem CNPJ, ignorados)' : ''}.</div>`;
 }
@@ -4080,8 +4311,9 @@ function impProcessarCancelamentos() {
 // do cruzamento com Clientes (passo 2), igual ao Inventário. Só entra linha
 // cuja Descrição contenha "equipamento"; o resto é ignorado.
 // Vendedores cujo Equipamento é lançado MANUALMENTE (Vendedor > editar > Equipamentos).
-// O Importar não toca no valor deles — pedido do Diego, 09/10/2026 (só o Patrick).
-const EQUIP_MANUAL = ['patrick rodrigues'];
+// O Importar não toca no valor deles. Reservado pra exceções futuras — o
+// Patrick migrou pro toggle "usa taxa por categoria" (modelo novo, 27/10/2026).
+const EQUIP_MANUAL = [];
 function impProcessarEquipamentos() {
   if (!impRows.equipamentos) { alert('Selecione a planilha de Equipamentos primeiro.'); return; }
   const mapa = CLS.get('imp_clientes_map', null);
@@ -4096,6 +4328,13 @@ function impProcessarEquipamentos() {
   const asRowEq = r => equipHeaders.map(h => (r[h] == null ? '' : r[h]));
   const naoIdentificados = {};
   const equipManualIgnorado = {};
+  // Equipamento por categoria (modelo novo, 27/10/2026, revisado após o Diego
+  // pedir "separar isso por vendedor"): conta MÁQUINAS (1 linha = 1 unidade),
+  // não valor — a categoria (Rastreamento/Meios de Pagamento) é uma bandeira
+  // do PRÓPRIO VENDEDOR em Regras & Config, não da descrição da máquina.
+  // Então aqui só contamos o total de máquinas por vendedor; quem tem a
+  // bandeira usa o total × valor da categoria dele (ver calcVend/calcVendExec).
+  const equipPorCategoria = {}; // { vendedorId: {qtd} }
 
   impRows.equipamentos.forEach(r => {
     if (norm(r['Situação']) !== 'recebida') return;
@@ -4115,6 +4354,8 @@ function impProcessarEquipamentos() {
 
     const desc = norm(r['Descrição']);
     if (!desc.includes('equipamento')) return;
+    equipPorCategoria[ent.id] = equipPorCategoria[ent.id] || { qtd: 0 };
+    equipPorCategoria[ent.id].qtd++;
     if (EQUIP_MANUAL.includes(norm(ent.nome))) { equipManualIgnorado[ent.nome] = (equipManualIgnorado[ent.nome] || 0) + 1; return; }
     // Sem filtro de mês — é só o recebível, conta assim que "Recebida".
     const valor = Number(r['Valor']) || 0;
@@ -4132,6 +4373,10 @@ function impProcessarEquipamentos() {
   });
   LS_set('gs5_m', gsM);
   vendFrameEq?.resyncMdata?.();
+
+  const equipCatData = CLS.get('gs5_equip_por_categoria', {});
+  equipCatData[mes] = { ...(equipCatData[mes] || {}), ...equipPorCategoria };
+  LS_set('gs5_equip_por_categoria', equipCatData);
 
   const vendedores = CLS.get('gs5_v', CONS_DEFAULTS.vendedores);
   const eqRows = vendedores.filter(v => equipVendedor[v.id]).map(v => [v.nome, 'R$ ' + br2c(equipVendedor[v.id] * 0.02) + ' (recebido: R$ ' + br2c(equipVendedor[v.id]) + ')']);
