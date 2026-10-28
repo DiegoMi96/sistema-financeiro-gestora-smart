@@ -130,8 +130,17 @@ td.r{text-align:right;font-variant-numeric:tabular-nums}
 .mt-chip.on{background:#eaf5f0;border-color:#1E9B6B;color:#0d5233;font-weight:600}
 .mt-chip input{width:auto;accent-color:#166B4A}
 .mt-foot{font-size:10.5px;color:#888}
-.rg-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:stretch;margin-bottom:18px}
+.rg-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:stretch;margin-bottom:0}
 .rg-stack{display:flex;flex-direction:column;gap:18px}
+/* Seções da aba Regras & Config (28/10/2026) — antes os cards ficavam soltos
+   numa grade só, sem agrupar assunto (ex.: as 3 configs de Equipamento em
+   posições separadas); agora cada seção tem um rótulo e junta o que é do
+   mesmo tema, pedido do Diego ("parece muito bagunçado"). */
+.rg-section{margin-bottom:30px}
+.rg-section:last-of-type{margin-bottom:18px}
+.rg-section-head{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;padding-bottom:9px;border-bottom:2px solid #166B4A;flex-wrap:wrap}
+.rg-section-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#166B4A}
+.rg-section-desc{font-size:11.5px;color:#999}
 #tab-regras .card{border-radius:12px;padding:22px 24px;margin-bottom:0;box-shadow:0 1px 2px rgba(0,0,0,.03)}
 .rg-head{margin-bottom:16px}
 .rg-title{font-size:16px;font-weight:800;color:#1a1a18}
@@ -141,6 +150,14 @@ td.r{text-align:right;font-variant-numeric:tabular-nums}
 .rg-in{display:flex;align-items:center;gap:8px}
 .rg-in .rule-input,.rg-field input[type=number]{background:#fff;text-align:left;height:36px;border-radius:8px;padding:0 10px;font-size:13px;border:.5px solid #d4d3ce}
 .rg-in .rule-input{width:96px}
+/* Campo com prefixo/sufixo (R$, %, /mês, /máquina…) vira um grupo só com
+   borda compartilhada — antes o texto do prefixo ficava solto do lado do
+   campo, com espaço entre os dois (28/10/2026, pedido do Diego: "tem alguns
+   campos que está com o layout não muito agradável"). Escopado só na aba
+   Regras & Config — Metas usa .rule-input com outro padrão, não mexe lá. */
+#tab-regras .irow,#tab-regras .rg-in{background:#fff;border:.5px solid #d4d3ce;border-radius:8px;overflow:hidden;gap:0;width:fit-content;max-width:100%}
+#tab-regras .irow .ipfx,#tab-regras .rg-in .ipfx{background:#f7f7f4;padding:0 12px;height:36px;display:flex;align-items:center;color:#888;font-size:12px;white-space:nowrap}
+#tab-regras .irow input,#tab-regras .rg-in input,#tab-regras .rg-in .rule-input{border:none !important;background:#fff !important;height:36px;border-radius:0 !important;padding:0 10px;font-size:13px}
 .rg-note{margin-top:14px;padding:10px 14px;background:#eef3fa;border-radius:8px;font-size:11.5px;color:#4a5b78}
 .rg-lbl{font-size:12.5px;font-weight:700;color:#1a1a18;margin-bottom:6px;display:block}
 .rg-field{margin-bottom:14px}
@@ -315,29 +332,34 @@ tr.row-editing td{background:#f9fffe !important}
 
 <!-- ═══ REGRAS ═══ -->
 <div id="tab-regras" class="tab-panel">
-  <div class="rg-grid">
+
+  <div class="rg-section">
+    <div class="rg-section-head"><span class="rg-section-label">Comissão por desempenho</span><span class="rg-section-desc">Faixas de Volume e Ativação — revisão trimestral</span></div>
     <div class="card">
       <div class="rg-head"><p class="rg-title">Faixas de Comissão · M2M / IoT</p><p class="rg-sub">Defina os percentuais de comissão por faixa de alcance.</p></div>
       <table class="rg-table"><thead><tr><th>Faixa</th><th>Alcance</th><th>R$/linha</th><th>% Ativação</th></tr></thead>
       <tbody id="faixaBody"></tbody></table>
       <div class="rg-note">Metas definidas trimestralmente pelo gestor.</div>
     </div>
+  </div>
+
+  <div class="rg-section">
+    <div class="rg-section-head"><span class="rg-section-label">Equipamento</span><span class="rg-section-desc">Valor por categoria e qual categoria cada vendedor usa</span></div>
     <div class="card">
-      <div class="rg-head"><p class="rg-title">Equipamentos</p><p class="rg-sub">Taxa padrão (% do valor da venda) — vale pra quem não usa a taxa por categoria.</p></div>
-      <div class="rg-field"><label class="rg-lbl">Taxa atual</label><div class="irow"><input type="number" id="r_eq" min="0" max="100" step="0.1" oninput="saveRules()"><span class="ipfx">% do valor da venda</span></div></div>
-      <label class="rg-lbl">Estratégia / observação</label>
-      <div class="rg-obs"><textarea id="r_eq_obs" rows="3" maxlength="300" placeholder="Ex: 2% fixo agora. Estratégia nova em andamento…" oninput="rgContaObs();saveRules()"></textarea><span class="cnt" id="r_eq_cnt">0/300</span></div>
+      <div class="rg-head"><p class="rg-title">Taxa por Categoria</p><p class="rg-sub">R$/máquina vendida. Todo vendedor usa uma das duas categorias abaixo.</p></div>
+      <div class="rg-inline">
+        <div class="rg-field" style="margin-bottom:0"><label class="rg-lbl">Rastreamento</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="eqc_rastreamento" min="0" step="0.01" oninput="saveEquipCat()"><span class="ipfx">/máquina</span></div></div>
+        <div class="rg-field" style="margin-bottom:0"><label class="rg-lbl">Meios de Pagamento</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="eqc_meios_pagamento" min="0" step="0.01" oninput="saveEquipCat()"><span class="ipfx">/máquina</span></div></div>
+      </div>
     </div>
-    <div class="card">
-      <div class="rg-head"><p class="rg-title">Equipamento por Categoria</p><p class="rg-sub">R$/máquina vendida. Cada vendedor escolhe na aba Metas se usa esta tabela em vez da taxa % acima.</p></div>
-      <div class="rg-field"><label class="rg-lbl">Rastreamento</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="eqc_rastreamento" min="0" step="0.01" oninput="saveEquipCat()"><span class="ipfx">/máquina</span></div></div>
-      <div class="rg-field"><label class="rg-lbl">Meios de Pagamento</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="eqc_meios_pagamento" min="0" step="0.01" oninput="saveEquipCat()"><span class="ipfx">/máquina</span></div></div>
+    <div class="card" style="margin-top:18px">
+      <div class="rg-head"><p class="rg-title">Categoria de equipamento — por vendedor</p><p class="rg-sub">Cada vendedor usa o valor fixo por máquina (Rastreamento ou Meios de Pagamento) da categoria escolhida sobre o total de máquinas vendidas.</p></div>
+      <div id="equipCatVendList"></div>
     </div>
-    <div class="card">
-      <div class="rg-head"><p class="rg-title">Bônus de Novos Clientes</p><p class="rg-sub">Só a faixa mais alta batida paga (não acumula).</p></div>
-      <table class="rg-table"><thead><tr><th>Qtd. clientes novos</th><th>Bonificação</th></tr></thead>
-      <tbody id="novosClientesBody"></tbody></table>
-    </div>
+  </div>
+
+  <div class="rg-section">
+    <div class="rg-section-head"><span class="rg-section-label">Canal indireto</span><span class="rg-section-desc">Recorrência mensal e bônus de abertura por parceiro</span></div>
     <div class="card">
       <div class="rg-head"><p class="rg-title">Recorrência por Canal Indireto</p><p class="rg-sub">R$/mês por parceiro ativo (teto) + bônus único de abertura por categoria, pago após a carência.</p></div>
       <div class="rg-field"><label class="rg-lbl">Valor por parceiro ativo</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="rec_valor" min="0" step="1" oninput="saveRecorrencia()"><span class="ipfx">/mês</span></div></div>
@@ -350,22 +372,30 @@ tr.row-editing td{background:#f9fffe !important}
         <tr><td>Broker / Projeto Especial</td><td><div class="rg-in"><span class="ipfx">R$</span><input type="number" id="rec_ab_broker" min="0" step="1" oninput="saveRecorrencia()"></div></td></tr>
       </tbody></table>
     </div>
-    <div class="rg-stack">
+  </div>
+
+  <div class="rg-section">
+    <div class="rg-section-head"><span class="rg-section-label">Bônus e limites</span><span class="rg-section-desc">Novos clientes, Smart GPS e frete</span></div>
+    <div class="rg-grid">
       <div class="card">
-        <div class="rg-head" style="margin-bottom:12px"><p class="rg-title">Smart GPS · Placas</p><p class="rg-sub">Comissão importada já calculada. Multiplicador: 100 = valor direto.</p></div>
-        <div class="rg-inline"><label class="rg-lbl" for="r_gps">Multiplicador</label><div class="irow rg-field" style="margin:0"><input type="number" id="r_gps" min="0" max="200" step="1" oninput="saveRules()"><span class="ipfx">%</span></div></div>
+        <div class="rg-head"><p class="rg-title">Bônus de Novos Clientes</p><p class="rg-sub">Só a faixa mais alta batida paga (não acumula).</p></div>
+        <table class="rg-table"><thead><tr><th>Qtd. clientes novos</th><th>Bonificação</th></tr></thead>
+        <tbody id="novosClientesBody"></tbody></table>
       </div>
-      <div class="card">
-        <div class="rg-head" style="margin-bottom:12px"><p class="rg-title">Frete</p><p class="rg-sub">Limite de subsídio por vendedor/mês.</p></div>
-        <div class="rg-inline"><label class="rg-lbl" for="r_frete">Limite subsidiado / vendedor / mês</label><div class="irow rg-field" style="margin:0"><span class="ipfx">R$</span><input type="number" id="r_frete" min="0" step="1" oninput="saveRules()"><span class="ipfx">/mês</span></div></div>
-        <p class="rg-hint">Excedente é descontado da comissão.</p>
-      </div>
-      <div class="card">
-        <div class="rg-head" style="margin-bottom:12px"><p class="rg-title">Categoria de equipamento — por vendedor</p><p class="rg-sub">Quem tiver uma categoria marcada usa o valor fixo por máquina (Rastreamento/Meios de Pagamento) sobre o total de máquinas vendidas, em vez da taxa % padrão.</p></div>
-        <div id="equipCatVendList"></div>
+      <div class="rg-stack">
+        <div class="card">
+          <div class="rg-head" style="margin-bottom:12px"><p class="rg-title">Smart GPS · Placas</p><p class="rg-sub">Comissão importada já calculada. Multiplicador: 100 = valor direto.</p></div>
+          <div class="rg-inline"><label class="rg-lbl" for="r_gps">Multiplicador</label><div class="irow rg-field" style="margin:0"><input type="number" id="r_gps" min="0" max="200" step="1" oninput="saveRules()"><span class="ipfx">%</span></div></div>
+        </div>
+        <div class="card">
+          <div class="rg-head" style="margin-bottom:12px"><p class="rg-title">Frete</p><p class="rg-sub">Limite de subsídio por vendedor/mês.</p></div>
+          <div class="rg-inline"><label class="rg-lbl" for="r_frete">Limite subsidiado / vendedor / mês</label><div class="irow rg-field" style="margin:0"><span class="ipfx">R$</span><input type="number" id="r_frete" min="0" step="1" oninput="saveRules()"><span class="ipfx">/mês</span></div></div>
+          <p class="rg-hint">Excedente é descontado da comissão.</p>
+        </div>
       </div>
     </div>
   </div>
+
   <button class="mt-btn primary rg-save" onclick="saveRules()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/></svg>Salvar configurações</button>
 </div>
 
@@ -373,6 +403,10 @@ tr.row-editing td{background:#f9fffe !important}
 <div class="toast" id="toast"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- SheetJS (acima) não grava estilo de célula no arquivo final — o "↓ Extrair"
+     usa ExcelJS só pra isso (mesmo padrão já usado no Projeto Especial), pra
+     sair com cor, negrito e colunas largas o bastante pra ler sem esticar. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <script>
 // ─── DEFAULTS ─────────────────────────────────────
 // salarioFixo: começa em 0 (não informado) — o Diego preenche o valor real
@@ -411,6 +445,12 @@ const DEF_F=[
   {n:3,range:'111–130%', min:111,max:130,vol:0.54,atv:0.80},
   {n:4,range:'131–150%', min:131,max:9999,vol:0.74,atv:1.00},
 ];
+// Nome real de cada faixa (28/10/2026, pedido do Diego — trocar "Faixa N"
+// pelo nome da operação) em vez do número; não vai no objeto salvo (gs5_f),
+// só mapeia pela posição (n), então funciona mesmo pra config já salva antes
+// dessa mudança.
+const FAIXA_NOMES=['Objetivo','Meta 1','Meta 2','Super Meta'];
+const nomeFaixa=n=>FAIXA_NOMES[n-1]||('Faixa '+n);
 const DEF_R={eqRate:2,eqObs:'',gpsRate:100,freteLimit:250};
 // Equipamento por categoria (novo modelo) — R$/máquina, alternativa à taxa %
 // sobre valor da venda. Cada vendedor escolhe no cadastro (Metas) se usa esta
@@ -506,6 +546,7 @@ function resyncMdata(){
 
 // ─── RAW DATA STORE (in-memory, session only) ─────
 // rawStore[`${vid}_${mes}`] = {
+//   pedidos: { headers:[...], rows:[[...],[...]] },
 //   simcard: { headers:[...], rows:[[...],[...]] },
 //   equip:   { headers:[...], rows:[[...]] },
 //   gps:     { headers:[...], rows:[[...]] }
@@ -514,7 +555,8 @@ let rawStore={};
 // Chamado pela tela Importar (index.html) depois de processar Pedidos/Inventário/
 // Cobranças — alimenta o mesmo rawStore que a antiga aba Importar preenchia,
 // pra o botão "↓ Extrair" continuar funcionando mesmo sem a aba local.
-// categoria: 'simcard' (Pedidos/Volume) · 'equip' (Cobranças/Equipamento) · 'gps' (Cobranças/Placas)
+// categoria: 'pedidos' (Pedidos/Volume — vendas do mês) · 'simcard' (Inventário —
+// linhas ativas) · 'equip' (Cobranças/Equipamento) · 'gps' (Cobranças/Placas)
 window.impSetRaw=function(vid,mes,categoria,headers,rows){
   const key=`${vid}_${mes}`;
   rawStore[key]={...(rawStore[key]||{}),[categoria]:{headers,rows}};
@@ -554,14 +596,18 @@ const br2=v=>v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDi
 const brInt=v=>Math.round(v||0).toLocaleString('pt-BR');
 const parseNum=s=>+String(s).replace(/\./g,'').replace(',','.')||0;
 const fmtMes=s=>{if(!s)return'';const[y,m]=s.split('-');const ms=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];return ms[+m-1]+'/'+y;};
+const mesAnteriorDe=mes=>{const[y,m]=mes.split('-').map(Number);const d=new Date(y,m-2,1);return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;};
 const norm=(s='')=>String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,' ').trim();
-// Migra\u00e7\u00e3o \u00fanica (27/10/2026): quem j\u00e1 tinha gs5_v salvo em produ\u00e7\u00e3o antes do
-// modelo novo n\u00e3o tem o campo categoriaEquip \u2014 sem isso o Patrick voltaria
-// a cair na taxa % padr\u00e3o (ele usava o EQUIP_MANUAL antigo, agora removido).
-// undefined = nunca decidido ainda (migra); null/string = j\u00e1 decidido, n\u00e3o mexe.
-(function migrarEquipCategoriaPatrick(){
-  const p=vendedores.find(v=>norm(v.nome)==='patrick rodrigues');
-  if(p&&p.categoriaEquip===undefined){p.categoriaEquip='meios_pagamento';LS.set('gs5_v',vendedores);}
+// Migra\u00e7\u00e3o (28/10/2026, pedido do Diego: "vamos mudar todos para as
+// categorias") \u2014 a taxa % padr\u00e3o de Equipamento sai de circula\u00e7\u00e3o; todo
+// vendedor passa a ter uma categoria. Quem ainda n\u00e3o tinha (undefined, de
+// antes do modelo novo) entra como Rastreamento por padr\u00e3o; o Diego ajusta
+// manualmente quem for Meios de Pagamento. Patrick j\u00e1 tinha sido decidido
+// antes (Meios de Pagamento) \u2014 n\u00e3o mexe nele.
+(function migrarEquipCategoriaTodos(){
+  let mudou=false;
+  vendedores.forEach(v=>{if(v.categoriaEquip===undefined){v.categoriaEquip='rastreamento';mudou=true;}});
+  if(mudou)LS.set('gs5_v',vendedores);
 })();
 // As faixas são definidas em pontos percentuais inteiros com um "buraco" entre
 // uma e outra (ex: 0–70 / 71–90) — sem arredondar pra baixo antes de comparar,
@@ -569,21 +615,41 @@ const norm=(s='')=>String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u0
 // (só começa em 71), sendo empurrado pra faixa 2 por engano. Confirmado batendo
 // com a planilha real da Claudia (Jul/26): 70,04% = Faixa 1 (10%), não Faixa 2 (15%).
 function getFaixa(alc){return faixas.find(f=>Math.floor(alc)<=f.max)||faixas[faixas.length-1];}
+// Parceiro "ativo" sozinho não basta pra Recorrência (28/10/2026, pedido do
+// Diego: "vamos pagar a recorrência se o parceiro colocar pedido no mês
+// anterior") — também precisa ter lançamento no mês ANTERIOR ao que está
+// sendo pago (ex.: recorrência de outubro exige lançamento em setembro).
+// Broker fica de fora dessa checagem: não existe lançamento rastreável pra
+// ele (mesmo motivo que já valia pro Bônus de Abertura do Broker).
+function parceiroTemLancamentoNoMes(tipo,id,mes){
+  if(tipo==='dealer'){const d=LS.get('dp1_m',{})['d_'+id+'_'+mes]||{};return!!(d.margin||d.novas||d.bonus||d.cancel);}
+  if(tipo==='projeto'){const d=LS.get('dp1_m',{})['p_'+id+'_'+mes]||{};return!!(d.margin||d.ativacao||d.bonus||d.cancel);}
+  if(tipo==='indicador'){const d=LS.get('ind1_m',{})[id+'_'+mes]||{};return!!(d.atv||d.bonus);}
+  return true; // broker
+}
 // Parceiros (Indicador/Indicador N2/Dealer/Projeto Especial/Broker) ativos
 // vinculados ao vendedor pelo campo "Comercial" — mesmo critério (nome
-// normalizado) já usado pelo Volume linkado em impBuildEntityIndex (index.html).
-function parceirosAtivosDoVendedor(vendedorNome){
+// normalizado) já usado pelo Volume linkado em impBuildEntityIndex (index.html)
+// — e, além de ativo, com pedido no mês anterior ao `mes` pago (ver acima).
+function parceirosAtivosDoVendedor(vendedorNome,mes){
   const nn=norm(vendedorNome);
-  const listas=[LS.get('ind1_list',[]),LS.get('dp1_dealers',[]),LS.get('dp1_projetos',[]),LS.get('dp1_brokers',[])];
+  const mesAnt=mesAnteriorDe(mes);
+  const grupos=[
+    {lista:LS.get('ind1_list',[]),tipo:'indicador'},
+    {lista:LS.get('dp1_dealers',[]),tipo:'dealer'},
+    {lista:LS.get('dp1_projetos',[]),tipo:'projeto'},
+    {lista:LS.get('dp1_brokers',[]),tipo:'broker'},
+  ];
   let count=0;
-  listas.forEach(lista=>(lista||[]).forEach(e=>{
+  grupos.forEach(({lista,tipo})=>(lista||[]).forEach(e=>{
     const ativo=(e.status||'ativo')==='ativo'; // sem campo = ativo (migração)
-    if(ativo&&norm(e.comercial||'')===nn)count++;
+    if(!ativo||norm(e.comercial||'')!==nn)return;
+    if(parceiroTemLancamentoNoMes(tipo,e.id,mesAnt))count++;
   }));
   return count;
 }
-function recorrenciaDoVendedor(vendedorNome){
-  const qtd=parceirosAtivosDoVendedor(vendedorNome);
+function recorrenciaDoVendedor(vendedorNome,mes){
+  const qtd=parceirosAtivosDoVendedor(vendedorNome,mes);
   return Math.min(qtd,recorrenciaCfg.tetoParceiros)*recorrenciaCfg.valorPorParceiro;
 }
 // ─── BÔNUS DE CÉLULA ───────────────────────────────
@@ -630,10 +696,12 @@ function calcVend(d,g,bonusCelula=0,eqDireto=false,extra={}){
   const volC=linhas*fx.vol,atvC=atv*fx.atv;
   // Equipamento: vendedor com uma categoria marcada (rastreamento ou meios de
   // pagamento) em Regras & Config usa R$/máquina daquela categoria sobre o
-  // total de máquinas vendidas; sem categoria marcada, segue a regra padrão
-  // (% sobre valor da venda, ou lançamento manual direto pros casos antigos).
+  // total de máquinas vendidas (vindo da planilha importada no mês); se não
+  // veio nada da planilha pra ele naquele mês, cai pro valor lançado à mão
+  // (campo fica editável nesse caso). Sem categoria marcada, segue a regra
+  // padrão (% sobre valor da venda, ou lançamento manual direto pros casos antigos).
   const eqC=extra.categoriaEquip
-    ? (extra.qtdEquip||0)*(equipCat[extra.categoriaEquip]||0)
+    ? (extra.qtdEquip>0 ? extra.qtdEquip*(equipCat[extra.categoriaEquip]||0) : eq)
     : (eqDireto?eq:eq*(rules.eqRate/100));
   const gpsC=gps*(rules.gpsRate/100);
   const frDsc=Math.max(0,frete-rules.freteLimit);
@@ -654,7 +722,7 @@ function extraDoVendedor(vend,mes){
     categoriaEquip:vend.categoriaEquip||null,
     qtdEquip:eqCatMes.qtd||0,
     novosClientesValor:nc.valor||0,
-    recorrenciaValor:recorrenciaDoVendedor(vend.nome),
+    recorrenciaValor:recorrenciaDoVendedor(vend.nome,mes),
     aberturaValor:(aberturaData[mes]||{})[vend.id]||0,
   };
 }
@@ -674,7 +742,7 @@ function matchVend(name){
 }
 function hasRaw(vid,mes){
   const r=rawStore[`${vid}_${mes}`];
-  return !!(r&&((r.simcard&&r.simcard.rows.length)||(r.equip&&r.equip.rows.length)||(r.gps&&r.gps.rows.length)))||!!extDisp[`${vid}_${mes}`];
+  return !!(r&&((r.pedidos&&r.pedidos.rows.length)||(r.simcard&&r.simcard.rows.length)||(r.equip&&r.equip.rows.length)||(r.gps&&r.gps.rows.length)))||!!extDisp[`${vid}_${mes}`];
 }
 
 // ─── RESUMO DO TIME ───────────────────────────────
@@ -714,7 +782,7 @@ function renderResumo(){
   // opções do filtro de faixa (uma vez; preserva a escolha)
   const selF=document.getElementById('rsFaixa');
   if(selF&&selF.options.length<=1){
-    faixas.forEach((_,i)=>{const o=document.createElement('option');o.value=String(i+1);o.textContent='F'+(i+1);selF.appendChild(o);});
+    faixas.forEach((_,i)=>{const o=document.createElement('option');o.value=String(i+1);o.textContent=nomeFaixa(i+1);selF.appendChild(o);});
   }
   const q=norm((document.getElementById('rsBusca')||{}).value||'');
   const fFaixa=(selF||{}).value||'';
@@ -754,7 +822,7 @@ function renderResumo(){
       <td style="padding-left:20px;font-weight:${isEditing?700:500}"><div class="rs-name"><span class="rs-av">${rsIniciais(vend.nome)}</span><span class="n">${vend.nome}</span></div></td>
       <td class="r">${isEmpty?'<span class="c-dim">—</span>':c.linhas.toLocaleString('pt-BR')}</td>
       <td class="r">${isEmpty?'<span class="c-dim">—</span>':c.alc.toFixed(0)+'%'}</td>
-      <td class="r">${isEmpty?'<span class="c-dim">—</span>':`<span class="fp ${fpCls[c.fx.n-1]}" style="font-size:9px;padding:1px 6px">F${c.fx.n}</span>`}</td>
+      <td class="r">${isEmpty?'<span class="c-dim">—</span>':`<span class="fp ${fpCls[c.fx.n-1]}" style="font-size:9px;padding:1px 6px">${nomeFaixa(c.fx.n)}</span>`}</td>
       <td class="r">${isEmpty?'<span class="c-dim">—</span>':'R$'+br2(c.volC)}</td>
       <td class="r">${isEmpty?'<span class="c-dim">—</span>':'R$'+br2(c.atvC)}</td>
       <td class="r">${c.eqC>0?'R$'+br2(c.eqC):'<span class="c-dim">—</span>'}</td>
@@ -820,7 +888,11 @@ function renderEditPanel(vid,mes){
     <div class="edit-fields">
       <div><label class="lbl">Novas linhas</label><input type="number" id="e_l_${vid}" value="${d.linhas||0}" min="0" oninput="liveCalc('${vid}')"></div>
       <div><label class="lbl">Valor ativações</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="e_a_${vid}" value="${d.atv||0}" min="0" step="0.01" oninput="liveCalc('${vid}')"></div></div>
-      <div><label class="lbl">${EQUIP_MANUAL.includes(norm(vend.nome))?'Comissão equipamento (manual, sem taxa)':'Equipamentos'}</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="e_q_${vid}" value="${d.eq||0}" min="0" step="0.01" oninput="liveCalc('${vid}')"></div></div>
+      ${vend.categoriaEquip?(()=>{const eqCatMes=(equipCatData[mes]||{})[vid]||{};const qtd=eqCatMes.qtd||0;const rate=equipCat[vend.categoriaEquip]||0;const rotulo=vend.categoriaEquip==='rastreamento'?'Rastreamento':'Meios de Pagamento';
+        return qtd>0
+          ?`<div><label class="lbl">Equipamento (${rotulo})</label><div class="irow" style="opacity:.65"><span class="ipfx">R$</span><input type="number" id="e_q_${vid}" value="${(qtd*rate).toFixed(2)}" disabled></div><p style="font-size:10px;color:#888;margin:4px 0 0">${qtd} máquina(s) × R$${rate.toFixed(2).replace('.',',')} — vem da planilha de Equipamentos importada no mês</p></div>`
+          :`<div><label class="lbl">Equipamento (${rotulo})</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="e_q_${vid}" value="${d.eq||0}" min="0" step="0.01" oninput="liveCalc('${vid}')"></div><p style="font-size:10px;color:#888;margin:4px 0 0">Não veio nada da planilha de Equipamentos pra ele neste mês — lance o valor manualmente</p></div>`;
+      })():`<div><label class="lbl">${EQUIP_MANUAL.includes(norm(vend.nome))?'Comissão equipamento (manual, sem taxa)':'Equipamentos'}</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="e_q_${vid}" value="${d.eq||0}" min="0" step="0.01" oninput="liveCalc('${vid}')"></div></div>`}
       <div><label class="lbl">Smart GPS</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="e_g_${vid}" value="${d.gps||0}" min="0" step="0.01" oninput="liveCalc('${vid}')"></div></div>
       <div><label class="lbl">Frete</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="e_f_${vid}" value="${d.frete||0}" min="0" step="0.01" oninput="liveCalc('${vid}')"></div></div>
       <div><label class="lbl" style="color:#166B4A">Bônus extra</label><div class="irow"><span class="ipfx" style="color:#166B4A">R$</span><input type="number" id="e_b_${vid}" value="${d.bonus||0}" min="0" step="0.01" oninput="liveCalc('${vid}')" style="border-color:#1E9B6B"></div></div>
@@ -843,7 +915,7 @@ function liveCalc(vid){
   const ths=[vend.g.obj,vend.g.m1,vend.g.m2,vend.g.sm];
   const prev=document.getElementById(`prev_${vid}`);if(!prev)return;
   prev.innerHTML=`
-    <div class="ep-faixa-row"><span class="fp ${fpCls[c.fx.n-1]}">Faixa ${c.fx.n}</span><span style="font-size:11px;color:#888">${c.alc.toFixed(0)}% do objetivo · R$${c.fx.vol.toFixed(2).replace('.',',')}/linha · ${(c.fx.atv*100).toFixed(0)}% ativação</span></div>
+    <div class="ep-faixa-row"><span class="fp ${fpCls[c.fx.n-1]}">${nomeFaixa(c.fx.n)}</span><span style="font-size:11px;color:#888">${c.alc.toFixed(0)}% do objetivo · R$${c.fx.vol.toFixed(2).replace('.',',')}/linha · ${(c.fx.atv*100).toFixed(0)}% ativação</span></div>
     <div class="ep-nums">
       <div class="ep-item"><label>Volume</label><span>R$${br2(c.volC)}</span></div><span class="ep-sep">+</span>
       <div class="ep-item"><label>Ativação</label><span>R$${br2(c.atvC)}</span></div>
@@ -867,6 +939,57 @@ function saveEdit(vid){
 }
 
 // ─── EXPORT INDIVIDUAL ────────────────────────────
+// SheetJS (ainda usado em outras telas) não grava estilo de célula no
+// arquivo final — pedido do Diego foi "colocar uma cor, deixar bem
+// estruturada e mais fácil a leitura", então esse extrato usa ExcelJS
+// (mesmo padrão já adotado no Projeto Especial) só pra isso.
+const VEND_HEAD_FILL={type:'pattern',pattern:'solid',fgColor:{argb:'FF166B4A'}};
+const VEND_HEAD_FONT={bold:true,color:{argb:'FFFFFFFF'},size:11};
+const VEND_TOTAL_FILL={type:'pattern',pattern:'solid',fgColor:{argb:'FFD9F2E6'}};
+const VEND_BORDA_FINA={style:'thin',color:{argb:'FFDDDDDD'}};
+const VEND_MOEDA='"R$" #,##0.00';
+function vendBaixarBlob(buffer,nomeArquivo){
+  const blob=new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=nomeArquivo;document.body.appendChild(a);a.click();
+  document.body.removeChild(a);URL.revokeObjectURL(url);
+}
+// Uma seção do Resumo: título em destaque (verde da marca) ocupando as 2
+// colunas + linhas "rótulo | valor" com borda fina embaixo de cada uma.
+// Devolve a próxima linha livre (com 1 linha em branco de respiro).
+function vendSecaoResumo(ws,row,titulo,linhas){
+  ws.mergeCells(`A${row}:B${row}`);
+  const h=ws.getCell(`A${row}`);
+  h.value=titulo;h.font=VEND_HEAD_FONT;h.fill=VEND_HEAD_FILL;h.alignment={vertical:'middle'};
+  ws.getRow(row).height=20;
+  row++;
+  linhas.forEach(([label,valor,fmt])=>{
+    const cLbl=ws.getCell(`A${row}`),cVal=ws.getCell(`B${row}`);
+    cLbl.value=label;cVal.value=valor;
+    cLbl.border={bottom:VEND_BORDA_FINA};cVal.border={bottom:VEND_BORDA_FINA};
+    cVal.alignment={horizontal:'right'};
+    if(fmt)cVal.numFmt=fmt;
+    row++;
+  });
+  return row+1;
+}
+// Aba com a planilha crua importada (Simcard/Equipamento/Placas) — mesmo
+// cabeçalho colorido do Resumo, filtro automático e largura de coluna que
+// acompanha o texto, pra não sair tudo espremido como no SheetJS antigo.
+function vendAbaBruta(wb,nomeAba,headers,rows){
+  if(!headers||!rows||!rows.length)return;
+  const ws=wb.addWorksheet(nomeAba);
+  ws.addRow(headers);
+  rows.forEach(r=>ws.addRow(r));
+  ws.getRow(1).eachCell(cell=>{cell.font=VEND_HEAD_FONT;cell.fill=VEND_HEAD_FILL;});
+  ws.columns.forEach((col,i)=>{
+    const tamCab=headers[i]?String(headers[i]).length:10;
+    col.width=Math.max(12,Math.min(32,tamCab+4));
+  });
+  ws.autoFilter={from:{row:1,column:1},to:{row:rows.length+1,column:headers.length}};
+  ws.views=[{state:'frozen',ySplit:1}];
+}
 async function exportVendedor(vid,mes){
   const vend=vendedores.find(v=>v.id===vid);
   const d=mdata[`${vid}_${mes}`]||{};
@@ -881,54 +1004,72 @@ async function exportVendedor(vid,mes){
   }
   const raw=rawStore[key]||{};
   const c=calcVend(d,vend.g,bonusCelulaDe(vid,mes),eqDiretoDe(vend),extraDoVendedor(vend,mes));
-  const ths=[vend.g.obj,vend.g.m1,vend.g.m2,vend.g.sm];
 
-  const wb=XLSX.utils.book_new();
-
-  // ── ABA RESUMO (formato idêntico ao modelo) ──
-  const resumo=[
-    ['VOLUME','','ATIVAÇÃO','','BÔNUS CÉLULA','','COMISSÃO TOTAL',''],
-    ['OBJETIVO',vend.g.obj,'OBJETIVO',vend.g.obj,null,null,'VOLUME',c.volC],
-    ['VOLUME',c.linhas,'VOLUME',c.atv,null,null,'ATIVAÇÃO',c.atvC],
-    ['ALCANCE',c.alc/100,null,null,null,null,'Bônus Célula',c.bonusCelula],
-    ['FAIXA',c.fx.vol,'FAIXA',c.fx.atv,null,null,'Novos Clientes',c.novosClientesC],
-    ['COMISSÃO VOLUME',c.volC,'COMISSÃO ATIVAÇÃO',c.atvC,null,null,'EQUIPAMENTO',c.eqC],
-    [null,null,null,null,null,null,'SMART GPS',c.gpsC],
-    [null,null,null,null,null,null,'Canal Indireto',c.recorrenciaC+c.aberturaC],
-    [null,null,null,null,null,null,'Be Smart',c.beSmart],
-    [null,null,null,null,null,null,'Bônus extra',d.bonus||0],
-    [null,null,null,null,null,null,'Desconto Frete',c.frDsc>0?-c.frDsc:0],
-  ];
-  if(d.obs){resumo.push([null,null,null,null,null,null,'Observação',d.obs]);}
-  const wsRes=XLSX.utils.aoa_to_sheet(resumo);
-  // format percentages
-  wsRes['B4']={v:c.alc/100,t:'n',z:'0.0%'};
-  wsRes['D5']={v:c.fx.atv,t:'n',z:'0.0%'};
-  XLSX.utils.book_append_sheet(wb,wsRes,'RESUMO');
-
-  // ── ABA SIMCARD ──
-  if(raw.simcard&&raw.simcard.rows&&raw.simcard.rows.length){
-    const simData=[raw.simcard.headers,...raw.simcard.rows];
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(simData),'SIMCARD');
-  }
-
-  // ── ABA EQUIPAMENTO ──
-  if(raw.equip&&raw.equip.rows&&raw.equip.rows.length){
-    const eqData=[raw.equip.headers,...raw.equip.rows];
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(eqData),'EQUIPAMENTO');
-  }
-
-  // ── ABA PLACAS ──
-  if(raw.gps&&raw.gps.rows&&raw.gps.rows.length){
-    const gpsData=[raw.gps.headers,...raw.gps.rows];
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(gpsData),'PLACAS');
-  }
-
-  // filename: Nome_Vendedor_Mês_Ano.xlsx
+  const wb=new ExcelJS.Workbook();
   const [y,m]=mes.split('-');
-  const meses=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const mesesLongo=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+  // ── ABA RESUMO ──
+  const ws=wb.addWorksheet('Resumo');
+  ws.columns=[{width:34},{width:20}];
+  ws.mergeCells('A1:B1');
+  const titulo=ws.getCell('A1');
+  titulo.value=`${vend.nome} · ${mesesLongo[+m-1]}/${y}`;
+  titulo.font={bold:true,size:14,color:{argb:'FF166B4A'}};
+  titulo.alignment={vertical:'middle'};
+  ws.getRow(1).height=28;
+
+  let row=3;
+  row=vendSecaoResumo(ws,row,'VOLUME',[
+    ['Objetivo',vend.g.obj,'#,##0'],
+    ['Volume realizado',c.linhas,'#,##0'],
+    ['Alcance',c.alc/100,'0.0%'],
+    ['Faixa aplicada',`${nomeFaixa(c.fx.n)} · R$${c.fx.vol.toFixed(2).replace('.',',')}/linha`,null],
+    ['Comissão Volume',c.volC,VEND_MOEDA],
+  ]);
+  row=vendSecaoResumo(ws,row,'ATIVAÇÃO',[
+    ['Valor ativações',c.atv,VEND_MOEDA],
+    ['% Ativação (faixa)',c.fx.atv,'0.0%'],
+    ['Comissão Ativação',c.atvC,VEND_MOEDA],
+  ]);
+  row=vendSecaoResumo(ws,row,'BÔNUS CÉLULA',[
+    ['Bônus Célula',c.bonusCelula,VEND_MOEDA],
+  ]);
+  row=vendSecaoResumo(ws,row,'OUTROS COMPONENTES',[
+    ['Novos Clientes',c.novosClientesC,VEND_MOEDA],
+    ['Equipamento',c.eqC,VEND_MOEDA],
+    ['Smart GPS',c.gpsC,VEND_MOEDA],
+    ['Canal Indireto (recorrência + abertura)',c.recorrenciaC+c.aberturaC,VEND_MOEDA],
+    ['Be Smart',c.beSmart,VEND_MOEDA],
+    ['Bônus extra',d.bonus||0,VEND_MOEDA],
+    ['Desconto Frete',c.frDsc>0?-c.frDsc:0,VEND_MOEDA],
+  ]);
+  if(d.obs){
+    ws.getCell(`A${row}`).value='Observação';
+    ws.getCell(`A${row}`).font={italic:true,color:{argb:'FF888888'}};
+    ws.getCell(`B${row}`).value=d.obs;
+    ws.getCell(`B${row}`).alignment={horizontal:'right',wrapText:true};
+    row+=2;
+  }
+  const tLbl=ws.getCell(`A${row}`),tVal=ws.getCell(`B${row}`);
+  tLbl.value='COMISSÃO TOTAL DO MÊS';tVal.value=c.total;
+  [tLbl,tVal].forEach(cell=>{cell.font={bold:true,size:12,color:{argb:'FF166B4A'}};cell.fill=VEND_TOTAL_FILL;cell.border={top:VEND_BORDA_FINA,bottom:VEND_BORDA_FINA};});
+  tVal.numFmt=VEND_MOEDA;tVal.alignment={horizontal:'right'};
+  ws.getRow(row).height=22;
+
+  // ── ABAS COM A PLANILHA CRUA IMPORTADA ──
+  // "Pedidos do mês" = vendas (planilha de Pedidos) · "Simcard" = linhas
+  // ativas de verdade (snapshot do Inventário) — são fontes diferentes,
+  // pedido do Diego pra não misturar as duas num "Simcard" só.
+  vendAbaBruta(wb,'Pedidos do mês',raw.pedidos&&raw.pedidos.headers,raw.pedidos&&raw.pedidos.rows);
+  vendAbaBruta(wb,'Simcard',raw.simcard&&raw.simcard.headers,raw.simcard&&raw.simcard.rows);
+  vendAbaBruta(wb,'Equipamento',raw.equip&&raw.equip.headers,raw.equip&&raw.equip.rows);
+  vendAbaBruta(wb,'Placas',raw.gps&&raw.gps.headers,raw.gps&&raw.gps.rows);
+
+  const mesesCurto=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const nomeLimpo=vend.nome.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'_');
-  XLSX.writeFile(wb,`${nomeLimpo}_${meses[+m-1]}_${y}.xlsx`);
+  const buffer=await wb.xlsx.writeBuffer();
+  vendBaixarBlob(buffer,`${nomeLimpo}_${mesesCurto[+m-1]}_${y}.xlsx`);
   showToast(`↓ ${vend.nome} · extrato gerado`,'#1d4ed8');
 }
 
@@ -964,7 +1105,7 @@ function buildMetas(){
     </tr>`).join('');
   buildEquipCatVendList();
 }
-function addVend(){vendedores.push({id:'v'+Date.now(),nome:'Novo Vendedor',g:{obj:1000,m1:1200,m2:1500,sm:2000},salarioFixo:0});buildMetas();buildCelulas();}
+function addVend(){vendedores.push({id:'v'+Date.now(),nome:'Novo Vendedor',g:{obj:1000,m1:1200,m2:1500,sm:2000},salarioFixo:0,categoriaEquip:'rastreamento'});buildMetas();buildCelulas();}
 function removeVend(i){if(vendedores.length<=1)return;const vid=vendedores[i].id;vendedores.splice(i,1);celulas.forEach(c=>{c.vendedorIds=c.vendedorIds.filter(x=>x!==vid);});LS.set('gs5_celulas',celulas);buildMetas();buildCelulas();}
 function saveMetas(){
   if(!LS.set('gs5_v',vendedores)){showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.','#b83232');return;}
@@ -1033,7 +1174,7 @@ function toggleVendedorCelula(ci,vid,marcado){
 function buildFaixaTable(){
   const fpCls=['f1','f2','f3','f4','f5','f6'];
   document.getElementById('faixaBody').innerHTML=faixas.map((f,i)=>`
-    <tr><td><span class="fp ${fpCls[i]}">Faixa ${f.n}</span></td><td>${f.range}</td>
+    <tr><td><span class="fp ${fpCls[i]}">${nomeFaixa(f.n)}</span></td><td>${f.range}</td>
     <td><div class="rg-in"><span class="ipfx">R$</span><input type="number" class="rule-input" value="${f.vol.toFixed(2)}" step="0.01" onchange="faixas[${i}].vol=+this.value;LS.set('gs5_f',faixas)"></div></td>
     <td><div class="rg-in"><input type="number" class="rule-input" value="${(f.atv*100).toFixed(0)}" onchange="faixas[${i}].atv=+this.value/100;LS.set('gs5_f',faixas)"><span class="ipfx">%</span></div></td></tr>`).join('');
 }
@@ -1078,11 +1219,15 @@ function setEquipCatVend(i,valor){
   renderResumo();
 }
 function buildEquipCatVendList(){
-  const OPCOES=[{v:'',l:'Nenhuma (usa taxa % padrão)'},{v:'rastreamento',l:'Rastreamento'},{v:'meios_pagamento',l:'Meios de Pagamento'}];
+  // "Nenhuma" saiu das opções (28/10/2026) — todo vendedor passa a ter
+  // categoria; quem não tinha foi migrado pra Rastreamento (ver migração
+  // acima). O calcVend continua aceitando categoriaEquip null como defesa,
+  // mas a tela não oferece mais essa opção pra ninguém escolher de novo.
+  const OPCOES=[{v:'rastreamento',l:'Rastreamento'},{v:'meios_pagamento',l:'Meios de Pagamento'}];
   document.getElementById('equipCatVendList').innerHTML=vendedores.map((v,i)=>`
-    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px">
-      <span style="flex:1">${v.nome}</span>
-      <select onchange="setEquipCatVend(${i},this.value)">
+    <div style="display:flex;align-items:center;gap:14px;padding:8px 0;font-size:13px;border-bottom:.5px solid #f0efea">
+      <span style="flex:0 0 170px;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${v.nome}">${v.nome}</span>
+      <select style="flex:1;max-width:280px" onchange="setEquipCatVend(${i},this.value)">
         ${OPCOES.map(o=>`<option value="${o.v}" ${((v.categoriaEquip||'')===o.v)?'selected':''}>${o.l}</option>`).join('')}
       </select>
     </div>`).join('');
@@ -1092,15 +1237,18 @@ function rgContaObs(){
   if(t&&c)c.textContent=t.value.length+'/300';
 }
 function loadRules(){
-  document.getElementById('r_eq').value=rules.eqRate;
-  document.getElementById('r_eq_obs').value=rules.eqObs||'';
+  // r_eq/r_eq_obs (taxa % padrão de Equipamento) saíram da tela — todo
+  // vendedor usa categoria agora (28/10/2026). rules.eqRate/eqObs ficam só
+  // como dado morto, sem UI, por segurança (calcVend ainda tem o fallback).
+  if(document.getElementById('r_eq'))document.getElementById('r_eq').value=rules.eqRate;
+  if(document.getElementById('r_eq_obs'))document.getElementById('r_eq_obs').value=rules.eqObs||'';
   rgContaObs();
   document.getElementById('r_gps').value=rules.gpsRate;
   document.getElementById('r_frete').value=rules.freteLimit;
 }
 function saveRules(){
-  rules.eqRate=+document.getElementById('r_eq').value||0;
-  rules.eqObs=document.getElementById('r_eq_obs').value;
+  if(document.getElementById('r_eq'))rules.eqRate=+document.getElementById('r_eq').value||0;
+  if(document.getElementById('r_eq_obs'))rules.eqObs=document.getElementById('r_eq_obs').value;
   rules.gpsRate=+document.getElementById('r_gps').value||100;
   rules.freteLimit=+document.getElementById('r_frete').value||250;
   if(!LS.set('gs5_r',rules)){showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.','#b83232');return;}

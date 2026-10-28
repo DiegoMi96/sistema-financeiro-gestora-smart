@@ -1587,6 +1587,10 @@ const CLS = {
 // Mesmos valores-padrão de cada perfil (usados por eles até a 1a vez que
 // alguém salva Metas/Configurações — sem isso, os nomes ainda não existem
 // no localStorage e a Visão Consolidada apareceria vazia por engano).
+// Nome real de cada faixa (28/10/2026, pedido do Diego — trocar "Faixa N"
+// pelo nome da operação), só mapeado pela posição (n) — mirror de vendedor.html.
+const FAIXA_NOMES = ['Objetivo', 'Meta 1', 'Meta 2', 'Super Meta'];
+const nomeFaixa = n => FAIXA_NOMES[n - 1] || ('Faixa ' + n);
 const CONS_DEFAULTS = {
   vendedores: [
     { id: 'v1', nome: 'Henrique Alves', g: { obj: 750, m1: 1000, m2: 1250, sm: 1750 } },
@@ -1733,22 +1737,41 @@ const CONS_DEF_CELULAS = [
   { id: 'c5', nome: 'Patrick + Henrique', vendedorIds: ['v2', 'v1'] },
 ];
 const CONS_DEF_CELULA_ALIQUOTAS = { objetivo: 0.10, meta1: 0.15, meta2: 0.20, superMeta: 0.30 };
+// Parceiro "ativo" sozinho não basta pra Recorrência (28/10/2026, pedido do
+// Diego: "vamos pagar a recorrência se o parceiro colocar pedido no mês
+// anterior") — também precisa ter lançamento no mês ANTERIOR ao que está
+// sendo pago. Broker fica de fora (sem lançamento rastreável, mesmo motivo
+// que já valia pro Bônus de Abertura do Broker). Mirror de vendedor.html.
+function parceiroTemLancamentoNoMes(tipo, id, mes) {
+  if (tipo === 'dealer') { const d = CLS.get('dp1_m', {})['d_' + id + '_' + mes] || {}; return !!(d.margin || d.novas || d.bonus || d.cancel); }
+  if (tipo === 'projeto') { const d = CLS.get('dp1_m', {})['p_' + id + '_' + mes] || {}; return !!(d.margin || d.ativacao || d.bonus || d.cancel); }
+  if (tipo === 'indicador') { const d = CLS.get('ind1_m', {})[id + '_' + mes] || {}; return !!(d.atv || d.bonus); }
+  return true; // broker
+}
 // Parceiros ativos vinculados ao vendedor (campo Comercial) — mesmo critério
-// (nome normalizado) usado pelo Volume linkado em impBuildEntityIndex, e mesma
+// (nome normalizado) usado pelo Volume linkado em impBuildEntityIndex — e,
+// além de ativo, com pedido no mês anterior ao `mes` pago (ver acima). Mesma
 // função que vendedor.html tem pra calcular a Recorrência por Canal Indireto.
-function parceirosAtivosDoVendedor(vendedorNome) {
+function parceirosAtivosDoVendedor(vendedorNome, mes) {
   const nn = norm(vendedorNome);
-  const listas = [CLS.get('ind1_list', []), CLS.get('dp1_dealers', []), CLS.get('dp1_projetos', []), CLS.get('dp1_brokers', [])];
+  const mesAnt = impMesAnterior(mes);
+  const grupos = [
+    { lista: CLS.get('ind1_list', []), tipo: 'indicador' },
+    { lista: CLS.get('dp1_dealers', []), tipo: 'dealer' },
+    { lista: CLS.get('dp1_projetos', []), tipo: 'projeto' },
+    { lista: CLS.get('dp1_brokers', []), tipo: 'broker' },
+  ];
   let count = 0;
-  listas.forEach(lista => (lista || []).forEach(e => {
+  grupos.forEach(({ lista, tipo }) => (lista || []).forEach(e => {
     const ativo = (e.status || 'ativo') === 'ativo';
-    if (ativo && norm(e.comercial || '') === nn) count++;
+    if (!ativo || norm(e.comercial || '') !== nn) return;
+    if (parceiroTemLancamentoNoMes(tipo, e.id, mesAnt)) count++;
   }));
   return count;
 }
-function recorrenciaDoVendedor(vendedorNome) {
+function recorrenciaDoVendedor(vendedorNome, mes) {
   const cfg = CLS.get('gs5_recorrencia', CONS_DEFAULTS.recorrencia);
-  const qtd = parceirosAtivosDoVendedor(vendedorNome);
+  const qtd = parceirosAtivosDoVendedor(vendedorNome, mes);
   return Math.min(qtd, cfg.tetoParceiros) * cfg.valorPorParceiro;
 }
 function consBonusCelulaDe(vid, mes) {
@@ -1780,7 +1803,7 @@ function consVendExtra(v, mes) {
     categoriaEquip: v.categoriaEquip || null,
     qtdEquip: eqCatMes.qtd || 0,
     novosClientesValor: nc.valor || 0,
-    recorrenciaValor: recorrenciaDoVendedor(v.nome),
+    recorrenciaValor: recorrenciaDoVendedor(v.nome, mes),
     aberturaValor: (CLS.get('gs5_abertura_parceiros', {})[mes] || {})[v.id] || 0,
   };
 }
@@ -1805,7 +1828,7 @@ function consVendedorTotais(mes) {
     const fx = faixas.find(f => Math.floor(alc) <= f.max) || faixas[faixas.length - 1] || { vol: 0, atv: 0 };
     const volC = linhas * fx.vol, atvC = atv * fx.atv;
     const eqC = extra.categoriaEquip
-      ? extra.qtdEquip * (equipCat[extra.categoriaEquip] || 0)
+      ? (extra.qtdEquip > 0 ? extra.qtdEquip * (equipCat[extra.categoriaEquip] || 0) : eq)
       : (EQUIP_MANUAL.includes(norm(v.nome)) ? eq : eq * ((rules.eqRate || 0) / 100));
     const gpsC = gps * ((rules.gpsRate || 0) / 100);
     const frDsc = Math.max(0, frete - (rules.freteLimit || 0));
@@ -1841,14 +1864,15 @@ function calcVendExec(v, mes) {
   const ths = [v.g.obj, v.g.m1, v.g.m2, v.g.sm];
   const volC = linhas * fx.vol, atvC = atv * fx.atv;
   const eqC = extra.categoriaEquip
-    ? extra.qtdEquip * (equipCat[extra.categoriaEquip] || 0)
+    ? (extra.qtdEquip > 0 ? extra.qtdEquip * (equipCat[extra.categoriaEquip] || 0) : eq)
     : (EQUIP_MANUAL.includes(norm(v.nome)) ? eq : eq * ((rules.eqRate || 0) / 100));
   const gpsC = gps * ((rules.gpsRate || 0) / 100);
   const frDsc = Math.max(0, frete - (rules.freteLimit || 0));
   const novosClientesC = extra.novosClientesValor, recorrenciaC = extra.recorrenciaValor, aberturaC = extra.aberturaValor;
   const total = volC + atvC + eqC + gpsC + bonus + bonusCelula + beSmart + novosClientesC + recorrenciaC + aberturaC - frDsc;
   return { linhas, atv, eq, gps, frete, bonus, bonusCelula, beSmart, alc, fx, volC, atvC, eqC, gpsC, frDsc,
-    novosClientesC, recorrenciaC, aberturaC, total, ths };
+    novosClientesC, recorrenciaC, aberturaC, total, ths, categoriaEquip: extra.categoriaEquip, qtdEquip: extra.qtdEquip,
+    equipRate: extra.categoriaEquip ? (equipCat[extra.categoriaEquip] || 0) : 0 };
 }
 
 // Todos os parceiros cadastrados (Indicador/Indicador N2/Dealer/Projeto
@@ -1993,7 +2017,7 @@ function renderExecutivo() {
       ['Objetivo', v.g.obj.toLocaleString('pt-BR'), true],
       ['Volume realizado', c.linhas.toLocaleString('pt-BR'), true],
       ['Alcance', c.alc.toFixed(0) + '%', true],
-      ['Faixa aplicada', `<span class="exec-fp ${FP[c.fx.n - 1]}">Faixa ${c.fx.n}</span>`],
+      ['Faixa aplicada', `<span class="exec-fp ${FP[c.fx.n - 1]}">${nomeFaixa(c.fx.n)}</span>`],
       ['R$ por linha', 'R$' + c.fx.vol.toFixed(2).replace('.', ',')],
     ]) + `<div class="exec-sum-footer"><span>Comissão Volume</span><span>R$${br2c(c.volC)}</span></div>`;
 
@@ -2018,7 +2042,7 @@ function renderExecutivo() {
       ['Canal Indireto', (c.recorrenciaC + c.aberturaC) > 0 ? 'Recorrência + abertura de parceiro' : traco, (c.recorrenciaC + c.aberturaC) > 0 ? '<span style="color:#166B4A">+R$' + br2c(c.recorrenciaC + c.aberturaC) + '</span>' : traco],
       ['Be Smart', c.beSmart > 0 ? 'Lançamento manual (sistema externo)' : traco, c.beSmart > 0 ? '<span style="color:#166B4A">+R$' + br2c(c.beSmart) + '</span>' : traco],
       ['Bônus extra', c.bonus > 0 ? 'Lançamento manual' : traco, c.bonus > 0 ? '<span style="color:#166B4A">+R$' + br2c(c.bonus) + '</span>' : traco],
-      ['Equipamento', c.eqC > 0 ? (EQUIP_MANUAL.includes(norm(v.nome)) ? 'Valor lançado manualmente' : `R$ ${br2c(c.eq)} × ${rg.eqRate || 0}%`) : traco, c.eqC > 0 ? 'R$' + br2c(c.eqC) : traco],
+      ['Equipamento', c.eqC > 0 ? (c.categoriaEquip ? (c.qtdEquip > 0 ? `${c.qtdEquip} máquina(s) (${c.categoriaEquip === 'rastreamento' ? 'Rastreamento' : 'Meios de Pagamento'}) × R$ ${c.equipRate.toFixed(2).replace('.', ',')}` : 'Valor lançado manualmente (sem dado da planilha no mês)') : (EQUIP_MANUAL.includes(norm(v.nome)) ? 'Valor lançado manualmente' : `R$ ${br2c(c.eq)} × ${rg.eqRate || 0}%`)) : traco, c.eqC > 0 ? 'R$' + br2c(c.eqC) : traco],
       ['Smart GPS', c.gpsC > 0 ? `R$ ${br2c(c.gps)} × ${rg.gpsRate || 0}%` : traco, c.gpsC > 0 ? 'R$' + br2c(c.gpsC) : traco],
       ['Desconto Frete', c.frDsc > 0 ? `Frete R$ ${br2c(c.frete)} − limite R$ ${br2c(rg.freteLimit || 0)}` : traco, c.frDsc > 0 ? '<span style="color:#b83232">-R$' + br2c(c.frDsc) + '</span>' : traco],
     ], true) + `<div class="exec-sum-footer" style="padding:14px 16px;margin-top:14px"><span style="font-size:12px">Total</span><span style="font-size:20px">R$${br2c(c.total)}</span></div>`;
@@ -2029,7 +2053,8 @@ function renderExecutivo() {
     const vendFrame = document.getElementById('frame-vendedor').contentWindow;
     const raw = vendFrame?.getRawFor?.(id, mes) || {};
     document.getElementById('exec_detalhe').innerHTML =
-      execDetTable('Linhas Simcard (Volume/Ativação)', raw.simcard) +
+      execDetTable('Pedidos do mês (Volume)', raw.pedidos) +
+      execDetTable('Simcard (linhas ativas · Inventário)', raw.simcard) +
       execDetTable('Cobranças de Equipamento', raw.equip) +
       execDetTable('Cobranças de Frete/Placas', raw.gps);
     return;
@@ -3548,6 +3573,25 @@ function impHandleFile(evt, target) {
   reader.readAsArrayBuffer(file);
 }
 
+// Planilhas de Cobranças (Equipamentos/Smart GPS) às vezes trazem colunas sem
+// cabeçalho no fim do arquivo — o SheetJS batiza como "__EMPTY"/"__EMPTY_1"...
+// Isso não afeta o cálculo (a coluna de comissão é lida por POSIÇÃO, não pelo
+// nome — ver impProcessarSmartGPS), mas sujava a aba exportada no "↓ Extrair"
+// (pedido do Diego: "está vindo com algumas colunas no final"). Remove só
+// coluna sem nome E sem nenhum valor em nenhuma linha de nenhum vendedor —
+// uma coluna sem nome mas com dado real (caso da própria coluna P) fica.
+function impLimparColunasVazias(headers, porEntidade) {
+  const manter = headers.map((h, i) => {
+    if (!/^__EMPTY/.test(h)) return true;
+    return Object.values(porEntidade).some(linhas => linhas.some(row => row[i] !== '' && row[i] != null));
+  });
+  if (manter.every(Boolean)) return headers;
+  Object.keys(porEntidade).forEach(id => {
+    porEntidade[id] = porEntidade[id].map(row => row.filter((_, i) => manter[i]));
+  });
+  return headers.filter((_, i) => manter[i]);
+}
+
 // Nome → {tipo, id}, lido fresco do localStorage a cada processamento (assim
 // gente cadastrada depois em Cadastro de Parceiros já entra no cruzamento).
 function impBuildEntityIndex() {
@@ -3714,7 +3758,8 @@ function impProcessarPedidos() {
   const resultadoAbertura = calcularAberturaParceiros(mes);
 
   const vendFrame = document.getElementById('frame-vendedor').contentWindow;
-  Object.keys(porVendedor).forEach(vid => vendFrame?.impSetRaw?.(vid, mes, 'simcard', pedidosHeaders, rawPorVendedor[vid] || []));
+  const pedidosHeadersLimpos = impLimparColunasVazias(pedidosHeaders, rawPorVendedor);
+  Object.keys(porVendedor).forEach(vid => vendFrame?.impSetRaw?.(vid, mes, 'pedidos', pedidosHeadersLimpos, rawPorVendedor[vid] || []));
 
   const dcRes = impAplicarDiretorComercial(mes, { volume: dcVolume });
 
@@ -4094,7 +4139,7 @@ function impProcessarInventario() {
   // memória nesta sessão, igual ao comportamento que a aba Importar antiga já
   // tinha: some se recarregar a página, mas o número calculado fica salvo).
   const invHeaders = Object.keys(impRows.inventario[0] || {});
-  const dealerRaw = {}, projRaw = {}, indRaw = {};
+  const dealerRaw = {}, projRaw = {}, indRaw = {}, vendRaw = {};
   const asRow = r => invHeaders.map(h => (r[h] == null ? '' : r[h]));
 
   impRows.inventario.forEach(r => {
@@ -4116,6 +4161,10 @@ function impProcessarInventario() {
         const precoAtivacao = Number(r['Preço de ativação']) || 0;
         vendedorAtv[ent.id] = (vendedorAtv[ent.id] || 0) + precoAtivacao;
       }
+      // Linhas ativas do vendedor (snapshot do Inventário) — alimenta a aba
+      // "Simcard" do "↓ Extrair" (pedido do Diego: separar de "Pedidos do
+      // mês", que são as vendas; aqui são as linhas ativas de verdade).
+      (vendRaw[ent.id] = vendRaw[ent.id] || []).push(asRow(r));
     } else if (ent.tipo === 'indicador') {
       if (mesAtivacao === mesRefAtiv) {
         indAgg[ent.id] = (indAgg[ent.id] || 0) + 1;
@@ -4186,6 +4235,9 @@ function impProcessarInventario() {
   Object.keys(projAgg).forEach(id => projFrame?.impSetRaw?.(id, mes, invHeaders, projRaw[id] || []));
   const indFrame = document.getElementById('frame-indicadores').contentWindow;
   Object.keys(indAgg).forEach(id => indFrame?.impSetRaw?.(id, mes, invHeaders, indRaw[id] || []));
+  const vendFrameInv = document.getElementById('frame-vendedor').contentWindow;
+  const invHeadersLimpos = impLimparColunasVazias(invHeaders, vendRaw);
+  Object.keys(vendRaw).forEach(id => vendFrameInv?.impSetRaw?.(id, mes, 'simcard', invHeadersLimpos, vendRaw[id] || []));
 
   const dpM = CLS.get('dp1_m', {});
   Object.keys(dealerAgg).forEach(id => {
@@ -4364,7 +4416,8 @@ function impProcessarEquipamentos() {
   });
 
   const vendFrameEq = document.getElementById('frame-vendedor').contentWindow;
-  Object.keys(equipVendedor).forEach(id => vendFrameEq?.impSetRaw?.(id, mes, 'equip', equipHeaders, equipRaw[id] || []));
+  const equipHeadersLimpos = impLimparColunasVazias(equipHeaders, equipRaw);
+  Object.keys(equipVendedor).forEach(id => vendFrameEq?.impSetRaw?.(id, mes, 'equip', equipHeadersLimpos, equipRaw[id] || []));
 
   const gsM = CLS.get('gs5_m', {});
   Object.keys(equipVendedor).forEach(id => {
@@ -4430,7 +4483,8 @@ function impProcessarSmartGPS() {
   });
 
   const vendFrameGps = document.getElementById('frame-vendedor').contentWindow;
-  Object.keys(placasVendedor).forEach(id => vendFrameGps?.impSetRaw?.(id, mes, 'gps', gpsHeaders, placasRaw[id] || []));
+  const gpsHeadersLimpos = impLimparColunasVazias(gpsHeaders, placasRaw);
+  Object.keys(placasVendedor).forEach(id => vendFrameGps?.impSetRaw?.(id, mes, 'gps', gpsHeadersLimpos, placasRaw[id] || []));
 
   const gsM = CLS.get('gs5_m', {});
   Object.keys(placasVendedor).forEach(id => {
