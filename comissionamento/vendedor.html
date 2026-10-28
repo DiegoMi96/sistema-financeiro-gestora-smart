@@ -368,9 +368,11 @@ tr.row-editing td{background:#f9fffe !important}
     <div class="rg-section-head"><span class="rg-section-label">Canal indireto</span><span class="rg-section-desc">Recorrência mensal e bônus de abertura por parceiro</span></div>
     <div class="card">
       <div class="rg-head"><p class="rg-title">Recorrência por Canal Indireto</p><p class="rg-sub">R$/mês por parceiro ativo (teto) + bônus único de abertura por categoria, pago após a carência.</p></div>
-      <div class="rg-field"><label class="rg-lbl">Valor por parceiro ativo</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="rec_valor" min="0" step="1" oninput="saveRecorrencia()"><span class="ipfx">/mês</span></div></div>
-      <div class="rg-field"><label class="rg-lbl">Teto de parceiros</label><div class="irow"><input type="number" id="rec_teto" min="0" step="1" oninput="saveRecorrencia()"></div></div>
-      <div class="rg-field"><label class="rg-lbl">Carência (meses)</label><div class="irow"><input type="number" id="rec_carencia" min="0" step="1" oninput="saveRecorrencia()"></div></div>
+      <div class="rg-inline" style="align-items:flex-start;gap:24px">
+        <div class="rg-field"><label class="rg-lbl">Valor por parceiro ativo</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="rec_valor" min="0" step="1" oninput="saveRecorrencia()"><span class="ipfx">/mês</span></div></div>
+        <div class="rg-field"><label class="rg-lbl">Teto de parceiros</label><div class="irow"><input type="number" id="rec_teto" min="0" step="1" oninput="saveRecorrencia()"></div></div>
+        <div class="rg-field"><label class="rg-lbl">Carência (meses)</label><div class="irow"><input type="number" id="rec_carencia" min="0" step="1" oninput="saveRecorrencia()"></div></div>
+      </div>
       <table class="rg-table"><thead><tr><th>Categoria</th><th>Abertura</th></tr></thead><tbody>
         <tr><td>Indicador</td><td><div class="rg-in"><span class="ipfx">R$</span><input type="number" id="rec_ab_indicador" min="0" step="1" oninput="saveRecorrencia()"></div></td></tr>
         <tr><td>Indicador N2</td><td><div class="rg-in"><span class="ipfx">R$</span><input type="number" id="rec_ab_indicador_n2" min="0" step="1" oninput="saveRecorrencia()"></div></td></tr>
