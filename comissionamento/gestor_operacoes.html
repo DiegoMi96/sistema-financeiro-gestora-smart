@@ -9,7 +9,14 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',sans-serif;background:#F5F5F5;color:#1a2332;font-size:13px;line-height:1.5}
 .page{max-width:1080px;margin:0 auto;padding:40px 28px 80px}
-:root{--navy:#0f2340;--teal:#0d6e5f;--teal-light:#e6f5f2;--gold:#b8863f;--gold-bg:#fdf6ec;--gold-border:#e8d5b5}
+/* Paleta unificada com o resto do Comissionamento (28/10/2026, pedido do
+   Diego — as 3 telas de gestão/diretoria tinham cor própria desconectada
+   do verde da marca usado em Vendedor/Dealer/Indicador/shell). --navy e
+   --teal continuam existindo como variáveis (usadas em ~30 lugares no
+   arquivo) só pra não precisar trocar cada uso um por um — agora resolvem
+   pro verde da marca. --gold fica como está: é o destaque de conquista/
+   bônus (Marco atingido), não identidade de tela. */
+:root{--navy:#166B4A;--teal:#1E9B6B;--teal-light:#eaf5f0;--gold:#b8863f;--gold-bg:#fdf6ec;--gold-border:#e8d5b5}
 .header{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:18px;border-bottom:3px solid var(--navy);margin-bottom:26px}
 .header-left .eyebrow{font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--teal);margin-bottom:6px}
 .header-left h1{font-size:24px;font-weight:800;color:var(--navy)}
@@ -502,7 +509,7 @@ const br2=v=>(typeof v==='number'?v:0).toLocaleString('pt-BR',{minimumFractionDi
 const brFmt=v=>(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const parseNum=s=>+String(s).replace(/\./g,'').replace(',','.')||0;
 const fmtMes=s=>{if(!s)return'';const[y,m]=s.split('-');const ms=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];return ms[+m-1]+'/'+y;};
-function showToast(msg,color='#0f2340'){const t=document.getElementById('toast');t.textContent=msg;t.style.background=color;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+function showToast(msg,color='#166B4A'){const t=document.getElementById('toast');t.textContent=msg;t.style.background=color;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
 
 function calcSat(pct){
   if(!pct)return 0;

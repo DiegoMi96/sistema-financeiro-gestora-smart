@@ -623,6 +623,32 @@ const norm=(s='')=>String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u0
 // (só começa em 71), sendo empurrado pra faixa 2 por engano. Confirmado batendo
 // com a planilha real da Claudia (Jul/26): 70,04% = Faixa 1 (10%), não Faixa 2 (15%).
 function getFaixa(alc){return faixas.find(f=>Math.floor(alc)<=f.max)||faixas[faixas.length-1];}
+// Modelo HISTÓRICO (vigente até o ciclo de outubro/2026, antes do modelo novo)
+// — congelado, nunca editável por aqui. Existe só pra recalcular um mês já
+// fechado com a fórmula que estava valendo quando ele foi aprovado. O modelo
+// novo (Regras & Config) vale só a partir de novembro/2026, confirmado com o
+// Diego — BUG REAL encontrado e corrigido em 28/10/2026: outubro, já
+// aprovado, estava sendo recalculado com a fórmula nova (nenhuma trava de
+// data existia; mesAprovado só bloqueava edição manual, não o cálculo).
+const VIGENCIA_MODELO_NOVO='2026-11';
+const FAIXAS_HIST=[
+  {n:1,range:'0–70%',    min:0,  max:70, vol:0.10,atv:0.10},
+  {n:2,range:'71–90%',   min:71, max:90, vol:0.15,atv:0.15},
+  {n:3,range:'91–120%',  min:91, max:120,vol:0.25,atv:0.25},
+  {n:4,range:'121–150%', min:121,max:150,vol:0.30,atv:0.30},
+  {n:5,range:'151–200%', min:151,max:200,vol:0.40,atv:0.40},
+  {n:6,range:'>200%',    min:201,max:9999,vol:0.50,atv:0.50},
+];
+const DESAFIO_HIST=[{lbl:'Objetivo',val:200},{lbl:'Meta 1',val:300},{lbl:'Meta 2',val:400},{lbl:'Super Meta',val:500}];
+const CELULA_ALIQUOTAS_HIST={objetivo:0.07,meta1:0.13,meta2:0.25,superMeta:0.33};
+const EQUIP_MANUAL_HIST=['patrick rodrigues'];
+const RULES_HIST={eqRate:2,gpsRate:100,freteLimit:250};
+function getFaixaHist(alc){return FAIXAS_HIST.find(f=>Math.floor(alc)<=f.max)||FAIXAS_HIST[FAIXAS_HIST.length-1];}
+function getDesafioHist(linhas,g){
+  const ths=[g.obj,g.m1,g.m2,g.sm];let total=0;
+  DESAFIO_HIST.forEach((d,i)=>{if(linhas>=ths[i])total+=d.val;});
+  return total;
+}
 // Parceiro "ativo" sozinho não basta pra Recorrência (28/10/2026, pedido do
 // Diego: "vamos pagar a recorrência se o parceiro colocar pedido no mês
 // anterior") — também precisa ter lançamento no mês ANTERIOR ao que está
@@ -678,11 +704,12 @@ function celulaDesempenho(celula,mes){
     volume+=d.linhas||0;
     obj+=v.g.obj||0;m1+=v.g.m1||0;m2+=v.g.m2||0;sm+=v.g.sm||0;
   });
+  const aliq=(mes&&mes<VIGENCIA_MODELO_NOVO)?CELULA_ALIQUOTAS_HIST:celulaAliquotas;
   let aliquota=0;
-  if(sm>0&&volume>=sm)aliquota=celulaAliquotas.superMeta;
-  else if(m2>0&&volume>=m2)aliquota=celulaAliquotas.meta2;
-  else if(m1>0&&volume>=m1)aliquota=celulaAliquotas.meta1;
-  else if(obj>0&&volume>=obj)aliquota=celulaAliquotas.objetivo;
+  if(sm>0&&volume>=sm)aliquota=aliq.superMeta;
+  else if(m2>0&&volume>=m2)aliquota=aliq.meta2;
+  else if(m1>0&&volume>=m1)aliquota=aliq.meta1;
+  else if(obj>0&&volume>=obj)aliquota=aliq.objetivo;
   return{volume,obj,m1,m2,sm,aliquota};
 }
 function bonusCelulaDe(vid,mes){
@@ -696,10 +723,25 @@ function bonusCelulaDe(vid,mes){
 // futuros de exceção manual. O Patrick migrou pro toggle "usa taxa por
 // categoria" (ver Regras & Config) a partir do modelo novo (27/10/2026).
 const EQUIP_MANUAL=[];
-const eqDiretoDe=vend=>EQUIP_MANUAL.includes(norm(vend.nome));
-function calcVend(d,g,bonusCelula=0,eqDireto=false,extra={}){
+const eqDiretoDe=(vend,mes)=>((mes&&mes<VIGENCIA_MODELO_NOVO)?EQUIP_MANUAL_HIST:EQUIP_MANUAL).includes(norm(vend.nome));
+function calcVend(d,g,bonusCelula=0,eqDireto=false,extra={},mes=''){
   const linhas=d.linhas||0,atv=d.atv||0,eq=d.eq||0,gps=d.gps||0,frete=d.frete||0,bonus=d.bonus||0,beSmart=d.beSmart||0;
   const alc=g.obj>0?(linhas/g.obj*100):0;
+  // Mês anterior a novembro/2026: fórmula histórica, congelada (ver nota em
+  // VIGENCIA_MODELO_NOVO acima) — ignora todo componente do modelo novo
+  // (categoria de equipamento, Novos Clientes, Recorrência, Be Smart), que
+  // não existiam quando esse mês foi fechado.
+  if(mes&&mes<VIGENCIA_MODELO_NOVO){
+    const fx=getFaixaHist(alc);
+    const volC=linhas*fx.vol,atvC=atv*fx.atv;
+    const desC=getDesafioHist(linhas,g);
+    const eqC=eqDireto?eq:eq*(RULES_HIST.eqRate/100);
+    const gpsC=gps*(RULES_HIST.gpsRate/100);
+    const frDsc=Math.max(0,frete-RULES_HIST.freteLimit);
+    const total=volC+atvC+desC+eqC+gpsC+bonus+bonusCelula-frDsc;
+    return{linhas,atv,eq,gps,frete,bonus,bonusCelula,beSmart:0,alc,fx,desC,volC,atvC,eqC,gpsC,frDsc,
+      novosClientesC:0,recorrenciaC:0,aberturaC:0,total};
+  }
   const fx=getFaixa(alc);
   const volC=linhas*fx.vol,atvC=atv*fx.atv;
   // Equipamento: vendedor com uma categoria marcada (rastreamento ou meios de
@@ -799,7 +841,7 @@ function renderResumo(){
   // 1) calcula todos (a conta é a mesma de sempre — calcVend)
   let dados=vendedores.map(vend=>{
     const d=mdata[`${vend.id}_${mes}`]||{};
-    const c=calcVend(d,vend.g,bonusCelulaDe(vend.id,mes),eqDiretoDe(vend),extraDoVendedor(vend,mes));
+    const c=calcVend(d,vend.g,bonusCelulaDe(vend.id,mes),eqDiretoDe(vend,mes),extraDoVendedor(vend,mes),mes);
     const isEmpty=!c.linhas&&!c.atv&&!c.eq&&!c.gps&&!c.bonus&&!c.bonusCelula&&!c.beSmart&&!c.novosClientesC&&!c.recorrenciaC&&!c.aberturaC;
     return{vend,c,isEmpty,canExport:hasRaw(vend.id,mes)};
   });
@@ -918,7 +960,7 @@ function liveCalc(vid){
   const vend=vendedores.find(v=>v.id===vid);
   const mes=document.getElementById('mesInput').value;
   const d={linhas:+document.getElementById(`e_l_${vid}`).value||0,atv:+document.getElementById(`e_a_${vid}`).value||0,eq:+document.getElementById(`e_q_${vid}`).value||0,gps:+document.getElementById(`e_g_${vid}`).value||0,frete:+document.getElementById(`e_f_${vid}`).value||0,bonus:+document.getElementById(`e_b_${vid}`).value||0,beSmart:+document.getElementById(`e_bs_${vid}`).value||0};
-  const c=calcVend(d,vend.g,bonusCelulaDe(vid,mes),eqDiretoDe(vend),extraDoVendedor(vend,mes));
+  const c=calcVend(d,vend.g,bonusCelulaDe(vid,mes),eqDiretoDe(vend,mes),extraDoVendedor(vend,mes),mes);
   const fpCls=['f1','f2','f3','f4'];
   const ths=[vend.g.obj,vend.g.m1,vend.g.m2,vend.g.sm];
   const prev=document.getElementById(`prev_${vid}`);if(!prev)return;
@@ -1011,7 +1053,7 @@ async function exportVendedor(vid,mes){
     }
   }
   const raw=rawStore[key]||{};
-  const c=calcVend(d,vend.g,bonusCelulaDe(vid,mes),eqDiretoDe(vend),extraDoVendedor(vend,mes));
+  const c=calcVend(d,vend.g,bonusCelulaDe(vid,mes),eqDiretoDe(vend,mes),extraDoVendedor(vend,mes),mes);
 
   const wb=new ExcelJS.Workbook();
   const [y,m]=mes.split('-');

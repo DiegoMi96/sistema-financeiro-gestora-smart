@@ -1112,9 +1112,9 @@ iframe.active{display:block}
     <iframe id="frame-dealer" src="dealer.html?b=33" title="Dealer"></iframe>
     <iframe id="frame-indicadores" src="indicadores.html?b=24" title="Indicador"></iframe>
     <iframe id="frame-projeto_especial" src="projeto_especial.html?b=42" title="Projeto Especial"></iframe>
-    <iframe id="frame-gestor_operacoes" src="gestor_operacoes.html?b=15" title="Gestor de Operações"></iframe>
-    <iframe id="frame-diretor_adm" src="diretor_adm.html?b=13" title="Diretor Administrativo"></iframe>
-    <iframe id="frame-diretor_comercial" src="diretor_comercial.html?b=16" title="Diretor Comercial"></iframe>
+    <iframe id="frame-gestor_operacoes" src="gestor_operacoes.html?b=16" title="Gestor de Operações"></iframe>
+    <iframe id="frame-diretor_adm" src="diretor_adm.html?b=14" title="Diretor Administrativo"></iframe>
+    <iframe id="frame-diretor_comercial" src="diretor_comercial.html?b=17" title="Diretor Comercial"></iframe>
   </div>
 </div>
 
@@ -1591,6 +1591,29 @@ const CLS = {
 // pelo nome da operação), só mapeado pela posição (n) — mirror de vendedor.html.
 const FAIXA_NOMES = ['Objetivo', 'Meta 1', 'Meta 2', 'Super Meta'];
 const nomeFaixa = n => FAIXA_NOMES[n - 1] || ('Faixa ' + n);
+// Modelo HISTÓRICO (vigente até out/2026, antes do modelo novo) — congelado,
+// mirror de vendedor.html. BUG REAL encontrado e corrigido em 28/10/2026:
+// Visão Consolidada/Executivo recalculavam outubro (já aprovado) com a
+// fórmula nova — nenhuma trava de data existia em lugar nenhum do sistema.
+const VIGENCIA_MODELO_NOVO = '2026-11';
+const FAIXAS_HIST = [
+  { n: 1, range: '0–70%', min: 0, max: 70, vol: 0.10, atv: 0.10 },
+  { n: 2, range: '71–90%', min: 71, max: 90, vol: 0.15, atv: 0.15 },
+  { n: 3, range: '91–120%', min: 91, max: 120, vol: 0.25, atv: 0.25 },
+  { n: 4, range: '121–150%', min: 121, max: 150, vol: 0.30, atv: 0.30 },
+  { n: 5, range: '151–200%', min: 151, max: 200, vol: 0.40, atv: 0.40 },
+  { n: 6, range: '>200%', min: 201, max: 9999, vol: 0.50, atv: 0.50 },
+];
+const DESAFIO_HIST = [{ lbl: 'Objetivo', val: 200 }, { lbl: 'Meta 1', val: 300 }, { lbl: 'Meta 2', val: 400 }, { lbl: 'Super Meta', val: 500 }];
+const CELULA_ALIQUOTAS_HIST = { objetivo: 0.07, meta1: 0.13, meta2: 0.25, superMeta: 0.33 };
+const EQUIP_MANUAL_HIST = ['patrick rodrigues'];
+const RULES_HIST = { eqRate: 2, gpsRate: 100, freteLimit: 250 };
+function getFaixaHist(alc) { return FAIXAS_HIST.find(f => Math.floor(alc) <= f.max) || FAIXAS_HIST[FAIXAS_HIST.length - 1]; }
+function getDesafioHist(linhas, g) {
+  const ths = [g.obj, g.m1, g.m2, g.sm]; let total = 0;
+  DESAFIO_HIST.forEach((d, i) => { if (linhas >= ths[i]) total += d.val; });
+  return total;
+}
 const CONS_DEFAULTS = {
   vendedores: [
     { id: 'v1', nome: 'Henrique Alves', g: { obj: 750, m1: 1000, m2: 1250, sm: 1750 } },
@@ -1788,11 +1811,12 @@ function consBonusCelulaDe(vid, mes) {
     volume += d.linhas || 0;
     obj += v.g.obj || 0; m1 += v.g.m1 || 0; m2 += v.g.m2 || 0; sm += v.g.sm || 0;
   });
+  const aliq = (mes && mes < VIGENCIA_MODELO_NOVO) ? CELULA_ALIQUOTAS_HIST : aliquotas;
   let aliquota = 0;
-  if (sm > 0 && volume >= sm) aliquota = aliquotas.superMeta;
-  else if (m2 > 0 && volume >= m2) aliquota = aliquotas.meta2;
-  else if (m1 > 0 && volume >= m1) aliquota = aliquotas.meta1;
-  else if (obj > 0 && volume >= obj) aliquota = aliquotas.objetivo;
+  if (sm > 0 && volume >= sm) aliquota = aliq.superMeta;
+  else if (m2 > 0 && volume >= m2) aliquota = aliq.meta2;
+  else if (m1 > 0 && volume >= m1) aliquota = aliq.meta1;
+  else if (obj > 0 && volume >= obj) aliquota = aliq.objetivo;
   const v = vendedores.find(x => x.id === vid);
   return +(aliquota * (v?.salarioFixo || 0)).toFixed(2);
 }
@@ -1817,8 +1841,25 @@ function consVendedorTotais(mes) {
     const d = mdata[`${v.id}_${mes}`] || {};
     const linhas = d.linhas || 0, atv = d.atv || 0, eq = d.eq || 0, gps = d.gps || 0, frete = d.frete || 0, bonus = d.bonus || 0, beSmart = d.beSmart || 0;
     const bonusCelula = consBonusCelulaDe(v.id, mes);
-    const extra = consVendExtra(v, mes);
     const alc = v.g.obj > 0 ? (linhas / v.g.obj * 100) : 0;
+    // Mês anterior a novembro/2026: fórmula histórica, congelada — mirror do
+    // mesmo bloco em calcVend (vendedor.html). BUG REAL corrigido 28/10/2026:
+    // outubro (já aprovado) estava sendo recalculado com a fórmula nova aqui
+    // na Visão Consolidada também.
+    if (mes && mes < VIGENCIA_MODELO_NOVO) {
+      const fx = getFaixaHist(alc);
+      const volC = linhas * fx.vol, atvC = atv * fx.atv;
+      const desC = getDesafioHist(linhas, v.g);
+      const eqC = EQUIP_MANUAL_HIST.includes(norm(v.nome)) ? eq : eq * (RULES_HIST.eqRate / 100);
+      const gpsC = gps * (RULES_HIST.gpsRate / 100);
+      const frDsc = Math.max(0, frete - RULES_HIST.freteLimit);
+      const total = volC + atvC + desC + eqC + gpsC + bonus + bonusCelula - frDsc;
+      return {
+        nome: v.nome, total, hasData: !!(linhas || atv || eq || gps || bonus || bonusCelula || desC),
+        simcard: volC + atvC, bonificacao: bonus + bonusCelula + desC, equipamento: eqC, gps: gpsC, descCanc: 0, descFrete: frDsc,
+      };
+    }
+    const extra = consVendExtra(v, mes);
     // As faixas são definidas em pontos percentuais inteiros com um "buraco"
     // entre uma e outra (ex: 0–90 / 91–110) — sem arredondar pra baixo antes de
     // comparar, um alcance como 90,04% caía fora da faixa 1 (que vai só até 90)
@@ -1858,10 +1899,23 @@ function calcVendExec(v, mes) {
   const d = mdata[`${v.id}_${mes}`] || {};
   const linhas = d.linhas || 0, atv = d.atv || 0, eq = d.eq || 0, gps = d.gps || 0, frete = d.frete || 0, bonus = d.bonus || 0, beSmart = d.beSmart || 0;
   const bonusCelula = consBonusCelulaDe(v.id, mes);
-  const extra = consVendExtra(v, mes);
   const alc = v.g.obj > 0 ? (linhas / v.g.obj * 100) : 0;
-  const fx = faixas.find(f => Math.floor(alc) <= f.max) || faixas[faixas.length - 1] || { n: 1, vol: 0, atv: 0 };
   const ths = [v.g.obj, v.g.m1, v.g.m2, v.g.sm];
+  // Mês anterior a novembro/2026: fórmula histórica, congelada — mirror do
+  // mesmo bloco em calcVend (vendedor.html) e consVendedorTotais acima.
+  if (mes && mes < VIGENCIA_MODELO_NOVO) {
+    const fx = getFaixaHist(alc);
+    const volC = linhas * fx.vol, atvC = atv * fx.atv;
+    const desC = getDesafioHist(linhas, v.g);
+    const eqC = EQUIP_MANUAL_HIST.includes(norm(v.nome)) ? eq : eq * (RULES_HIST.eqRate / 100);
+    const gpsC = gps * (RULES_HIST.gpsRate / 100);
+    const frDsc = Math.max(0, frete - RULES_HIST.freteLimit);
+    const total = volC + atvC + desC + eqC + gpsC + bonus + bonusCelula - frDsc;
+    return { linhas, atv, eq, gps, frete, bonus, bonusCelula, beSmart: 0, alc, fx, desC, volC, atvC, eqC, gpsC, frDsc,
+      novosClientesC: 0, recorrenciaC: 0, aberturaC: 0, total, ths, categoriaEquip: null, qtdEquip: 0, equipRate: 0 };
+  }
+  const extra = consVendExtra(v, mes);
+  const fx = faixas.find(f => Math.floor(alc) <= f.max) || faixas[faixas.length - 1] || { n: 1, vol: 0, atv: 0 };
   const volC = linhas * fx.vol, atvC = atv * fx.atv;
   const eqC = extra.categoriaEquip
     ? (extra.qtdEquip > 0 ? extra.qtdEquip * (equipCat[extra.categoriaEquip] || 0) : eq)
