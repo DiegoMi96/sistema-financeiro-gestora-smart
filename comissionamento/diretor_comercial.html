@@ -33,6 +33,14 @@ body{font-family:'Inter',sans-serif;background:#F5F5F5;color:#1a2332;font-size:1
 
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.g3 > *{min-width:0}
+/* Os 3 cards de faixas (Volume/Crescimento/Satisfação, 29/10/2026) tinham
+   tabela larga o bastante pra estourar o container mesmo com os 3 no
+   tamanho mínimo — aperta o padding dessas tabelas e deixa o card com
+   scroll próprio como última rede de segurança, em vez de a página inteira
+   ganhar barra de rolagem horizontal. */
+#tab-config .g3 .card{overflow-x:auto}
+#tab-config .g3 table th,#tab-config .g3 table td{padding:9px 8px}
 /* Seções da aba Configurações (29/10/2026) — mesmo padrão aplicado em
    Vendedor > Regras & Config e Gestor de Operações > Configurações: agrupa
    os cards por assunto em vez de deixá-los soltos numa grade só, e os
