@@ -15,9 +15,13 @@ body{font-family:'Inter',sans-serif;background:#F5F5F5;color:#1a1a18;font-size:1
    global em vez de corrigir campo a campo, pra não repetir em campo novo. */
 input,select,textarea,button{font-family:inherit}
 .page{max-width:1340px;margin:0 auto;padding:40px 24px 80px}
-.header{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:18px;border-bottom:2px solid #1a1a18;margin-bottom:24px}
+/* Linha e título do cabeçalho principal no verde da marca (#166B4A, já usado
+   em ~30 lugares neste arquivo — tab ativa, valores, etc.) — pedido do Diego
+   (29/10/2026): a cor padrão de TODAS as linhas do perfil é o verde, não o
+   preto que estava aqui antes. */
+.header{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:18px;border-bottom:2px solid #166B4A;margin-bottom:24px}
 .header-left p{font-size:11px;color:#888;font-weight:500;margin-bottom:4px}
-.header-left h1{font-size:26px;font-weight:800;color:#1a1a18;line-height:1}
+.header-left h1{font-size:26px;font-weight:800;color:#166B4A;line-height:1}
 .hbadge{background:#0b3d2a;color:#fff;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:5px 14px;border-radius:20px}
 .tab-nav{display:flex;border-bottom:1px solid #d4d3ce;margin-bottom:28px}
 .tab-btn{background:none;border:none;border-bottom:2.5px solid transparent;margin-bottom:-1px;padding:9px 20px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#bbb;cursor:pointer;font-family:'Inter',sans-serif;transition:color .15s}
@@ -144,12 +148,11 @@ td.r{text-align:right;font-variant-numeric:tabular-nums}
    mesmo tema, pedido do Diego ("parece muito bagunçado"). */
 .rg-section{margin-bottom:30px}
 .rg-section:last-of-type{margin-bottom:18px}
-/* Cor da linha = a mesma do cabeçalho principal da tela (#1a1a18, ver
-   .header acima) — não o verde da marca. Pedido do Diego (29/10/2026): as
-   duas linhas (cabeçalho da página e cabeçalho de seção) precisam usar a
-   "cor padrão" do perfil, não ficar uma preta e outra verde. */
-.rg-section-head{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;padding-bottom:9px;border-bottom:2px solid #1a1a18;flex-wrap:wrap}
-.rg-section-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#1a1a18}
+/* Cor da linha = o mesmo verde da marca usado no cabeçalho principal da tela
+   (ver .header acima) — pedido do Diego (29/10/2026): toda linha do perfil
+   usa a cor padrão (verde), não preto. */
+.rg-section-head{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;padding-bottom:9px;border-bottom:2px solid #166B4A;flex-wrap:wrap}
+.rg-section-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#166B4A}
 .rg-section-desc{font-size:11.5px;color:#999}
 #tab-regras .card{border-radius:12px;padding:22px 24px;margin-bottom:0;box-shadow:0 1px 2px rgba(0,0,0,.03)}
 .rg-head{margin-bottom:16px}
