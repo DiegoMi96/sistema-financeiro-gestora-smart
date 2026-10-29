@@ -153,11 +153,6 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
 <!-- ═══ CALCULADORA MENSAL ═══ -->
 <div id="tab-calc" class="tab-panel active">
 
-  <div class="card gold">
-    <p class="card-title">Remuneração fixa do nível atual <span style="font-weight:400;text-transform:none;color:#99a3b4">— referência, não entra no total variável abaixo</span></p>
-    <div id="nivel_atual_box"></div>
-  </div>
-
   <div class="kpi-grid">
     <div class="kpi sat"><div class="kpi-label">Satisfação pós-vendas</div><div class="kpi-val" id="k_sat" style="color:#2563eb">R$ 0</div><div class="kpi-sub" id="k_sat_sub">—</div></div>
     <div class="kpi teal"><div class="kpi-label">Eficiência de base</div><div class="kpi-val" id="k_efic">R$ 0</div><div class="kpi-sub" id="k_efic_sub">—</div></div>
@@ -277,10 +272,11 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
   <!-- Export/Import -->
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding:12px 16px;background:#fff;border:1px solid #e2e5ea;border-radius:4px">
     <div>
-      <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:2px">Histórico mensal · Ago/2026 em diante</div>
+      <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:2px">Histórico mensal</div>
       <div style="font-size:11px;color:#55617a">Exporte para editar no Excel. Ao importar, os lançamentos são atualizados automaticamente.</div>
     </div>
-    <div style="display:flex;gap:8px;flex-shrink:0">
+    <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+      <select id="ciclo_ano" onchange="renderCiclo()" style="width:auto"></select>
       <button class="btn-ghost btn-sm" onclick="exportCiclo()">↓ Exportar</button>
       <button class="btn btn-sm" onclick="document.getElementById('f_ciclo').click()">↑ Importar</button>
       <input type="file" id="f_ciclo" accept=".xlsx,.xls,.csv" style="display:none" onchange="importCiclo(event)">
@@ -364,6 +360,11 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
         <button class="btn" onclick="addExtra('iac')" style="margin-top:10px">+ Registrar</button>
         <div id="iac_lista" style="margin-top:12px"></div>
       </div>
+    </div>
+
+    <div class="card gold">
+      <p class="card-title">Remuneração fixa do nível atual <span style="font-weight:400;text-transform:none;color:#99a3b4">— referência, não entra no total variável abaixo</span></p>
+      <div id="nivel_atual_box"></div>
     </div>
   </div>
 </div>
@@ -705,8 +706,22 @@ function getCicloMeses(){
   return meses;
 }
 
+function cicloAnosDisponiveis(){
+  const anos=new Set([new Date().getFullYear()]);
+  getCicloMeses().forEach(m=>anos.add(+m.slice(0,4)));
+  Object.keys(mdata).forEach(m=>{const y=+m.slice(0,4);if(!isNaN(y))anos.add(y);});
+  return[...anos].sort((a,b)=>b-a);
+}
+
 function renderCiclo(){
-  const cicloMeses=getCicloMeses();
+  const sel=document.getElementById('ciclo_ano');
+  const anos=cicloAnosDisponiveis();
+  const anoAtual=new Date().getFullYear();
+  const anoSel=sel.value?+sel.value:anoAtual;
+  sel.innerHTML=anos.map(a=>`<option value="${a}">${a}</option>`).join('');
+  sel.value=anos.includes(anoSel)?anoSel:anoAtual;
+  const ano=+sel.value;
+  const cicloMeses=Array.from({length:12},(_,i)=>`${ano}-${String(i+1).padStart(2,'0')}`);
   let totPilares=0;
   const rows=cicloMeses.map(mes=>{
     const d=mdata[mes]||{};

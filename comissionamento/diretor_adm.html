@@ -168,11 +168,6 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
 <!-- ═══ CALCULADORA MENSAL ═══ -->
 <div id="tab-calc" class="tab-panel active">
 
-  <div class="card gold">
-    <p class="card-title">Remuneração fixa do nível atual <span style="font-weight:400;text-transform:none;color:#99a3b4">— referência, não entra no total variável abaixo</span></p>
-    <div id="nivel_atual_box"></div>
-  </div>
-
   <div class="kpi-grid" id="kpiGrid">
     <div class="kpi gold"><div class="kpi-label">Bônus B (dividendo)</div><div class="kpi-val" id="k_bonusB">R$ 0</div><div class="kpi-sub" id="k_bonusB_sub">—</div></div>
     <div class="kpi green"><div class="kpi-label">Bônus A (resultado)</div><div class="kpi-val" id="k_bonusA">R$ 0</div><div class="kpi-sub" id="k_bonusA_sub">—</div></div>
@@ -262,7 +257,8 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
       <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:2px">Ciclo Ago/2026 – Dez/2027 · 17 meses</div>
       <div style="font-size:11px;color:#55617a">Exporte para editar no Excel. Ao importar, os resultados realizados e projeções são atualizados automaticamente.</div>
     </div>
-    <div style="display:flex;gap:8px;flex-shrink:0">
+    <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+      <select id="ciclo_ano" onchange="renderCiclo()" style="width:auto"></select>
       <button class="btn-ghost btn-sm" onclick="exportCiclo()">↓ Exportar ciclo</button>
       <button class="btn btn-sm" onclick="document.getElementById('f_ciclo').click()">↑ Importar ciclo</button>
       <input type="file" id="f_ciclo" accept=".xlsx,.xls,.csv" style="display:none" onchange="importCiclo(event)">
@@ -343,6 +339,11 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
     <button class="btn" onclick="addSistema()" style="margin-top:10px">+ Registrar sistema</button>
     <div id="sis_lista" style="margin-top:14px"></div>
     <div id="sis_total" style="margin-top:8px;font-size:12px;color:#55617a"></div>
+  </div>
+
+  <div class="card gold">
+    <p class="card-title">Remuneração fixa do nível atual <span style="font-weight:400;text-transform:none;color:#99a3b4">— referência, não entra no total variável abaixo</span></p>
+    <div id="nivel_atual_box"></div>
   </div>
 
 </div>
@@ -638,9 +639,34 @@ function excluirMes(){
 }
 
 // ─── CICLO COMPLETO ───────────────────────────────────
+function cicloAnosDisponiveis(){
+  const anos=new Set([new Date().getFullYear()]);
+  CICLO_MESES.forEach(m=>anos.add(+m.id.slice(0,4)));
+  Object.keys(mdata).forEach(m=>{const y=+m.slice(0,4);if(!isNaN(y))anos.add(y);});
+  return[...anos].sort((a,b)=>b-a);
+}
+
 function renderCiclo(){
+  const sel=document.getElementById('ciclo_ano');
+  const anos=cicloAnosDisponiveis();
+  const anoAtual=new Date().getFullYear();
+  const anoSel=sel.value?+sel.value:anoAtual;
+  sel.innerHTML=anos.map(a=>`<option value="${a}">${a}</option>`).join('');
+  sel.value=anos.includes(anoSel)?anoSel:anoAtual;
+  const ano=+sel.value;
+  const MESES_PT=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   let totB=0,totA=0,totTotal=0;
-  const rows=CICLO_MESES.map(mes=>{
+  const rows=[];
+  for(let mm=1;mm<=12;mm++){
+    const mesId=`${ano}-${String(mm).padStart(2,'0')}`;
+    const mes=CICLO_MESES.find(c=>c.id===mesId);
+    if(!mes){
+      rows.push(`<tr>
+        <td class="left"><strong>${MESES_PT[mm-1]}/${String(ano).slice(2)}</strong></td>
+        <td colspan="8" style="color:#b0b8c5;text-align:center">Fora do ciclo</td>
+      </tr>`);
+      continue;
+    }
     const d=mdata[mes.id]||{};
     const res=d.resultado!==undefined?d.resultado:null;
     const calcRes=res!==null?res:mes.proj;
@@ -649,7 +675,7 @@ function renderCiclo(){
     const isReal=res!==null;
     totB+=c.bonusB;totA+=c.bonusA;totTotal+=c.total;
     const fxLabel=c.faixaAtingida>=0?`F${c.faixaAtingida+1}`:'—';
-    return`<tr>
+    rows.push(`<tr>
       <td class="left"><strong>${mes.lbl}</strong></td>
       <td style="color:#b0b8c5">R$ ${br2(mes.proj)}</td>
       <td style="color:${isReal?'#1a2332':'#b0b8c5'};font-weight:${isReal?700:400}">${isReal?'R$ '+br2(res):'<span style="font-size:10px">proj.</span>'}</td>
@@ -659,9 +685,9 @@ function renderCiclo(){
       <td class="c-gold">R$ ${br2(c.bonusB)}</td>
       <td style="color:${c.bonusA>0?'#2e7d5b':'#b0b8c5'}">${c.bonusA>0?'R$ '+br2(c.bonusA):'—'}</td>
       <td class="c-navy"><strong>R$ ${br2(c.total)}</strong></td>
-    </tr>`;
-  }).join('');
-  document.getElementById('cicloBody').innerHTML=rows+
+    </tr>`);
+  }
+  document.getElementById('cicloBody').innerHTML=rows.join('')+
     `<tr class="total-row">
       <td class="left">Total</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>
       <td class="c-gold">R$ ${br2(totB)}</td>

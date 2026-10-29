@@ -218,6 +218,11 @@ tr:last-child td{border-bottom:none}
     <div class="kpi gold"><div class="kpi-label">Canais + Reajuste + Produtos</div><div class="kpi-val" id="ck_extras">R$ 0</div></div>
   </div>
 
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <div style="font-size:12px;font-weight:600;color:var(--navy)">Histórico mensal</div>
+    <div><label class="lbl" style="display:inline;margin-right:6px">Ano</label><select id="ciclo_ano" onchange="renderCiclo()" style="width:auto"></select></div>
+  </div>
+
   <div style="overflow-x:auto;margin-bottom:32px">
     <table style="min-width:760px">
       <thead>
@@ -635,11 +640,23 @@ function extrasDoMes(mes) {
   (config.marcosBase || []).forEach(m => { if (m.pago && m.dataPagMes === mes) total += m.bonus; });
   return total;
 }
+function cicloAnosDisponiveis() {
+  const anos = new Set([new Date().getFullYear()]);
+  Object.keys(mdata).forEach(m => { const y = +m.slice(0, 4); if (!isNaN(y)) anos.add(y); });
+  return [...anos].sort((a, b) => b - a);
+}
 function renderCiclo() {
-  const meses = Object.keys(mdata).sort();
+  const sel = document.getElementById('ciclo_ano');
+  const anos = cicloAnosDisponiveis();
+  const anoAtual = new Date().getFullYear();
+  const anoSel = sel.value ? +sel.value : anoAtual;
+  sel.innerHTML = anos.map(a => `<option value="${a}">${a}</option>`).join('');
+  sel.value = anos.includes(anoSel) ? anoSel : anoAtual;
+  const ano = +sel.value;
+  const meses = Array.from({ length: 12 }, (_, i) => `${ano}-${String(i + 1).padStart(2, '0')}`);
   let totGeral = 0, totExtras = 0;
   const rows = meses.map(mes => {
-    const d = mdata[mes];
+    const d = mdata[mes] || {};
     const c = calcMonth(d);
     const ex = extrasDoMes(mes);
     const totalMes = c.total + ex;
@@ -654,7 +671,7 @@ function renderCiclo() {
       <td class="c-navy"><strong>R$ ${br2(totalMes)}</strong>${ex ? `<div style="font-size:9px;color:#b8863f;font-weight:400">+R$${br2(ex)} extras</div>` : ''}</td>
     </tr>`;
   }).join('');
-  document.getElementById('cicloBody').innerHTML = rows || '<tr><td colspan="7" style="color:#99a3b4;text-align:center">Nenhum mês lançado ainda.</td></tr>';
+  document.getElementById('cicloBody').innerHTML = rows;
   document.getElementById('ck_total').textContent = 'R$ ' + br2(totGeral);
   document.getElementById('ck_extras').textContent = 'R$ ' + br2(totExtras);
 }
