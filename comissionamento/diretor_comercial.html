@@ -34,13 +34,14 @@ body{font-family:'Inter',sans-serif;background:#F5F5F5;color:#1a2332;font-size:1
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
 .g3 > *{min-width:0}
-/* Os 3 cards de faixas (Volume/Crescimento/Satisfação, 29/10/2026) tinham
-   tabela larga o bastante pra estourar o container mesmo com os 3 no
-   tamanho mínimo — aperta o padding dessas tabelas e deixa o card com
-   scroll próprio como última rede de segurança, em vez de a página inteira
-   ganhar barra de rolagem horizontal. */
-#tab-config .g3 .card{overflow-x:auto}
-#tab-config .g3 table th,#tab-config .g3 table td{padding:9px 8px}
+/* Faixas de desempenho (Volume/Crescimento/Satisfação, 29/10/2026): 2 cards
+   em cima (Volume, Crescimento) + 1 embaixo ocupando a largura toda
+   (Satisfação) — pedido do Diego, ficou mais largo e legível que os 3
+   espremidos lado a lado. O overflow-x:auto no card continua como rede de
+   segurança. */
+.g3-2up1{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3-2up1 > :nth-child(3){grid-column:1 / -1}
+#tab-config .g3 .card,#tab-config .g3-2up1 .card{overflow-x:auto}
 /* Seções da aba Configurações (29/10/2026) — mesmo padrão aplicado em
    Vendedor > Regras & Config e Gestor de Operações > Configurações: agrupa
    os cards por assunto em vez de deixá-los soltos numa grade só, e os
@@ -314,7 +315,7 @@ tr:last-child td{border-bottom:none}
 
   <div class="rg-section">
     <div class="rg-section-head"><span class="rg-section-label">Comissão por desempenho</span><span class="rg-section-desc">Faixas de Volume, Crescimento Líquido e Satisfação Institucional</span></div>
-    <div class="g3">
+    <div class="g3-2up1">
       <div class="card">
         <p class="card-title">Faixas — Volume de Vendas (Gross Adds)</p>
         <table><thead><tr><th class="left">Gatilho (linhas)</th><th>Bônus</th><th style="width:36px"></th></tr></thead>

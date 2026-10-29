@@ -33,13 +33,13 @@ body{font-family:'Inter',sans-serif;background:#F5F5F5;color:#1a2332;font-size:1
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
 .g3 > *{min-width:0}
-/* Os 3 cards de Indicadores operacionais (29/10/2026) tinham tabela larga
-   o bastante pra estourar o container mesmo com os 3 no tamanho mínimo —
-   aperta o padding/inputs dessas tabelas e deixa o card com scroll próprio
-   como última rede de segurança, em vez de a página inteira ganhar barra
-   de rolagem horizontal. */
-#tab-config .g3 .card{overflow-x:auto}
-#tab-config .g3 table th,#tab-config .g3 table td{padding:9px 8px}
+/* Indicadores operacionais (29/10/2026): 2 cards em cima (Satisfação,
+   Eficiência) + 1 embaixo ocupando a largura toda (Auditoria) — pedido do
+   Diego, ficou mais largo e legível que os 3 espremidos lado a lado. O
+   overflow-x:auto no card continua como rede de segurança. */
+.g3-2up1{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3-2up1 > :nth-child(3){grid-column:1 / -1}
+#tab-config .g3 .card,#tab-config .g3-2up1 .card{overflow-x:auto}
 /* Seções da aba Configurações (29/10/2026) — mesmo padrão aplicado em
    Vendedor > Regras & Config: agrupa os cards por assunto em vez de deixá-los
    soltos numa grade só, e os campos com prefixo (R$, %, /mês…) viram um
@@ -377,7 +377,7 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
 
   <div class="rg-section">
     <div class="rg-section-head"><span class="rg-section-label">Indicadores operacionais</span><span class="rg-section-desc">Faixas de bônus por Satisfação, Eficiência e Auditoria de base</span></div>
-    <div class="g3">
+    <div class="g3-2up1">
       <!-- SATISFAÇÃO -->
       <div class="card">
         <p class="card-title">😊 Satisfação pós-vendas · faixas</p>
@@ -837,9 +837,9 @@ function buildConfig(){
   document.getElementById('satConfig').innerHTML=config.satFaixas.map((f,i)=>`
     <tr>
       <td class="left" style="font-size:11px;color:#55617a">F${i+1}</td>
-      <td><input type="number" class="rule-input" value="${f.min}" style="width:42px" onchange="config.satFaixas[${i}].min=+this.value"></td>
-      <td><input type="number" class="rule-input" value="${f.max}" style="width:42px" onchange="config.satFaixas[${i}].max=+this.value"></td>
-      <td><div style="display:flex;align-items:center;gap:3px"><span class="ipfx">R$</span><input type="number" class="rule-input" value="${f.bonus}" style="width:48px" onchange="config.satFaixas[${i}].bonus=+this.value"></div></td>
+      <td><input type="number" class="rule-input" value="${f.min}" style="width:55px" onchange="config.satFaixas[${i}].min=+this.value"></td>
+      <td><input type="number" class="rule-input" value="${f.max}" style="width:55px" onchange="config.satFaixas[${i}].max=+this.value"></td>
+      <td><div style="display:flex;align-items:center;gap:3px"><span class="ipfx">R$</span><input type="number" class="rule-input" value="${f.bonus}" style="width:60px" onchange="config.satFaixas[${i}].bonus=+this.value"></div></td>
       <td><button class="btn-del" onclick="config.satFaixas.splice(${i},1);buildConfig()">×</button></td>
     </tr>`).join('');
 
@@ -848,10 +848,10 @@ function buildConfig(){
   document.getElementById('eficConfig').innerHTML=config.eficFaixas.map((f,i)=>`
     <tr>
       <td class="left" style="font-size:11px;color:#55617a">F${i+1}</td>
-      <td><div style="display:flex;align-items:center;gap:3px"><span class="ipfx">R$</span><input type="text" class="rule-input" value="${brFmt(f.max)}" style="width:66px"
+      <td><div style="display:flex;align-items:center;gap:3px"><span class="ipfx">R$</span><input type="text" class="rule-input" value="${brFmt(f.max)}" style="width:80px"
         onblur="config.eficFaixas[${i}].max=parseNum(this.value);this.value=brFmt(config.eficFaixas[${i}].max)"
         onfocus="this.value=String(config.eficFaixas[${i}].max)"></div></td>
-      <td><div style="display:flex;align-items:center;gap:3px"><span class="ipfx">R$</span><input type="number" class="rule-input" value="${f.bonus}" style="width:48px" onchange="config.eficFaixas[${i}].bonus=+this.value"></div></td>
+      <td><div style="display:flex;align-items:center;gap:3px"><span class="ipfx">R$</span><input type="number" class="rule-input" value="${f.bonus}" style="width:60px" onchange="config.eficFaixas[${i}].bonus=+this.value"></div></td>
       <td><button class="btn-del" onclick="config.eficFaixas.splice(${i},1);buildConfig()">×</button></td>
     </tr>`).join('');
 
@@ -860,10 +860,10 @@ function buildConfig(){
   document.getElementById('audConfig').innerHTML=config.audFaixas.map((f,i)=>`
     <tr>
       <td class="left" style="font-size:11px;color:#55617a">F${i+1}</td>
-      <td><div style="display:flex;align-items:center;gap:3px"><span class="ipfx">R$</span><input type="text" class="rule-input" value="${brFmt(f.max)}" style="width:66px"
+      <td><div style="display:flex;align-items:center;gap:3px"><span class="ipfx">R$</span><input type="text" class="rule-input" value="${brFmt(f.max)}" style="width:80px"
         onblur="config.audFaixas[${i}].max=parseNum(this.value);this.value=brFmt(config.audFaixas[${i}].max)"
         onfocus="this.value=String(config.audFaixas[${i}].max)"></div></td>
-      <td><div style="display:flex;align-items:center;gap:3px"><span class="ipfx">R$</span><input type="number" class="rule-input" value="${f.bonus}" style="width:48px" onchange="config.audFaixas[${i}].bonus=+this.value"></div></td>
+      <td><div style="display:flex;align-items:center;gap:3px"><span class="ipfx">R$</span><input type="number" class="rule-input" value="${f.bonus}" style="width:60px" onchange="config.audFaixas[${i}].bonus=+this.value"></div></td>
       <td><button class="btn-del" onclick="config.audFaixas.splice(${i},1);buildConfig()">×</button></td>
     </tr>`).join('');
 
