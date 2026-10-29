@@ -13,10 +13,10 @@ html,body{height:100%}
   --gs-bg:#F5F5F5; --gs-surface:#fff; --gs-border:#d4d3ce;
   --gs-text:#1a1a18; --gs-text-muted:#888;
   --gs-accent:#e8b923;
-  --gs-good:#166B4A; --gs-good-soft:#eaf5f0;
+  --gs-good:#1c4d24; --gs-good-soft:#eaf5f0;
   --gs-warn:#b8863f; --gs-warn-soft:#fbf3e6;
   --gs-bad:#b83232; --gs-bad-soft:#fceaea;
-  --gs-c-vendedor:#166B4A; --gs-c-dealer:#0d8f63; --gs-c-indicador:#b45309;
+  --gs-c-vendedor:#1c4d24; --gs-c-dealer:#0d8f63; --gs-c-indicador:#b45309;
   --gs-c-projeto:#1d4ed8; --gs-c-gestor:#0d6e5f; --gs-c-diretor:#b8863f; --gs-c-diretor-comercial:#0f2340;
 }
 
@@ -103,7 +103,7 @@ input[type=text],input[type=number],input[type=month],input[type=date],select,te
 }
 .profile-btn svg{flex-shrink:0}
 .profile-btn:hover:not(.active){background:#f5f4f0;color:#1a1a18}
-.profile-btn.active{background:#eaf5f0;color:#166B4A;border-left-color:#1E9B6B;font-weight:600}
+.profile-btn.active{background:#eaf5f0;color:#1c4d24;border-left-color:#1E9B6B;font-weight:600}
 .profile-btn.disabled{opacity:.4;cursor:default}
 .profile-btn.disabled:hover{background:none;color:#9a9a95}
 .cad-chevron{font-size:11px;opacity:.75}
@@ -139,7 +139,7 @@ input[type=text],input[type=number],input[type=month],input[type=date],select,te
 .mn-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:6px}
 .mn-cancel{background:#fff;border:1px solid #d4d3ce;border-radius:8px;height:38px;padding:0 20px;font-size:12.5px;font-weight:600;font-family:'Inter',sans-serif;color:#1a1a18;cursor:pointer}
 .mn-cancel:hover{background:#f5f4f0}
-.mn-foot .cad-btn{background:#166B4A;border-radius:8px;height:38px;padding:0 22px;font-size:12.5px;font-weight:700}
+.mn-foot .cad-btn{background:#1c4d24;border-radius:8px;height:38px;padding:0 22px;font-size:12.5px;font-weight:700}
 .mn-foot .cad-btn:hover{background:#0d5233}
 /* ─── Modal Ver parceiro (somente leitura; o Editar fica aqui dentro) ─── */
 #cadModalVer .modal-card{max-width:680px;background:#fff;border-radius:14px}
@@ -170,13 +170,13 @@ input[type=text],input[type=number],input[type=month],input[type=date],select,te
 #cadModalLink .ml-opc{text-transform:none;letter-spacing:0;font-weight:400}
 #cadModalLink input[type=date],#cadModalLink select{background:#fafaf8;border:1px solid #d4d3ce;border-radius:8px;height:36px;padding:0 12px;font-size:12.5px;width:100%}
 #cadModalLink input:focus,#cadModalLink select:focus{border-color:#1E9B6B}
-.ml-gerar{width:100%;height:40px;background:#166B4A;color:#fff;border:none;border-radius:8px;font-size:12.5px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer}
+.ml-gerar{width:100%;height:40px;background:#1c4d24;color:#fff;border:none;border-radius:8px;font-size:12.5px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer}
 .ml-gerar:hover{background:#0d5233}
 .ml-result{margin-top:16px;padding:12px 14px 10px;background:#f6f7fa;border:1px solid #ecebe6;border-radius:10px}
 .ml-result-lbl{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#6b7280;margin-bottom:6px}
 .ml-row{display:flex;align-items:stretch;background:#fff;border:1px solid #d4d3ce;border-radius:8px;overflow:hidden}
 .ml-row input[type=text]{flex:1;min-width:0;border:none;border-radius:0;background:transparent;height:38px;padding:0 12px;font-size:12px;color:#4a5868;outline:none}
-.ml-copy{background:#e3f2ec;color:#166B4A;border:none;margin:4px;border-radius:6px;padding:0 16px;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap}
+.ml-copy{background:#e3f2ec;color:#1c4d24;border:none;margin:4px;border-radius:6px;padding:0 16px;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap}
 .ml-copy:hover{background:#cfe9dd}
 .ml-note{font-size:11px;color:#777;margin-top:8px;line-height:1.5}
 /* ─── Links de cadastro personalizados — lista "Links enviados" (26/10/2026) ─── */
@@ -188,7 +188,7 @@ input[type=text],input[type=number],input[type=month],input[type=date],select,te
 .ml-invite-nome{font-size:12.5px;font-weight:700;color:#1a1a18;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ml-invite-meta{font-size:10.5px;color:#888;margin-top:2px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .ml-invite-badge{font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:10px;white-space:nowrap}
-.ml-invite-badge.st-ativo{background:#e3f2ec;color:#166B4A}
+.ml-invite-badge.st-ativo{background:#e3f2ec;color:#1c4d24}
 .ml-invite-badge.st-expirando{background:#fdf0da;color:#9a6a0a}
 .ml-invite-badge.st-expirado{background:#fbe6e6;color:#a33}
 .ml-invite-badge.st-cadastrado{background:#e8eefc;color:#2d4fa0}
@@ -239,19 +239,19 @@ iframe.active{display:block}
 .cons-controls input[type=month]{background:#fff;border:1px solid #d4d3ce;border-radius:8px;padding:9px 12px;font-size:13px;font-family:'Inter',sans-serif;color:#1a1a18;min-width:190px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
 .cons-grand{background:#fff;border:1px solid #d4d3ce;border-radius:10px;padding:22px 26px;margin-bottom:22px;display:flex;justify-content:space-between;align-items:center}
 .cons-grand-lbl{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#888}
-.cons-grand-val{font-size:34px;font-weight:800;color:#166B4A;font-variant-numeric:tabular-nums}
+.cons-grand-val{font-size:34px;font-weight:800;color:#1c4d24;font-variant-numeric:tabular-nums}
 .cons-grand-right{display:flex;align-items:center;gap:18px}
 .cons-var{border:1px solid #e5e4df;border-radius:8px;padding:8px 14px;min-width:132px;background:#fafaf8;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
 .cons-var-lbl{font-size:10px;color:#888;margin-bottom:2px}
 .cons-var-pct{font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:5px;font-variant-numeric:tabular-nums}
-.cons-var-pct.up{color:#166B4A}.cons-var-pct.down{color:#b83232}.cons-var-pct.flat{color:#888}
+.cons-var-pct.up{color:#1c4d24}.cons-var-pct.down{color:#b83232}.cons-var-pct.flat{color:#888}
 .cons-var-abs{font-size:10.5px;color:#888;margin-top:1px;font-variant-numeric:tabular-nums}
 .cons-sub{font-size:11px;color:#999;margin:-12px 0 14px}
 .cons-bar-head,.cons-bar-row{display:grid;grid-template-columns:170px 1fr 110px 72px;align-items:center;gap:12px}
 .cons-bar-head span{white-space:nowrap}
 .cons-bar-head{font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#999;padding-bottom:8px;border-bottom:1px solid #eeede8;margin-bottom:10px}
 .cons-bar-head span:nth-child(3),.cons-bar-head span:nth-child(4){text-align:right}
-.cons-bar-pct{justify-self:end;font-size:10.5px;font-weight:700;color:#166B4A;background:#eaf5f0;border-radius:10px;padding:2px 8px;font-variant-numeric:tabular-nums}
+.cons-bar-pct{justify-self:end;font-size:10.5px;font-weight:700;color:#1c4d24;background:#eaf5f0;border-radius:10px;padding:2px 8px;font-variant-numeric:tabular-nums}
 .cons-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:6px}
 .cons-card-head .cons-chart-title{margin-bottom:2px}
 .cons-card-head .cons-sub{margin:0 0 12px}
@@ -261,7 +261,7 @@ iframe.active{display:block}
 .cons-search input{border:none;outline:none;background:transparent;font-size:12px;font-family:'Inter',sans-serif;color:#1a1a18;width:100%;padding:0}
 .cons-btn{display:inline-flex;align-items:center;gap:6px;border:1px solid #d4d3ce;border-radius:8px;background:#fff;height:34px;padding:0 12px;font-size:12px;font-weight:600;font-family:'Inter',sans-serif;color:#1a1a18;cursor:pointer}
 .cons-btn:hover{background:#f5f4f0}
-.cons-btn.on{border-color:#1E9B6B;color:#166B4A}
+.cons-btn.on{border-color:#1E9B6B;color:#1c4d24}
 .cons-pop{position:relative}
 .cons-pop-panel{display:none;position:absolute;right:0;top:40px;z-index:30;background:#fff;border:1px solid #d4d3ce;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.1);padding:12px;min-width:200px}
 .cons-pop-panel.open{display:block}
@@ -291,7 +291,7 @@ iframe.active{display:block}
 .cons-table-wrap td{padding:7px 4px;border-bottom:1px solid #eeede8;font-size:12px;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .cons-table-wrap td:nth-child(-n+3){text-align:left}
 .cons-table-wrap tr.cons-row-empty td{color:#ccc}
-.cons-table-wrap tr.cons-row-total td{font-weight:700;font-size:12px;padding:10px 4px;background:#eaf5f0;color:#166B4A;border-top:1px solid #1E9B6B}
+.cons-table-wrap tr.cons-row-total td{font-weight:700;font-size:12px;padding:10px 4px;background:#eaf5f0;color:#1c4d24;border-top:1px solid #1E9B6B}
 .cons-table-wrap tr.cons-row-total td:last-child{font-size:14px}
 .cons-table-wrap tr.cons-row-total td:not(:first-child){text-align:right}
 .cons-table-wrap th:nth-child(n+4){text-align:center}
@@ -342,19 +342,19 @@ iframe.active{display:block}
 .exec-cards td,#exec_composicao td{padding:6px 0;font-size:12px;border-bottom:1px solid #eeede8}
 .exec-cards td.r,#exec_composicao td.r{text-align:right;font-variant-numeric:tabular-nums}
 .exec-sum-footer{background:#eaf5f0;border:.5px solid #1E9B6B;border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;margin-top:10px}
-.exec-sum-footer span:first-child{font-size:10px;font-weight:700;color:#166B4A;text-transform:uppercase;letter-spacing:.04em}
-.exec-sum-footer span:last-child{font-weight:800;color:#166B4A;font-size:16px}
+.exec-sum-footer span:first-child{font-size:10px;font-weight:700;color:#1c4d24;text-transform:uppercase;letter-spacing:.04em}
+.exec-sum-footer span:last-child{font-weight:800;color:#1c4d24;font-size:16px}
 .exec-fp{display:inline-flex;align-items:center;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;white-space:nowrap}
 .exec-f1{background:#fde8e8;color:#b91c1c}.exec-f2{background:#fef3c7;color:#b45309}
-.exec-f3{background:#dcfce7;color:#166B4A}.exec-f4{background:#bbf7d0;color:#065f46}
+.exec-f3{background:#dcfce7;color:#1c4d24}.exec-f4{background:#bbf7d0;color:#065f46}
 .exec-f5{background:#6ee7b7;color:#064e3b}.exec-f6{background:#34d399;color:#022c22}
 .exec-des{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .exec-epd{border-radius:6px;padding:8px 10px;text-align:center;border:.5px solid transparent}
 .exec-epd-hit{background:#eaf5f0;border-color:#1E9B6B}.exec-epd-miss{background:#f5f4f0;border-color:#e0dfdb}
 .exec-epd .dl{font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
-.exec-epd-hit .dl{color:#166B4A}.exec-epd-miss .dl{color:#bbb}
+.exec-epd-hit .dl{color:#1c4d24}.exec-epd-miss .dl{color:#bbb}
 .exec-epd .dv{font-size:13px;font-weight:800}
-.exec-epd-hit .dv{color:#166B4A}.exec-epd-miss .dv{color:#ccc}
+.exec-epd-hit .dv{color:#1c4d24}.exec-epd-miss .dv{color:#ccc}
 .exec-epd .ds{font-size:8px;margin-top:2px;opacity:.6}
 .exec-det-table{overflow-x:auto;max-height:260px;overflow-y:auto;margin-bottom:18px}
 .exec-det-table table{width:100%;border-collapse:collapse;font-size:11px}
@@ -403,7 +403,7 @@ iframe.active{display:block}
 .cad-link-result{display:flex;align-items:stretch;margin-top:16px;border:1px solid #d4d3ce;border-radius:8px;overflow:hidden}
 .cad-card .cad-link-result input[type=text]{flex:1;min-width:0;border:none;border-radius:0;background:#F5F5F5;color:#4a5868;font-size:12.5px}
 .cad-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:6px}
-.cad-btn{background:#166B4A;color:#fff;border:none;border-radius:6px;padding:10px 22px;font-size:12.5px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer}
+.cad-btn{background:#1c4d24;color:#fff;border:none;border-radius:6px;padding:10px 22px;font-size:12.5px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer}
 .cad-btn:hover{background:#0d5233}
 .cad-invite-hint{font-size:12px;color:#666;line-height:1.6;margin-bottom:14px}
 .cad-invite-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
@@ -442,7 +442,7 @@ iframe.active{display:block}
 .cad-tipo-pill{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:3px 9px;border-radius:12px;white-space:nowrap}
 .cad-tipo-pill.indicador{background:#fef3e2;color:#b45309}
 .cad-tipo-pill.indicador_n2{background:#fde3c2;color:#92400e}
-.cad-tipo-pill.dealer{background:#eaf5f0;color:#166B4A}
+.cad-tipo-pill.dealer{background:#eaf5f0;color:#1c4d24}
 .cad-tipo-pill.projeto{background:#eff6ff;color:#1d4ed8}
 .cad-tipo-pill.broker{background:#f3f0fb;color:#6d28d9}
 .cad-empty{padding:28px;text-align:center;color:#bbb;font-size:12.5px}
@@ -451,7 +451,7 @@ iframe.active{display:block}
 #frame-cadastro .cad-page-hdr{border-bottom:none;padding-bottom:0;margin-bottom:20px;align-items:flex-start;gap:16px}
 #frame-cadastro .cad-page-hdr h1{font-size:26px}
 .cad-sub{font-size:12px;color:#777;margin-top:6px;line-height:1.5;max-width:640px}
-#frame-cadastro .cad-page-hdr .cad-btn{background:#166B4A;border-radius:8px;height:36px;padding:0 16px;gap:8px;font-size:12px;font-weight:600;white-space:nowrap;display:inline-flex;align-items:center}
+#frame-cadastro .cad-page-hdr .cad-btn{background:#1c4d24;border-radius:8px;height:36px;padding:0 16px;gap:8px;font-size:12px;font-weight:600;white-space:nowrap;display:inline-flex;align-items:center}
 #frame-cadastro .cad-page-hdr .cad-btn:hover{background:#0d5233}
 #cadDropdownMenu{min-width:272px;padding:6px;border-radius:12px;border:1px solid #ecebe6;box-shadow:0 12px 32px rgba(0,0,0,.13)}
 #cadDropdownMenu .cad-dropdown-item{display:flex;align-items:center;gap:11px;padding:7px 9px;border-radius:9px;color:#1a1a18}
@@ -463,7 +463,7 @@ iframe.active{display:block}
 #cadDropdownMenu .cad-dropdown-item.sep{margin-top:6px;position:relative}
 #cadDropdownMenu .cad-dropdown-item.sep::before{content:'';position:absolute;left:9px;right:9px;top:-4px;height:1px;background:#ecebe6}
 #cadDropdownMenu .cad-dropdown-item:hover,#cadDropdownMenu .cad-dropdown-item:focus-visible{background:#eaf5f0;outline:none}
-#cadDropdownMenu .cad-dropdown-item:hover .ic,#cadDropdownMenu .cad-dropdown-item:focus-visible .ic{background:#cfe9dd;color:#166B4A}
+#cadDropdownMenu .cad-dropdown-item:hover .ic,#cadDropdownMenu .cad-dropdown-item:focus-visible .ic{background:#cfe9dd;color:#1c4d24}
 #frame-cadastro .cad-stats-row{grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
 #frame-cadastro .cad-stat-card{border:1px solid #e5e4df;border-radius:10px;padding:12px 14px}
 #frame-cadastro .cad-stat-val{font-size:22px;margin:3px 0 4px}
@@ -484,7 +484,7 @@ iframe.active{display:block}
 .cad-list-card .cad-table-wrap td{padding:10px 12px;font-size:12px}
 .cad-st{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:4px 11px;border-radius:12px;white-space:nowrap}
 .cad-st.pend{background:#fef3e2;color:#b45309}
-.cad-st.ok{background:#eaf5f0;color:#166B4A}
+.cad-st.ok{background:#eaf5f0;color:#1c4d24}
 .cad-acoes{display:inline-flex;gap:8px}
 .cad-acoes .cad-btn-outline,.cad-acoes .cad-del-btn{height:34px;border-radius:8px;padding:0 12px;font-size:12px;margin:0 !important;display:inline-flex;align-items:center}
 .cad-acoes .cad-btn-outline{border:1px solid #d4d3ce;background:#fff;color:#1a1a18;font-weight:600}
@@ -493,7 +493,7 @@ iframe.active{display:block}
 .cad-pager .pg{display:flex;gap:8px}
 .cad-pager button{min-width:32px;height:32px;border:1px solid #d4d3ce;background:#fff;border-radius:8px;font-size:12px;font-weight:600;font-family:'Inter',sans-serif;color:#1a1a18;cursor:pointer}
 .cad-pager button:hover:not(:disabled){background:#f5f4f0}
-.cad-pager button.on{background:#166B4A;border-color:#166B4A;color:#fff}
+.cad-pager button.on{background:#1c4d24;border-color:#1c4d24;color:#fff}
 .cad-pager button:disabled{opacity:.4;cursor:default}
 .cad-del-btn{background:#fceaea;color:#b83232;border:1px solid #f5c6c6;border-radius:4px;padding:4px 9px;font-size:11px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer}
 
@@ -513,12 +513,12 @@ iframe.active{display:block}
 .imp-aprov .imp-box-t{margin-bottom:4px}
 .imp-aprov-s{font-size:12px;color:#555;line-height:1.5;max-width:760px}
 .imp-aprov-a{display:flex;gap:8px;flex-wrap:wrap}
-.imp-go{background:#166B4A;color:#fff;border:none;border-radius:8px;height:36px;padding:0 18px;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;width:100%}
+.imp-go{background:#1c4d24;color:#fff;border:none;border-radius:8px;height:36px;padding:0 18px;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;width:100%}
 .imp-go:hover{background:#0d5233}
 .imp-aprov-a .imp-go{width:auto}
 .imp-hb{height:30px;padding:0 12px;border-radius:8px;border:1px solid #d4d3ce;background:#fff;color:#1a1a18;font-size:11px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap}
 .imp-hb:hover{background:#f5f4f0}
-.imp-hb.ok{border-color:#1E9B6B;color:#166B4A}
+.imp-hb.ok{border-color:#1E9B6B;color:#1c4d24}
 .imp-hb.ok:hover{background:#eaf5f0}
 .imp-hb.del{border-color:#f0c4c4;color:#b83232}
 .imp-hb.del:hover{background:#fceaea}
@@ -559,7 +559,7 @@ iframe.active{display:block}
 .imp-dz-sub{font-size:11px;color:#999;margin-top:3px;line-height:1.45}
 .imp-status{font-size:11px;padding:0 12px;min-height:36px;display:flex;align-items:center;border-radius:8px;margin-bottom:10px;line-height:1.4}
 .imp-status.st-idle{background:#f5f4f0;color:#888}
-.imp-status.st-ok{background:#eaf5f0;color:#166B4A}
+.imp-status.st-ok{background:#eaf5f0;color:#1c4d24}
 .imp-status.st-err{background:#fceaea;color:#b83232}
 .imp-result{margin-top:14px}
 .imp-result-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888;margin:14px 0 6px}
@@ -570,7 +570,7 @@ iframe.active{display:block}
 .imp-ano{flex-shrink:0}
 .imp-hist-badge{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:.04em;padding:3px 10px;border-radius:20px;white-space:nowrap}
 .imp-hist-badge::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor}
-.imp-hist-badge.aprovado{color:#166B4A;background:#e7f2ec}
+.imp-hist-badge.aprovado{color:#1c4d24;background:#e7f2ec}
 .imp-hist-badge.aberto{color:#b45309;background:#fbf1de}
 .imp-hist-badge.vazio{color:#aaa;background:#f5f4f0}
 .imp-hist-actions{display:flex;gap:6px;flex-shrink:0}
@@ -1009,7 +1009,7 @@ iframe.active{display:block}
           </div>
           <div class="imp-card">
             <div class="imp-card-hdr">
-              <div class="imp-card-heading"><h3>Inventário</h3><span class="imp-card-badge" style="background:#eaf5f0;color:#166B4A">Margem / Ativação</span></div>
+              <div class="imp-card-heading"><h3>Inventário</h3><span class="imp-card-badge" style="background:#eaf5f0;color:#1c4d24">Margem / Ativação</span></div>
               <p class="imp-card-sub">Vendedor (ativação) · Dealer e Projeto Especial (margem) · Indicador (ativações do mês)</p>
             </div>
             <div class="imp-dropzone" onclick="document.getElementById('imp_f_inventario').click()">
@@ -1108,13 +1108,13 @@ iframe.active{display:block}
     <!-- ?b=N é só cache-busting: o navegador guarda esses arquivos em cache
          agressivamente, e sem isso uma edição no perfil não aparece nem com F5
          normal. Suba o número sempre que mexer em algum desses arquivos. -->
-    <iframe id="frame-vendedor" src="vendedor.html?b=40" title="Vendedor"></iframe>
-    <iframe id="frame-dealer" src="dealer.html?b=33" title="Dealer"></iframe>
-    <iframe id="frame-indicadores" src="indicadores.html?b=24" title="Indicador"></iframe>
-    <iframe id="frame-projeto_especial" src="projeto_especial.html?b=42" title="Projeto Especial"></iframe>
-    <iframe id="frame-gestor_operacoes" src="gestor_operacoes.html?b=18" title="Gestor de Operações"></iframe>
-    <iframe id="frame-diretor_adm" src="diretor_adm.html?b=16" title="Diretor Administrativo"></iframe>
-    <iframe id="frame-diretor_comercial" src="diretor_comercial.html?b=19" title="Diretor Comercial"></iframe>
+    <iframe id="frame-vendedor" src="vendedor.html?b=41" title="Vendedor"></iframe>
+    <iframe id="frame-dealer" src="dealer.html?b=34" title="Dealer"></iframe>
+    <iframe id="frame-indicadores" src="indicadores.html?b=25" title="Indicador"></iframe>
+    <iframe id="frame-projeto_especial" src="projeto_especial.html?b=43" title="Projeto Especial"></iframe>
+    <iframe id="frame-gestor_operacoes" src="gestor_operacoes.html?b=19" title="Gestor de Operações"></iframe>
+    <iframe id="frame-diretor_adm" src="diretor_adm.html?b=17" title="Diretor Administrativo"></iframe>
+    <iframe id="frame-diretor_comercial" src="diretor_comercial.html?b=20" title="Diretor Comercial"></iframe>
   </div>
 </div>
 
@@ -1247,7 +1247,7 @@ iframe.active{display:block}
       <div class="mn-sec" style="padding-bottom:12px"><div class="ver-grid" id="cadVerCorpo"></div></div>
       <div class="mn-foot">
         <button class="mn-cancel" onclick="cadFecharModal('ver')">Fechar</button>
-        <button class="cad-btn" id="cadVerEditar" style="background:#166B4A;border-radius:8px;height:38px;padding:0 22px;font-size:12.5px;font-weight:700">Editar</button>
+        <button class="cad-btn" id="cadVerEditar" style="background:#1c4d24;border-radius:8px;height:38px;padding:0 22px;font-size:12.5px;font-weight:700">Editar</button>
       </div>
     </div>
   </div>
@@ -1990,7 +1990,7 @@ function calcParceiroExec(tipo, id, mes) {
       total, composicao: [
         [regra ? 'Comissão da regra' : 'Margem', 'R$' + br2c(margin)],
         ...(blTotal > 0 ? [['Bateu-Levou', 'R$' + br2c(blTotal)]] : []),
-        ...(bonus > 0 ? [['Bônus', '<span style="color:#166B4A">+R$' + br2c(bonus) + '</span>']] : []),
+        ...(bonus > 0 ? [['Bônus', '<span style="color:#1c4d24">+R$' + br2c(bonus) + '</span>']] : []),
         ...(cancelDesc > 0 ? [['Desconto Cancelamento', '<span style="color:#b83232">-R$' + br2c(cancelDesc) + '</span>']] : []),
       ]
     };
@@ -2007,7 +2007,7 @@ function calcParceiroExec(tipo, id, mes) {
       total, composicao: [
         ['Ativações no mês', atv.toLocaleString('pt-BR')],
         ['Comissão (R$' + taxa.toFixed(2).replace('.', ',') + '/ativação)', 'R$' + br2c(comissao)],
-        ...(bonus > 0 ? [['Bônus', '<span style="color:#166B4A">+R$' + br2c(bonus) + '</span>']] : []),
+        ...(bonus > 0 ? [['Bônus', '<span style="color:#1c4d24">+R$' + br2c(bonus) + '</span>']] : []),
       ]
     };
   }
@@ -2023,7 +2023,7 @@ function calcParceiroExec(tipo, id, mes) {
     total, composicao: [
       ['Margem', 'R$' + br2c(margin)],
       ...(ativacao > 0 ? [['Ativação', 'R$' + br2c(ativacao)]] : []),
-      ...(bonus > 0 ? [['Bônus', '<span style="color:#166B4A">+R$' + br2c(bonus) + '</span>']] : []),
+      ...(bonus > 0 ? [['Bônus', '<span style="color:#1c4d24">+R$' + br2c(bonus) + '</span>']] : []),
       ...(cancelDesc > 0 ? [['Desconto Cancelamento', '<span style="color:#b83232">-R$' + br2c(cancelDesc) + '</span>']] : []),
     ]
   };
@@ -2091,11 +2091,11 @@ function renderExecutivo() {
     document.getElementById('exec_composicao').innerHTML = execComposicao([
       ['Volume', c.linhas > 0 ? `${c.linhas.toLocaleString('pt-BR')} linhas × R$ ${br2c(c.fx.vol)}` : traco, 'R$' + br2c(c.volC)],
       ['Ativação', c.atv > 0 ? `R$ ${br2c(c.atv)} × ${(c.fx.atv * 100).toFixed(0)}%` : traco, 'R$' + br2c(c.atvC)],
-      ['Bonificação Time', c.bonusCelula > 0 ? 'Bônus de célula' : traco, c.bonusCelula > 0 ? '<span style="color:#166B4A">+R$' + br2c(c.bonusCelula) + '</span>' : traco],
-      ['Novos Clientes', c.novosClientesC > 0 ? 'Maior faixa batida no mês' : traco, c.novosClientesC > 0 ? '<span style="color:#166B4A">+R$' + br2c(c.novosClientesC) + '</span>' : traco],
-      ['Canal Indireto', (c.recorrenciaC + c.aberturaC) > 0 ? 'Recorrência + abertura de parceiro' : traco, (c.recorrenciaC + c.aberturaC) > 0 ? '<span style="color:#166B4A">+R$' + br2c(c.recorrenciaC + c.aberturaC) + '</span>' : traco],
-      ['Be Smart', c.beSmart > 0 ? 'Lançamento manual (sistema externo)' : traco, c.beSmart > 0 ? '<span style="color:#166B4A">+R$' + br2c(c.beSmart) + '</span>' : traco],
-      ['Bônus extra', c.bonus > 0 ? 'Lançamento manual' : traco, c.bonus > 0 ? '<span style="color:#166B4A">+R$' + br2c(c.bonus) + '</span>' : traco],
+      ['Bonificação Time', c.bonusCelula > 0 ? 'Bônus de célula' : traco, c.bonusCelula > 0 ? '<span style="color:#1c4d24">+R$' + br2c(c.bonusCelula) + '</span>' : traco],
+      ['Novos Clientes', c.novosClientesC > 0 ? 'Maior faixa batida no mês' : traco, c.novosClientesC > 0 ? '<span style="color:#1c4d24">+R$' + br2c(c.novosClientesC) + '</span>' : traco],
+      ['Canal Indireto', (c.recorrenciaC + c.aberturaC) > 0 ? 'Recorrência + abertura de parceiro' : traco, (c.recorrenciaC + c.aberturaC) > 0 ? '<span style="color:#1c4d24">+R$' + br2c(c.recorrenciaC + c.aberturaC) + '</span>' : traco],
+      ['Be Smart', c.beSmart > 0 ? 'Lançamento manual (sistema externo)' : traco, c.beSmart > 0 ? '<span style="color:#1c4d24">+R$' + br2c(c.beSmart) + '</span>' : traco],
+      ['Bônus extra', c.bonus > 0 ? 'Lançamento manual' : traco, c.bonus > 0 ? '<span style="color:#1c4d24">+R$' + br2c(c.bonus) + '</span>' : traco],
       ['Equipamento', c.eqC > 0 ? (c.categoriaEquip ? (c.qtdEquip > 0 ? `${c.qtdEquip} máquina(s) (${c.categoriaEquip === 'rastreamento' ? 'Rastreamento' : 'Meios de Pagamento'}) × R$ ${c.equipRate.toFixed(2).replace('.', ',')}` : 'Valor lançado manualmente (sem dado da planilha no mês)') : (EQUIP_MANUAL.includes(norm(v.nome)) ? 'Valor lançado manualmente' : `R$ ${br2c(c.eq)} × ${rg.eqRate || 0}%`)) : traco, c.eqC > 0 ? 'R$' + br2c(c.eqC) : traco],
       ['Smart GPS', c.gpsC > 0 ? `R$ ${br2c(c.gps)} × ${rg.gpsRate || 0}%` : traco, c.gpsC > 0 ? 'R$' + br2c(c.gpsC) : traco],
       ['Desconto Frete', c.frDsc > 0 ? `Frete R$ ${br2c(c.frete)} − limite R$ ${br2c(rg.freteLimit || 0)}` : traco, c.frDsc > 0 ? '<span style="color:#b83232">-R$' + br2c(c.frDsc) + '</span>' : traco],
@@ -2436,7 +2436,7 @@ function renderConsAprovacao(mes) {
   const statusEl = document.getElementById('cons_aprov_status');
   const actionsEl = document.getElementById('cons_aprov_actions');
   if (a && a.aprovado) {
-    statusEl.innerHTML = `<span style="color:#166B4A;font-weight:700">Aprovado</span> em ${a.aprovadoEm} — os valores deste mês ficam travados em todos os perfis, mesmo que a regra de alguém mude depois.`;
+    statusEl.innerHTML = `<span style="color:#1c4d24;font-weight:700">Aprovado</span> em ${a.aprovadoEm} — os valores deste mês ficam travados em todos os perfis, mesmo que a regra de alguém mude depois.`;
     actionsEl.innerHTML = `
       <button class="imp-hb" onclick="consDesaprovarMes()">Desaprovar (ação administrativa)</button>
       <button class="imp-hb del" onclick="consExcluirMes()">Excluir dados do mês</button>`;
@@ -2639,7 +2639,7 @@ function renderConsolidado() {
   // Escala única de verde (mais escuro = maior valor, mais claro = menor),
   // em vez da cor de marca de cada perfil — pedido do Diego pro "Comparativo
   // por perfil" ficar como um gráfico de tons de verde, não um arco-íris.
-  const GREEN_SCALE = ['#0b3d2a', '#166B4A', '#1f8f63', '#2fa876', '#4dbd8c', '#7ecfab', '#b6e4cf'];
+  const GREEN_SCALE = ['#0b3d2a', '#1c4d24', '#1f8f63', '#2fa876', '#4dbd8c', '#7ecfab', '#b6e4cf'];
   const sorted = [...groupsData].sort((a, b) => b.total - a.total);
   const maxTotal = Math.max(...sorted.map(g => g.total), 1);
   document.getElementById('cons_chart').innerHTML = sorted.map((g, i) => {
@@ -2666,7 +2666,7 @@ function renderConsolidado() {
   // com essa tela. Gestor/Diretores saíram dessa tabela (ver abaixo).
   const CAT = {
     vendedor: { label: '1 – Vendedor', color: '#0b3d2a' },
-    dealer: { label: '2 – Dealer', color: '#166B4A' },
+    dealer: { label: '2 – Dealer', color: '#1c4d24' },
     indicador: { label: '3 – Indicador', color: '#1f8f63' },
     projeto: { label: '4 – Proj. Especial', color: '#2fa876' },
     // Diretoria/Gestores: cinza claro pras 3, em vez da cor de marca de cada
@@ -3686,7 +3686,7 @@ function impResultTable(rows) {
 // Falha não trava o Importar: o resultado mostra se gravou ou não.
 async function impSalvarImportacao(tipo, mes, rows, resultId, arquivo) {
   const el = document.getElementById(resultId);
-  const aviso = (txt, ok) => { if (el) el.insertAdjacentHTML('beforeend', `<div style="margin-top:10px;font-size:11px;color:${ok ? '#166B4A' : '#b83232'}">${txt}</div>`); };
+  const aviso = (txt, ok) => { if (el) el.insertAdjacentHTML('beforeend', `<div style="margin-top:10px;font-size:11px;color:${ok ? '#1c4d24' : '#b83232'}">${txt}</div>`); };
   try {
     const tok = localStorage.getItem('token');
     if (!tok) { aviso('Planilha NÃO foi salva no banco (sem login).', false); return; }
