@@ -144,8 +144,12 @@ td.r{text-align:right;font-variant-numeric:tabular-nums}
    mesmo tema, pedido do Diego ("parece muito bagunçado"). */
 .rg-section{margin-bottom:30px}
 .rg-section:last-of-type{margin-bottom:18px}
-.rg-section-head{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;padding-bottom:9px;border-bottom:2px solid #166B4A;flex-wrap:wrap}
-.rg-section-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#166B4A}
+/* Cor da linha = a mesma do cabeçalho principal da tela (#1a1a18, ver
+   .header acima) — não o verde da marca. Pedido do Diego (29/10/2026): as
+   duas linhas (cabeçalho da página e cabeçalho de seção) precisam usar a
+   "cor padrão" do perfil, não ficar uma preta e outra verde. */
+.rg-section-head{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;padding-bottom:9px;border-bottom:2px solid #1a1a18;flex-wrap:wrap}
+.rg-section-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#1a1a18}
 .rg-section-desc{font-size:11.5px;color:#999}
 #tab-regras .card{border-radius:12px;padding:22px 24px;margin-bottom:0;box-shadow:0 1px 2px rgba(0,0,0,.03)}
 .rg-head{margin-bottom:16px}

@@ -33,6 +33,21 @@ body{font-family:'Inter',sans-serif;background:#F5F5F5;color:#1a2332;font-size:1
 
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+/* Seções da aba Configurações (29/10/2026) — mesmo padrão aplicado em
+   Vendedor > Regras & Config e Gestor de Operações > Configurações: agrupa
+   os cards por assunto em vez de deixá-los soltos numa grade só, e os
+   campos com prefixo (R$, %, /mês…) viram um grupo único com borda
+   compartilhada. Cor da linha = var(--navy), a mesma do cabeçalho principal
+   desta tela (não é um verde "emprestado" — aqui a cor padrão do perfil já
+   é essa).*/
+.rg-section{margin-bottom:30px}
+.rg-section:last-of-type{margin-bottom:18px}
+.rg-section-head{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;padding-bottom:9px;border-bottom:2px solid var(--navy);flex-wrap:wrap}
+.rg-section-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--navy)}
+.rg-section-desc{font-size:11.5px;color:#999}
+#tab-config .irow{background:#fff;border:.5px solid #d4d3ce;border-radius:8px;overflow:hidden;gap:0;width:fit-content;max-width:100%}
+#tab-config .irow .ipfx{background:#f7f7f4;padding:0 12px;height:36px;display:flex;align-items:center;color:#888;font-size:12px;white-space:nowrap}
+#tab-config .irow input{border:none !important;background:#fff !important;height:36px;border-radius:0 !important;padding:0 10px;font-size:13px}
 .card{background:#fff;border:1px solid #e2e5ea;border-top:3px solid var(--navy);border-radius:4px;padding:20px 22px;margin-bottom:14px}
 .card.gold{border-top-color:var(--gold)}
 .card-title{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#55617a;margin-bottom:14px}
@@ -288,8 +303,10 @@ tr:last-child td{border-bottom:none}
 
 <!-- ═══ CONFIGURAÇÕES ═══ -->
 <div id="tab-config" class="tab-panel">
-  <div class="g2">
-    <div>
+
+  <div class="rg-section">
+    <div class="rg-section-head"><span class="rg-section-label">Comissão por desempenho</span><span class="rg-section-desc">Faixas de Volume, Crescimento Líquido e Satisfação Institucional</span></div>
+    <div class="g3">
       <div class="card">
         <p class="card-title">Faixas — Volume de Vendas (Gross Adds)</p>
         <table><thead><tr><th class="left">Gatilho (linhas)</th><th>Bônus</th><th style="width:36px"></th></tr></thead>
@@ -309,12 +326,11 @@ tr:last-child td{border-bottom:none}
         <button class="btn-ghost btn-sm" onclick="addFaixaSat()" style="margin-top:10px;width:100%">+ Faixa</button>
       </div>
     </div>
-    <div>
-      <div class="card">
-        <p class="card-title">SMART News</p>
-        <div><label class="lbl">Kick-off (pagamento único)</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="r_newsKickoff" step="0.01" oninput="saveConfig()"></div></div>
-        <div style="margin-top:10px"><label class="lbl">Manutenção mensal (por disparo)</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="r_newsManutencao" step="0.01" oninput="saveConfig()"></div></div>
-      </div>
+  </div>
+
+  <div class="rg-section">
+    <div class="rg-section-head"><span class="rg-section-label">Canais indiretos</span><span class="rg-section-desc">Marcos de abertura/volume do canal e marcos de base conquistada</span></div>
+    <div class="g2">
       <div class="card">
         <p class="card-title">Marcos — Canais Indiretos</p>
         <div style="font-size:11px;color:#55617a;margin-bottom:12px">A = abertura (assinado/ativo) · B/B1/B2 = volume acumulado do canal</div>
@@ -327,9 +343,18 @@ tr:last-child td{border-bottom:none}
         <tbody id="marcosBaseBody"></tbody></table>
         <button class="btn-ghost btn-sm" onclick="addMarcoBase()" style="margin-top:10px;width:100%">+ Marco</button>
       </div>
-      <button class="btn" onclick="saveConfig()" style="width:100%">Salvar configurações</button>
     </div>
   </div>
+
+  <div class="rg-section">
+    <div class="rg-section-head"><span class="rg-section-label">Smart News</span><span class="rg-section-desc">Kick-off e manutenção mensal do programa</span></div>
+    <div class="card">
+      <div><label class="lbl">Kick-off (pagamento único)</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="r_newsKickoff" step="0.01" oninput="saveConfig()"></div></div>
+      <div style="margin-top:10px"><label class="lbl">Manutenção mensal (por disparo)</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="r_newsManutencao" step="0.01" oninput="saveConfig()"></div></div>
+    </div>
+  </div>
+
+  <button class="btn" onclick="saveConfig()" style="width:100%">Salvar configurações</button>
 </div>
 
 </div>

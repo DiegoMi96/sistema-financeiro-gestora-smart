@@ -36,6 +36,20 @@ body{font-family:'Inter',sans-serif;background:#F5F5F5;color:#1a2332;font-size:1
 /* CARDS */
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+/* Seções da aba Configurações (29/10/2026) — mesmo padrão aplicado em
+   Vendedor > Regras & Config, Gestor de Operações e Diretor Comercial >
+   Configurações: agrupa os cards por assunto em vez de deixá-los soltos
+   numa grade só, e os campos com prefixo (R$, %, /mês…) viram um grupo
+   único com borda compartilhada. Cor da linha = var(--navy), a mesma do
+   cabeçalho principal desta tela. */
+.rg-section{margin-bottom:30px}
+.rg-section:last-of-type{margin-bottom:18px}
+.rg-section-head{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;padding-bottom:9px;border-bottom:2px solid var(--navy);flex-wrap:wrap}
+.rg-section-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--navy)}
+.rg-section-desc{font-size:11.5px;color:#999}
+#tab-config .irow{background:#fff;border:.5px solid #d4d3ce;border-radius:8px;overflow:hidden;gap:0;width:fit-content;max-width:100%}
+#tab-config .irow .ipfx{background:#f7f7f4;padding:0 12px;height:36px;display:flex;align-items:center;color:#888;font-size:12px;white-space:nowrap}
+#tab-config .irow input{border:none !important;background:#fff !important;height:36px;border-radius:0 !important;padding:0 10px;font-size:13px}
 .card{background:#fff;border:1px solid #e2e5ea;border-top:3px solid var(--navy);border-radius:4px;padding:20px 22px;margin-bottom:14px}
 .card.gold{border-top-color:var(--gold)}
 .card-title{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#55617a;margin-bottom:14px}
@@ -339,49 +353,51 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
 
 <!-- ═══ CONFIGURAÇÕES ═══ -->
 <div id="tab-config" class="tab-panel">
-  <div class="g2">
-    <div>
-      <div class="card">
-        <p class="card-title">Parâmetros gerais</p>
-        <div style="margin-bottom:12px">
-          <label class="lbl">Taxa de dividendo distribuído</label>
-          <div class="irow"><input type="number" id="r_divTaxa" min="0" max="100" step="1" style="max-width:70px" oninput="saveConfig()"><span class="ipfx">% do resultado líquido</span></div>
-        </div>
-        <div>
-          <label class="lbl">Gatilho Bônus A — % mínimo de meta</label>
-          <div class="irow"><input type="number" id="r_gatilhoA" min="0" max="100" step="1" style="max-width:70px" oninput="saveConfig()"><span class="ipfx">% da meta</span></div>
-        </div>
-        <div style="margin-top:12px">
-          <label class="lbl">Valor do Bônus A</label>
-          <div class="irow"><span class="ipfx">R$</span>
-            <input type="text" id="r_valorA"
-              onblur="config.valorA=parseNum(this.value);this.value=brFmt(config.valorA);LS.set('da1_cfg',config);updateCalc()"
-              onfocus="this.value=String(config.valorA)">
-          </div>
+
+  <div class="rg-section">
+    <div class="rg-section-head"><span class="rg-section-label">Bônus A — parâmetros</span><span class="rg-section-desc">Taxa de dividendo, gatilho e valor do Bônus A</span></div>
+    <div class="card">
+      <div style="margin-bottom:12px">
+        <label class="lbl">Taxa de dividendo distribuído</label>
+        <div class="irow"><input type="number" id="r_divTaxa" min="0" max="100" step="1" style="max-width:70px" oninput="saveConfig()"><span class="ipfx">% do resultado líquido</span></div>
+      </div>
+      <div>
+        <label class="lbl">Gatilho Bônus A — % mínimo de meta</label>
+        <div class="irow"><input type="number" id="r_gatilhoA" min="0" max="100" step="1" style="max-width:70px" oninput="saveConfig()"><span class="ipfx">% da meta</span></div>
+      </div>
+      <div style="margin-top:12px">
+        <label class="lbl">Valor do Bônus A</label>
+        <div class="irow"><span class="ipfx">R$</span>
+          <input type="text" id="r_valorA"
+            onblur="config.valorA=parseNum(this.value);this.value=brFmt(config.valorA);LS.set('da1_cfg',config);updateCalc()"
+            onfocus="this.value=String(config.valorA)">
         </div>
       </div>
-      <div class="card">
-        <p class="card-title">Faixas do Bônus B (editáveis)</p>
-        <div style="font-size:11px;color:#55617a;margin-bottom:12px">Faixas cumulativas sobre o dividendo distribuído do mês.</div>
-        <table id="faixasConfig" style="min-width:0">
-          <thead><tr><th class="left">Faixa</th><th>Dividendo mín. (R$)</th><th>Cota (R$)</th><th style="width:36px"></th></tr></thead>
-          <tbody id="faixasBody"></tbody>
-        </table>
-        <button class="btn-ghost btn-sm" onclick="addFaixa()" style="margin-top:10px;width:100%">+ Faixa</button>
-      </div>
-    </div>
-    <div>
-      <div class="card">
-        <p class="card-title">Metas mensais do ciclo</p>
-        <div style="font-size:11px;color:#55617a;margin-bottom:12px">O resultado projetado de cada mês é a própria meta para cálculo do Bônus A. Edite diretamente se necessário.</div>
-        <table style="min-width:0">
-          <thead><tr><th class="left">Mês</th><th>Meta / Resultado projetado (R$)</th></tr></thead>
-          <tbody id="metasBody"></tbody>
-        </table>
-      </div>
-      <button class="btn" onclick="saveConfig()" style="width:100%;margin-top:4px">Salvar configurações</button>
     </div>
   </div>
+
+  <div class="rg-section">
+    <div class="rg-section-head"><span class="rg-section-label">Bônus B — faixas</span><span class="rg-section-desc">Faixas cumulativas sobre o dividendo distribuído do mês</span></div>
+    <div class="card">
+      <table id="faixasConfig" style="min-width:0">
+        <thead><tr><th class="left">Faixa</th><th>Dividendo mín. (R$)</th><th>Cota (R$)</th><th style="width:36px"></th></tr></thead>
+        <tbody id="faixasBody"></tbody>
+      </table>
+      <button class="btn-ghost btn-sm" onclick="addFaixa()" style="margin-top:10px;width:100%">+ Faixa</button>
+    </div>
+  </div>
+
+  <div class="rg-section">
+    <div class="rg-section-head"><span class="rg-section-label">Metas do ciclo</span><span class="rg-section-desc">Resultado projetado por mês, usado como meta do Bônus A</span></div>
+    <div class="card">
+      <table style="min-width:0">
+        <thead><tr><th class="left">Mês</th><th>Meta / Resultado projetado (R$)</th></tr></thead>
+        <tbody id="metasBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <button class="btn" onclick="saveConfig()" style="width:100%;margin-top:4px">Salvar configurações</button>
 </div>
 
 </div>

@@ -31,6 +31,19 @@ body{font-family:'Inter',sans-serif;background:#F5F5F5;color:#1a2332;font-size:1
 .tab-btn:hover:not(.active){color:#333}
 .tab-panel{display:none}.tab-panel.active{display:block}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+/* Seções da aba Configurações (29/10/2026) — mesmo padrão aplicado em
+   Vendedor > Regras & Config: agrupa os cards por assunto em vez de deixá-los
+   soltos numa grade só, e os campos com prefixo (R$, %, /mês…) viram um
+   grupo único com borda compartilhada. */
+.rg-section{margin-bottom:30px}
+.rg-section:last-of-type{margin-bottom:18px}
+.rg-section-head{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;padding-bottom:9px;border-bottom:2px solid var(--navy);flex-wrap:wrap}
+.rg-section-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--navy)}
+.rg-section-desc{font-size:11.5px;color:#999}
+#tab-config .irow{background:#fff;border:.5px solid #d4d3ce;border-radius:8px;overflow:hidden;gap:0;width:fit-content;max-width:100%}
+#tab-config .irow .ipfx{background:#f7f7f4;padding:0 12px;height:36px;display:flex;align-items:center;color:#888;font-size:12px;white-space:nowrap}
+#tab-config .irow input{border:none !important;background:#fff !important;height:36px;border-radius:0 !important;padding:0 10px;font-size:13px}
 .card{background:#fff;border:1px solid #e2e5ea;border-top:3px solid var(--navy);border-radius:4px;padding:20px 22px;margin-bottom:14px}
 .card.teal{border-top-color:var(--teal)}
 .card.gold{border-top-color:var(--gold)}
@@ -353,8 +366,10 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
 
 <!-- ═══ CONFIGURAÇÕES ═══ -->
 <div id="tab-config" class="tab-panel">
-  <div class="g2">
-    <div>
+
+  <div class="rg-section">
+    <div class="rg-section-head"><span class="rg-section-label">Indicadores operacionais</span><span class="rg-section-desc">Faixas de bônus por Satisfação, Eficiência e Auditoria de base</span></div>
+    <div class="g3">
       <!-- SATISFAÇÃO -->
       <div class="card">
         <p class="card-title">😊 Satisfação pós-vendas · faixas</p>
@@ -364,8 +379,7 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
         </table>
         <button class="btn-ghost btn-sm" onclick="addFaixaSat()" style="margin-top:8px;width:100%">+ Faixa</button>
       </div>
-    </div>
-    <div>
+
       <!-- EFICIÊNCIA -->
       <div class="card">
         <p class="card-title">⚡ Eficiência de base · faixas</p>
@@ -389,17 +403,18 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
         </table>
         <button class="btn-ghost btn-sm" onclick="addFaixaAud()" style="margin-top:8px;width:100%">+ Faixa</button>
       </div>
-
-      <!-- TREINAMENTOS -->
-      <div class="card">
-        <p class="card-title">🎓 Treinamentos ministrados</p>
-        <label class="lbl">Valor por treinamento comprovado</label>
-        <div class="irow"><span class="ipfx">R$</span><input type="text" id="r_treiVal" onblur="config.treiVal=parseNum(this.value);this.value=brFmt(config.treiVal);saveConfig()" onfocus="this.value=String(config.treiVal)" style="max-width:90px"><span class="ipfx">/ treinamento</span></div>
-      </div>
-
-      <button class="btn" onclick="saveConfig()" style="width:100%;margin-top:4px">Salvar configurações</button>
     </div>
   </div>
+
+  <div class="rg-section">
+    <div class="rg-section-head"><span class="rg-section-label">Treinamentos</span><span class="rg-section-desc">Valor pago por treinamento comprovado no mês</span></div>
+    <div class="card">
+      <label class="lbl">Valor por treinamento comprovado</label>
+      <div class="irow"><span class="ipfx">R$</span><input type="text" id="r_treiVal" onblur="config.treiVal=parseNum(this.value);this.value=brFmt(config.treiVal);saveConfig()" onfocus="this.value=String(config.treiVal)" style="max-width:90px"><span class="ipfx">/ treinamento</span></div>
+    </div>
+  </div>
+
+  <button class="btn" onclick="saveConfig()" style="width:100%;margin-top:4px">Salvar configurações</button>
 </div>
 
 </div>
