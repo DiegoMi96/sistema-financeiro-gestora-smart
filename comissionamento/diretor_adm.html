@@ -589,12 +589,16 @@ function getMeta(mes){
   return m?m.proj:0;
 }
 
+// Converte "DD/MM/AAAA" em "AAAA-MM" — fallback pros marcos/auditorias
+// registrados antes de existir o campo de mês (dataPagMes/mes).
+function dataBrParaMes(s){ if(!s) return null; const p=String(s).split('/'); return p.length===3 ? `${p[2]}-${p[1].padStart(2,'0')}` : null; }
+
 // Soma os bônus extras (cofre, auditoria, sistemas) que contam no mês informado.
 function extrasDoMes(mes){
   let tot=0;
   (extras.sistemas||[]).forEach(s=>{if(s.data===mes)tot+=s.val;});
-  (extras.auditorias||[]).forEach(a=>{if(a.mes===mes)tot+=a.val;});
-  (config.cofreMetas||[]).forEach(m=>{if(m.pago&&m.dataPagMes===mes)tot+=m.bonus;});
+  (extras.auditorias||[]).forEach(a=>{if((a.mes||dataBrParaMes(a.data))===mes)tot+=a.val;});
+  (config.cofreMetas||[]).forEach(m=>{if(m.pago&&(m.dataPagMes||dataBrParaMes(m.dataPag))===mes)tot+=m.bonus;});
   return tot;
 }
 
