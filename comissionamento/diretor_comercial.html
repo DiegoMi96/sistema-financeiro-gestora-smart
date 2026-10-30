@@ -142,6 +142,7 @@ tr:last-child td{border-bottom:none}
     <div class="kpi"><div class="kpi-label">Cresc. Líquido</div><div class="kpi-val" id="k_cresc">R$ 0</div><div class="kpi-sub" id="k_cresc_sub">—</div></div>
     <div class="kpi"><div class="kpi-label">Hardware</div><div class="kpi-val" id="k_hw">R$ 0</div><div class="kpi-sub" id="k_hw_sub">—</div></div>
     <div class="kpi gold"><div class="kpi-label">Satisfação</div><div class="kpi-val" id="k_sat">R$ 0</div><div class="kpi-sub" id="k_sat_sub">—</div></div>
+    <div class="kpi" style="border-top-color:#b8863f"><div class="kpi-label">Extras do mês</div><div class="kpi-val" id="k_extras" style="color:#b8863f">R$ 0</div><div class="kpi-sub" id="k_extras_sub">—</div></div>
     <div class="kpi" style="border-top-color:#2563eb"><div class="kpi-label">Total do mês</div><div class="kpi-val" id="k_total" style="color:#2563eb">R$ 0</div><div class="kpi-sub" id="k_mes_label"></div></div>
   </div>
 
@@ -169,37 +170,12 @@ tr:last-child td{border-bottom:none}
       </div>
       <button class="btn" onclick="saveMes()" style="width:100%">Salvar lançamento do mês</button>
       <button class="btn-ghost" onclick="excluirMes()" style="width:100%;margin-top:8px;color:#b83232;border-color:#e3b9b9">Excluir lançamento deste mês</button>
-      <div class="footnote" style="margin-top:10px">Bônus/Canais/Reajuste/Novos Produtos/Base Conquistada não entram aqui — são eventos avulsos, registrados na aba <strong>Ciclo &amp; Bonificações</strong> e somados ao total do mês em que ocorreram.</div>
-  </div>
-</div>
-
-<!-- ═══ CICLO & BONIFICAÇÕES ═══ -->
-<div id="tab-ciclo" class="tab-panel">
-
-  <div class="kpi-grid">
-    <div class="kpi"><div class="kpi-label">Ganho variável total</div><div class="kpi-val" id="ck_total">R$ 0</div></div>
-    <div class="kpi gold"><div class="kpi-label">Canais + Reajuste + Produtos</div><div class="kpi-val" id="ck_extras">R$ 0</div></div>
+      <div class="footnote" style="margin-top:10px">Canais/Reajuste/Novos Produtos/Base Conquistada são eventos avulsos — contam no total do mês em que foram registrados (não no mês do lançamento normal acima).</div>
   </div>
 
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-    <div style="font-size:12px;font-weight:600;color:var(--navy)">Histórico mensal</div>
-    <div><label class="lbl" style="display:inline;margin-right:6px">Ano</label><select id="ciclo_ano" onchange="renderCiclo()" style="width:auto"></select></div>
-  </div>
-
-  <div style="overflow-x:auto;margin-bottom:32px">
-    <table style="min-width:760px">
-      <thead>
-        <tr>
-          <th class="left">Mês</th><th>Volume</th><th>Cresc. Líq.</th><th>Hardware</th><th>Satisfação</th><th>SMART News</th><th>Total</th>
-        </tr>
-      </thead>
-      <tbody id="cicloBody"></tbody>
-    </table>
-  </div>
-
-  <div style="border-top:2px solid var(--navy);margin-bottom:24px;padding-top:20px">
+  <div style="border-top:2px solid var(--navy);margin-bottom:24px;margin-top:24px;padding-top:20px">
     <div style="font-size:13px;font-weight:700;color:var(--navy);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px">Bonificações Extras</div>
-    <div style="font-size:11px;color:#55617a">Canais indiretos, reajuste anual, novos produtos e base conquistada — fora do ciclo mensal</div>
+    <div style="font-size:11px;color:#55617a">Canais indiretos, reajuste anual, novos produtos e base conquistada — eventos avulsos, pagamento único</div>
   </div>
 
   <!-- CANAIS INDIRETOS -->
@@ -245,7 +221,7 @@ tr:last-child td{border-bottom:none}
   <!-- SMART NEWS KICK-OFF -->
   <div class="card">
     <p class="card-title">📰 SMART News — Kick-off</p>
-    <div style="font-size:11px;color:#55617a;margin-bottom:14px">Pagamento único de R$ 800 no início do projeto — a manutenção mensal (R$200/disparo) é lançada na Calculadora Mensal.</div>
+    <div style="font-size:11px;color:#55617a;margin-bottom:14px">Pagamento único de R$ 800 no início do projeto — a manutenção mensal (R$200/disparo) é lançada acima, no lançamento do mês.</div>
     <div style="display:flex;align-items:center;gap:10px">
       <input type="checkbox" id="news_kickoff" onchange="saveNewsKickoff()" style="width:auto">
       <label class="lbl" style="margin-bottom:0">Kick-off já pago</label>
@@ -259,11 +235,36 @@ tr:last-child td{border-bottom:none}
       <p class="card-title" style="margin-bottom:0">🏆 Gratificação por Base Conquistada</p>
       <div style="display:flex;align-items:center;gap:10px">
         <label class="lbl" style="margin-bottom:0;white-space:nowrap">Base ativa atual:</label>
-        <div class="irow" style="width:160px"><input type="number" id="base_atual" min="0" placeholder="linhas" oninput="renderBaseConquistada()"></div>
+        <div class="irow" style="width:160px"><input type="number" id="base_atual" min="0" placeholder="linhas" oninput="renderBaseConquistada()" onblur="config.baseAtual=+this.value||0;LS.set('dc1_cfg',config);"></div>
       </div>
     </div>
     <div style="font-size:11px;color:#55617a;margin-bottom:14px">Pagamento único por marco — uma vez pago, nunca mais entra no cálculo mesmo que a base continue acima.</div>
     <div id="base_marcos"></div>
+  </div>
+</div>
+
+<!-- ═══ CICLO & BONIFICAÇÕES ═══ -->
+<div id="tab-ciclo" class="tab-panel">
+
+  <div class="kpi-grid">
+    <div class="kpi"><div class="kpi-label">Ganho variável total</div><div class="kpi-val" id="ck_total">R$ 0</div></div>
+    <div class="kpi gold"><div class="kpi-label">Bônus extras</div><div class="kpi-val" id="ck_extras">R$ 0</div></div>
+  </div>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <div style="font-size:12px;font-weight:600;color:var(--navy)">Histórico mensal</div>
+    <div><label class="lbl" style="display:inline;margin-right:6px">Ano</label><select id="ciclo_ano" onchange="renderCiclo()" style="width:auto"></select></div>
+  </div>
+
+  <div style="overflow-x:auto;margin-bottom:32px">
+    <table style="min-width:760px">
+      <thead>
+        <tr>
+          <th class="left">Mês</th><th>Volume</th><th>Cresc. Líq.</th><th>Hardware</th><th>Satisfação</th><th>SMART News</th><th>Total</th>
+        </tr>
+      </thead>
+      <tbody id="cicloBody"></tbody>
+    </table>
   </div>
 
   <!-- REMUNERAÇÃO FIXA -->
@@ -384,6 +385,7 @@ const DEF_CONFIG = {
   ],
   newsKickoff: 800,
   newsManutencao: 200,
+  baseAtual: 0,
 };
 const DEF_EXTRAS = { canais: [], reajustes: [], produtos: [], newsKickoffPago: false, newsKickoffData: '' };
 
@@ -434,6 +436,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('news_val_label').textContent = brFmt(config.newsManutencao);
   renderNivelAtual();
   loadConfig(); buildFaixasConfig(); buildMarcosCanaisConfig(); buildMarcosBaseConfig();
+  document.getElementById('base_atual').value = config.baseAtual || '';
   renderCanais(); renderReajustes(); renderProdutos(); renderNewsKickoff(); renderBaseConquistada();
   const salvo = await COM_API.buscarCiclo('diretor_comercial');
   if (salvo && Object.keys(salvo).length) { mdata = salvo; LS.set('dc1_m', mdata); }
@@ -514,6 +517,8 @@ function updateCalc() {
     news: document.getElementById('i_news').checked,
   };
   const c = calcMonth(d);
+  const mes = document.getElementById('mesInput').value;
+  const extrasB = mes ? extrasDoMes(mes) : 0;
   document.getElementById('k_volume').textContent = 'R$ ' + br2(c.volumeBonus);
   document.getElementById('k_volume_sub').textContent = d.volume ? d.volume.toLocaleString('pt-BR') + ' linhas' : '—';
   document.getElementById('k_cresc').textContent = 'R$ ' + br2(c.crescBonus);
@@ -522,8 +527,10 @@ function updateCalc() {
   document.getElementById('k_hw_sub').textContent = d.hw ? d.hw.toLocaleString('pt-BR') + ' unid.' : '—';
   document.getElementById('k_sat').textContent = 'R$ ' + br2(c.satBonus);
   document.getElementById('k_sat_sub').textContent = d.sat != null ? d.sat + '%' : '—';
-  document.getElementById('k_total').textContent = 'R$ ' + br2(c.total);
-  document.getElementById('k_mes_label').textContent = fmtMes(document.getElementById('mesInput').value) || '—';
+  document.getElementById('k_extras').textContent = 'R$ ' + br2(extrasB);
+  document.getElementById('k_extras_sub').textContent = mes ? (extrasB ? 'registrado(s) em ' + fmtMes(mes) : '—') : '—';
+  document.getElementById('k_total').textContent = 'R$ ' + br2(c.total + extrasB);
+  document.getElementById('k_mes_label').textContent = fmtMes(mes) || '—';
 }
 
 // Preenche os campos com o que já está salvo/importado no mês selecionado.
@@ -651,7 +658,7 @@ function pagarMarcoCanal(id, marco) {
   const mes = document.getElementById('mesInput').value || new Date().toISOString().slice(0, 7);
   c.marcosPagos[marco] = mes;
   if (!LS.set('dc1_ext', extras)) { showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.', '#b83232'); return; }
-  renderCanais(); renderCiclo();
+  renderCanais(); renderCiclo(); updateCalc();
   showToast(`Marco ${marco} do canal registrado ✓`);
 }
 function renderCanais() {
@@ -675,7 +682,7 @@ function renderCanais() {
     </div>`;
   }).join('');
 }
-function rmCanal(id) { extras.canais = extras.canais.filter(c => c.id !== id); LS.set('dc1_ext', extras); renderCanais(); }
+function rmCanal(id) { extras.canais = extras.canais.filter(c => c.id !== id); LS.set('dc1_ext', extras); renderCanais(); renderCiclo(); updateCalc(); }
 
 // ─── REAJUSTE ─────────────────────────────────────────
 function saveReajuste() {
@@ -688,7 +695,7 @@ function saveReajuste() {
   extras.reajustes.push({ ano, valor, bonus, mes, data: new Date().toLocaleDateString('pt-BR') });
   if (!LS.set('dc1_ext', extras)) { showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.', '#b83232'); return; }
   document.getElementById('reaj_val').value = '';
-  renderReajustes(); renderCiclo();
+  renderReajustes(); renderCiclo(); updateCalc();
   showToast('Reajuste registrado ✓');
 }
 function renderReajustes() {
@@ -700,7 +707,7 @@ function renderReajustes() {
       <div style="display:flex;align-items:center;gap:10px"><div class="sis-val">R$ ${br2(r.bonus)}</div><button class="btn-del" onclick="rmReajuste(${i})">×</button></div>
     </div>`).join('');
 }
-function rmReajuste(i) { extras.reajustes.splice(i, 1); LS.set('dc1_ext', extras); renderReajustes(); renderCiclo(); }
+function rmReajuste(i) { extras.reajustes.splice(i, 1); LS.set('dc1_ext', extras); renderReajustes(); renderCiclo(); updateCalc(); }
 
 // ─── NOVOS PRODUTOS ───────────────────────────────────
 function addProduto() {
@@ -711,7 +718,7 @@ function addProduto() {
   extras.produtos.push({ nome, data, val });
   if (!LS.set('dc1_ext', extras)) { showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.', '#b83232'); return; }
   document.getElementById('prod_nome').value = ''; document.getElementById('prod_val').value = '';
-  renderProdutos(); renderCiclo();
+  renderProdutos(); renderCiclo(); updateCalc();
   showToast('Produto registrado ✓');
 }
 function renderProdutos() {
@@ -723,7 +730,7 @@ function renderProdutos() {
       <div style="display:flex;align-items:center;gap:10px"><div class="sis-val">R$ ${br2(p.val)}</div><button class="btn-del" onclick="rmProduto(${i})">×</button></div>
     </div>`).join('');
 }
-function rmProduto(i) { extras.produtos.splice(i, 1); LS.set('dc1_ext', extras); renderProdutos(); renderCiclo(); }
+function rmProduto(i) { extras.produtos.splice(i, 1); LS.set('dc1_ext', extras); renderProdutos(); renderCiclo(); updateCalc(); }
 
 // ─── SMART NEWS KICK-OFF ──────────────────────────────
 function saveNewsKickoff() {
@@ -731,7 +738,7 @@ function saveNewsKickoff() {
   extras.newsKickoffPago = checked;
   extras.newsKickoffData = checked ? (document.getElementById('mesInput').value || new Date().toISOString().slice(0, 7)) : '';
   LS.set('dc1_ext', extras);
-  renderNewsKickoff(); renderCiclo();
+  renderNewsKickoff(); renderCiclo(); updateCalc();
 }
 function renderNewsKickoff() {
   document.getElementById('news_kickoff').checked = !!extras.newsKickoffPago;
@@ -761,7 +768,7 @@ function pagarMarcoBase(i) {
   config.marcosBase[i].dataPag = hoje;
   config.marcosBase[i].dataPagMes = mes;
   if (!LS.set('dc1_cfg', config)) { showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.', '#b83232'); return; }
-  renderBaseConquistada(); renderCiclo();
+  renderBaseConquistada(); renderCiclo(); updateCalc();
   showToast('Marco de base registrado ✓');
 }
 

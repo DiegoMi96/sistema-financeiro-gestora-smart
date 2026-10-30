@@ -157,6 +157,7 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
   <div class="kpi-grid" id="kpiGrid">
     <div class="kpi gold"><div class="kpi-label">Bônus B (dividendo)</div><div class="kpi-val" id="k_bonusB">R$ 0</div><div class="kpi-sub" id="k_bonusB_sub">—</div></div>
     <div class="kpi green"><div class="kpi-label">Bônus A (resultado)</div><div class="kpi-val" id="k_bonusA">R$ 0</div><div class="kpi-sub" id="k_bonusA_sub">—</div></div>
+    <div class="kpi" style="border-top-color:#b8863f"><div class="kpi-label">Extras do mês</div><div class="kpi-val" id="k_extras" style="color:#b8863f">R$ 0</div><div class="kpi-sub" id="k_extras_sub">—</div></div>
     <div class="kpi" style="border-top-color:#2563eb"><div class="kpi-label">Total do mês</div><div class="kpi-val" id="k_total" style="color:#2563eb">R$ 0</div><div class="kpi-sub" id="k_mes_label"></div></div>
   </div>
 
@@ -212,56 +213,11 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
       <button class="btn-ghost" onclick="excluirMes()" style="width:100%;margin-top:8px;color:#b83232;border-color:#e3b9b9">Excluir lançamento deste mês</button>
     </div>
   </div>
-</div>
-
-<!-- ═══ CICLO & BONIFICAÇÕES ═══ -->
-<div id="tab-ciclo" class="tab-panel">
-
-  <!-- KPIs -->
-  <div class="kpi-grid">
-    <div class="kpi gold"><div class="kpi-label">Bônus B total</div><div class="kpi-val" id="ck_bonusB">R$ 0</div></div>
-    <div class="kpi green"><div class="kpi-label">Bônus A total</div><div class="kpi-val" id="ck_bonusA">R$ 0</div></div>
-    <div class="kpi" style="border-top-color:#2563eb"><div class="kpi-label">Ganho total do ciclo</div><div class="kpi-val" id="ck_total" style="color:#2563eb">R$ 0</div></div>
-  </div>
-
-  <!-- Export/Import bar -->
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding:12px 16px;background:#fff;border:1px solid #e2e5ea;border-radius:4px">
-    <div>
-      <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:2px">Ciclo Ago/2026 – Dez/2027 · 17 meses</div>
-      <div style="font-size:11px;color:#55617a">Exporte para editar no Excel. Ao importar, os resultados realizados e projeções são atualizados automaticamente.</div>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
-      <select id="ciclo_ano" onchange="renderCiclo()" style="width:auto"></select>
-      <button class="btn-ghost btn-sm" onclick="exportCiclo()">↓ Exportar ciclo</button>
-      <button class="btn btn-sm" onclick="document.getElementById('f_ciclo').click()">↑ Importar ciclo</button>
-      <input type="file" id="f_ciclo" accept=".xlsx,.xls,.csv" style="display:none" onchange="importCiclo(event)">
-    </div>
-  </div>
-
-  <!-- Ciclo table -->
-  <div style="overflow-x:auto;margin-bottom:32px">
-    <table style="min-width:840px">
-      <thead>
-        <tr>
-          <th class="left">Mês</th>
-          <th>Resultado proj.</th>
-          <th>Resultado real.</th>
-          <th>% Meta</th>
-          <th>Dividendo (40%)</th>
-          <th>Faixa</th>
-          <th>Bônus B</th>
-          <th>Bônus A</th>
-          <th>Total</th>
-        </tr>
-      </thead>
-      <tbody id="cicloBody"></tbody>
-    </table>
-  </div>
 
   <!-- Divisor -->
-  <div style="border-top:2px solid var(--navy);margin-bottom:24px;padding-top:20px">
+  <div style="border-top:2px solid var(--navy);margin-bottom:24px;margin-top:24px;padding-top:20px">
     <div style="font-size:13px;font-weight:700;color:var(--navy);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px">Bonificações Extras</div>
-    <div style="font-size:11px;color:#55617a">Marcos do cofre, auditoria contábil e sistemas implantados — fora do ciclo mensal</div>
+    <div style="font-size:11px;color:#55617a">Marcos do cofre, auditoria contábil e sistemas implantados — eventos avulsos, contam no total do mês em que foram registrados</div>
   </div>
 
   <!-- COFRE -->
@@ -272,7 +228,7 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
         <label class="lbl" style="margin-bottom:0;white-space:nowrap">Saldo atual:</label>
         <div class="irow" style="width:180px"><span class="ipfx">R$</span>
           <input type="text" id="cofre_saldo" placeholder="0"
-            onblur="this.value=this.value?brFmt(parseNum(this.value)):'';updateCofre()"
+            onblur="this.value=this.value?brFmt(parseNum(this.value)):'';config.cofreSaldo=parseNum(this.value)||0;LS.set('da1_cfg',config);updateCofre()"
             onfocus="this.value=this.value?String(parseNum(this.value)):''">
         </div>
       </div>
@@ -312,6 +268,52 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
     <button class="btn" onclick="addSistema()" style="margin-top:10px">+ Registrar sistema</button>
     <div id="sis_lista" style="margin-top:14px"></div>
     <div id="sis_total" style="margin-top:8px;font-size:12px;color:#55617a"></div>
+  </div>
+</div>
+
+<!-- ═══ CICLO & BONIFICAÇÕES ═══ -->
+<div id="tab-ciclo" class="tab-panel">
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi gold"><div class="kpi-label">Bônus B total</div><div class="kpi-val" id="ck_bonusB">R$ 0</div></div>
+    <div class="kpi green"><div class="kpi-label">Bônus A total</div><div class="kpi-val" id="ck_bonusA">R$ 0</div></div>
+    <div class="kpi gold"><div class="kpi-label">Bônus extras</div><div class="kpi-val" id="ck_extras">R$ 0</div></div>
+    <div class="kpi" style="border-top-color:#2563eb"><div class="kpi-label">Ganho total do ciclo</div><div class="kpi-val" id="ck_total" style="color:#2563eb">R$ 0</div></div>
+  </div>
+
+  <!-- Export/Import bar -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding:12px 16px;background:#fff;border:1px solid #e2e5ea;border-radius:4px">
+    <div>
+      <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:2px">Ciclo Ago/2026 – Dez/2027 · 17 meses</div>
+      <div style="font-size:11px;color:#55617a">Exporte para editar no Excel. Ao importar, os resultados realizados e projeções são atualizados automaticamente.</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+      <select id="ciclo_ano" onchange="renderCiclo()" style="width:auto"></select>
+      <button class="btn-ghost btn-sm" onclick="exportCiclo()">↓ Exportar ciclo</button>
+      <button class="btn btn-sm" onclick="document.getElementById('f_ciclo').click()">↑ Importar ciclo</button>
+      <input type="file" id="f_ciclo" accept=".xlsx,.xls,.csv" style="display:none" onchange="importCiclo(event)">
+    </div>
+  </div>
+
+  <!-- Ciclo table -->
+  <div style="overflow-x:auto;margin-bottom:32px">
+    <table style="min-width:840px">
+      <thead>
+        <tr>
+          <th class="left">Mês</th>
+          <th>Resultado proj.</th>
+          <th>Resultado real.</th>
+          <th>% Meta</th>
+          <th>Dividendo (40%)</th>
+          <th>Faixa</th>
+          <th>Bônus B</th>
+          <th>Bônus A</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody id="cicloBody"></tbody>
+    </table>
   </div>
 
   <div class="card gold">
@@ -413,11 +415,12 @@ const DEF_CONFIG={
     {min:40000,cota:800,lbl:'Faixa 5',range:'> R$40K'},
   ],
   cofreMetas:[
-    {marco:300000,bonus:2000,pago:false,dataPag:''},
-    {marco:700000,bonus:3000,pago:false,dataPag:''},
-    {marco:1000000,bonus:4000,pago:false,dataPag:''},
-    {marco:1500000,bonus:5000,pago:false,dataPag:''},
+    {marco:300000,bonus:2000,pago:false,dataPag:'',dataPagMes:''},
+    {marco:700000,bonus:3000,pago:false,dataPag:'',dataPagMes:''},
+    {marco:1000000,bonus:4000,pago:false,dataPag:'',dataPagMes:''},
+    {marco:1500000,bonus:5000,pago:false,dataPag:'',dataPagMes:''},
   ],
+  cofreSaldo:0,
   metas:{}, // { '2026-09': 15000, ... }
 };
 const DEF_EXTRAS={auditorias:[],sistemas:[]};
@@ -470,6 +473,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
   document.getElementById('mesInput').value=mv;
   renderNivelAtual();
   loadConfig();buildMetasTable();buildFaixasConfig();
+  document.getElementById('cofre_saldo').value=config.cofreSaldo?brFmt(config.cofreSaldo):'';
   renderCofre();renderAuditorias();renderSistemas();
   // Backend é a fonte de verdade quando existe — evita reabrir com dado velho
   // do localStorage depois de lançar em outra máquina.
@@ -533,13 +537,16 @@ function updateCalc(){
 
   const res=parseNum(document.getElementById('i_resultado').value)||0;
   const c=calcMonth(res,meta);
+  const extrasB=mes?extrasDoMes(mes):0;
 
   // KPIs
   document.getElementById('k_bonusB').textContent='R$ '+br2(c.bonusB);
   document.getElementById('k_bonusB_sub').textContent=c.faixaAtingida>=0?config.faixas[c.faixaAtingida].lbl:'sem dividendo';
   document.getElementById('k_bonusA').textContent='R$ '+br2(c.bonusA);
   document.getElementById('k_bonusA_sub').textContent=c.pctMeta>0?c.pctMeta.toFixed(0)+'% da meta':'—';
-  document.getElementById('k_total').textContent='R$ '+br2(c.total);
+  document.getElementById('k_extras').textContent='R$ '+br2(extrasB);
+  document.getElementById('k_extras_sub').textContent=mes?(extrasB?'registrado(s) em '+fmtMes(mes):'—'):'—';
+  document.getElementById('k_total').textContent='R$ '+br2(c.total+extrasB);
   document.getElementById('k_mes_label').textContent=fmtMes(mes)||'—';
 
   // Dividendo
@@ -580,6 +587,15 @@ function getMeta(mes){
   if(config.metasCustom&&config.metasCustom[mes]!==undefined)return config.metasCustom[mes];
   const m=CICLO_MESES.find(c=>c.id===mes);
   return m?m.proj:0;
+}
+
+// Soma os bônus extras (cofre, auditoria, sistemas) que contam no mês informado.
+function extrasDoMes(mes){
+  let tot=0;
+  (extras.sistemas||[]).forEach(s=>{if(s.data===mes)tot+=s.val;});
+  (extras.auditorias||[]).forEach(a=>{if(a.mes===mes)tot+=a.val;});
+  (config.cofreMetas||[]).forEach(m=>{if(m.pago&&m.dataPagMes===mes)tot+=m.bonus;});
+  return tot;
 }
 
 function saveMes(){
@@ -624,15 +640,18 @@ function renderCiclo(){
   sel.value=anos.includes(anoSel)?anoSel:anoAtual;
   const ano=+sel.value;
   const MESES_PT=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  let totB=0,totA=0,totTotal=0;
+  let totB=0,totA=0,totExtras=0,totTotal=0;
   const rows=[];
   for(let mm=1;mm<=12;mm++){
     const mesId=`${ano}-${String(mm).padStart(2,'0')}`;
     const mes=CICLO_MESES.find(c=>c.id===mesId);
+    const ex=extrasDoMes(mesId);
     if(!mes){
+      totExtras+=ex;totTotal+=ex;
       rows.push(`<tr>
         <td class="left"><strong>${MESES_PT[mm-1]}/${String(ano).slice(2)}</strong></td>
-        <td colspan="8" style="color:#b0b8c5;text-align:center">Fora do ciclo</td>
+        <td colspan="7" style="color:#b0b8c5;text-align:center">Fora do ciclo</td>
+        <td class="c-navy"><strong>R$ ${br2(ex)}</strong>${ex?`<div style="font-size:9px;color:#b8863f;font-weight:400">+R$${br2(ex)} extras</div>`:''}</td>
       </tr>`);
       continue;
     }
@@ -642,7 +661,8 @@ function renderCiclo(){
     const meta=getMeta(mes.id);
     const c=calcMonth(calcRes,meta);
     const isReal=res!==null;
-    totB+=c.bonusB;totA+=c.bonusA;totTotal+=c.total;
+    const totalMes=c.total+ex;
+    totB+=c.bonusB;totA+=c.bonusA;totExtras+=ex;totTotal+=totalMes;
     const fxLabel=c.faixaAtingida>=0?`F${c.faixaAtingida+1}`:'—';
     rows.push(`<tr>
       <td class="left"><strong>${mes.lbl}</strong></td>
@@ -653,7 +673,7 @@ function renderCiclo(){
       <td><span style="background:${c.faixaAtingida>=0?'#fff3dc':'#f6f7f9'};color:${c.faixaAtingida>=0?'#8a5a1a':'#b0b8c5'};font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px">${fxLabel}</span></td>
       <td class="c-gold">R$ ${br2(c.bonusB)}</td>
       <td style="color:${c.bonusA>0?'#2e7d5b':'#b0b8c5'}">${c.bonusA>0?'R$ '+br2(c.bonusA):'—'}</td>
-      <td class="c-navy"><strong>R$ ${br2(c.total)}</strong></td>
+      <td class="c-navy"><strong>R$ ${br2(totalMes)}</strong>${ex?`<div style="font-size:9px;color:#b8863f;font-weight:400">+R$${br2(ex)} extras</div>`:''}</td>
     </tr>`);
   }
   document.getElementById('cicloBody').innerHTML=rows.join('')+
@@ -665,6 +685,7 @@ function renderCiclo(){
     </tr>`;
   document.getElementById('ck_bonusB').textContent='R$ '+br2(totB);
   document.getElementById('ck_bonusA').textContent='R$ '+br2(totA);
+  document.getElementById('ck_extras').textContent='R$ '+br2(totExtras);
   document.getElementById('ck_total').textContent='R$ '+br2(totTotal);
 }
 
@@ -746,10 +767,12 @@ function renderCofre(saldo){
 }
 function pagarMarco(i){
   const hoje=new Date().toLocaleDateString('pt-BR');
+  const mes=document.getElementById('mesInput').value||new Date().toISOString().slice(0,7);
   config.cofreMetas[i].pago=true;
   config.cofreMetas[i].dataPag=hoje;
+  config.cofreMetas[i].dataPagMes=mes;
   LS.set('da1_cfg',config);
-  renderCofre();
+  renderCofre();renderCiclo();updateCalc();
   showToast(`Marco ${i+1} do cofre registrado ✓`);
 }
 
@@ -759,11 +782,12 @@ function saveAuditoria(){
   const val=parseNum(document.getElementById('aud_val').value)||0;
   const obs=document.getElementById('aud_obs').value;
   if(!val)return;
-  extras.auditorias.push({ano,val,obs,data:new Date().toLocaleDateString('pt-BR')});
+  const mes=document.getElementById('mesInput').value||new Date().toISOString().slice(0,7);
+  extras.auditorias.push({ano,val,obs,mes,data:new Date().toLocaleDateString('pt-BR')});
   if(!LS.set('da1_ext',extras)){showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.','#b83232');return;}
   document.getElementById('aud_val').value='';
   document.getElementById('aud_obs').value='';
-  renderAuditorias();showToast('Auditoria registrada ✓');
+  renderAuditorias();renderCiclo();updateCalc();showToast('Auditoria registrada ✓');
 }
 function renderAuditorias(){
   const list=extras.auditorias||[];
@@ -780,7 +804,7 @@ function renderAuditorias(){
       </div>
     </div>`).join('');
 }
-function rmAuditoria(i){extras.auditorias.splice(i,1);LS.set('da1_ext',extras);renderAuditorias();}
+function rmAuditoria(i){extras.auditorias.splice(i,1);LS.set('da1_ext',extras);renderAuditorias();renderCiclo();updateCalc();}
 
 // ─── SISTEMAS ─────────────────────────────────────────
 function addSistema(){
@@ -791,7 +815,7 @@ function addSistema(){
   extras.sistemas.push({nome,data,val});
   if(!LS.set('da1_ext',extras)){showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.','#b83232');return;}
   document.getElementById('sis_nome').value='';document.getElementById('sis_val').value='';
-  renderSistemas();showToast('Sistema registrado ✓');
+  renderSistemas();renderCiclo();updateCalc();showToast('Sistema registrado ✓');
 }
 function renderSistemas(){
   const list=extras.sistemas||[];
@@ -812,7 +836,7 @@ function renderSistemas(){
     document.getElementById('sis_total').innerHTML=`Total em sistemas: <strong>R$ ${br2(tot)}</strong>`;
   }
 }
-function rmSistema(i){extras.sistemas.splice(i,1);LS.set('da1_ext',extras);renderSistemas();}
+function rmSistema(i){extras.sistemas.splice(i,1);LS.set('da1_ext',extras);renderSistemas();renderCiclo();updateCalc();}
 
 // ─── CONFIG ───────────────────────────────────────────
 function loadConfig(){
