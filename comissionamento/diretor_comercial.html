@@ -248,6 +248,11 @@ tr:last-child td{border-bottom:none}
     <div class="kpi gold"><div class="kpi-label">Bônus extras</div><div class="kpi-val" id="ck_extras">R$ 0</div></div>
   </div>
 
+  <div class="card gold" style="margin-bottom:14px">
+    <p class="card-title">Remuneração fixa do nível atual <span style="font-weight:400;text-transform:none;color:#99a3b4">— referência, não entra no total variável abaixo</span></p>
+    <div id="nivel_atual_box"></div>
+  </div>
+
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
     <div style="font-size:12px;font-weight:600;color:var(--navy)">Histórico mensal</div>
     <div><label class="lbl" style="display:inline;margin-right:6px">Ano</label><select id="ciclo_ano" onchange="renderCiclo()" style="width:auto"></select></div>
@@ -262,12 +267,6 @@ tr:last-child td{border-bottom:none}
       </thead>
       <tbody id="cicloBody"></tbody>
     </table>
-  </div>
-
-  <!-- REMUNERAÇÃO FIXA -->
-  <div class="card gold">
-    <p class="card-title">Remuneração fixa do nível atual</p>
-    <div id="nivel_atual_box"></div>
   </div>
 
 </div>

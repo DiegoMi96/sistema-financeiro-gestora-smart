@@ -184,7 +184,7 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
               onblur="this.value=this.value?brFmt(parseNum(this.value)):'';updateCalc()"
               onfocus="this.value=this.value?String(parseNum(this.value)):''">
           </div>
-          <div style="font-size:10px;color:#99a3b4;margin-top:3px">Linhas ativadas sem cliente vinculado · tolerância: R$ 5.000</div>
+          <div style="font-size:10px;color:#99a3b4;margin-top:3px">Linhas ativadas sem cliente vinculado</div>
         </div>
         <div style="margin-bottom:12px">
           <label class="lbl">🔍 Desperdício auditoria de base</label>
@@ -193,7 +193,7 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
               onblur="this.value=this.value?brFmt(parseNum(this.value)):'';updateCalc()"
               onfocus="this.value=this.value?String(parseNum(this.value)):''">
           </div>
-          <div style="font-size:10px;color:#99a3b4;margin-top:3px">Diferença vendido→faturado · tolerância: R$ 3.000</div>
+          <div style="font-size:10px;color:#99a3b4;margin-top:3px">Diferença vendido→faturado</div>
         </div>
         <div>
           <label class="lbl">🎓 Treinamentos ministrados no mês</label>
@@ -325,6 +325,11 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
     <div class="kpi" style="border-top-color:#2563eb"><div class="kpi-label">Ganho total ciclo</div><div class="kpi-val" id="ck_total" style="color:#2563eb">R$ 0</div></div>
   </div>
 
+  <div class="card gold" style="margin-bottom:14px">
+    <p class="card-title">Remuneração fixa do nível atual <span style="font-weight:400;text-transform:none;color:#99a3b4">— referência, não entra no total variável abaixo</span></p>
+    <div id="nivel_atual_box"></div>
+  </div>
+
   <!-- Export/Import -->
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding:12px 16px;background:#fff;border:1px solid #e2e5ea;border-radius:4px">
     <div>
@@ -355,11 +360,6 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
       <tbody id="cicloBody"></tbody>
     </table>
   </div>
-
-  <div class="card gold">
-    <p class="card-title">Remuneração fixa do nível atual <span style="font-weight:400;text-transform:none;color:#99a3b4">— referência, não entra no total variável abaixo</span></p>
-    <div id="nivel_atual_box"></div>
-  </div>
 </div>
 
 <!-- ═══ CONFIGURAÇÕES ═══ -->
@@ -381,8 +381,7 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
       <!-- EFICIÊNCIA -->
       <div class="card">
         <p class="card-title">⚡ Eficiência de base · faixas</p>
-        <div style="font-size:11px;color:#55617a;margin-bottom:10px">Quanto menor o desperdício, maior o bônus. Acima da tolerância = R$ 0.</div>
-        <div style="margin-bottom:10px"><label class="lbl">Tolerância máxima</label><div class="irow"><span class="ipfx">R$</span><input type="text" id="r_efic_tol" onblur="config.eficTol=parseNum(this.value);this.value=brFmt(config.eficTol);saveConfig()" onfocus="this.value=String(config.eficTol)" style="max-width:100px"></div></div>
+        <div style="font-size:11px;color:#55617a;margin-bottom:10px">Quanto menor o desperdício, maior o bônus. Acima da faixa máxima = R$ 0.</div>
         <table style="min-width:0">
           <thead><tr><th class="left">Faixa</th><th>Até (R$)</th><th>Bônus</th><th style="width:30px"></th></tr></thead>
           <tbody id="eficConfig"></tbody>
@@ -393,8 +392,7 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
       <!-- AUDITORIA -->
       <div class="card">
         <p class="card-title">🔍 Auditoria de base · faixas</p>
-        <div style="font-size:11px;color:#55617a;margin-bottom:10px">Quanto menor a diferença vendido→faturado, maior o bônus.</div>
-        <div style="margin-bottom:10px"><label class="lbl">Tolerância máxima</label><div class="irow"><span class="ipfx">R$</span><input type="text" id="r_aud_tol" onblur="config.audTol=parseNum(this.value);this.value=brFmt(config.audTol);saveConfig()" onfocus="this.value=String(config.audTol)" style="max-width:100px"></div></div>
+        <div style="font-size:11px;color:#55617a;margin-bottom:10px">Quanto menor a diferença vendido→faturado, maior o bônus. Acima da faixa máxima = R$ 0.</div>
         <table style="min-width:0">
           <thead><tr><th class="left">Faixa</th><th>Até (R$)</th><th>Bônus</th><th style="width:30px"></th></tr></thead>
           <tbody id="audConfig"></tbody>
@@ -436,12 +434,10 @@ const DEF_CONFIG={
     {max:1250,bonus:420},{max:2500,bonus:310},
     {max:3750,bonus:210},{max:5000,bonus:100},
   ],
-  eficTol:5000,
   audFaixas:[
     {max:750,bonus:420},{max:1500,bonus:310},
     {max:2250,bonus:210},{max:3000,bonus:100},
   ],
-  audTol:3000,
   treiVal:500,
 };
 const LS={
@@ -539,14 +535,12 @@ function calcSat(pct){
 
 function calcEfic(desp){
   if(desp===null||desp===undefined||desp==='')return null;
-  if(desp>config.eficTol)return 0;
   for(const f of config.eficFaixas){if(desp<=f.max)return f.bonus;}
   return 0;
 }
 
 function calcAud(desp){
   if(desp===null||desp===undefined||desp==='')return null;
-  if(desp>config.audTol)return 0;
   for(const f of config.audFaixas){if(desp<=f.max)return f.bonus;}
   return 0;
 }
@@ -589,9 +583,9 @@ function updateCalc(){
   document.getElementById('k_sat').textContent='R$ '+br2(satB);
   document.getElementById('k_sat_sub').textContent=sat?sat+'% de satisfação':'—';
   document.getElementById('k_efic').textContent='R$ '+br2(eficB||0);
-  document.getElementById('k_efic_sub').textContent=efic!==null?(efic>config.eficTol?'⚠ tolerância excedida':'R$ '+br2(efic)+' desperd.'):'—';
+  document.getElementById('k_efic_sub').textContent=efic!==null?(efic>config.eficFaixas[config.eficFaixas.length-1].max?'⚠ acima da faixa máxima':'R$ '+br2(efic)+' desperd.'):'—';
   document.getElementById('k_aud').textContent='R$ '+br2(audB||0);
-  document.getElementById('k_aud_sub').textContent=aud!==null?(aud>config.audTol?'⚠ tolerância excedida':'R$ '+br2(aud)+' desperd.'):'—';
+  document.getElementById('k_aud_sub').textContent=aud!==null?(aud>config.audFaixas[config.audFaixas.length-1].max?'⚠ acima da faixa máxima':'R$ '+br2(aud)+' desperd.'):'—';
   document.getElementById('k_trei').textContent='R$ '+br2(treiB);
   document.getElementById('k_trei_sub').textContent=trei?trei+' treinamento(s)':'—';
   document.getElementById('k_extras').textContent='R$ '+br2(extrasB);
@@ -600,8 +594,8 @@ function updateCalc(){
 
   // Pillar cards
   renderPillar('sat',satB,config.satFaixas,sat,'pct','sat');
-  renderPillarDesp('efic',eficB||0,config.eficFaixas,efic,config.eficTol);
-  renderPillarDesp('aud',audB||0,config.audFaixas,aud,config.audTol);
+  renderPillarDesp('efic',eficB||0,config.eficFaixas,efic);
+  renderPillarDesp('aud',audB||0,config.audFaixas,aud);
 
   document.getElementById('p_trei_val').textContent='R$ '+br2(treiB);
   document.getElementById('p_trei_val').className='pillar-bonus '+(treiB>0?'hit':'miss');
@@ -629,10 +623,11 @@ function renderPillar(key,bonus,faixas,val,tipo){
   }
 }
 
-function renderPillarDesp(key,bonus,faixas,val,tol){
+function renderPillarDesp(key,bonus,faixas,val){
   const el=document.getElementById('p_'+key+'_val');
   el.textContent='R$ '+br2(bonus);
-  const excedeu=val!==null&&val>tol;
+  const max=faixas[faixas.length-1].max;
+  const excedeu=val!==null&&val>max;
   el.className='pillar-bonus '+(bonus>0&&!excedeu?'hit':'miss');
   const fb=document.getElementById('fb_'+key);
   fb.innerHTML=faixas.map((f,i)=>{
@@ -647,7 +642,7 @@ function renderPillarDesp(key,bonus,faixas,val,tol){
   const warn=document.getElementById('p_'+key+'_warn');
   if(val!==null){
     if(excedeu){
-      desc.textContent=`R$ ${br2(val)} → tolerância de R$ ${br2(tol)} excedida.`;
+      desc.textContent=`R$ ${br2(val)} está acima da faixa máxima (R$ ${br2(max)}).`;
       warn.textContent='⚠ Sem bônus neste pilar no mês.';
     } else {
       const hit=faixas.find((f,i)=>val<=f.max);
@@ -735,8 +730,8 @@ function renderCiclo(){
     return`<tr>
       <td class="left"><strong>${fmtMes(mes)}</strong></td>
       <td style="color:${satB>0?'#2e7d5b':'#b0b8c5'}">${isReal&&sat?sat+'%':'<span class="c-dim">—</span>'}</td>
-      <td style="color:${eficB>0?'#2e7d5b':(efic!==null&&efic!==undefined&&efic>config.eficTol?'#b83232':'#b0b8c5')}">${efic!==null&&efic!==undefined?'R$ '+br2(efic):'<span class="c-dim">—</span>'}</td>
-      <td style="color:${audB>0?'#2e7d5b':(aud!==null&&aud!==undefined&&aud>config.audTol?'#b83232':'#b0b8c5')}">${aud!==null&&aud!==undefined?'R$ '+br2(aud):'<span class="c-dim">—</span>'}</td>
+      <td style="color:${eficB>0?'#2e7d5b':(efic!==null&&efic!==undefined&&efic>config.eficFaixas[config.eficFaixas.length-1].max?'#b83232':'#b0b8c5')}">${efic!==null&&efic!==undefined?'R$ '+br2(efic):'<span class="c-dim">—</span>'}</td>
+      <td style="color:${audB>0?'#2e7d5b':(aud!==null&&aud!==undefined&&aud>config.audFaixas[config.audFaixas.length-1].max?'#b83232':'#b0b8c5')}">${aud!==null&&aud!==undefined?'R$ '+br2(aud):'<span class="c-dim">—</span>'}</td>
       <td>${trei>0?trei:'<span class="c-dim">—</span>'}</td>
       <td class="c-teal">R$ ${br2(pilares)}</td>
       <td style="font-weight:700;color:var(--navy)">R$ ${br2(totalMes)}${ex?`<div style="font-size:9px;color:#b8863f;font-weight:400">+R$${br2(ex)} extras</div>`:''}</td>
@@ -847,31 +842,29 @@ function buildConfig(){
       <td class="left" style="font-size:11px;color:#55617a">F${i+1}</td>
       <td><input type="number" class="rule-input" value="${f.min}" style="width:55px" onchange="config.satFaixas[${i}].min=+this.value"></td>
       <td><input type="number" class="rule-input" value="${f.max}" style="width:55px" onchange="config.satFaixas[${i}].max=+this.value"></td>
-      <td><div style="display:flex;align-items:center;gap:3px"><span class="ipfx">R$</span><input type="number" class="rule-input" value="${f.bonus}" style="width:60px" onchange="config.satFaixas[${i}].bonus=+this.value"></div></td>
+      <td><div style="display:inline-flex;align-items:center;gap:3px"><span class="ipfx">R$</span><input type="number" class="rule-input" value="${f.bonus}" style="width:60px" onchange="config.satFaixas[${i}].bonus=+this.value"></div></td>
       <td><button class="btn-del" onclick="config.satFaixas.splice(${i},1);buildConfig()">×</button></td>
     </tr>`).join('');
 
   // Eficiência
-  document.getElementById('r_efic_tol').value=brFmt(config.eficTol);
   document.getElementById('eficConfig').innerHTML=config.eficFaixas.map((f,i)=>`
     <tr>
       <td class="left" style="font-size:11px;color:#55617a">F${i+1}</td>
-      <td><div style="display:flex;align-items:center;gap:3px"><span class="ipfx">R$</span><input type="text" class="rule-input" value="${brFmt(f.max)}" style="width:80px"
+      <td><div style="display:inline-flex;align-items:center;gap:3px"><span class="ipfx">R$</span><input type="text" class="rule-input" value="${brFmt(f.max)}" style="width:80px"
         onblur="config.eficFaixas[${i}].max=parseNum(this.value);this.value=brFmt(config.eficFaixas[${i}].max)"
         onfocus="this.value=String(config.eficFaixas[${i}].max)"></div></td>
-      <td><div style="display:flex;align-items:center;gap:3px"><span class="ipfx">R$</span><input type="number" class="rule-input" value="${f.bonus}" style="width:60px" onchange="config.eficFaixas[${i}].bonus=+this.value"></div></td>
+      <td><div style="display:inline-flex;align-items:center;gap:3px"><span class="ipfx">R$</span><input type="number" class="rule-input" value="${f.bonus}" style="width:60px" onchange="config.eficFaixas[${i}].bonus=+this.value"></div></td>
       <td><button class="btn-del" onclick="config.eficFaixas.splice(${i},1);buildConfig()">×</button></td>
     </tr>`).join('');
 
   // Auditoria
-  document.getElementById('r_aud_tol').value=brFmt(config.audTol);
   document.getElementById('audConfig').innerHTML=config.audFaixas.map((f,i)=>`
     <tr>
       <td class="left" style="font-size:11px;color:#55617a">F${i+1}</td>
-      <td><div style="display:flex;align-items:center;gap:3px"><span class="ipfx">R$</span><input type="text" class="rule-input" value="${brFmt(f.max)}" style="width:80px"
+      <td><div style="display:inline-flex;align-items:center;gap:3px"><span class="ipfx">R$</span><input type="text" class="rule-input" value="${brFmt(f.max)}" style="width:80px"
         onblur="config.audFaixas[${i}].max=parseNum(this.value);this.value=brFmt(config.audFaixas[${i}].max)"
         onfocus="this.value=String(config.audFaixas[${i}].max)"></div></td>
-      <td><div style="display:flex;align-items:center;gap:3px"><span class="ipfx">R$</span><input type="number" class="rule-input" value="${f.bonus}" style="width:60px" onchange="config.audFaixas[${i}].bonus=+this.value"></div></td>
+      <td><div style="display:inline-flex;align-items:center;gap:3px"><span class="ipfx">R$</span><input type="number" class="rule-input" value="${f.bonus}" style="width:60px" onchange="config.audFaixas[${i}].bonus=+this.value"></div></td>
       <td><button class="btn-del" onclick="config.audFaixas.splice(${i},1);buildConfig()">×</button></td>
     </tr>`).join('');
 
