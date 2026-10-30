@@ -205,9 +205,11 @@ tr:last-child td{border-bottom:none}
         <div class="card">
           <p class="card-title">📈 Bonificação em Períodos de Reajuste</p>
           <div style="font-size:11px;color:#55617a;margin-bottom:14px">Evento anual de setembro — faixas próprias por ano.</div>
-          <div><label class="lbl">Ano do reajuste</label><input type="number" id="reaj_ano" min="2026" max="2035" value="2027" style="max-width:100px"></div>
-          <div style="margin-top:10px"><label class="lbl">Valor gerado pelo reajuste</label><div class="irow"><span class="ipfx">R$</span><input type="text" id="reaj_val" placeholder="0"
-            onblur="this.value=this.value?brFmt(parseNum(this.value)):''"></div></div>
+          <div class="g2" style="gap:10px">
+            <div><label class="lbl">Ano do reajuste</label><input type="number" id="reaj_ano" min="2026" max="2035" value="2027"></div>
+            <div><label class="lbl">Valor gerado pelo reajuste</label><div class="irow"><span class="ipfx">R$</span><input type="text" id="reaj_val" placeholder="0"
+              onblur="this.value=this.value?brFmt(parseNum(this.value)):''"></div></div>
+          </div>
           <button class="btn" onclick="saveReajuste()" style="width:100%;margin-top:10px">Registrar reajuste</button>
           <div id="reaj_lista" style="margin-top:14px"></div>
         </div>
