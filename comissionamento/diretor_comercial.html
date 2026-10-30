@@ -189,52 +189,49 @@ tr:last-child td{border-bottom:none}
       <div id="canais_lista" style="margin-top:14px"></div>
     </div>
 
+    <!-- BASE CONQUISTADA -->
+    <div class="card">
+      <p class="card-title">🏆 Gratificação por Base Conquistada</p>
+      <div style="margin-bottom:10px"><label class="lbl" style="margin-bottom:4px">Base ativa atual</label><div class="irow" style="width:160px"><input type="number" id="base_atual" min="0" placeholder="linhas" oninput="renderBaseConquistada()" onblur="config.baseAtual=+this.value||0;LS.set('dc1_cfg',config);"></div></div>
+      <div style="font-size:11px;color:#55617a;margin-bottom:14px">Pagamento único por marco — uma vez pago, nunca mais entra no cálculo mesmo que a base continue acima.</div>
+      <div id="base_marcos"></div>
+    </div>
+
     <div class="g2">
-      <div>
-        <!-- REAJUSTE -->
-        <div class="card gold">
-          <p class="card-title">📈 Bonificação em Períodos de Reajuste</p>
-          <div style="font-size:11px;color:#55617a;margin-bottom:14px">Evento anual de setembro — faixas próprias por ano.</div>
-          <div><label class="lbl">Ano do reajuste</label><input type="number" id="reaj_ano" min="2026" max="2035" value="2027" style="max-width:100px"></div>
-          <div style="margin-top:10px"><label class="lbl">Valor gerado pelo reajuste</label><div class="irow"><span class="ipfx">R$</span><input type="text" id="reaj_val" placeholder="0"
-            onblur="this.value=this.value?brFmt(parseNum(this.value)):''"></div></div>
-          <button class="btn-gold" onclick="saveReajuste()" style="width:100%;margin-top:10px">Registrar reajuste</button>
-          <div id="reaj_lista" style="margin-top:14px"></div>
-        </div>
-
-        <!-- SMART NEWS KICK-OFF -->
-        <div class="card">
-          <p class="card-title">📰 SMART News — Kick-off</p>
-          <div style="font-size:11px;color:#55617a;margin-bottom:14px">Pagamento único de R$ 800 no início do projeto — a manutenção mensal (R$200/disparo) é lançada acima, no lançamento do mês.</div>
-          <div style="display:flex;align-items:center;gap:10px">
-            <input type="checkbox" id="news_kickoff" onchange="saveNewsKickoff()" style="width:auto">
-            <label class="lbl" style="margin-bottom:0">Kick-off já pago</label>
-            <span id="news_kickoff_data" style="font-size:11px;color:#99a3b4"></span>
-          </div>
-        </div>
+      <!-- REAJUSTE -->
+      <div class="card">
+        <p class="card-title">📈 Bonificação em Períodos de Reajuste</p>
+        <div style="font-size:11px;color:#55617a;margin-bottom:14px">Evento anual de setembro — faixas próprias por ano.</div>
+        <div><label class="lbl">Ano do reajuste</label><input type="number" id="reaj_ano" min="2026" max="2035" value="2027" style="max-width:100px"></div>
+        <div style="margin-top:10px"><label class="lbl">Valor gerado pelo reajuste</label><div class="irow"><span class="ipfx">R$</span><input type="text" id="reaj_val" placeholder="0"
+          onblur="this.value=this.value?brFmt(parseNum(this.value)):''"></div></div>
+        <button class="btn" onclick="saveReajuste()" style="width:100%;margin-top:10px">Registrar reajuste</button>
+        <div id="reaj_lista" style="margin-top:14px"></div>
       </div>
-      <div>
-        <!-- NOVOS PRODUTOS -->
-        <div class="card">
-          <p class="card-title">🚀 Bonificação por Novos Produtos</p>
-          <div style="font-size:11px;color:#55617a;margin-bottom:14px">Até R$ 3.000 por lançamento, discricionário — mediante aprovação da diretoria.</div>
-          <div><label class="lbl">Nome do produto/serviço</label><input type="text" id="prod_nome" placeholder="Ex: Guardião, Clube SMART"></div>
-          <div class="g2" style="gap:10px;margin-top:10px">
-            <div><label class="lbl">Data</label><input type="month" id="prod_data"></div>
-            <div><label class="lbl">Valor concedido</label><div class="irow"><span class="ipfx">R$</span><input type="text" id="prod_val" placeholder="0"
-              onblur="this.value=this.value?brFmt(parseNum(this.value)):''"></div></div>
-          </div>
-          <button class="btn" onclick="addProduto()" style="margin-top:10px;width:100%">+ Registrar produto</button>
-          <div id="prod_lista" style="margin-top:14px"></div>
-        </div>
 
-        <!-- BASE CONQUISTADA -->
-        <div class="card gold">
-          <p class="card-title">🏆 Gratificação por Base Conquistada</p>
-          <div style="margin-bottom:10px"><label class="lbl" style="margin-bottom:4px">Base ativa atual</label><div class="irow" style="width:160px"><input type="number" id="base_atual" min="0" placeholder="linhas" oninput="renderBaseConquistada()" onblur="config.baseAtual=+this.value||0;LS.set('dc1_cfg',config);"></div></div>
-          <div style="font-size:11px;color:#55617a;margin-bottom:14px">Pagamento único por marco — uma vez pago, nunca mais entra no cálculo mesmo que a base continue acima.</div>
-          <div id="base_marcos"></div>
+      <!-- NOVOS PRODUTOS -->
+      <div class="card">
+        <p class="card-title">🚀 Bonificação por Novos Produtos</p>
+        <div style="font-size:11px;color:#55617a;margin-bottom:14px">Até R$ 3.000 por lançamento, discricionário — mediante aprovação da diretoria.</div>
+        <div><label class="lbl">Nome do produto/serviço</label><input type="text" id="prod_nome" placeholder="Ex: Guardião, Clube SMART"></div>
+        <div class="g2" style="gap:10px;margin-top:10px">
+          <div><label class="lbl">Data</label><input type="month" id="prod_data"></div>
+          <div><label class="lbl">Valor concedido</label><div class="irow"><span class="ipfx">R$</span><input type="text" id="prod_val" placeholder="0"
+            onblur="this.value=this.value?brFmt(parseNum(this.value)):''"></div></div>
         </div>
+        <button class="btn" onclick="addProduto()" style="margin-top:10px;width:100%">+ Registrar produto</button>
+        <div id="prod_lista" style="margin-top:14px"></div>
+      </div>
+    </div>
+
+    <!-- SMART NEWS KICK-OFF -->
+    <div class="card">
+      <p class="card-title">📰 SMART News — Kick-off</p>
+      <div style="font-size:11px;color:#55617a;margin-bottom:14px">Pagamento único de R$ 800 no início do projeto — a manutenção mensal (R$200/disparo) é lançada acima, no lançamento do mês.</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <input type="checkbox" id="news_kickoff" onchange="saveNewsKickoff()" style="width:auto">
+        <label class="lbl" style="margin-bottom:0">Kick-off já pago</label>
+        <span id="news_kickoff_data" style="font-size:11px;color:#99a3b4"></span>
       </div>
     </div>
   </div>
