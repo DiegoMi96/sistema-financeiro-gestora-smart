@@ -315,9 +315,15 @@ tr:last-child td{border-bottom:none}
 
   <div class="rg-section">
     <div class="rg-section-head"><span class="rg-section-label">Smart News</span></div>
-    <div class="card">
-      <div><label class="lbl">Kick-off (pagamento único)</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="r_newsKickoff" step="0.01" oninput="saveConfig()"></div></div>
-      <div style="margin-top:10px"><label class="lbl">Manutenção mensal (por disparo)</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="r_newsManutencao" step="0.01" oninput="saveConfig()"></div></div>
+    <div class="g2">
+      <div class="card">
+        <p class="card-title">Kick-off</p>
+        <div><label class="lbl">Valor (pagamento único)</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="r_newsKickoff" step="0.01" oninput="saveConfig()"></div></div>
+      </div>
+      <div class="card">
+        <p class="card-title">Manutenção mensal</p>
+        <div><label class="lbl">Valor por disparo</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="r_newsManutencao" step="0.01" oninput="saveConfig()"></div></div>
+      </div>
     </div>
   </div>
 
