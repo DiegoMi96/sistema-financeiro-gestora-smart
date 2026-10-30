@@ -28,7 +28,7 @@ body{font-family:'Inter',sans-serif;background:#F5F5F5;color:#1a2332;font-size:1
 .tab-btn:hover:not(.active){color:#333}
 .tab-panel{display:none}.tab-panel.active{display:block}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
-.g2-calc{grid-template-columns:0.85fr 1.15fr}
+.g2-calc{grid-template-columns:0.85fr 1.15fr;align-items:stretch}
 /* Pilares empilhados ao lado de "Dados do mês" (29/10/2026): compactado pra
    aproximar a altura total da coluna de inputs, que tem menos "respiro"
    natural entre os campos. */
@@ -37,7 +37,9 @@ body{font-family:'Inter',sans-serif;background:#F5F5F5;color:#1a2332;font-size:1
 .pillars-col .pillar-header{margin-bottom:8px}
 .pillars-col .faixas-bar{margin-bottom:5px}
 .pillars-col .fb-item{padding:5px 4px}
-.card.card-dados-mes{padding-bottom:30px}
+/* altura 100% em vez de um padding fixo: acompanha a coluna de pilares
+   mesmo quando a largura da tela muda o quanto o texto quebra de linha. */
+.card.card-dados-mes{height:100%;box-sizing:border-box}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
 .g3 > *{min-width:0}
 /* Indicadores operacionais (29/10/2026): 2 cards em cima (Satisfação,
