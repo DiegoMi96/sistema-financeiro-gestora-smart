@@ -191,16 +191,6 @@ tr:last-child td{border-bottom:none}
           <div id="canais_lista" style="margin-top:14px"></div>
         </div>
 
-        <!-- BASE CONQUISTADA -->
-        <div class="card">
-          <p class="card-title">🏆 Gratificação por Base Conquistada</p>
-          <div style="margin-bottom:10px"><label class="lbl" style="margin-bottom:4px">Base ativa atual</label><div class="irow" style="width:160px"><input type="number" id="base_atual" min="0" placeholder="linhas" oninput="renderBaseConquistada()" onblur="config.baseAtual=+this.value||0;LS.set('dc1_cfg',config);"></div></div>
-          <div style="font-size:11px;color:#55617a;margin-bottom:14px">Pagamento único por marco — uma vez pago, nunca mais entra no cálculo mesmo que a base continue acima.</div>
-          <div id="base_marcos"></div>
-        </div>
-      </div>
-
-      <div>
         <!-- REAJUSTE -->
         <div class="card">
           <p class="card-title">📈 Bonificação em Períodos de Reajuste</p>
@@ -226,6 +216,16 @@ tr:last-child td{border-bottom:none}
           </div>
           <button class="btn" onclick="addProduto()" style="margin-top:10px;width:100%">+ Registrar produto</button>
           <div id="prod_lista" style="margin-top:14px"></div>
+        </div>
+      </div>
+
+      <div>
+        <!-- BASE CONQUISTADA -->
+        <div class="card">
+          <p class="card-title">🏆 Gratificação por Base Conquistada</p>
+          <div style="margin-bottom:10px"><label class="lbl" style="margin-bottom:4px">Base ativa atual</label><div class="irow" style="width:160px"><input type="number" id="base_atual" min="0" placeholder="linhas" oninput="renderBaseConquistada()" onblur="config.baseAtual=+this.value||0;LS.set('dc1_cfg',config);"></div></div>
+          <div style="font-size:11px;color:#55617a;margin-bottom:14px">Pagamento único por marco — uma vez pago, nunca mais entra no cálculo mesmo que a base continue acima.</div>
+          <div id="base_marcos"></div>
         </div>
 
         <!-- SMART NEWS KICK-OFF -->
