@@ -840,8 +840,8 @@ function buildConfig(){
   document.getElementById('satConfig').innerHTML=config.satFaixas.map((f,i)=>`
     <tr>
       <td class="left" style="font-size:11px;color:#55617a">F${i+1}</td>
-      <td><input type="number" class="rule-input" value="${f.min}" style="width:55px" onchange="config.satFaixas[${i}].min=+this.value"></td>
-      <td><input type="number" class="rule-input" value="${f.max}" style="width:55px" onchange="config.satFaixas[${i}].max=+this.value"></td>
+      <td><input type="number" class="rule-input" value="${f.min}" style="width:66px" onchange="config.satFaixas[${i}].min=+this.value"></td>
+      <td><input type="number" class="rule-input" value="${f.max}" style="width:66px" onchange="config.satFaixas[${i}].max=+this.value"></td>
       <td><div style="display:inline-flex;align-items:center;gap:3px"><span class="ipfx">R$</span><input type="number" class="rule-input" value="${f.bonus}" style="width:60px" onchange="config.satFaixas[${i}].bonus=+this.value"></div></td>
       <td><button class="btn-del" onclick="config.satFaixas.splice(${i},1);buildConfig()">×</button></td>
     </tr>`).join('');
