@@ -204,8 +204,6 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
           <div style="font-size:10px;color:#99a3b4;margin-top:3px">Até R$ 500 cada · exige exercício de fixação comprovado</div>
         </div>
       </div>
-      <button class="btn" onclick="saveMes()" style="width:100%">Salvar lançamento</button>
-      <button class="btn-ghost" onclick="excluirMes()" style="width:100%;margin-top:8px;color:#b83232;border-color:#e3b9b9">Excluir lançamento deste mês</button>
     </div>
 
     <!-- PILARES OUTPUT -->
@@ -250,17 +248,14 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
         </div>
         <div style="font-size:10px;color:#55617a" id="p_trei_desc">R$ <span id="p_trei_rate">500</span>/treinamento comprovado.</div>
       </div>
-
-      <button class="btn" onclick="saveMes()" style="width:100%;margin-top:10px">Salvar lançamento</button>
     </div>
   </div>
 
-  <!-- Bônus Extras -->
-  <div style="border-top:2px solid var(--navy);margin-bottom:24px;padding-top:20px">
-    <div style="font-size:13px;font-weight:700;color:var(--navy);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px">Bônus Extras</div>
-    <div style="font-size:11px;color:#55617a">Entregas pontuais · pagamento único · valor combinado com o CEO. Entram no total do mês em que foram registradas (campo "Mês de entrega").</div>
-  </div>
+  <button class="btn" onclick="saveMes()" style="width:100%;margin-top:4px">Salvar lançamento</button>
+  <button class="btn-ghost" onclick="excluirMes()" style="width:100%;margin-top:8px;color:#b83232;border-color:#e3b9b9">Excluir lançamento deste mês</button>
 
+  <div class="rg-section" style="margin-top:30px">
+    <div class="rg-section-head"><span class="rg-section-label">Bônus Extras</span><span class="rg-section-desc">Entregas pontuais · pagamento único · valor combinado com o CEO. Entram no total do mês do campo "Mês de entrega".</span></div>
   <div class="g2">
     <div>
       <!-- INOVAÇÃO -->
@@ -316,6 +311,7 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
         <div id="iac_lista" style="margin-top:12px"></div>
       </div>
     </div>
+  </div>
   </div>
 </div>
 

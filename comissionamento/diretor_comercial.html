@@ -146,100 +146,97 @@ tr:last-child td{border-bottom:none}
     <div class="kpi" style="border-top-color:#2563eb"><div class="kpi-label">Total do mês</div><div class="kpi-val" id="k_total" style="color:#2563eb">R$ 0</div><div class="kpi-sub" id="k_mes_label"></div></div>
   </div>
 
-  <div style="max-width:520px">
+  <div class="card">
+    <p class="card-title">Lançamento do mês</p>
+    <div style="margin-bottom:12px">
+      <label class="lbl">Mês do Comissionamento</label>
+      <input type="month" id="mesInput" onchange="carregarMes()" style="max-width:220px">
+    </div>
+    <div class="g2" style="gap:10px">
+      <div><label class="lbl">Volume de vendas (linhas)</label><input type="number" id="i_volume" min="0" oninput="updateCalc()"></div>
+      <div><label class="lbl">Crescimento líquido (linhas)</label><input type="number" id="i_cresc" min="0" oninput="updateCalc()"></div>
+    </div>
+    <div id="dc_imp_info" class="footnote" style="margin-top:8px;display:none"></div>
+    <div class="g2" style="gap:10px;margin-top:10px">
+      <div><label class="lbl">Equipamentos (hardware) vendidos</label><input type="number" id="i_hw" min="0" oninput="updateCalc()"></div>
+      <div>
+        <label class="lbl">Pesquisa de satisfação (só em jan/abr/jul/out)</label>
+        <div class="irow"><input type="number" id="i_sat" min="0" max="100" step="1" placeholder="% de alcance" oninput="updateCalc()"><span class="ipfx">%</span></div>
+      </div>
+    </div>
+    <div style="margin-top:10px;padding-top:10px;border-top:1px solid #eef0f4;display:flex;align-items:center;gap:8px">
+      <input type="checkbox" id="i_news" onchange="updateCalc()" style="width:auto">
+      <label class="lbl" style="margin-bottom:0">Disparo do SMART News feito este mês (+R$ <span id="news_val_label">200</span>)</label>
+    </div>
+  </div>
+  <button class="btn" onclick="saveMes()" style="width:100%">Salvar lançamento do mês</button>
+  <button class="btn-ghost" onclick="excluirMes()" style="width:100%;margin-top:8px;color:#b83232;border-color:#e3b9b9">Excluir lançamento deste mês</button>
+  <div class="footnote" style="margin-top:10px">Canais/Reajuste/Novos Produtos/Base Conquistada são eventos avulsos — contam no total do mês em que foram registrados (não no mês do lançamento normal acima).</div>
+
+  <div class="rg-section" style="margin-top:30px">
+    <div class="rg-section-head"><span class="rg-section-label">Bonificações Extras</span><span class="rg-section-desc">Canais indiretos, reajuste anual, novos produtos e base conquistada — eventos avulsos, pagamento único</span></div>
+
+    <!-- CANAIS INDIRETOS -->
     <div class="card">
-      <p class="card-title">Lançamento do mês</p>
-        <div style="margin-bottom:12px">
-          <label class="lbl">Mês do Comissionamento</label>
-          <input type="month" id="mesInput" onchange="carregarMes()">
+      <p class="card-title">🔗 Bonificação por Novos Canais Indiretos</p>
+      <div style="font-size:11px;color:#55617a;margin-bottom:14px">Indicador Nível II/III, Dealer, Projeto Especial, Broker. Marco A ao assinar/ativar; B/B1/B2 pelo volume acumulado do canal.</div>
+      <div class="g3" style="margin-bottom:10px">
+        <div><label class="lbl">Nome do canal/parceiro</label><input type="text" id="canal_nome" placeholder="Ex: Distribuidora XPTO"></div>
+        <div><label class="lbl">Data de abertura</label><input type="month" id="canal_data"></div>
+        <div><label class="lbl">Volume acumulado (linhas)</label><input type="number" id="canal_vol" min="0"></div>
+      </div>
+      <button class="btn" onclick="addCanal()">+ Registrar canal</button>
+      <div id="canais_lista" style="margin-top:14px"></div>
+    </div>
+
+    <div class="g2">
+      <div>
+        <!-- REAJUSTE -->
+        <div class="card gold">
+          <p class="card-title">📈 Bonificação em Períodos de Reajuste</p>
+          <div style="font-size:11px;color:#55617a;margin-bottom:14px">Evento anual de setembro — faixas próprias por ano.</div>
+          <div><label class="lbl">Ano do reajuste</label><input type="number" id="reaj_ano" min="2026" max="2035" value="2027" style="max-width:100px"></div>
+          <div style="margin-top:10px"><label class="lbl">Valor gerado pelo reajuste</label><div class="irow"><span class="ipfx">R$</span><input type="text" id="reaj_val" placeholder="0"
+            onblur="this.value=this.value?brFmt(parseNum(this.value)):''"></div></div>
+          <button class="btn-gold" onclick="saveReajuste()" style="width:100%;margin-top:10px">Registrar reajuste</button>
+          <div id="reaj_lista" style="margin-top:14px"></div>
         </div>
-        <div class="g2" style="gap:10px">
-          <div><label class="lbl">Volume de vendas (linhas)</label><input type="number" id="i_volume" min="0" oninput="updateCalc()"></div>
-          <div><label class="lbl">Crescimento líquido (linhas)</label><input type="number" id="i_cresc" min="0" oninput="updateCalc()"></div>
-        </div>
-        <div id="dc_imp_info" class="footnote" style="margin-top:8px;display:none"></div>
-        <div style="margin-top:10px"><label class="lbl">Equipamentos (hardware) vendidos</label><input type="number" id="i_hw" min="0" oninput="updateCalc()"></div>
-        <div style="margin-top:10px;padding-top:10px;border-top:1px solid #eef0f4">
-          <label class="lbl">Pesquisa de satisfação (só em jan/abr/jul/out)</label>
-          <div class="irow"><input type="number" id="i_sat" min="0" max="100" step="1" placeholder="% de alcance" oninput="updateCalc()"><span class="ipfx">%</span></div>
-        </div>
-        <div style="margin-top:10px;display:flex;align-items:center;gap:8px">
-          <input type="checkbox" id="i_news" onchange="updateCalc()" style="width:auto">
-          <label class="lbl" style="margin-bottom:0">Disparo do SMART News feito este mês (+R$ <span id="news_val_label">200</span>)</label>
+
+        <!-- SMART NEWS KICK-OFF -->
+        <div class="card">
+          <p class="card-title">📰 SMART News — Kick-off</p>
+          <div style="font-size:11px;color:#55617a;margin-bottom:14px">Pagamento único de R$ 800 no início do projeto — a manutenção mensal (R$200/disparo) é lançada acima, no lançamento do mês.</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <input type="checkbox" id="news_kickoff" onchange="saveNewsKickoff()" style="width:auto">
+            <label class="lbl" style="margin-bottom:0">Kick-off já pago</label>
+            <span id="news_kickoff_data" style="font-size:11px;color:#99a3b4"></span>
+          </div>
         </div>
       </div>
-      <button class="btn" onclick="saveMes()" style="width:100%">Salvar lançamento do mês</button>
-      <button class="btn-ghost" onclick="excluirMes()" style="width:100%;margin-top:8px;color:#b83232;border-color:#e3b9b9">Excluir lançamento deste mês</button>
-      <div class="footnote" style="margin-top:10px">Canais/Reajuste/Novos Produtos/Base Conquistada são eventos avulsos — contam no total do mês em que foram registrados (não no mês do lançamento normal acima).</div>
-  </div>
+      <div>
+        <!-- NOVOS PRODUTOS -->
+        <div class="card">
+          <p class="card-title">🚀 Bonificação por Novos Produtos</p>
+          <div style="font-size:11px;color:#55617a;margin-bottom:14px">Até R$ 3.000 por lançamento, discricionário — mediante aprovação da diretoria.</div>
+          <div><label class="lbl">Nome do produto/serviço</label><input type="text" id="prod_nome" placeholder="Ex: Guardião, Clube SMART"></div>
+          <div class="g2" style="gap:10px;margin-top:10px">
+            <div><label class="lbl">Data</label><input type="month" id="prod_data"></div>
+            <div><label class="lbl">Valor concedido</label><div class="irow"><span class="ipfx">R$</span><input type="text" id="prod_val" placeholder="0"
+              onblur="this.value=this.value?brFmt(parseNum(this.value)):''"></div></div>
+          </div>
+          <button class="btn" onclick="addProduto()" style="margin-top:10px;width:100%">+ Registrar produto</button>
+          <div id="prod_lista" style="margin-top:14px"></div>
+        </div>
 
-  <div style="border-top:2px solid var(--navy);margin-bottom:24px;margin-top:24px;padding-top:20px">
-    <div style="font-size:13px;font-weight:700;color:var(--navy);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px">Bonificações Extras</div>
-    <div style="font-size:11px;color:#55617a">Canais indiretos, reajuste anual, novos produtos e base conquistada — eventos avulsos, pagamento único</div>
-  </div>
-
-  <!-- CANAIS INDIRETOS -->
-  <div class="card">
-    <p class="card-title">🔗 Bonificação por Novos Canais Indiretos</p>
-    <div style="font-size:11px;color:#55617a;margin-bottom:14px">Indicador Nível II/III, Dealer, Projeto Especial, Broker. Marco A ao assinar/ativar; B/B1/B2 pelo volume acumulado do canal.</div>
-    <div class="g3" style="margin-bottom:10px">
-      <div><label class="lbl">Nome do canal/parceiro</label><input type="text" id="canal_nome" placeholder="Ex: Distribuidora XPTO"></div>
-      <div><label class="lbl">Data de abertura</label><input type="month" id="canal_data"></div>
-      <div><label class="lbl">Volume acumulado (linhas)</label><input type="number" id="canal_vol" min="0"></div>
-    </div>
-    <button class="btn" onclick="addCanal()">+ Registrar canal</button>
-    <div id="canais_lista" style="margin-top:14px"></div>
-  </div>
-
-  <!-- REAJUSTE -->
-  <div class="card gold">
-    <p class="card-title">📈 Bonificação em Períodos de Reajuste</p>
-    <div style="font-size:11px;color:#55617a;margin-bottom:14px">Evento anual de setembro — faixas próprias por ano.</div>
-    <div class="g3">
-      <div><label class="lbl">Ano do reajuste</label><input type="number" id="reaj_ano" min="2026" max="2035" value="2027"></div>
-      <div><label class="lbl">Valor gerado pelo reajuste</label><div class="irow"><span class="ipfx">R$</span><input type="text" id="reaj_val" placeholder="0"
-        onblur="this.value=this.value?brFmt(parseNum(this.value)):''"></div></div>
-      <div style="display:flex;align-items:flex-end"><button class="btn-gold" onclick="saveReajuste()" style="width:100%">Registrar reajuste</button></div>
-    </div>
-    <div id="reaj_lista" style="margin-top:14px"></div>
-  </div>
-
-  <!-- NOVOS PRODUTOS -->
-  <div class="card">
-    <p class="card-title">🚀 Bonificação por Novos Produtos</p>
-    <div style="font-size:11px;color:#55617a;margin-bottom:14px">Até R$ 3.000 por lançamento, discricionário — mediante aprovação da diretoria.</div>
-    <div class="g3">
-      <div><label class="lbl">Nome do produto/serviço</label><input type="text" id="prod_nome" placeholder="Ex: Guardião, Clube SMART"></div>
-      <div><label class="lbl">Data</label><input type="month" id="prod_data"></div>
-      <div><label class="lbl">Valor concedido</label><div class="irow"><span class="ipfx">R$</span><input type="text" id="prod_val" placeholder="0"
-        onblur="this.value=this.value?brFmt(parseNum(this.value)):''"></div></div>
-    </div>
-    <button class="btn" onclick="addProduto()" style="margin-top:10px">+ Registrar produto</button>
-    <div id="prod_lista" style="margin-top:14px"></div>
-  </div>
-
-  <!-- SMART NEWS KICK-OFF -->
-  <div class="card">
-    <p class="card-title">📰 SMART News — Kick-off</p>
-    <div style="font-size:11px;color:#55617a;margin-bottom:14px">Pagamento único de R$ 800 no início do projeto — a manutenção mensal (R$200/disparo) é lançada acima, no lançamento do mês.</div>
-    <div style="display:flex;align-items:center;gap:10px">
-      <input type="checkbox" id="news_kickoff" onchange="saveNewsKickoff()" style="width:auto">
-      <label class="lbl" style="margin-bottom:0">Kick-off já pago</label>
-      <span id="news_kickoff_data" style="font-size:11px;color:#99a3b4"></span>
-    </div>
-  </div>
-
-  <!-- BASE CONQUISTADA -->
-  <div class="card gold">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <p class="card-title" style="margin-bottom:0">🏆 Gratificação por Base Conquistada</p>
-      <div style="display:flex;align-items:center;gap:10px">
-        <label class="lbl" style="margin-bottom:0;white-space:nowrap">Base ativa atual:</label>
-        <div class="irow" style="width:160px"><input type="number" id="base_atual" min="0" placeholder="linhas" oninput="renderBaseConquistada()" onblur="config.baseAtual=+this.value||0;LS.set('dc1_cfg',config);"></div>
+        <!-- BASE CONQUISTADA -->
+        <div class="card gold">
+          <p class="card-title">🏆 Gratificação por Base Conquistada</p>
+          <div style="margin-bottom:10px"><label class="lbl" style="margin-bottom:4px">Base ativa atual</label><div class="irow" style="width:160px"><input type="number" id="base_atual" min="0" placeholder="linhas" oninput="renderBaseConquistada()" onblur="config.baseAtual=+this.value||0;LS.set('dc1_cfg',config);"></div></div>
+          <div style="font-size:11px;color:#55617a;margin-bottom:14px">Pagamento único por marco — uma vez pago, nunca mais entra no cálculo mesmo que a base continue acima.</div>
+          <div id="base_marcos"></div>
+        </div>
       </div>
     </div>
-    <div style="font-size:11px;color:#55617a;margin-bottom:14px">Pagamento único por marco — uma vez pago, nunca mais entra no cálculo mesmo que a base continue acima.</div>
-    <div id="base_marcos"></div>
   </div>
 </div>
 
