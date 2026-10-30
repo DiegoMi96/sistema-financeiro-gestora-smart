@@ -29,7 +29,14 @@ body{font-family:'Inter',sans-serif;background:#F5F5F5;color:#1a2332;font-size:1
 .tab-panel{display:none}.tab-panel.active{display:block}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
 .g2-calc{grid-template-columns:0.85fr 1.15fr}
-.g2-calc .g2b{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-content:start}
+/* Pilares empilhados ao lado de "Dados do mês" (29/10/2026): compactado pra
+   aproximar a altura total da coluna de inputs, que tem menos "respiro"
+   natural entre os campos. */
+.pillars-col .pillar{padding:12px;margin-bottom:8px}
+.pillars-col .pillar:last-child{margin-bottom:0}
+.pillars-col .pillar-header{margin-bottom:8px}
+.pillars-col .faixas-bar{margin-bottom:5px}
+.pillars-col .fb-item{padding:5px 4px}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
 .g3 > *{min-width:0}
 /* Indicadores operacionais (29/10/2026): 2 cards em cima (Satisfação,
@@ -129,7 +136,6 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
 @media (max-width:860px){
   .page{padding:24px 16px 60px}
   .g2{grid-template-columns:1fr}
-  .g2-calc .g2b{grid-template-columns:1fr}
   .tab-nav{flex-wrap:wrap}
 }
 </style>
@@ -210,7 +216,7 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
     </div>
 
     <!-- PILARES OUTPUT -->
-    <div class="g2b">
+    <div class="pillars-col">
       <!-- Satisfação -->
       <div class="pillar">
         <div class="pillar-header">
