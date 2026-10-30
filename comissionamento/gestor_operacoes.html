@@ -28,6 +28,8 @@ body{font-family:'Inter',sans-serif;background:#F5F5F5;color:#1a2332;font-size:1
 .tab-btn:hover:not(.active){color:#333}
 .tab-panel{display:none}.tab-panel.active{display:block}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.g2-calc{grid-template-columns:0.85fr 1.15fr}
+.g2-calc .g2b{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-content:start}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
 .g3 > *{min-width:0}
 /* Indicadores operacionais (29/10/2026): 2 cards em cima (Satisfação,
@@ -127,6 +129,7 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
 @media (max-width:860px){
   .page{padding:24px 16px 60px}
   .g2{grid-template-columns:1fr}
+  .g2-calc .g2b{grid-template-columns:1fr}
   .tab-nav{flex-wrap:wrap}
 }
 </style>
@@ -158,7 +161,7 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
     <div class="kpi" style="border-top-color:#2563eb"><div class="kpi-label">Total do mês</div><div class="kpi-val" id="k_total" style="color:#2563eb">R$ 0</div><div class="kpi-sub" id="k_mes_label"></div></div>
   </div>
 
-  <div class="g2">
+  <div class="g2 g2-calc">
     <!-- INPUTS -->
     <div>
       <div class="card">
@@ -207,7 +210,7 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
     </div>
 
     <!-- PILARES OUTPUT -->
-    <div>
+    <div class="g2b">
       <!-- Satisfação -->
       <div class="pillar">
         <div class="pillar-header">
