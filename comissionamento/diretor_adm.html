@@ -240,14 +240,16 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
 
     <div class="g2">
       <!-- AUDITORIA -->
-      <div class="card gold">
+      <div class="card">
         <p class="card-title">🔍 Êxito em Auditoria Contábil</p>
         <div style="font-size:11px;color:#55617a;margin-bottom:14px">Gratificação anual de até R$ 3.000 · avaliação do Dr. Fábio</div>
-        <div><label class="lbl">Ano de referência</label><input type="number" id="aud_ano" min="2026" max="2030" value="2026" style="max-width:100px"></div>
-        <div style="margin-top:10px"><label class="lbl">Valor concedido</label><div class="irow"><span class="ipfx">R$</span><input type="text" id="aud_val" placeholder="0"
-          onblur="this.value=this.value?brFmt(parseNum(this.value)):''"></div></div>
+        <div class="g2" style="gap:10px">
+          <div><label class="lbl">Valor concedido</label><div class="irow"><span class="ipfx">R$</span><input type="text" id="aud_val" placeholder="0"
+            onblur="this.value=this.value?brFmt(parseNum(this.value)):''"></div></div>
+          <div><label class="lbl">Ano de referência</label><input type="number" id="aud_ano" min="2026" max="2030" value="2026"></div>
+        </div>
         <div style="margin-top:10px"><label class="lbl">Observação</label><input type="text" id="aud_obs" placeholder="Ex: 98% de acerto — aprovado pelo Dr. Fábio" style="margin-top:4px"></div>
-        <button class="btn-gold" onclick="saveAuditoria()" style="margin-top:10px;width:100%">Registrar auditoria</button>
+        <button class="btn" onclick="saveAuditoria()" style="margin-top:10px;width:100%">Registrar auditoria</button>
         <div id="aud_historico" style="margin-top:14px"></div>
       </div>
 
@@ -749,17 +751,24 @@ function renderCofre(saldo){
   saldo=saldo||parseNum(document.getElementById('cofre_saldo').value)||0;
   const marcos=config.cofreMetas;
   const maxMarco=1500000;
-  const pct=Math.min(saldo/maxMarco*100,100);
+  // O saldo digitado é "o que sobrou" depois de pagar um marco (pode cair pra
+  // baixo do valor do marco já pago) — sem isso, a barra e o "Faltam R$..."
+  // dos marcos seguintes regrediam visualmente abaixo de um marco já
+  // alcançado/pago (achado do Diego, 30/10/2026). A barra nunca mostra menos
+  // do que o maior marco já pago.
+  const maiorMarcoPago=marcos.reduce((max,m)=>m.pago&&m.marco>max?m.marco:max,0);
+  const saldoVisual=Math.max(saldo,maiorMarcoPago);
+  const pct=Math.min(saldoVisual/maxMarco*100,100);
   document.getElementById('cofre_pbar').style.width=pct+'%';
 
   let html='';
   marcos.forEach((m,i)=>{
-    const atingido=saldo>=m.marco;
+    const atingido=saldoVisual>=m.marco;
     html+=`<div class="marco-row ${m.pago?'pago':''}">
       <div class="marco-icon">${m.pago?'✅':'🏆'}</div>
       <div class="marco-info">
         <div class="marco-nome">Marco ${i+1}: R$${br2(m.marco)}</div>
-        ${m.pago?`<div class="marco-pago">Pago em ${m.dataPag}</div>`:atingido?`<div style="color:#b8863f;font-size:11px;font-weight:600">⭐ Marco atingido — registrar pagamento</div>`:`<div class="marco-pendente">Faltam R$${br2(Math.max(0,m.marco-saldo))}</div>`}
+        ${m.pago?`<div class="marco-pago">Pago em ${m.dataPag}</div>`:atingido?`<div style="color:#b8863f;font-size:11px;font-weight:600">⭐ Marco atingido — registrar pagamento</div>`:`<div class="marco-pendente">Faltam R$${br2(Math.max(0,m.marco-saldoVisual))}</div>`}
       </div>
       <div class="marco-val" style="${m.pago?'color:#2e7d5b':''}">R$ ${m.bonus.toLocaleString('pt-BR')}</div>
       ${atingido&&!m.pago?`<button class="btn-gold btn-sm" onclick="pagarMarco(${i})">Registrar pagamento</button>`:''}
