@@ -120,15 +120,6 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
 .sis-data{font-size:10px;color:#99a3b4;margin-top:2px}
 .sis-val{font-size:16px;font-weight:800;color:var(--gold)}
 
-/* LIVE PREVIEW */
-.calc-preview{background:var(--navy);border-radius:6px;padding:18px 22px;margin-top:14px}
-.cp-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
-.cp-item label{font-size:9px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px}
-.cp-item span{font-size:13px;font-weight:600;color:#fff}
-.cp-sep{font-size:15px;color:rgba(255,255,255,.25)}
-.cp-total{display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,.12);padding-top:12px;margin-top:4px}
-.cp-total-lbl{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.1em}
-.cp-total-val{font-size:28px;font-weight:800;color:#fbbf24}
 
 .toast{position:fixed;bottom:24px;right:24px;background:var(--navy);color:#fff;font-size:12px;font-weight:600;padding:10px 18px;border-radius:4px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:99}
 .toast.show{opacity:1}
@@ -209,20 +200,7 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
       </div>
     </div>
     <div>
-      <div class="calc-preview">
-        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px">Cálculo detalhado</div>
-        <div class="cp-row">
-          <div class="cp-item"><label>Bônus B</label><span id="cp_bonusB">R$ 0</span></div>
-          <span class="cp-sep">+</span>
-          <div class="cp-item"><label>Bônus A</label><span id="cp_bonusA">R$ 0</span></div>
-        </div>
-        <div class="cp-total">
-          <span class="cp-total-lbl">Total do mês</span>
-          <span class="cp-total-val" id="cp_total">R$ 0,00</span>
-        </div>
-      </div>
-
-      <div class="card" style="margin-top:14px">
+      <div class="card">
         <p class="card-title">Bônus A — Resultado Líquido</p>
         <div style="display:flex;justify-content:space-between;margin-bottom:8px">
           <span style="font-size:12px;color:#55617a">Gatilho: resultado ≥ <span id="gatilhoA_label">95%</span> da meta</span>
@@ -601,10 +579,6 @@ function updateCalc(){
     noteEl.style.color='#b83232';noteEl.style.background='#fceaea';
   }
 
-  // Preview strip
-  document.getElementById('cp_bonusB').textContent='R$ '+br2(c.bonusB);
-  document.getElementById('cp_bonusA').textContent='R$ '+br2(c.bonusA);
-  document.getElementById('cp_total').textContent='R$ '+br2(c.total);
 }
 
 function getMeta(mes){

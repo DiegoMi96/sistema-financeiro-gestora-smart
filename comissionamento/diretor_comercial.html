@@ -103,15 +103,6 @@ tr:last-child td{border-bottom:none}
 .sis-data{font-size:10px;color:#99a3b4;margin-top:2px}
 .sis-val{font-size:16px;font-weight:800;color:var(--gold)}
 
-.calc-preview{background:var(--navy);border-radius:6px;padding:18px 22px;margin-top:14px}
-.cp-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
-.cp-item label{font-size:9px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px}
-.cp-item span{font-size:13px;font-weight:600;color:#fff}
-.cp-sep{font-size:15px;color:rgba(255,255,255,.25)}
-.cp-total{display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,.12);padding-top:12px;margin-top:4px}
-.cp-total-lbl{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.1em}
-.cp-total-val{font-size:28px;font-weight:800;color:#fbbf24}
-
 .footnote{background:var(--gold-bg);border:1px solid var(--gold-border);border-radius:4px;padding:12px 16px;font-size:11.5px;color:#7a6636;line-height:1.6;margin-top:14px}
 .toast{position:fixed;bottom:24px;right:24px;background:var(--navy);color:#fff;font-size:12px;font-weight:600;padding:10px 18px;border-radius:4px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:99}
 .toast.show{opacity:1}
@@ -159,10 +150,9 @@ tr:last-child td{border-bottom:none}
     <div class="kpi" style="border-top-color:#2563eb"><div class="kpi-label">Total do mês</div><div class="kpi-val" id="k_total" style="color:#2563eb">R$ 0</div><div class="kpi-sub" id="k_mes_label"></div></div>
   </div>
 
-  <div class="g2">
-    <div>
-      <div class="card">
-        <p class="card-title">Lançamento do mês</p>
+  <div style="max-width:520px">
+    <div class="card">
+      <p class="card-title">Lançamento do mês</p>
         <div style="margin-bottom:12px">
           <label class="lbl">Mês do Comissionamento</label>
           <input type="month" id="mesInput" onchange="carregarMes()">
@@ -184,29 +174,7 @@ tr:last-child td{border-bottom:none}
       </div>
       <button class="btn" onclick="saveMes()" style="width:100%">Salvar lançamento do mês</button>
       <button class="btn-ghost" onclick="excluirMes()" style="width:100%;margin-top:8px;color:#b83232;border-color:#e3b9b9">Excluir lançamento deste mês</button>
-    </div>
-    <div>
-      <div class="calc-preview">
-        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px">Cálculo detalhado do mês</div>
-        <div class="cp-row">
-          <div class="cp-item"><label>Volume</label><span id="cp_volume">R$ 0</span></div>
-          <span class="cp-sep">+</span>
-          <div class="cp-item"><label>Cresc. Líq.</label><span id="cp_cresc">R$ 0</span></div>
-          <span class="cp-sep">+</span>
-          <div class="cp-item"><label>Hardware</label><span id="cp_hw">R$ 0</span></div>
-        </div>
-        <div class="cp-row">
-          <div class="cp-item"><label>Satisfação</label><span id="cp_sat">R$ 0</span></div>
-          <span class="cp-sep">+</span>
-          <div class="cp-item"><label>SMART News</label><span id="cp_news">R$ 0</span></div>
-        </div>
-        <div class="cp-total">
-          <span class="cp-total-lbl">Total do mês</span>
-          <span class="cp-total-val" id="cp_total">R$ 0,00</span>
-        </div>
-      </div>
-      <div class="footnote">Bônus/Canais/Reajuste/Novos Produtos/Base Conquistada não entram aqui — são eventos avulsos, registrados na aba <strong>Ciclo &amp; Bonificações</strong> e somados ao total do mês em que ocorreram.</div>
-    </div>
+      <div class="footnote" style="margin-top:10px">Bônus/Canais/Reajuste/Novos Produtos/Base Conquistada não entram aqui — são eventos avulsos, registrados na aba <strong>Ciclo &amp; Bonificações</strong> e somados ao total do mês em que ocorreram.</div>
   </div>
 </div>
 
@@ -561,13 +529,6 @@ function updateCalc() {
   document.getElementById('k_sat_sub').textContent = d.sat != null ? d.sat + '%' : '—';
   document.getElementById('k_total').textContent = 'R$ ' + br2(c.total);
   document.getElementById('k_mes_label').textContent = fmtMes(document.getElementById('mesInput').value) || '—';
-
-  document.getElementById('cp_volume').textContent = 'R$ ' + br2(c.volumeBonus);
-  document.getElementById('cp_cresc').textContent = 'R$ ' + br2(c.crescBonus);
-  document.getElementById('cp_hw').textContent = 'R$ ' + br2(c.hwBonus);
-  document.getElementById('cp_sat').textContent = 'R$ ' + br2(c.satBonus);
-  document.getElementById('cp_news').textContent = 'R$ ' + br2(c.newsBonus);
-  document.getElementById('cp_total').textContent = 'R$ ' + br2(c.total);
 }
 
 // Preenche os campos com o que já está salvo/importado no mês selecionado.
