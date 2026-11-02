@@ -208,6 +208,9 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
       </div>
       <div class="pbar-wrap"><div class="pbar-fill green" id="pbar_meta" style="width:0%"></div></div>
       <div style="font-size:10px;color:#99a3b4;margin-top:3px" id="meta_pct_bar">0% da meta</div>
+      <div style="margin-top:10px;padding:8px 12px;background:#f0fdf6;border-radius:4px;font-size:11px;color:#2e7d5b;font-weight:600" id="bonusA_note">
+        Informe o resultado e a meta para calcular.
+      </div>
     </div>
   </div>
 
@@ -565,12 +568,18 @@ function updateCalc(){
   document.getElementById('pbar_meta').style.width=pct+'%';
   document.getElementById('meta_pct_bar').textContent=c.pctMeta.toFixed(0)+'% da meta (gatilho: '+config.gatilhoA+'%)';
   const statusEl=document.getElementById('bonusA_status');
+  const noteEl=document.getElementById('bonusA_note');
   if(res===0){
     statusEl.textContent='—';statusEl.style.color='#99a3b4';
+    noteEl.textContent='Informe o resultado realizado.';noteEl.style.color='#55617a';noteEl.style.background='#f6f7f9';
   } else if(c.bonusA>0){
     statusEl.textContent='✓ Atingido';statusEl.style.color='#2e7d5b';
+    noteEl.textContent=`✓ Resultado (${c.pctMeta.toFixed(0)}% da meta) ≥ ${config.gatilhoA}% — Bônus A de R$ ${br2(config.valorA)} liberado.`;
+    noteEl.style.color='#2e7d5b';noteEl.style.background='#f0fdf6';
   } else {
     statusEl.textContent='✗ Não atingido';statusEl.style.color='#b83232';
+    noteEl.textContent=`✗ Resultado (${c.pctMeta.toFixed(0)}% da meta) < ${config.gatilhoA}% — Bônus A não liberado.`;
+    noteEl.style.color='#b83232';noteEl.style.background='#fceaea';
   }
 
 }
