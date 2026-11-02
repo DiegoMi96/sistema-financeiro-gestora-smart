@@ -702,6 +702,12 @@ iframe.active{display:block}
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       <span class="pb-label">Importar</span>
     </button>
+    <div class="nav-sep"></div>
+    <div class="nav-label">Relatórios</div>
+    <button class="profile-btn" data-p="relatorios" title="Relatórios">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path stroke-linecap="round" stroke-linejoin="round" d="M14 2v6h6M9 13h6M9 17h6M9 9h1"/></svg>
+      <span class="pb-label">Relatórios</span>
+    </button>
   </div>
 
   <div style="padding:10px 8px 0">
@@ -1105,6 +1111,18 @@ iframe.active{display:block}
       </div>
     </div>
 
+    <div class="panel" id="frame-relatorios">
+      <div class="cad-page-wrap">
+        <div class="cad-page-hdr">
+          <div>
+            <h1>Relatórios</h1>
+            <p class="cad-sub">Baixe a planilha de comissionamento de qualquer vendedor ou parceiro. Só aparecem aqui os perfis que você tem permissão de ver — a mesma definida em Gestão de Acessos.</p>
+          </div>
+        </div>
+        <div id="rel_secoes"></div>
+      </div>
+    </div>
+
     <!-- ?b=N é só cache-busting: o navegador guarda esses arquivos em cache
          agressivamente, e sem isso uma edição no perfil não aparece nem com F5
          normal. Suba o número sempre que mexer em algum desses arquivos. -->
@@ -1114,7 +1132,7 @@ iframe.active{display:block}
     <iframe id="frame-projeto_especial" src="projeto_especial.html?b=43" title="Projeto Especial"></iframe>
     <iframe id="frame-gestor_operacoes" src="gestor_operacoes.html?b=36" title="Gestor de Operações"></iframe>
     <iframe id="frame-diretor_adm" src="diretor_adm.html?b=35" title="Diretor Administrativo"></iframe>
-    <iframe id="frame-diretor_comercial" src="diretor_comercial.html?b=38" title="Diretor Comercial"></iframe>
+    <iframe id="frame-diretor_comercial" src="diretor_comercial.html?b=39" title="Diretor Comercial"></iframe>
   </div>
 </div>
 
@@ -1356,7 +1374,7 @@ iframe.active{display:block}
 // ids de cada arquivo original ficam isolados entre si. Só carrega o iframe
 // de verdade (src) na primeira vez que a aba é clicada, pra abrir mais rápido.
 const PROFILES = ['vendedor', 'dealer', 'indicadores', 'projeto_especial', 'gestor_operacoes', 'diretor_adm', 'diretor_comercial'];
-const ALL_PANELS = ['consolidado', 'executivo', 'cadastro', 'importar', ...PROFILES];
+const ALL_PANELS = ['consolidado', 'executivo', 'cadastro', 'importar', 'relatorios', ...PROFILES];
 
 // Guarda o último painel aberto pra sobreviver ao F5 — sem isso, a página
 // sempre voltava pra Visão Consolidada mesmo que o usuário estivesse em
@@ -1492,6 +1510,7 @@ function ativarPainel(p) {
   if (p === 'executivo') renderExecutivo();
   if (p === 'cadastro') { renderCadastro(); cadSincronizarNovos(); }
   if (p === 'importar') renderImportar();
+  if (p === 'relatorios') renderRelatorios();
 
   try { localStorage.setItem(PAINEL_KEY, p); } catch {}
 }
@@ -2157,6 +2176,115 @@ function exportExecAtual() {
   }
   const info = EXEC_PERFIL_MAP[tipo];
   document.getElementById(info.frame).contentWindow?.[info.exportFn]?.(id, mes);
+}
+
+// ─── RELATÓRIOS ─────────────────────────────────────────
+// Baixa a planilha de qualquer perfil de um lugar só, sem abrir cada perfil.
+// Cada seção só aparece se o usuário logado tiver a permissão do painel
+// correspondente (podeVerPainel) — mesma regra que já esconde/mostra os
+// botões do menu lateral, não é um controle de acesso novo (pedido do
+// Diego, 02/11/2026: "o sistema vai precisar entender isso pra liberar o
+// que já está definido" — ele já está definido em Gestão de Acessos).
+const RELATORIO_SECOES = [
+  { painel: 'vendedor', titulo: 'Vendedor', key: 'gs5_v', def: CONS_DEFAULTS.vendedores, frame: 'frame-vendedor', exportFn: 'exportVendedor', tipo: 'lista' },
+  { painel: 'dealer', titulo: 'Dealer', key: 'dp1_dealers', def: CONS_DEFAULTS.dealers, frame: 'frame-dealer', exportFn: 'exportEntity', tipo: 'lista' },
+  { painel: 'indicadores', titulo: 'Indicador', key: 'ind1_list', def: CONS_DEFAULTS.indicadores, frame: 'frame-indicadores', exportFn: 'exportInd', tipo: 'lista' },
+  { painel: 'projeto_especial', titulo: 'Projeto Especial', key: 'dp1_projetos', def: CONS_DEFAULTS.projetos, frame: 'frame-projeto_especial', exportFn: 'exportEntity', tipo: 'lista' },
+  { painel: 'gestor_operacoes', titulo: 'Gestor de Operações', frame: 'frame-gestor_operacoes', exportFn: 'exportCiclo', tipo: 'unico' },
+  { painel: 'diretor_comercial', titulo: 'Diretor Comercial', frame: 'frame-diretor_comercial', exportFn: 'exportCiclo', tipo: 'unico' },
+  { painel: 'diretor_adm', titulo: 'Diretor Administrativo', frame: 'frame-diretor_adm', exportFn: 'exportCiclo', tipo: 'unico' },
+];
+function relMesAtual() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+function renderRelatorios() {
+  const wrap = document.getElementById('rel_secoes');
+  const visiveis = RELATORIO_SECOES.filter(s => podeVerPainel(s.painel));
+  if (!visiveis.length) {
+    wrap.innerHTML = `<div class="cad-list-card"><p style="font-size:12.5px;color:#777">Você não tem acesso a nenhum relatório de comissionamento. Fale com o administrador se precisar de acesso.</p></div>`;
+    return;
+  }
+  wrap.innerHTML = visiveis.map(s => s.tipo === 'lista' ? relSecaoLista(s) : relSecaoUnica(s)).join('');
+}
+function relSecaoLista(s) {
+  const lista = CLS.get(s.key, s.def || []);
+  return `
+    <div class="cad-list-card" style="margin-bottom:20px">
+      <div class="cad-list-hdr">
+        <h2>${s.titulo}</h2>
+        <p class="cad-list-sub">${lista.length} cadastrado${lista.length === 1 ? '' : 's'}</p>
+      </div>
+      <div class="cad-toolbar">
+        <label class="cad-search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input type="text" placeholder="Buscar por nome…" oninput="relFiltrar('${s.painel}', this.value)"></label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#55617a;white-space:nowrap">Mês<input type="month" id="rel_mes_${s.painel}" value="${relMesAtual()}" style="height:36px"></label>
+        <button type="button" class="cad-btn-outline" onclick="relSelecionarTodos('${s.painel}')">Selecionar todos</button>
+        <button type="button" class="cad-btn" onclick="relBaixarSelecionados('${s.painel}')">Baixar selecionados</button>
+      </div>
+      <div class="cad-table-wrap">
+        <table>
+          <thead><tr><th style="width:30px"></th><th>Nome</th><th style="width:120px"></th></tr></thead>
+          <tbody id="rel_tbody_${s.painel}">${lista.map(p => relLinha(s, p)).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+function relSecaoUnica(s) {
+  return `
+    <div class="cad-list-card" style="margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;gap:16px">
+      <div>
+        <h2 style="font-size:15px;font-weight:800;color:#1a1a18;margin:0 0 2px">${s.titulo}</h2>
+        <p style="font-size:12px;color:#777">Planilha com o ciclo completo deste perfil.</p>
+      </div>
+      <button type="button" class="cad-btn" onclick="relBaixarUnico('${s.painel}', this)">Baixar relatório</button>
+    </div>`;
+}
+function relLinha(s, p) {
+  return `<tr data-rel-row="${s.painel}" data-nome="${(p.nome || '').toLowerCase()}">
+    <td><input type="checkbox" class="rel-chk-${s.painel}" value="${p.id}"></td>
+    <td>${p.nome}</td>
+    <td style="text-align:right"><button type="button" class="cad-btn-outline" onclick="relBaixarUm('${s.painel}', '${p.id}', this)">Baixar</button></td>
+  </tr>`;
+}
+function relFiltrar(painel, termo) {
+  const t = termo.trim().toLowerCase();
+  document.querySelectorAll(`tr[data-rel-row="${painel}"]`).forEach(tr => {
+    tr.style.display = !t || tr.dataset.nome.includes(t) ? '' : 'none';
+  });
+}
+function relSelecionarTodos(painel) {
+  const chks = [...document.querySelectorAll(`.rel-chk-${painel}`)].filter(c => c.closest('tr').style.display !== 'none');
+  const marcar = chks.some(c => !c.checked);
+  chks.forEach(c => { c.checked = marcar; });
+}
+async function relExecutar(sec, id, mes, btnEl) {
+  const frame = document.getElementById(sec.frame)?.contentWindow;
+  const fn = frame?.[sec.exportFn];
+  if (!fn) { console.warn('[Relatórios] ' + sec.exportFn + ' indisponível em ' + sec.frame); return; }
+  const original = btnEl ? btnEl.textContent : null;
+  if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Gerando…'; }
+  try { await fn(id, mes); } finally {
+    if (btnEl) { btnEl.disabled = false; btnEl.textContent = original; }
+  }
+}
+function relBaixarUm(painel, id, btnEl) {
+  const sec = RELATORIO_SECOES.find(s => s.painel === painel);
+  const mes = document.getElementById('rel_mes_' + painel).value || relMesAtual();
+  relExecutar(sec, id, mes, btnEl);
+}
+function relBaixarUnico(painel, btnEl) {
+  const sec = RELATORIO_SECOES.find(s => s.painel === painel);
+  relExecutar(sec, undefined, undefined, btnEl);
+}
+async function relBaixarSelecionados(painel) {
+  const sec = RELATORIO_SECOES.find(s => s.painel === painel);
+  const mes = document.getElementById('rel_mes_' + painel).value || relMesAtual();
+  const ids = [...document.querySelectorAll(`.rel-chk-${painel}:checked`)].map(c => c.value);
+  if (!ids.length) return;
+  for (const id of ids) {
+    await relExecutar(sec, id, mes, null);
+    await new Promise(r => setTimeout(r, 300)); // intervalo entre downloads — evita o navegador bloquear vários de uma vez
+  }
 }
 
 function consDealerProjetoTotais(mes) {

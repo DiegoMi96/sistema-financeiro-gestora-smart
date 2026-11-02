@@ -338,7 +338,7 @@ tr:last-child td{border-bottom:none}
 
 </div>
 <div class="toast" id="toast"></div>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 // ─── DEFAULTS ────────────────────────────────────────
 // Honorário fixo + verba de apoio — só referência informativa (não entra no
@@ -642,6 +642,27 @@ function renderCiclo() {
   document.getElementById('cicloBody').innerHTML = rows;
   document.getElementById('ck_total').textContent = 'R$ ' + br2(totGeral);
   document.getElementById('ck_extras').textContent = 'R$ ' + br2(totExtras);
+}
+
+// Exporta todos os anos com lançamento (não só o ano selecionado na tela) —
+// mesmo padrão de exportCiclo() de gestor_operacoes.html/diretor_adm.html.
+function exportCiclo() {
+  const anos = cicloAnosDisponiveis().slice().sort((a, b) => a - b);
+  const rows = [['Mês', 'Volume', 'Cresc. Líquido', 'Hardware', 'Satisfação', 'SMART News', 'Total']];
+  anos.forEach(ano => {
+    const meses = Array.from({ length: 12 }, (_, i) => `${ano}-${String(i + 1).padStart(2, '0')}`);
+    meses.forEach(mes => {
+      const d = mdata[mes] || {};
+      const c = calcMonth(d);
+      const ex = extrasDoMes(mes);
+      rows.push([fmtMes(mes), c.volumeBonus, c.crescBonus, c.hwBonus, d.sat != null ? c.satBonus : '', d.news ? c.newsBonus : '', c.total + ex]);
+    });
+  });
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb, ws, 'CICLO');
+  XLSX.writeFile(wb, 'Ciclo_Diretor_Comercial.xlsx');
+  showToast('↓ Ciclo exportado');
 }
 
 // ─── CANAIS INDIRETOS ─────────────────────────────────
