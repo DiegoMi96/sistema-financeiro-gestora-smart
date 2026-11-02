@@ -482,6 +482,16 @@ iframe.active{display:block}
 .cad-list-card .cad-table-wrap{border:1px solid #eeede8;border-radius:10px}
 .cad-list-card .cad-table-wrap th{background:#f7f7f4;padding:9px 12px}
 .cad-list-card .cad-table-wrap td{padding:10px 12px;font-size:12px}
+.rel-mes-field{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#55617a;white-space:nowrap;background:#fff;border:1px solid #d4d3ce;border-radius:8px;height:36px;padding:0 12px}
+.rel-mes-field input{border:none;background:none;outline:none;font-size:12px;font-family:'Inter',sans-serif;color:#1a1a18;padding:0;height:100%}
+.rel-cat-strip{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.rel-cat-chip{flex:1;min-width:128px;background:#fff;border:1px solid #e5e4df;border-left:3px solid var(--cor,#1a1a18);border-radius:8px;padding:11px 14px;cursor:pointer;transition:box-shadow .15s,background .15s}
+.rel-cat-chip:hover{box-shadow:0 2px 10px rgba(0,0,0,.07)}
+.rel-cat-chip.active{background:var(--cor-soft,#f5f4f0)}
+.rel-cat-chip .rel-cat-num{font-size:20px;font-weight:800;color:#1a1a18;font-variant-numeric:tabular-nums;display:block;line-height:1.1}
+.rel-cat-chip .rel-cat-label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#777;display:block;margin-top:4px;white-space:nowrap}
+.rel-group-row td{background:#f7f7f4 !important;font-size:10.5px !important;font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:7px 14px !important}
+#rel_baixar_sel:disabled{opacity:.4;cursor:not-allowed}
 .cad-st{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:4px 11px;border-radius:12px;white-space:nowrap}
 .cad-st.pend{background:#fef3e2;color:#b45309}
 .cad-st.ok{background:#eaf5f0;color:#1c4d24}
@@ -2223,6 +2233,7 @@ const REL_COR = {
   gestor_operacoes: '#0d6e5f', diretor_comercial: '#0f2340', diretor_adm: '#b8863f',
 };
 let REL_LINHAS = [];
+let REL_FILTRO_CAT = '';
 function renderRelatorios() {
   const wrap = document.getElementById('rel_secoes');
   const visiveis = RELATORIO_SECOES.filter(s => podeVerPainel(s.painel));
@@ -2230,12 +2241,40 @@ function renderRelatorios() {
     wrap.innerHTML = `<div class="cad-list-card"><p style="font-size:12.5px;color:#777">Você não tem acesso a nenhum relatório de comissionamento. Fale com o administrador se precisar de acesso.</p></div>`;
     return;
   }
+  REL_FILTRO_CAT = '';
   REL_LINHAS = [];
   visiveis.forEach(s => {
     if (s.tipo === 'lista') CLS.get(s.key, s.def || []).forEach(p => REL_LINHAS.push({ sec: s, id: p.id, nome: p.nome }));
     else REL_LINHAS.push({ sec: s, id: null, nome: s.titulo });
   });
+  // Tiras de categoria clicáveis substituem o <select> — mostram de cara
+  // quantos relatórios existem em cada perfil e servem de filtro rápido.
+  const chips = visiveis.map(s => {
+    const n = REL_LINHAS.filter(l => l.sec.painel === s.painel).length;
+    const cor = REL_COR[s.painel] || '#1a1a18';
+    return `<div class="rel-cat-chip" data-cat="${s.painel}" style="--cor:${cor};--cor-soft:${cor}14" onclick="relFiltrarCategoria('${s.painel}')">
+      <span class="rel-cat-num">${n}</span><span class="rel-cat-label">${s.titulo}</span>
+    </div>`;
+  }).join('');
+  // Linhas agrupadas por categoria (ordem = ordem dos perfis em RELATORIO_SECOES),
+  // com um cabeçalho de grupo colorido em vez de repetir o selo em cada linha.
+  const rowsHtml = [];
+  let catAtual = null;
+  REL_LINHAS.forEach((l, i) => {
+    if (l.sec.painel !== catAtual) {
+      catAtual = l.sec.painel;
+      const cor = REL_COR[catAtual] || '#1a1a18';
+      rowsHtml.push(`<tr class="rel-group-row" data-group="${catAtual}"><td colspan="3" style="color:${cor}">${l.sec.titulo}</td></tr>`);
+    }
+    rowsHtml.push(relLinha(l, i));
+  });
   wrap.innerHTML = `
+    <div class="rel-cat-strip">
+      <div class="rel-cat-chip active" data-cat="" style="--cor:#1a1a18;--cor-soft:#f5f4f0" onclick="relFiltrarCategoria('')">
+        <span class="rel-cat-num">${REL_LINHAS.length}</span><span class="rel-cat-label">Todos</span>
+      </div>
+      ${chips}
+    </div>
     <div class="cad-list-card">
       <div class="cad-list-hdr">
         <h2>Todos os relatórios</h2>
@@ -2243,44 +2282,60 @@ function renderRelatorios() {
       </div>
       <div class="cad-toolbar">
         <label class="cad-search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input type="text" id="rel_busca" placeholder="Buscar por nome…" oninput="relAplicarFiltros()"></label>
-        <select id="rel_filtro_categoria" onchange="relAplicarFiltros()">
-          <option value="">Todas as categorias</option>
-          ${visiveis.map(s => `<option value="${s.painel}">${s.titulo}</option>`).join('')}
-        </select>
-        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#55617a;white-space:nowrap">Mês<input type="month" id="rel_mes" value="${relMesAtual()}" style="height:36px"></label>
+        <label class="rel-mes-field">Mês<input type="month" id="rel_mes" value="${relMesAtual()}"></label>
         <button type="button" class="cad-btn-outline" onclick="relSelecionarTodos()">Selecionar todos</button>
-        <button type="button" class="cad-btn" onclick="relBaixarSelecionados()">Baixar selecionados</button>
+        <button type="button" class="cad-btn" id="rel_baixar_sel" onclick="relBaixarSelecionados()" disabled>Baixar selecionados</button>
       </div>
       <div class="cad-table-wrap">
-        <table>
-          <thead><tr><th style="width:30px"></th><th>Nome</th><th>Categoria</th><th style="width:120px"></th></tr></thead>
-          <tbody id="rel_tbody">${REL_LINHAS.map((l, i) => relLinha(l, i)).join('')}</tbody>
+        <table style="min-width:0">
+          <thead><tr><th style="width:30px"></th><th>Nome</th><th style="width:120px"></th></tr></thead>
+          <tbody id="rel_tbody">${rowsHtml.join('')}</tbody>
         </table>
       </div>
     </div>`;
 }
 function relLinha(l, i) {
-  const cor = REL_COR[l.sec.painel] || '#1a1a18';
   return `<tr data-rel-idx="${i}" data-nome="${l.nome.toLowerCase()}" data-cat="${l.sec.painel}">
-    <td><input type="checkbox" class="rel-chk" value="${i}"></td>
+    <td><input type="checkbox" class="rel-chk" value="${i}" onchange="relAtualizarBotaoBaixar()"></td>
     <td>${l.nome}</td>
-    <td><span class="cad-tipo-pill" style="background:${cor}22;color:${cor}">${l.sec.titulo}</span></td>
     <td style="text-align:right"><button type="button" class="cad-btn-outline" onclick="relBaixarLinha(${i}, this)">Baixar</button></td>
   </tr>`;
 }
+function relFiltrarCategoria(cat) {
+  REL_FILTRO_CAT = cat;
+  document.querySelectorAll('.rel-cat-chip').forEach(c => c.classList.toggle('active', c.dataset.cat === cat));
+  relAplicarFiltros();
+}
 function relAplicarFiltros() {
   const termo = (document.getElementById('rel_busca').value || '').trim().toLowerCase();
-  const cat = document.getElementById('rel_filtro_categoria').value;
-  document.querySelectorAll('#rel_tbody tr').forEach(tr => {
+  const cat = REL_FILTRO_CAT;
+  const catVisivelCount = {};
+  document.querySelectorAll('#rel_tbody tr[data-rel-idx]').forEach(tr => {
     const okNome = !termo || tr.dataset.nome.includes(termo);
     const okCat = !cat || tr.dataset.cat === cat;
-    tr.style.display = okNome && okCat ? '' : 'none';
+    const show = okNome && okCat;
+    tr.style.display = show ? '' : 'none';
+    if (show) catVisivelCount[tr.dataset.cat] = (catVisivelCount[tr.dataset.cat] || 0) + 1;
   });
+  document.querySelectorAll('#rel_tbody tr.rel-group-row').forEach(tr => {
+    tr.style.display = catVisivelCount[tr.dataset.group] ? '' : 'none';
+  });
+  relAtualizarBotaoBaixar();
 }
 function relSelecionarTodos() {
   const chks = [...document.querySelectorAll('.rel-chk')].filter(c => c.closest('tr').style.display !== 'none');
   const marcar = chks.some(c => !c.checked);
   chks.forEach(c => { c.checked = marcar; });
+  relAtualizarBotaoBaixar();
+}
+function relAtualizarBotaoBaixar() {
+  const btn = document.getElementById('rel_baixar_sel');
+  if (!btn) return;
+  // Conta TODOS os marcados, não só os visíveis no filtro atual — um filtro
+  // não pode "esconder" uma seleção que o botão ainda vai baixar.
+  const marcados = document.querySelectorAll('.rel-chk:checked').length;
+  btn.disabled = marcados === 0;
+  btn.textContent = marcados ? `Baixar selecionados (${marcados})` : 'Baixar selecionados';
 }
 async function relExecutar(sec, id, mes, btnEl) {
   const frame = document.getElementById(sec.frame)?.contentWindow;
