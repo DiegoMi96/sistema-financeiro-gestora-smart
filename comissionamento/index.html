@@ -601,6 +601,23 @@ iframe.active{display:block}
     width:260px;max-width:82vw;
   }
   .sidebar.open{transform:translateX(0)}
+  /* Recolher/expandir é recurso de desktop — no mobile o menu já é off-canvas.
+     Mas a classe .collapsed (regra fora de media query, lá em cima) é mais
+     específica que o .sidebar{width:260px} daqui e vencia mesmo no mobile —
+     quem tivesse deixado o menu recolhido no desktop abria o menu no celular
+     só com ícones, sem nome nenhum (achado 02/11/2026). Essas regras anulam
+     o recolhido sempre que o menu está aberto (.open) no mobile. */
+  .sidebar.open.collapsed{width:260px;max-width:82vw}
+  .sidebar.open.collapsed .sidebar-header{justify-content:flex-start;padding:16px}
+  .sidebar.open.collapsed .sidebar-header.logo-loaded .brand-logo-crop{display:block}
+  .sidebar.open.collapsed .sidebar-header.logo-loaded .brand-logo-mini{display:none}
+  .sidebar.open.collapsed .nav-label,
+  .sidebar.open.collapsed .pb-label,
+  .sidebar.open.collapsed .acct-text{display:block}
+  .sidebar.open.collapsed .profile-btn{justify-content:flex-start;padding:9px 14px}
+  .sidebar.open.collapsed #btnTrocarModulo{justify-content:flex-start!important;padding:7px 10px!important}
+  .sidebar.open.collapsed .acct-card{justify-content:flex-start!important;background:#f5f4f0!important;padding:8px!important}
+  .sidebar.open.collapsed #btnSairConta{justify-content:flex-start!important;padding:6px 10px!important}
   /* Recolher/expandir é recurso de desktop — no mobile o menu já é off-canvas */
   #btnCollapseSidebar{display:none}
   .sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:290}
