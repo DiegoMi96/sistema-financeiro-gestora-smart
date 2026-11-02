@@ -169,20 +169,22 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
           <label class="lbl">Mês do Comissionamento</label>
           <input type="month" id="mesInput" onchange="updateCalc()">
         </div>
-        <div style="margin-bottom:12px">
-          <label class="lbl">Resultado líquido realizado</label>
-          <div class="irow"><span class="ipfx">R$</span><input type="text" id="i_resultado" placeholder="0"
-            oninput="updateCalc()"
-            onblur="this.value=this.value?brFmt(parseNum(this.value)):'';updateCalc()"
-            onfocus="this.value=this.value?String(parseNum(this.value)):''"></div>
-        </div>
-        <div>
-          <label class="lbl">Meta do mês <span style="font-weight:400;text-transform:none;color:#99a3b4">— puxada de Configurações</span></label>
-          <div class="irow">
-            <span class="ipfx">R$</span>
-            <input type="text" id="i_meta" readonly style="background:#eef1f6;color:#55617a;cursor:default;border-color:#dde0e6" placeholder="—">
+        <div class="g2" style="gap:10px">
+          <div>
+            <label class="lbl">Meta do mês <span style="font-weight:400;text-transform:none;color:#99a3b4">— puxada de Configurações</span></label>
+            <div class="irow">
+              <span class="ipfx">R$</span>
+              <input type="text" id="i_meta" readonly style="background:#eef1f6;color:#55617a;cursor:default;border-color:#dde0e6" placeholder="—">
+            </div>
+            <div style="font-size:10px;color:#99a3b4;margin-top:4px">Para alterar: Configurações → Metas mensais do ciclo</div>
           </div>
-          <div style="font-size:10px;color:#99a3b4;margin-top:4px">Para alterar: Configurações → Metas mensais do ciclo</div>
+          <div>
+            <label class="lbl">Resultado líquido realizado</label>
+            <div class="irow"><span class="ipfx">R$</span><input type="text" id="i_resultado" placeholder="0"
+              oninput="updateCalc()"
+              onblur="this.value=this.value?brFmt(parseNum(this.value)):'';updateCalc()"
+              onfocus="this.value=this.value?String(parseNum(this.value)):''"></div>
+          </div>
         </div>
       </div>
     </div>
