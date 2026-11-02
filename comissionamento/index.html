@@ -484,12 +484,6 @@ iframe.active{display:block}
 .cad-list-card .cad-table-wrap td{padding:10px 12px;font-size:12px}
 .rel-mes-field{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#55617a;white-space:nowrap;background:#fff;border:1px solid #d4d3ce;border-radius:8px;height:36px;padding:0 12px}
 .rel-mes-field input{border:none;background:none;outline:none;font-size:12px;font-family:'Inter',sans-serif;color:#1a1a18;padding:0;height:100%}
-.rel-cat-strip{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
-.rel-cat-chip{flex:1;min-width:128px;background:#fff;border:1px solid #e5e4df;border-left:3px solid var(--cor,#1a1a18);border-radius:8px;padding:11px 14px;cursor:pointer;transition:box-shadow .15s,background .15s}
-.rel-cat-chip:hover{box-shadow:0 2px 10px rgba(0,0,0,.07)}
-.rel-cat-chip.active{background:var(--cor-soft,#f5f4f0)}
-.rel-cat-chip .rel-cat-num{font-size:20px;font-weight:800;color:#1a1a18;font-variant-numeric:tabular-nums;display:block;line-height:1.1}
-.rel-cat-chip .rel-cat-label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#777;display:block;margin-top:4px;white-space:nowrap}
 .rel-group-row td{background:#f7f7f4 !important;font-size:10.5px !important;font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:7px 14px !important}
 #rel_baixar_sel:disabled{opacity:.4;cursor:not-allowed}
 .cad-st{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:4px 11px;border-radius:12px;white-space:nowrap}
@@ -2248,15 +2242,6 @@ function renderRelatorios() {
     if (s.tipo === 'lista') CLS.get(s.key, s.def || []).forEach(p => REL_LINHAS.push({ sec: s, id: p.id, nome: p.nome }));
     else REL_LINHAS.push({ sec: s, id: null, nome: s.titulo });
   });
-  // Tiras de categoria clicáveis substituem o <select> — mostram de cara
-  // quantos relatórios existem em cada perfil e servem de filtro rápido.
-  const chips = visiveis.map(s => {
-    const n = REL_LINHAS.filter(l => l.sec.painel === s.painel).length;
-    const cor = REL_COR[s.painel] || '#1a1a18';
-    return `<div class="rel-cat-chip" data-cat="${s.painel}" style="--cor:${cor};--cor-soft:${cor}14" onclick="relFiltrarCategoria('${s.painel}')">
-      <span class="rel-cat-num">${n}</span><span class="rel-cat-label">${s.titulo}</span>
-    </div>`;
-  }).join('');
   // Linhas agrupadas por categoria (ordem = ordem dos perfis em RELATORIO_SECOES),
   // com um cabeçalho de grupo colorido em vez de repetir o selo em cada linha.
   const rowsHtml = [];
@@ -2270,12 +2255,6 @@ function renderRelatorios() {
     rowsHtml.push(relLinha(l, i));
   });
   wrap.innerHTML = `
-    <div class="rel-cat-strip">
-      <div class="rel-cat-chip active" data-cat="" style="--cor:#1a1a18;--cor-soft:#f5f4f0" onclick="relFiltrarCategoria('')">
-        <span class="rel-cat-num">${REL_LINHAS.length}</span><span class="rel-cat-label">Todos</span>
-      </div>
-      ${chips}
-    </div>
     <div class="cad-list-card">
       <div class="cad-list-hdr">
         <h2>Todos os relatórios</h2>
@@ -2283,6 +2262,10 @@ function renderRelatorios() {
       </div>
       <div class="cad-toolbar">
         <label class="cad-search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input type="text" id="rel_busca" placeholder="Buscar por nome…" oninput="relAplicarFiltros()"></label>
+        <select id="rel_filtro_categoria" onchange="relFiltrarCategoria(this.value)">
+          <option value="">Todas as categorias</option>
+          ${visiveis.map(s => `<option value="${s.painel}">${s.titulo}</option>`).join('')}
+        </select>
         <label class="rel-mes-field">Mês<input type="month" id="rel_mes" value="${relMesAtual()}"></label>
         <button type="button" class="cad-btn-outline" onclick="relSelecionarTodos()">Selecionar todos</button>
         <button type="button" class="cad-btn" id="rel_baixar_sel" onclick="relBaixarSelecionados()" disabled>Baixar selecionados</button>
@@ -2304,7 +2287,6 @@ function relLinha(l, i) {
 }
 function relFiltrarCategoria(cat) {
   REL_FILTRO_CAT = cat;
-  document.querySelectorAll('.rel-cat-chip').forEach(c => c.classList.toggle('active', c.dataset.cat === cat));
   relAplicarFiltros();
 }
 function relAplicarFiltros() {
