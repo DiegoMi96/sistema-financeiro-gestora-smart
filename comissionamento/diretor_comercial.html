@@ -646,7 +646,7 @@ function renderCiclo() {
 
 // Exporta todos os anos com lançamento (não só o ano selecionado na tela) —
 // mesmo padrão de exportCiclo() de gestor_operacoes.html/diretor_adm.html.
-function exportCiclo() {
+function exportCiclo(retornarBlob) {
   const anos = cicloAnosDisponiveis().slice().sort((a, b) => a - b);
   const rows = [['Mês', 'Volume', 'Cresc. Líquido', 'Hardware', 'Satisfação', 'SMART News', 'Total']];
   anos.forEach(ano => {
@@ -661,7 +661,14 @@ function exportCiclo() {
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(rows);
   XLSX.utils.book_append_sheet(wb, ws, 'CICLO');
-  XLSX.writeFile(wb, 'Ciclo_Diretor_Comercial.xlsx');
+  const nomeArquivo = 'Ciclo_Diretor_Comercial.xlsx';
+  // retornarBlob=true é usado pela aba Relatórios do shell (index.html) pra
+  // juntar vários extratos num ZIP só, em vez de baixar um por um.
+  if (retornarBlob) {
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    return { blob: new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), nomeArquivo };
+  }
+  XLSX.writeFile(wb, nomeArquivo);
   showToast('↓ Ciclo exportado');
 }
 

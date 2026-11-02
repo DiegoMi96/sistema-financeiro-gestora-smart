@@ -497,7 +497,7 @@ function saveEdit(id,mes){
 }
 
 // ─── EXPORT ───────────────────────────────────────────
-async function exportInd(id,mes){
+async function exportInd(id,mes,retornarBlob){
   const ind=indicadores.find(e=>e.id===id);
   const d=mdata[`${id}_${mes}`]||{};
   const c=calcInd(d);
@@ -527,7 +527,14 @@ async function exportInd(id,mes){
   const[y,m]=mes.split('-');
   const meses=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const nomeLimpo=ind.nome.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'_');
-  XLSX.writeFile(wb,`${nomeLimpo}_${meses[+m-1]}_${y}.xlsx`);
+  const nomeArquivo=`${nomeLimpo}_${meses[+m-1]}_${y}.xlsx`;
+  // retornarBlob=true é usado pela aba Relatórios do shell (index.html) pra
+  // juntar vários extratos num ZIP só, em vez de baixar um por um.
+  if(retornarBlob){
+    const wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+    return{blob:new Blob([wbout],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),nomeArquivo};
+  }
+  XLSX.writeFile(wb,nomeArquivo);
   showToast(`↓ ${ind.nome} · extrato gerado`,'#1d4ed8');
 }
 

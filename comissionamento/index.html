@@ -1153,13 +1153,13 @@ iframe.active{display:block}
     <!-- ?b=N é só cache-busting: o navegador guarda esses arquivos em cache
          agressivamente, e sem isso uma edição no perfil não aparece nem com F5
          normal. Suba o número sempre que mexer em algum desses arquivos. -->
-    <iframe id="frame-vendedor" src="vendedor.html?b=42" title="Vendedor"></iframe>
-    <iframe id="frame-dealer" src="dealer.html?b=34" title="Dealer"></iframe>
-    <iframe id="frame-indicadores" src="indicadores.html?b=25" title="Indicador"></iframe>
-    <iframe id="frame-projeto_especial" src="projeto_especial.html?b=43" title="Projeto Especial"></iframe>
-    <iframe id="frame-gestor_operacoes" src="gestor_operacoes.html?b=36" title="Gestor de Operações"></iframe>
-    <iframe id="frame-diretor_adm" src="diretor_adm.html?b=35" title="Diretor Administrativo"></iframe>
-    <iframe id="frame-diretor_comercial" src="diretor_comercial.html?b=39" title="Diretor Comercial"></iframe>
+    <iframe id="frame-vendedor" src="vendedor.html?b=43" title="Vendedor"></iframe>
+    <iframe id="frame-dealer" src="dealer.html?b=35" title="Dealer"></iframe>
+    <iframe id="frame-indicadores" src="indicadores.html?b=26" title="Indicador"></iframe>
+    <iframe id="frame-projeto_especial" src="projeto_especial.html?b=44" title="Projeto Especial"></iframe>
+    <iframe id="frame-gestor_operacoes" src="gestor_operacoes.html?b=37" title="Gestor de Operações"></iframe>
+    <iframe id="frame-diretor_adm" src="diretor_adm.html?b=36" title="Diretor Administrativo"></iframe>
+    <iframe id="frame-diretor_comercial" src="diretor_comercial.html?b=40" title="Diretor Comercial"></iframe>
   </div>
 </div>
 
@@ -1396,6 +1396,7 @@ iframe.active{display:block}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
 // Cada perfil roda no seu próprio documento (iframe) — variáveis, funções e
 // ids de cada arquivo original ficam isolados entre si. Só carrega o iframe
@@ -2352,14 +2353,63 @@ function relBaixarLinha(i, btnEl) {
   const mes = document.getElementById('rel_mes').value || relMesAtual();
   relExecutar(l.sec, l.id, mes, btnEl);
 }
+// Pede ao iframe do perfil o extrato pronto em memória (Blob), sem disparar
+// o download direto — usado só pelo ZIP de "Baixar selecionados" (pedido do
+// Diego, 02/11/2026: baixar um por um e aprovar cada download é lento demais
+// quando se seleciona vários). Cada export*/exportCiclo ganhou o parâmetro
+// `retornarBlob` pra isso, sem mudar o comportamento de quem chama sem ele.
+async function relGerarBlob(sec, id, mes) {
+  const frame = document.getElementById(sec.frame)?.contentWindow;
+  const fn = frame?.[sec.exportFn];
+  if (!fn) { console.warn('[Relatórios] ' + sec.exportFn + ' indisponível em ' + sec.frame); return null; }
+  return await fn(id, mes, true);
+}
 async function relBaixarSelecionados() {
   const idxs = [...document.querySelectorAll('.rel-chk:checked')].map(c => +c.value);
   if (!idxs.length) return;
   const mes = document.getElementById('rel_mes').value || relMesAtual();
-  for (const i of idxs) {
-    const l = REL_LINHAS[i];
-    await relExecutar(l.sec, l.id, mes, null);
-    await new Promise(r => setTimeout(r, 300)); // intervalo entre downloads — evita o navegador bloquear vários de uma vez
+  const btn = document.getElementById('rel_baixar_sel');
+  const original = btn.textContent;
+  // Com 1 só selecionado, baixa direto (igual ao botão "Baixar" da linha) —
+  // não faz sentido gerar um ZIP pra um arquivo só.
+  if (idxs.length === 1) {
+    const l = REL_LINHAS[idxs[0]];
+    await relExecutar(l.sec, l.id, mes, btn);
+    return;
+  }
+  btn.disabled = true;
+  try {
+    const zip = new JSZip();
+    const nomesUsados = new Set();
+    let gerados = 0;
+    for (const i of idxs) {
+      const l = REL_LINHAS[i];
+      btn.textContent = `Gerando ${l.nome}… (${gerados + 1}/${idxs.length})`;
+      const arq = await relGerarBlob(l.sec, l.id, mes);
+      if (!arq) continue;
+      let nome = arq.nomeArquivo;
+      if (nomesUsados.has(nome)) {
+        // Dois perfis-únicos (Gestor de Operações, Diretor Comercial…) podem
+        // gerar o mesmo nome fixo — evita um sobrescrever o outro no ZIP.
+        const ponto = nome.lastIndexOf('.');
+        nome = ponto > -1 ? `${nome.slice(0, ponto)}_${i}${nome.slice(ponto)}` : `${nome}_${i}`;
+      }
+      nomesUsados.add(nome);
+      zip.file(nome, arq.blob);
+      gerados++;
+    }
+    if (!gerados) { showCadToast('Não foi possível gerar nenhum dos relatórios selecionados.', true); return; }
+    btn.textContent = 'Compactando…';
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    const nomeZip = `Relatorios_Comissionamento_${mes}.zip`;
+    const url = URL.createObjectURL(zipBlob);
+    const a = document.createElement('a');
+    a.href = url; a.download = nomeZip; document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+    showCadToast(`↓ ${gerados} relatório${gerados === 1 ? '' : 's'} em ${nomeZip}`);
+  } finally {
+    btn.disabled = false;
+    relAtualizarBotaoBaixar();
   }
 }
 

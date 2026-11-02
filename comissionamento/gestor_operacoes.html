@@ -762,7 +762,7 @@ function renderCiclo(){
 }
 
 // ─── EXPORT / IMPORT ───────────────────────────────────
-function exportCiclo(){
+function exportCiclo(retornarBlob){
   const cicloMeses=getCicloMeses();
   const rows=[['Mês','Satisfação %','Eficiência R$','Auditoria R$','Treinamentos','Pilares']];
   cicloMeses.forEach(mes=>{
@@ -777,7 +777,14 @@ function exportCiclo(){
   const wb=XLSX.utils.book_new();
   const ws=XLSX.utils.aoa_to_sheet(rows);
   XLSX.utils.book_append_sheet(wb,ws,'CICLO');
-  XLSX.writeFile(wb,'Ciclo_Thalles_Operacoes.xlsx');
+  const nomeArquivo='Ciclo_Thalles_Operacoes.xlsx';
+  // retornarBlob=true é usado pela aba Relatórios do shell (index.html) pra
+  // juntar vários extratos num ZIP só, em vez de baixar um por um.
+  if(retornarBlob){
+    const wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+    return{blob:new Blob([wbout],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),nomeArquivo};
+  }
+  XLSX.writeFile(wb,nomeArquivo);
   showToast('↓ Ciclo exportado');
 }
 

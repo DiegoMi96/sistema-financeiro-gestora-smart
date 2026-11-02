@@ -722,7 +722,7 @@ const PE_HEADER_STYLE={
   font:{bold:true,color:{argb:'FFC00000'}},
   fill:{type:'pattern',pattern:'solid',fgColor:{argb:'FFC6E0B4'}},
 };
-async function exportEntity(id,mes){
+async function exportEntity(id,mes,retornarBlob){
   const entity=projetos.find(e=>e.id===id);
   const d=mdata[`p_${id}_${mes}`]||{};
   const c=calcProjeto(d,entity);
@@ -778,8 +778,14 @@ async function exportEntity(id,mes){
   const[y,m]=mes.split('-');
   const meses=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const nomeLimpo=entity.nome.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,'_');
+  const nomeArquivo=`${nomeLimpo}_${meses[+m-1]}_${y}.xlsx`;
   const buffer=await wb.xlsx.writeBuffer();
-  peBaixarBlob(buffer,`${nomeLimpo}_${meses[+m-1]}_${y}.xlsx`);
+  // retornarBlob=true é usado pela aba Relatórios do shell (index.html) pra
+  // juntar vários extratos num ZIP só, em vez de baixar um por um.
+  if(retornarBlob){
+    return{blob:new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),nomeArquivo};
+  }
+  peBaixarBlob(buffer,nomeArquivo);
   showToast(`↓ ${entity.nome} · extrato gerado`,'#1c4d24');
 }
 
