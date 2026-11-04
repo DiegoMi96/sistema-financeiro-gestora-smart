@@ -471,8 +471,13 @@ let extras=LS.get('da1_ext',DEF_EXTRAS);
 
 // ─── INIT ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded',async()=>{
+  // O comissionamento pago no mês corrente é sempre referente ao resultado do
+  // mês ANTERIOR (ex.: em novembro se paga o resultado de outubro) — por isso
+  // o seletor já abre no mês passado, não no mês calendário atual (pedido do
+  // Diego, 04/11/2026). O usuário ainda pode trocar o mês livremente depois.
   const now=new Date();
-  const mv=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const mesAnterior=new Date(now.getFullYear(),now.getMonth()-1,1);
+  const mv=`${mesAnterior.getFullYear()}-${String(mesAnterior.getMonth()+1).padStart(2,'0')}`;
   document.getElementById('mesInput').value=mv;
   renderNivelAtual();
   loadConfig();buildMetasTable();buildFaixasConfig();
