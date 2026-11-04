@@ -498,6 +498,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
   // do localStorage depois de lançar em outra máquina.
   const salvo=await COM_API.buscarCiclo('diretor_adm');
   if(salvo&&Object.keys(salvo).length){mdata=salvo;LS.set('da1_m',mdata);}
+  carregarCamposDoMes(mv);
   updateCalc();renderCiclo();
 });
 
@@ -549,11 +550,22 @@ function calcMonth(resultado, meta, divOverride){
 }
 
 // ─── CALCULADORA ──────────────────────────────────────
+// Preenche "Resultado líquido realizado" e o Dividendo com o que já foi
+// salvo pra esse mês (achado do Diego, 05/11/2026: a Calculadora abria
+// sempre zerada ao trocar de mês, mesmo com lançamento salvo — só a tabela
+// Ciclo & Bonificações lia mdata corretamente).
+function carregarCamposDoMes(mes){
+  const d=mdata[mes]||{};
+  document.getElementById('i_resultado').value=d.resultado!==undefined?brFmt(d.resultado):'';
+  if(d.dividendoManual!=null){
+    divManualAtivo=true;
+    document.getElementById('dividendo_val').value=brFmt(d.dividendoManual);
+  }else{
+    divManualAtivo=false;
+  }
+}
 function mesTrocado(){
-  // Troca de mês não recarrega o que já foi salvo nos campos (mesmo
-  // comportamento de "Resultado líquido realizado") — então também não
-  // mantém um ajuste manual de dividendo que era de outro mês.
-  divManualAtivo=false;
+  carregarCamposDoMes(document.getElementById('mesInput').value);
   updateCalc();
 }
 function dividendoManualInput(){
