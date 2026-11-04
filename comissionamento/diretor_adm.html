@@ -169,7 +169,7 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
     <p class="card-title">Resultado do mês</p>
     <div style="margin-bottom:12px">
       <label class="lbl">Mês do Comissionamento</label>
-      <input type="month" id="mesInput" onchange="updateCalc()">
+      <input type="month" id="mesInput" onchange="mesTrocado()">
     </div>
     <div class="g2" style="gap:10px">
       <div>
@@ -194,15 +194,15 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
     <div class="card gold" style="margin-top:0">
       <p class="card-title">Dividendo distribuído</p>
       <div style="font-size:11px;color:#55617a;margin-bottom:10px">40% do resultado líquido → base para o Bônus B</div>
-      <div style="font-size:26px;font-weight:800;color:var(--gold)" id="dividendo_val">R$ 0,00</div>
-      <div id="dividendo_tag" style="font-size:10px;color:#b8863f;font-weight:600;margin-top:2px"></div>
-      <div style="margin-top:10px">
-        <label class="lbl" style="font-size:10px">Valor realmente pago <span style="font-weight:400;text-transform:none;color:#99a3b4">— deixe em branco pra usar os 40% calculados</span></label>
-        <div class="irow"><span class="ipfx">R$</span><input type="text" id="i_dividendo_manual" placeholder="automático"
-          oninput="updateCalc()"
-          onblur="this.value=this.value?brFmt(parseNum(this.value)):'';updateCalc()"
-          onfocus="this.value=this.value?String(parseNum(this.value)):''"></div>
+      <div class="irow" style="gap:4px">
+        <span class="ipfx" style="font-size:26px;font-weight:800;color:var(--gold)">R$</span>
+        <input type="text" id="dividendo_val" value="0,00" title="Clique pra ajustar o valor manualmente"
+          style="flex:none;width:170px;font-size:26px;font-weight:800;color:var(--gold);border:none;background:transparent;padding:0"
+          oninput="dividendoManualInput()"
+          onblur="dividendoManualBlur()"
+          onfocus="this.value=this.value?String(parseNum(this.value)):''">
       </div>
+      <div id="dividendo_tag" style="font-size:10px;color:#99a3b4;font-weight:600;margin-top:2px">Clique no valor pra ajustar manualmente</div>
       <div id="faixas_visual" class="faixas-visual" style="margin-top:14px">
         <!-- populated by JS -->
       </div>
@@ -475,6 +475,9 @@ const COM_API={
 function mesAprovado(mes){try{const a=JSON.parse(localStorage.getItem('aprovacoes_mes')||'{}');return !!(a[mes]&&a[mes].aprovado);}catch{return false;}}
 let config=LS.get('da1_cfg',DEF_CONFIG);
 let mdata=LS.get('da1_m',{});
+// true = o campo "Dividendo distribuído" está sendo editado à mão (sobrescreve
+// os 40% calculados); apagar o campo inteiro volta pro automático.
+let divManualAtivo=false;
 let extras=LS.get('da1_ext',DEF_EXTRAS);
 
 // ─── INIT ─────────────────────────────────────────────
@@ -546,6 +549,23 @@ function calcMonth(resultado, meta, divOverride){
 }
 
 // ─── CALCULADORA ──────────────────────────────────────
+function mesTrocado(){
+  // Troca de mês não recarrega o que já foi salvo nos campos (mesmo
+  // comportamento de "Resultado líquido realizado") — então também não
+  // mantém um ajuste manual de dividendo que era de outro mês.
+  divManualAtivo=false;
+  updateCalc();
+}
+function dividendoManualInput(){
+  divManualAtivo=true;
+  updateCalc();
+}
+function dividendoManualBlur(){
+  const el=document.getElementById('dividendo_val');
+  if(el.value.trim()===''){divManualAtivo=false;}
+  else{el.value=brFmt(parseNum(el.value));divManualAtivo=true;}
+  updateCalc();
+}
 function updateCalc(){
   renderNivelAtual();
   const mes=document.getElementById('mesInput').value;
@@ -555,8 +575,7 @@ function updateCalc(){
   document.getElementById('i_meta').value=meta!==null&&meta!==undefined?brFmt(meta):'—';
 
   const res=parseNum(document.getElementById('i_resultado').value)||0;
-  const divManualStr=document.getElementById('i_dividendo_manual').value;
-  const divManual=divManualStr!==''?parseNum(divManualStr):null;
+  const divManual=divManualAtivo?parseNum(document.getElementById('dividendo_val').value):null;
   const c=calcMonth(res,meta,divManual);
   const extrasB=mes?extrasDoMes(mes):0;
 
@@ -570,9 +589,13 @@ function updateCalc(){
   document.getElementById('k_total').textContent='R$ '+br2(c.total+extrasB);
   document.getElementById('k_mes_label').textContent=fmtMes(mes)||'—';
 
-  // Dividendo
-  document.getElementById('dividendo_val').textContent='R$ '+br2(c.dividendo);
-  document.getElementById('dividendo_tag').textContent=divManual!=null?'✎ valor ajustado manualmente (automático seria R$ '+br2(res*(config.divTaxa/100))+')':'';
+  // Dividendo — se não estiver em edição manual, o campo mostra o valor
+  // calculado (automático); se estiver, o campo é a fonte da verdade e não
+  // é sobrescrito aqui (senão brigaria com o que a pessoa está digitando).
+  if(!divManualAtivo)document.getElementById('dividendo_val').value=brFmt(c.dividendo);
+  document.getElementById('dividendo_tag').textContent=divManualAtivo
+    ?'✎ ajustado manualmente (automático seria R$ '+br2(res*(config.divTaxa/100))+') — apague tudo pra voltar ao automático'
+    :'Clique no valor pra ajustar manualmente';
 
   // Faixas visual
   const fv=document.getElementById('faixas_visual');
@@ -625,11 +648,10 @@ function extrasDoMes(mes){
 function saveMes(){
   const mes=document.getElementById('mesInput').value;
   if(mesAprovado(mes)){showToast('Mês aprovado — desaprove no Importar pra editar.');return;}
-  const divManualStr=document.getElementById('i_dividendo_manual').value;
   mdata[mes]={
     resultado:parseNum(document.getElementById('i_resultado').value)||0,
     meta:getMeta(mes),
-    dividendoManual:divManualStr!==''?parseNum(divManualStr):null
+    dividendoManual:divManualAtivo?parseNum(document.getElementById('dividendo_val').value):null
   };
   if(!LS.set('da1_m',mdata)){showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.','#b83232');return;}
   COM_API.salvarCiclo('diretor_adm',mdata);renderCiclo();showToast('Lançamento salvo ✓');
@@ -646,7 +668,7 @@ function excluirMes(){
   if(!LS.set('da1_m',mdata)){showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.','#b83232');return;}
   COM_API.salvarCiclo('diretor_adm',mdata);
   document.getElementById('i_resultado').value='';
-  document.getElementById('i_dividendo_manual').value='';
+  divManualAtivo=false;
   updateCalc();renderCiclo();showToast('Lançamento excluído ✓');
 }
 
