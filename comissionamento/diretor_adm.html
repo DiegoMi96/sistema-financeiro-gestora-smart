@@ -471,13 +471,13 @@ let extras=LS.get('da1_ext',DEF_EXTRAS);
 
 // ─── INIT ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded',async()=>{
-  // O comissionamento pago no mês corrente é sempre referente ao resultado do
-  // mês ANTERIOR (ex.: em novembro se paga o resultado de outubro) — por isso
-  // o seletor já abre no mês passado, não no mês calendário atual (pedido do
-  // Diego, 04/11/2026). O usuário ainda pode trocar o mês livremente depois.
+  // O "mês" aqui é o mês do PAGAMENTO (o que você digita como resultado
+  // líquido já é o resultado do mês anterior) — por isso o seletor abre no
+  // mês calendário atual, que é o mês em que o pagamento está sendo feito
+  // agora (revertido o ajuste de 04/11/2026, que tinha o entendimento
+  // trocado; ver também o shift em renderCiclo()).
   const now=new Date();
-  const mesAnterior=new Date(now.getFullYear(),now.getMonth()-1,1);
-  const mv=`${mesAnterior.getFullYear()}-${String(mesAnterior.getMonth()+1).padStart(2,'0')}`;
+  const mv=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   document.getElementById('mesInput').value=mv;
   renderNivelAtual();
   loadConfig();buildMetasTable();buildFaixasConfig();
@@ -653,13 +653,20 @@ function renderCiclo(){
   let totB=0,totA=0,totExtras=0,totTotal=0;
   const rows=[];
   for(let mm=1;mm<=12;mm++){
-    const mesId=`${ano}-${String(mm).padStart(2,'0')}`;
+    const lblRow=`${MESES_PT[mm-1]}/${String(ano).slice(2)}`;
+    // A linha rotulada com o mês M mostra o resultado PAGO em M — ou seja, os
+    // dados gravados sob o id do mês SEGUINTE (M+1): o "mês" do sistema é o
+    // mês do pagamento, e o resultado nele é sempre do mês anterior (pedido
+    // do Diego, 04/11/2026 — ver também o mesInput no INIT).
+    const proxMm=mm===12?1:mm+1;
+    const proxAno=mm===12?ano+1:ano;
+    const mesId=`${proxAno}-${String(proxMm).padStart(2,'0')}`;
     const mes=CICLO_MESES.find(c=>c.id===mesId);
     const ex=extrasDoMes(mesId);
     if(!mes){
       totExtras+=ex;totTotal+=ex;
       rows.push(`<tr>
-        <td class="left"><strong>${MESES_PT[mm-1]}/${String(ano).slice(2)}</strong></td>
+        <td class="left"><strong>${lblRow}</strong></td>
         <td colspan="7" style="color:#b0b8c5;text-align:center">Fora do ciclo</td>
         <td class="c-navy"><strong>R$ ${br2(ex)}</strong>${ex?`<div style="font-size:9px;color:#b8863f;font-weight:400">+R$${br2(ex)} extras</div>`:''}</td>
       </tr>`);
@@ -675,7 +682,7 @@ function renderCiclo(){
     totB+=c.bonusB;totA+=c.bonusA;totExtras+=ex;totTotal+=totalMes;
     const fxLabel=c.faixaAtingida>=0?`F${c.faixaAtingida+1}`:'—';
     rows.push(`<tr>
-      <td class="left"><strong>${mes.lbl}</strong></td>
+      <td class="left"><strong>${lblRow}</strong></td>
       <td style="color:#b0b8c5">R$ ${br2(mes.proj)}</td>
       <td style="color:${isReal?'#1a2332':'#b0b8c5'};font-weight:${isReal?700:400}">${isReal?'R$ '+br2(res):'<span style="font-size:10px">proj.</span>'}</td>
       <td style="color:${c.pctMeta>=config.gatilhoA?'#2e7d5b':'#b83232'}">${calcRes>0?c.pctMeta.toFixed(0)+'%':'—'}</td>
@@ -699,6 +706,23 @@ function renderCiclo(){
   document.getElementById('ck_total').textContent='R$ '+br2(totTotal);
 }
 
+// Dado um id (AAAA-MM), devolve o id do mês anterior — usado pra rotular
+// cada entrada de CICLO_MESES com o mês de PAGAMENTO em vez do mês do seu
+// próprio id (mesma regra de renderCiclo(): o rótulo é o mês do pagamento,
+// o dado gravado no id é o resultado que gerou aquele pagamento).
+function mesAnteriorId(id){
+  const[y,m]=id.split('-').map(Number);
+  const pm=m===1?12:m-1;
+  const py=m===1?y-1:y;
+  return`${py}-${String(pm).padStart(2,'0')}`;
+}
+// fmtMes() usa ano com 4 dígitos ("Ago/2026") — aqui precisa do mesmo formato
+// de 2 dígitos já usado em CICLO_MESES.lbl e na tabela Ciclo ("Ago/26").
+function lblCurto(id){
+  const[y,m]=id.split('-');
+  return MESES_LBL[+m-1]+'/'+y.slice(2);
+}
+const MESES_LBL=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 function exportCiclo(retornarBlob){
   const rows=[['Mês','Resultado Projetado','Resultado Realizado','Meta','% Meta','Dividendo (40%)','Faixa','Bônus B','Bônus A','Total']];
   CICLO_MESES.forEach(mes=>{
@@ -708,7 +732,7 @@ function exportCiclo(retornarBlob){
     const calcRes=res!==''?res:mes.proj;
     const c=calcMonth(calcRes,meta);
     const fxLabel=c.faixaAtingida>=0?`Faixa ${c.faixaAtingida+1}`:'—';
-    rows.push([mes.lbl,mes.proj,res,meta,c.pctMeta.toFixed(0)+'%',Math.round(c.dividendo),fxLabel,c.bonusB,c.bonusA,c.total]);
+    rows.push([lblCurto(mesAnteriorId(mes.id)),mes.proj,res,meta,c.pctMeta.toFixed(0)+'%',Math.round(c.dividendo),fxLabel,c.bonusB,c.bonusA,c.total]);
   });
   const wb=XLSX.utils.book_new();
   const ws=XLSX.utils.aoa_to_sheet(rows);
@@ -741,7 +765,11 @@ async function importCiclo(event){
     let updated=0;
     rows.slice(1).forEach(row=>{
       const mesLbl=String(row[mesCol]||'').trim();
-      const mes=CICLO_MESES.find(m=>m.lbl===mesLbl);
+      // O rótulo da planilha (exportada por exportCiclo) é o mês do
+      // PAGAMENTO, um mês antes do id que guarda o dado — mesma regra de
+      // mesAnteriorId()/renderCiclo(). Casar direto por m.lbl aqui gravaria
+      // no id errado (um mês à frente do que a planilha realmente diz).
+      const mes=CICLO_MESES.find(m=>lblCurto(mesAnteriorId(m.id))===mesLbl);
       if(!mes)return;
       const real=row[realCol]!==''?+String(row[realCol]).replace(/\./g,'').replace(',','.')||null:null;
       const proj=projCol>=0&&row[projCol]!==''?+String(row[projCol]).replace(/\./g,'').replace(',','.')||null:null;
