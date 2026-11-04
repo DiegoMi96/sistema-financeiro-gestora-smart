@@ -195,6 +195,14 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
       <p class="card-title">Dividendo distribuído</p>
       <div style="font-size:11px;color:#55617a;margin-bottom:10px">40% do resultado líquido → base para o Bônus B</div>
       <div style="font-size:26px;font-weight:800;color:var(--gold)" id="dividendo_val">R$ 0,00</div>
+      <div id="dividendo_tag" style="font-size:10px;color:#b8863f;font-weight:600;margin-top:2px"></div>
+      <div style="margin-top:10px">
+        <label class="lbl" style="font-size:10px">Valor realmente pago <span style="font-weight:400;text-transform:none;color:#99a3b4">— deixe em branco pra usar os 40% calculados</span></label>
+        <div class="irow"><span class="ipfx">R$</span><input type="text" id="i_dividendo_manual" placeholder="automático"
+          oninput="updateCalc()"
+          onblur="this.value=this.value?brFmt(parseNum(this.value)):'';updateCalc()"
+          onfocus="this.value=this.value?String(parseNum(this.value)):''"></div>
+      </div>
       <div id="faixas_visual" class="faixas-visual" style="margin-top:14px">
         <!-- populated by JS -->
       </div>
@@ -313,7 +321,7 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
           <th>Resultado proj.</th>
           <th>Resultado real.</th>
           <th>% Meta</th>
-          <th>Dividendo (40%)</th>
+          <th>Dividendo</th>
           <th>Faixa</th>
           <th>Bônus B</th>
           <th>Bônus A</th>
@@ -522,9 +530,12 @@ const parseNum=s=>+String(s).replace(/\./g,'').replace(',','.')||0;
 const fmtMes=s=>{if(!s)return'';const[y,m]=s.split('-');const ms=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];return ms[+m-1]+'/'+y;};
 function showToast(msg,color){const t=document.getElementById('toast');t.textContent=msg;t.style.background=color||'';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
 
-function calcMonth(resultado, meta){
+function calcMonth(resultado, meta, divOverride){
   const divTaxa=config.divTaxa/100;
-  const dividendo=resultado*divTaxa;
+  // divOverride (dividendoManual salvo no mês) permite registrar o valor
+  // REALMENTE pago quando difere dos 40% calculados — pedido do Diego,
+  // 04/11/2026. O Bônus B (faixas) passa a usar esse valor, não o calculado.
+  const dividendo=divOverride!=null?divOverride:resultado*divTaxa;
   let bonusB=0;
   let faixaAtingida=-1;
   config.faixas.forEach((f,i)=>{if(dividendo>=f.min){bonusB+=f.cota;faixaAtingida=i;}});
@@ -544,7 +555,9 @@ function updateCalc(){
   document.getElementById('i_meta').value=meta!==null&&meta!==undefined?brFmt(meta):'—';
 
   const res=parseNum(document.getElementById('i_resultado').value)||0;
-  const c=calcMonth(res,meta);
+  const divManualStr=document.getElementById('i_dividendo_manual').value;
+  const divManual=divManualStr!==''?parseNum(divManualStr):null;
+  const c=calcMonth(res,meta,divManual);
   const extrasB=mes?extrasDoMes(mes):0;
 
   // KPIs
@@ -559,6 +572,7 @@ function updateCalc(){
 
   // Dividendo
   document.getElementById('dividendo_val').textContent='R$ '+br2(c.dividendo);
+  document.getElementById('dividendo_tag').textContent=divManual!=null?'✎ valor ajustado manualmente (automático seria R$ '+br2(res*(config.divTaxa/100))+')':'';
 
   // Faixas visual
   const fv=document.getElementById('faixas_visual');
@@ -611,9 +625,11 @@ function extrasDoMes(mes){
 function saveMes(){
   const mes=document.getElementById('mesInput').value;
   if(mesAprovado(mes)){showToast('Mês aprovado — desaprove no Importar pra editar.');return;}
+  const divManualStr=document.getElementById('i_dividendo_manual').value;
   mdata[mes]={
     resultado:parseNum(document.getElementById('i_resultado').value)||0,
-    meta:getMeta(mes)
+    meta:getMeta(mes),
+    dividendoManual:divManualStr!==''?parseNum(divManualStr):null
   };
   if(!LS.set('da1_m',mdata)){showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.','#b83232');return;}
   COM_API.salvarCiclo('diretor_adm',mdata);renderCiclo();showToast('Lançamento salvo ✓');
@@ -630,6 +646,7 @@ function excluirMes(){
   if(!LS.set('da1_m',mdata)){showToast('Não foi possível salvar — armazenamento cheio ou bloqueado. Avise o suporte.','#b83232');return;}
   COM_API.salvarCiclo('diretor_adm',mdata);
   document.getElementById('i_resultado').value='';
+  document.getElementById('i_dividendo_manual').value='';
   updateCalc();renderCiclo();showToast('Lançamento excluído ✓');
 }
 
@@ -676,7 +693,7 @@ function renderCiclo(){
     const res=d.resultado!==undefined?d.resultado:null;
     const calcRes=res!==null?res:mes.proj;
     const meta=getMeta(mes.id);
-    const c=calcMonth(calcRes,meta);
+    const c=calcMonth(calcRes,meta,d.dividendoManual);
     const isReal=res!==null;
     const totalMes=c.total+ex;
     totB+=c.bonusB;totA+=c.bonusA;totExtras+=ex;totTotal+=totalMes;
@@ -686,7 +703,7 @@ function renderCiclo(){
       <td style="color:#b0b8c5">R$ ${br2(mes.proj)}</td>
       <td style="color:${isReal?'#1a2332':'#b0b8c5'};font-weight:${isReal?700:400}">${isReal?'R$ '+br2(res):'<span style="font-size:10px">proj.</span>'}</td>
       <td style="color:${c.pctMeta>=config.gatilhoA?'#2e7d5b':'#b83232'}">${calcRes>0?c.pctMeta.toFixed(0)+'%':'—'}</td>
-      <td>R$ ${br2(c.dividendo)}</td>
+      <td>R$ ${br2(c.dividendo)}${d.dividendoManual!=null?'<div style="font-size:9px;color:#b8863f;font-weight:600">✎ ajustado</div>':''}</td>
       <td><span style="background:${c.faixaAtingida>=0?'#fff3dc':'#f6f7f9'};color:${c.faixaAtingida>=0?'#8a5a1a':'#b0b8c5'};font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px">${fxLabel}</span></td>
       <td class="c-gold">R$ ${br2(c.bonusB)}</td>
       <td style="color:${c.bonusA>0?'#2e7d5b':'#b0b8c5'}">${c.bonusA>0?'R$ '+br2(c.bonusA):'—'}</td>
@@ -724,19 +741,19 @@ function lblCurto(id){
 }
 const MESES_LBL=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 function exportCiclo(retornarBlob){
-  const rows=[['Mês','Resultado Projetado','Resultado Realizado','Meta','% Meta','Dividendo (40%)','Faixa','Bônus B','Bônus A','Total']];
+  const rows=[['Mês','Resultado Projetado','Resultado Realizado','Meta','% Meta','Dividendo','Dividendo ajustado?','Faixa','Bônus B','Bônus A','Total']];
   CICLO_MESES.forEach(mes=>{
     const d=mdata[mes.id]||{};
     const res=d.resultado!==undefined?d.resultado:'';
     const meta=getMeta(mes.id);
     const calcRes=res!==''?res:mes.proj;
-    const c=calcMonth(calcRes,meta);
+    const c=calcMonth(calcRes,meta,d.dividendoManual);
     const fxLabel=c.faixaAtingida>=0?`Faixa ${c.faixaAtingida+1}`:'—';
-    rows.push([lblCurto(mesAnteriorId(mes.id)),mes.proj,res,meta,c.pctMeta.toFixed(0)+'%',Math.round(c.dividendo),fxLabel,c.bonusB,c.bonusA,c.total]);
+    rows.push([lblCurto(mesAnteriorId(mes.id)),mes.proj,res,meta,c.pctMeta.toFixed(0)+'%',Math.round(c.dividendo),d.dividendoManual!=null?'Sim':'Não',fxLabel,c.bonusB,c.bonusA,c.total]);
   });
   const wb=XLSX.utils.book_new();
   const ws=XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols']=[{wch:8},{wch:20},{wch:20},{wch:14},{wch:8},{wch:16},{wch:8},{wch:10},{wch:10},{wch:12}];
+  ws['!cols']=[{wch:8},{wch:20},{wch:20},{wch:14},{wch:8},{wch:14},{wch:16},{wch:8},{wch:10},{wch:10},{wch:12}];
   XLSX.utils.book_append_sheet(wb,ws,'CICLO');
   const nomeArquivo='Ciclo_Diego_Miranda_'+new Date().getFullYear()+'.xlsx';
   // retornarBlob=true é usado pela aba Relatórios do shell (index.html) pra
