@@ -177,7 +177,7 @@ tr.total-row td{font-weight:700;background:#eef1f6;border-top:1px solid #d1d7e0;
         <p class="card-title">Dados do mês</p>
         <div style="margin-bottom:12px">
           <label class="lbl">Mês do Comissionamento</label>
-          <input type="month" id="mesInput" onchange="updateCalc()">
+          <input type="month" id="mesInput" onchange="mesTrocado()">
         </div>
         <div style="margin-bottom:12px">
           <label class="lbl">😊 Satisfação pós-vendas</label>
@@ -500,6 +500,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
   buildConfig();renderExtras();
   const salvo=await COM_API.buscarCiclo('gestor_operacoes');
   if(salvo&&Object.keys(salvo).length){mdata=salvo;LS.set('go1_m',mdata);}
+  carregarCamposDoMes(mv);
   updateCalc();renderCiclo();
 });
 
@@ -571,6 +572,21 @@ function calcMonth(d){
 }
 
 // ─── CALC ──────────────────────────────────────────────
+// Preenche os campos da Calculadora com o que já foi salvo pra esse mês —
+// sem isso, trocar de mês (ou reabrir a página) sempre mostrava tudo
+// zerado, mesmo com lançamento existente (achado do Diego, 05/11/2026;
+// mesmo bug corrigido no Diretor Administrativo).
+function carregarCamposDoMes(mes){
+  const d=mdata[mes]||{};
+  document.getElementById('i_sat').value=d.sat!==undefined?brFmt(d.sat):'';
+  document.getElementById('i_efic').value=d.efic!=null?brFmt(d.efic):'';
+  document.getElementById('i_aud').value=d.aud!=null?brFmt(d.aud):'';
+  document.getElementById('i_trei').value=d.trei!==undefined?d.trei:'';
+}
+function mesTrocado(){
+  carregarCamposDoMes(document.getElementById('mesInput').value);
+  updateCalc();
+}
 function updateCalc(){
   renderNivelAtual();
   const mes=document.getElementById('mesInput').value;
