@@ -637,6 +637,12 @@ function getFaixa(alc){return faixas.find(f=>Math.floor(alc)<=f.max)||faixas[fai
 // aprovado, estava sendo recalculado com a fórmula nova (nenhuma trava de
 // data existia; mesAprovado só bloqueava edição manual, não o cálculo).
 const VIGENCIA_MODELO_NOVO='2026-11';
+// Até 28/10/2026 o rótulo 'simcard' do extrato guardava os dados de Pedidos/
+// Vendas (antes da separação Pedidos×Inventário); depois dessa data passou a
+// significar Inventário (linhas ativas). Extrato salvo antes do corte e sem
+// um 'pedidos' próprio é, na prática, Pedidos com o rótulo antigo — nunca foi
+// reimportado depois da mudança. Ver reclassificarExtratoAntigo().
+const CORTE_SEPARACAO_PEDIDOS_SIMCARD='2026-10-28T00:00:00Z';
 const FAIXAS_HIST=[
   {n:1,range:'0–70%',    min:0,  max:70, vol:0.10,atv:0.10},
   {n:2,range:'71–90%',   min:71, max:90, vol:0.15,atv:0.15},
@@ -1030,6 +1036,18 @@ function vendSecaoResumo(ws,row,titulo,linhas){
   });
   return row+1;
 }
+// Corrige na hora de exibir (nunca reescreve o banco nem mexe em valor
+// calculado): se o extrato 'simcard' foi salvo antes do corte e não existe um
+// 'pedidos' pro mesmo mês, era na verdade Pedidos com o rótulo antigo — move
+// pra 'pedidos' pra cair na aba certa do relatório. Ver CORTE_SEPARACAO_
+// PEDIDOS_SIMCARD. Bug real do Décio Moraes/Out-2026, achado 06/11/2026.
+function reclassificarExtratoAntigo(rawPorMes){
+  const sc=rawPorMes.simcard;
+  if(!sc||rawPorMes.pedidos)return;
+  if(!sc.atualizadoEm||sc.atualizadoEm>=CORTE_SEPARACAO_PEDIDOS_SIMCARD)return;
+  rawPorMes.pedidos=sc;
+  delete rawPorMes.simcard;
+}
 // Aba com a planilha crua importada (Simcard/Equipamento/Placas) — mesmo
 // cabeçalho colorido do Resumo, filtro automático e largura de coluna que
 // acompanha o texto, pra não sair tudo espremido como no SheetJS antigo.
@@ -1055,7 +1073,8 @@ async function exportVendedor(vid,mes,retornarBlob){
   if(!rawStore[key]){
     const salvos=await COM_API.buscar(vid,mes);
     if(salvos.length){
-      rawStore[key]=Object.fromEntries(salvos.map(e=>[e.aba,{headers:e.headers,rows:e.linhas}]));
+      rawStore[key]=Object.fromEntries(salvos.map(e=>[e.aba,{headers:e.headers,rows:e.linhas,atualizadoEm:e.atualizado_em}]));
+      reclassificarExtratoAntigo(rawStore[key]);
     }
   }
   const raw=rawStore[key]||{};
