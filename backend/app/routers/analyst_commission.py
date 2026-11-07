@@ -5,14 +5,24 @@ com base na adimplência por vencimento ORIGINAL (10, 15, 20 e 25).
 Mês escolhido = mês de VENCIMENTO dos boletos (o ciclo de setembro gera boletos com
 vencimento em outubro, então outubro usa o ciclo de setembro). Vencimento original =
 `billing_client_summaries.due_date` (arquivo de Vencimentos); o realizado vem de
-`asaas_payments_sync` (cruzado por CNPJ/CPF) e `itau_boletos` — SÓ o pago NO DIA do vencimento ou no dia seguinte (10/11, 15/16, 20/21, 25/26); pago antes ou depois não entra no recebido. Boletos com vencimento dentro do mês.
+`asaas_payments_sync` (cruzado por CNPJ/CPF) e `itau_boletos`. Boletos com vencimento dentro do mês.
 CADA BOLETO VALE NO DIA DO SEU PRÓPRIO VENCIMENTO (22/10/2026, conferido contra as planilhas do Diego de 15/10 e 20/10): o dia 10/15/20/25
 de um boleto é o do seu vencimento, não o do ciclo do cliente (que pode estar vazio ou diferente). Boleto com vencimento fora desses
-dias (remarcado) vale no dia do ciclo do cliente; se o cliente não tem dia no ciclo, no dia anterior (16 → 15). Faturado = valor do ciclo. ASAAS usa o vencimento ORIGINAL (originalDueDate, coluna original_due_date da sincronização; sem ele, o atual); o Itaú só tem o atual. O pagamento também não pode ser ANTES do vencimento do próprio boleto (antecipado não conta). A base são os clientes do ciclo (Asaas e Itaú) + boletos do Itaú de clientes fora do ciclo.
-VENCIMENTO EM FIM DE SEMANA (22/10/2026, pedido do Diego): sábado e domingo não são dia útil, então a janela vai do
-vencimento REAL até 1 dia depois do primeiro dia útil (sáb 10 → vale pago de sáb 10 a ter 13). Assim o Pix pago no fim de
-semana entra E quem paga na segunda/terça também. Dia útil comum: janela de sempre (vencimento e dia seguinte). Feriados não
-entram (o sistema não tem calendário de feriados).
+dias (remarcado) vale no dia do ciclo do cliente; se o cliente não tem dia no ciclo, no dia anterior (16 → 15). Faturado = valor do ciclo. ASAAS usa o vencimento ORIGINAL (originalDueDate, coluna original_due_date da sincronização; sem ele, o atual); o Itaú só tem o atual. A base são os clientes do ciclo (Asaas e Itaú) + boletos do Itaú de clientes fora do ciclo.
+
+RECEBIDO = RECEBIMENTO EVENTUAL, não só "no dia" (mudou em 07/11/2026, pedido do Diego — antes só contava
+pago no dia do vencimento ou no dia seguinte; ele decidiu que o que vale pra bater a meta é o total recebido
+daquele grupo de vencimento, não importa quando foi pago). `_janela_de_pagamento_*`/exceções de fim de semana
+que existiam aqui até 07/11/2026 foram removidos porque não fazem mais sentido pra essa regra (continuam
+existindo em `app/utils/business_days.py`, usado por outras telas como a Régua de Cobrança).
+
+CONGELAMENTO DO MÊS (07/11/2026, pedido do Diego): como o recebido é lido ao vivo de `asaas_payments_sync`/
+`itau_boletos`, um mês já fechado ficava mudando de resultado conforme esses dados eram reconciliados depois
+("não pode puxar informação, não pode vincular outros meses" — ex.: outubro mostrando "não atingida" num dia
+que na really tinha batido a meta, porque o cálculo ao vivo reabria o mês toda vez). Agora, assim que um mês
+vira passado (mês/ano anterior ao atual), o resultado é calculado UMA VEZ e gravado em
+`analyst_commission_snapshot` (ver `_congelar_mes`/`analyst_commission_freeze_loop`); dali em diante a tela
+sempre lê o snapshot, nunca mais recalcula esse mês — mesmo que o Asaas/Itaú corrijam algo depois.
 
 Regra do valor (por analista): percentual × SALÁRIO do analista, liberado só se a meta (R$)
 foi definida (> 0) e o recebido do vencimento a atingiu. Previsão = o que pagaria se a meta for batida.
@@ -21,6 +31,8 @@ system_settings.analistas_margem_meta_pct). O percentual do salário não muda �
 O recebido é da carteira toda (ainda não há carteira por analista). Só o admin edita;
 cada analista (Carlo, Brenda…) vê apenas o próprio comissionamento.
 """
+import asyncio
+import logging
 from datetime import date
 from typing import Optional
 
@@ -29,40 +41,18 @@ from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.database import get_db
+from app.database import get_db, SessionLocal
 from app.routers.auth import get_current_user
-from app.models import AnalystCommissionRule, AnalystSalary, AuditLog, User, UserRole
-from app.utils.business_days import effective_due_date_sql
+from app.models import (AnalystCommissionRule, AnalystCommissionSnapshot, AnalystSalary,
+                        AuditLog, User, UserRole)
 
 router = APIRouter(prefix="/analyst-commission", tags=["Comissionamento Analistas"])
 
+log = logging.getLogger(__name__)
 
 DIAS = (10, 15, 20, 25)
 
 MARGEM_META_PADRAO = 5.0   # % — o time bate a meta com 95% dela
-
-# Exceções PONTUAIS da janela de "pago em dia", por (ano, mês, dia do vencimento).
-# Pedido do Diego (26/10/2026): o vencimento dia 25 de outubro/2026 caiu num domingo; a regra padrão de
-# fim de semana (ver nota "VENCIMENTO EM FIM DE SEMANA" acima) daria a janela 25→27 (vencimento até 1 dia
-# depois do 1º dia útil). Ele pediu, só para este mês, considerar pago em dia de sexta 23 a segunda 26
-# (inclui pagamento ANTES do vencimento, por causa do fim de semana). Vale só para o(s) mês(es) aqui
-# listado(s) — a regra geral (e os próximos meses com vencimento em fim de semana) não muda.
-JANELAS_ESPECIAIS = {
-    (2026, 10, 25): (date(2026, 10, 23), date(2026, 10, 26)),
-}
-
-
-def _janela_especial_sql(year: int, month: int) -> Optional[str]:
-    """CASE (fragmento SQL) com as janelas especiais deste mês, por dia do vencimento — ou None se não há
-    nenhuma (aí vale só a regra padrão). Usado para SUBSTITUIR a janela padrão quando o dia bate."""
-    overrides = {dia: janela for (y, m, dia), janela in JANELAS_ESPECIAIS.items() if y == year and m == month}
-    if not overrides:
-        return None
-    partes = " ".join(
-        f"WHEN {dia} THEN e.dp BETWEEN DATE '{ini.isoformat()}' AND DATE '{fim.isoformat()}'"
-        for dia, (ini, fim) in overrides.items()
-    )
-    return f"CASE EXTRACT(DAY FROM e.gdate)::int {partes} ELSE NULL END"
 
 
 def _margem_meta(db: Session) -> float:
@@ -141,25 +131,15 @@ def is_analyst(db: Session, user_id: int) -> bool:
     return db.query(AnalystSalary.id).filter(AnalystSalary.user_id == user_id).first() is not None
 
 
-@router.get("")
-def comissionamento(year: int, month: int, user_id: Optional[int] = None,
-                    db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    if not (1 <= month <= 12):
-        raise HTTPException(status_code=400, detail="Mês inválido")
+def _mes_fechado(year: int, month: int) -> bool:
+    """Mês estritamente anterior ao atual — já virou passado, pode travar."""
+    hoje = date.today()
+    return (year, month) < (hoje.year, hoje.month)
 
-    admin = _is_admin(user)
-    membros = _membros(db)
-    if admin:
-        alvo_id = user_id or (membros[0]["id"] if membros else None)
-    else:
-        # analista comum só enxerga o PRÓPRIO comissionamento, ignorando user_id
-        if not is_analyst(db, user.id):
-            raise HTTPException(status_code=403, detail="Você não participa do comissionamento de analistas")
-        alvo_id = user.id
-    alvo = next((m for m in membros if m["id"] == alvo_id), None)
-    if admin and alvo_id and not alvo:
-        raise HTTPException(status_code=404, detail="Analista não cadastrado")
 
+def _computar_vencimentos(db: Session, year: int, month: int, alvo_id: Optional[int]) -> tuple:
+    """Calcula AO VIVO os 4 vencimentos do mês. Usado pro mês corrente/futuro (sempre) e,
+    uma única vez, pra congelar um mês que acabou de virar passado. Retorna (out, salario, tem_boletos)."""
     ini = date(year, month, 1)
     fim = date(year + (month == 12), month % 12 + 1, 1)
     dados = {d: {"clientes": 0, "boletos": 0, "pagos": 0, "faturado": 0.0, "recebido": 0.0,
@@ -186,10 +166,9 @@ def comissionamento(year: int, month: int, user_id: Optional[int] = None,
         py, pm = (year - 1, 12) if month == 1 else (year, month - 1)
         cyc = db.execute(text("SELECT id FROM billing_cycles WHERE year = :y AND month = :m ORDER BY id DESC LIMIT 1"),
                          {"y": py, "m": pm}).scalar()
-        ef_g = effective_due_date_sql("e.gdate")
-        janela_esp = _janela_especial_sql(year, month)
-        janela_padrao = f"(e.dp >= e.dv AND e.dp BETWEEN e.gdate AND ({ef_g}) + 1)"
-        pago_expr = f"(e.rec AND COALESCE(({janela_esp}), {janela_padrao}))" if janela_esp else f"(e.rec AND {janela_padrao})"
+        # Recebido EVENTUAL (07/11/2026): conta qualquer boleto pago do grupo, não importa
+        # quando — não existe mais janela de "pago no dia do vencimento".
+        pago_expr = "e.rec"
         rows = db.execute(text(f"""
             WITH bol0 AS (   -- todos os boletos (Asaas + Itaú) com vencimento no mês, valor ORIGINAL do boleto
                 -- Asaas: vale o vencimento ORIGINAL (originalDueDate), não o atual (que muda quando o boleto é remarcado)
@@ -237,7 +216,7 @@ def comissionamento(year: int, month: int, user_id: Optional[int] = None,
                 SELECT EXTRACT(DAY FROM gdate)::int AS dia, COUNT(DISTINCT doc) AS clientes, SUM(valor) AS faturado
                 FROM fat WHERE gdate IS NOT NULL GROUP BY 1
             ),
-            r AS (     -- emitido / recebido: "pago no dia" = do vencimento até 1 dia depois do 1º dia útil
+            r AS (     -- emitido / recebido de cada vencimento (recebido = pago a qualquer momento)
                 SELECT EXTRACT(DAY FROM x.gdate)::int AS dia,
                        COUNT(*) AS boletos,
                        COUNT(*) FILTER (WHERE x.pago) AS pagos,
@@ -279,6 +258,78 @@ def comissionamento(year: int, month: int, user_id: Optional[int] = None,
             "previsao": previsao,
             "valor": valor,
         })
+    return out, salario, tem_boletos
+
+
+def _congelar_mes(db: Session, user_id: int, year: int, month: int) -> list:
+    """Calcula o mês (que já virou passado) e grava o resultado travado. Idempotente —
+    chamar de novo não recalcula (só insere o que ainda não existir)."""
+    existentes = {r.dia: r for r in db.query(AnalystCommissionSnapshot)
+                  .filter_by(user_id=user_id, year=year, month=month).all()}
+    if len(existentes) == len(DIAS):
+        return list(existentes.values())
+    out, salario, _ = _computar_vencimentos(db, year, month, user_id)
+    linhas = []
+    for v in out:
+        if v["dia"] in existentes:
+            linhas.append(existentes[v["dia"]])
+            continue
+        row = AnalystCommissionSnapshot(
+            user_id=user_id, year=year, month=month, dia=v["dia"],
+            vencimento_original=date.fromisoformat(v["vencimento_original"]),
+            clientes=v["clientes"], boletos=v["boletos"], pagos=v["pagos"],
+            faturado=v["faturado"], recebido=v["recebido"], recebido_itau=v["recebido_itau"],
+            boletos_itau=v["boletos_itau"], percentual=v["percentual"], meta=v["meta"],
+            herdada=v["herdada"], adimplencia=v["adimplencia"], meta_atingida=v["meta_atingida"],
+            meta_minima=v["meta_minima"], previsao=v["previsao"], valor=v["valor"], salario=salario,
+        )
+        db.add(row)
+        linhas.append(row)
+    db.commit()
+    for r in linhas:
+        db.refresh(r)
+    return linhas
+
+
+def _snapshot_para_out(linhas: list) -> list:
+    ordem = {d: i for i, d in enumerate(DIAS)}
+    return [{
+        "dia": r.dia, "vencimento_original": r.vencimento_original.isoformat() if r.vencimento_original else None,
+        "clientes": r.clientes, "boletos": r.boletos, "pagos": r.pagos, "faturado": r.faturado,
+        "recebido": r.recebido, "recebido_itau": r.recebido_itau, "boletos_itau": r.boletos_itau,
+        "percentual": r.percentual, "meta": r.meta, "herdada": r.herdada, "adimplencia": r.adimplencia,
+        "meta_atingida": r.meta_atingida, "meta_minima": r.meta_minima, "previsao": r.previsao, "valor": r.valor,
+    } for r in sorted(linhas, key=lambda r: ordem[r.dia])]
+
+
+@router.get("")
+def comissionamento(year: int, month: int, user_id: Optional[int] = None,
+                    db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    if not (1 <= month <= 12):
+        raise HTTPException(status_code=400, detail="Mês inválido")
+
+    admin = _is_admin(user)
+    membros = _membros(db)
+    if admin:
+        alvo_id = user_id or (membros[0]["id"] if membros else None)
+    else:
+        # analista comum só enxerga o PRÓPRIO comissionamento, ignorando user_id
+        if not is_analyst(db, user.id):
+            raise HTTPException(status_code=403, detail="Você não participa do comissionamento de analistas")
+        alvo_id = user.id
+    alvo = next((m for m in membros if m["id"] == alvo_id), None)
+    if admin and alvo_id and not alvo:
+        raise HTTPException(status_code=404, detail="Analista não cadastrado")
+
+    margem = _margem_meta(db)
+    if alvo_id and _mes_fechado(year, month):
+        linhas = _congelar_mes(db, alvo_id, year, month)
+        out = _snapshot_para_out(linhas)
+        salario = linhas[0].salario if linhas else 0.0
+        tem_boletos = any(v["clientes"] or v["boletos"] for v in out)
+    else:
+        out, salario, tem_boletos = _computar_vencimentos(db, year, month, alvo_id)
+
     return {
         "year": year, "month": month,
         "ciclo": tem_boletos,
@@ -294,6 +345,26 @@ def comissionamento(year: int, month: int, user_id: Optional[int] = None,
         "total": round(sum(v["valor"] for v in out), 2),
         "total_previsao": round(sum(v["previsao"] for v in out), 2),
     }
+
+
+async def analyst_commission_freeze_loop():
+    """Roda em background (ver app/main.py) — congela sozinho o mês que acabou de fechar,
+    pra todo analista, sem precisar que alguém abra a tela primeiro. Checa de hora em hora;
+    `_congelar_mes` é idempotente, então repetir não tem custo."""
+    while True:
+        try:
+            hoje = date.today()
+            ano_ant, mes_ant = (hoje.year - 1, 12) if hoje.month == 1 else (hoje.year, hoje.month - 1)
+            db = SessionLocal()
+            try:
+                ids = [row.user_id for row in db.query(AnalystSalary.user_id).distinct().all()]
+                for uid in ids:
+                    _congelar_mes(db, uid, ano_ant, mes_ant)
+            finally:
+                db.close()
+        except Exception:
+            log.exception("Falha ao congelar comissionamento de analistas do mês anterior")
+        await asyncio.sleep(3600)
 
 
 def _so_admin(user: User):
