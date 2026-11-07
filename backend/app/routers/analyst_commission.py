@@ -10,11 +10,16 @@ CADA BOLETO VALE NO DIA DO SEU PRÓPRIO VENCIMENTO (22/10/2026, conferido contra
 de um boleto é o do seu vencimento, não o do ciclo do cliente (que pode estar vazio ou diferente). Boleto com vencimento fora desses
 dias (remarcado) vale no dia do ciclo do cliente; se o cliente não tem dia no ciclo, no dia anterior (16 → 15). Faturado = valor do ciclo. ASAAS usa o vencimento ORIGINAL (originalDueDate, coluna original_due_date da sincronização; sem ele, o atual); o Itaú só tem o atual. A base são os clientes do ciclo (Asaas e Itaú) + boletos do Itaú de clientes fora do ciclo.
 
-RECEBIDO = RECEBIMENTO EVENTUAL, não só "no dia" (mudou em 07/11/2026, pedido do Diego — antes só contava
-pago no dia do vencimento ou no dia seguinte; ele decidiu que o que vale pra bater a meta é o total recebido
-daquele grupo de vencimento, não importa quando foi pago). `_janela_de_pagamento_*`/exceções de fim de semana
-que existiam aqui até 07/11/2026 foram removidos porque não fazem mais sentido pra essa regra (continuam
-existindo em `app/utils/business_days.py`, usado por outras telas como a Régua de Cobrança).
+SÓ o pago NO DIA do vencimento ou no dia seguinte (10/11, 15/16, 20/21, 25/26); pago antes ou depois não
+entra no recebido (voltou a ser assim em 07/11/2026 — chegou a ser trocado por "recebido eventual" no mesmo
+dia, mas o Diego confirmou que o número de referência que ele lembrava — ~106% de alcance da meta em 20/21 e
+25/26 de outubro — era desse cálculo "no dia", não do eventual; o eventual deu número AINDA mais baixo.
+Precisa investigar por que o "no dia" está dando bem menos agora do que deu quando ele olhou perto do
+vencimento — ver nota de CONGELAMENTO abaixo).
+VENCIMENTO EM FIM DE SEMANA (22/10/2026, pedido do Diego): sábado e domingo não são dia útil, então a janela
+vai do vencimento REAL até 1 dia depois do primeiro dia útil (sáb 10 → vale pago de sáb 10 a ter 13). Dia
+útil comum: janela de sempre (vencimento e dia seguinte). Feriados não entram (sem calendário de feriados).
+O pagamento também não pode ser ANTES do vencimento do próprio boleto (antecipado não conta).
 
 CONGELAMENTO DO MÊS (07/11/2026, pedido do Diego): como o recebido é lido ao vivo de `asaas_payments_sync`/
 `itau_boletos`, um mês já fechado ficava mudando de resultado conforme esses dados eram reconciliados depois
@@ -45,6 +50,7 @@ from app.database import get_db, SessionLocal
 from app.routers.auth import get_current_user
 from app.models import (AnalystCommissionRule, AnalystCommissionSnapshot, AnalystSalary,
                         AuditLog, User, UserRole)
+from app.utils.business_days import effective_due_date_sql
 
 router = APIRouter(prefix="/analyst-commission", tags=["Comissionamento Analistas"])
 
@@ -53,6 +59,27 @@ log = logging.getLogger(__name__)
 DIAS = (10, 15, 20, 25)
 
 MARGEM_META_PADRAO = 5.0   # % — o time bate a meta com 95% dela
+
+# Exceções PONTUAIS da janela de "pago em dia", por (ano, mês, dia do vencimento).
+# Pedido do Diego (26/10/2026): o vencimento dia 25 de outubro/2026 caiu num domingo; a regra padrão de
+# fim de semana daria a janela 25→27. Ele pediu, só para este mês, considerar pago em dia de sexta 23 a
+# segunda 26 (inclui pagamento ANTES do vencimento, por causa do fim de semana).
+JANELAS_ESPECIAIS = {
+    (2026, 10, 25): (date(2026, 10, 23), date(2026, 10, 26)),
+}
+
+
+def _janela_especial_sql(year: int, month: int) -> Optional[str]:
+    """CASE (fragmento SQL) com as janelas especiais deste mês, por dia do vencimento — ou None se não há
+    nenhuma (aí vale só a regra padrão)."""
+    overrides = {dia: janela for (y, m, dia), janela in JANELAS_ESPECIAIS.items() if y == year and m == month}
+    if not overrides:
+        return None
+    partes = " ".join(
+        f"WHEN {dia} THEN e.dp BETWEEN DATE '{ini.isoformat()}' AND DATE '{fim.isoformat()}'"
+        for dia, (ini, fim) in overrides.items()
+    )
+    return f"CASE EXTRACT(DAY FROM e.gdate)::int {partes} ELSE NULL END"
 
 
 def _margem_meta(db: Session) -> float:
@@ -166,9 +193,10 @@ def _computar_vencimentos(db: Session, year: int, month: int, alvo_id: Optional[
         py, pm = (year - 1, 12) if month == 1 else (year, month - 1)
         cyc = db.execute(text("SELECT id FROM billing_cycles WHERE year = :y AND month = :m ORDER BY id DESC LIMIT 1"),
                          {"y": py, "m": pm}).scalar()
-        # Recebido EVENTUAL (07/11/2026): conta qualquer boleto pago do grupo, não importa
-        # quando — não existe mais janela de "pago no dia do vencimento".
-        pago_expr = "e.rec"
+        ef_g = effective_due_date_sql("e.gdate")
+        janela_esp = _janela_especial_sql(year, month)
+        janela_padrao = f"(e.dp >= e.dv AND e.dp BETWEEN e.gdate AND ({ef_g}) + 1)"
+        pago_expr = f"(e.rec AND COALESCE(({janela_esp}), {janela_padrao}))" if janela_esp else f"(e.rec AND {janela_padrao})"
         rows = db.execute(text(f"""
             WITH bol0 AS (   -- todos os boletos (Asaas + Itaú) com vencimento no mês, valor ORIGINAL do boleto
                 -- Asaas: vale o vencimento ORIGINAL (originalDueDate), não o atual (que muda quando o boleto é remarcado)
@@ -216,7 +244,7 @@ def _computar_vencimentos(db: Session, year: int, month: int, alvo_id: Optional[
                 SELECT EXTRACT(DAY FROM gdate)::int AS dia, COUNT(DISTINCT doc) AS clientes, SUM(valor) AS faturado
                 FROM fat WHERE gdate IS NOT NULL GROUP BY 1
             ),
-            r AS (     -- emitido / recebido de cada vencimento (recebido = pago a qualquer momento)
+            r AS (     -- emitido / recebido: "pago no dia" = do vencimento até 1 dia depois do 1º dia útil
                 SELECT EXTRACT(DAY FROM x.gdate)::int AS dia,
                        COUNT(*) AS boletos,
                        COUNT(*) FILTER (WHERE x.pago) AS pagos,
@@ -436,3 +464,18 @@ def adicionar_analista(data: MemberIn, db: Session = Depends(get_db), user: User
                         details={"user_id": alvo.id}))
         db.commit()
     return {"ok": True}
+
+
+@router.delete("/snapshot")
+def destravar_mes(year: int, month: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """Apaga o snapshot travado de um mês (de todos os analistas), pra ele recalcular do zero
+    no próximo acesso. Uso excepcional — corrigir um congelamento feito com dado/regra errada
+    (ex.: 07/11/2026, mudança de regra no mesmo dia do primeiro congelamento de outubro)."""
+    _so_admin(user)
+    _validar_mes(month)
+    n = (db.query(AnalystCommissionSnapshot)
+         .filter_by(year=year, month=month).delete())
+    db.add(AuditLog(user_id=user.id, action="analyst_commission.snapshot_delete", entity="analyst_commission_snapshot",
+                    details={"year": year, "month": month, "linhas": n}))
+    db.commit()
+    return {"ok": True, "linhas_removidas": n}
