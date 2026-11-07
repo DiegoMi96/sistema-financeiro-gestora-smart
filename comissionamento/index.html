@@ -2573,7 +2573,9 @@ function consDiretorAdmTotal(mes) {
   const resultado = d.resultado || 0;
   const meta = d.meta || 0;
   const divTaxa = (cfg.divTaxa || 0) / 100;
-  const dividendo = resultado * divTaxa;
+  // dividendoManual (ajuste manual do dividendo, pedido do Diego 04/11/2026) tem
+  // prioridade sobre o calculado — mesma regra de diretor_adm.html::calcMonth.
+  const dividendo = d.dividendoManual != null ? d.dividendoManual : resultado * divTaxa;
   let bonusB = 0;
   (cfg.faixas || []).forEach(f => { if (dividendo >= f.min) bonusB += f.cota; });
   const pctMeta = meta > 0 ? (resultado / meta * 100) : (resultado > 0 ? 100 : 0);
