@@ -1147,7 +1147,7 @@ iframe.active{display:block}
     <!-- ?b=N é só cache-busting: o navegador guarda esses arquivos em cache
          agressivamente, e sem isso uma edição no perfil não aparece nem com F5
          normal. Suba o número sempre que mexer em algum desses arquivos. -->
-    <iframe id="frame-vendedor" src="vendedor.html?b=44" title="Vendedor"></iframe>
+    <iframe id="frame-vendedor" src="vendedor.html?b=45" title="Vendedor"></iframe>
     <iframe id="frame-dealer" src="dealer.html?b=35" title="Dealer"></iframe>
     <iframe id="frame-indicadores" src="indicadores.html?b=26" title="Indicador"></iframe>
     <iframe id="frame-projeto_especial" src="projeto_especial.html?b=44" title="Projeto Especial"></iframe>
@@ -1655,6 +1655,32 @@ function getDesafioHist(linhas, g) {
   DESAFIO_HIST.forEach((d, i) => { if (linhas >= ths[i]) total += d.val; });
   return total;
 }
+// Metas (Objetivo/Meta1/Meta2/Super Meta) congeladas como estavam ATÉ a
+// mudança de metas de 04/11/2026 (confirmada por timestamp no banco: gs5_v
+// só mudou em 04/11, depois de outubro já aprovado em 13/10). BUG REAL
+// encontrado em 07/11/2026: FAIXAS_HIST/CELULA_ALIQUOTAS_HIST (acima) já
+// congelavam a TABELA de taxas pros meses antigos, mas o alcance% usado pra
+// escolher a faixa e o Desafio continuavam lendo a meta ATUAL do vendedor
+// (v.g) — então toda vez que a meta de um vendedor mudava (ex.: planejamento
+// de novembro), o Resumo/Visão Consolidada de outubro (já pago) recalculava
+// diferente, mesmo sem nenhum dado de outubro ter mudado. Mirror da mesma
+// tabela em vendedor.html (metasDoVendedor). Confirmado: restaurando essas
+// metas (backup semanal de 01/11, antes da mudança de 04/11) outubro volta a
+// bater exatamente com o print de aprovação de 13/10/2026 (Décio R$2.659,50,
+// Patrick R$2.845,00 etc.).
+const METAS_HIST = {
+  v2: { obj: 750, m1: 1000, m2: 1250, sm: 1750 },
+  v3: { obj: 2500, m1: 2750, m2: 3000, sm: 3500 },
+  v4: { obj: 2000, m1: 2250, m2: 2500, sm: 3000 },
+  v5: { obj: 2500, m1: 2750, m2: 3000, sm: 3500 },
+  v6: { obj: 2000, m1: 2250, m2: 2500, sm: 3000 },
+  v7: { obj: 4750, m1: 5000, m2: 5250, sm: 5750 },
+  v8: { obj: 1800, m1: 2050, m2: 2300, sm: 2800 },
+  v9: { obj: 4250, m1: 4500, m2: 4750, sm: 5250 },
+  v1791480378801: { obj: 600, m1: 1200, m2: 1500, sm: 2000 },
+  v1791480398867: { obj: 600, m1: 1200, m2: 1500, sm: 2000 },
+};
+function metasDoVendedor(v, mes) { return (mes && mes < VIGENCIA_MODELO_NOVO) ? (METAS_HIST[v.id] || v.g) : v.g; }
 const CONS_DEFAULTS = {
   vendedores: [
     { id: 'v1', nome: 'Henrique Alves', g: { obj: 750, m1: 1000, m2: 1250, sm: 1750 } },
@@ -1849,8 +1875,9 @@ function consBonusCelulaDe(vid, mes) {
   celula.vendedorIds.forEach(id => {
     const v = vendedores.find(x => x.id === id); if (!v) return;
     const d = mdata[`${id}_${mes}`] || {};
+    const g = metasDoVendedor(v, mes);
     volume += d.linhas || 0;
-    obj += v.g.obj || 0; m1 += v.g.m1 || 0; m2 += v.g.m2 || 0; sm += v.g.sm || 0;
+    obj += g.obj || 0; m1 += g.m1 || 0; m2 += g.m2 || 0; sm += g.sm || 0;
   });
   const aliq = (mes && mes < VIGENCIA_MODELO_NOVO) ? CELULA_ALIQUOTAS_HIST : aliquotas;
   let aliquota = 0;
@@ -1886,11 +1913,17 @@ function consVendedorTotais(mes) {
     // Mês anterior a novembro/2026: fórmula histórica, congelada — mirror do
     // mesmo bloco em calcVend (vendedor.html). BUG REAL corrigido 28/10/2026:
     // outubro (já aprovado) estava sendo recalculado com a fórmula nova aqui
-    // na Visão Consolidada também.
+    // na Visão Consolidada também. BUG REAL #2 corrigido 07/11/2026: a meta
+    // (v.g) usada pro alcance%/Desafio também precisa vir congelada (ver
+    // METAS_HIST acima) — senão uma mudança de meta feita depois (ex.: meta
+    // de novembro) recalcula outubro de novo, mesmo a tabela de faixas já
+    // estando congelada.
     if (mes && mes < VIGENCIA_MODELO_NOVO) {
-      const fx = getFaixaHist(alc);
+      const gHist = metasDoVendedor(v, mes);
+      const alcHist = gHist.obj > 0 ? (linhas / gHist.obj * 100) : 0;
+      const fx = getFaixaHist(alcHist);
       const volC = linhas * fx.vol, atvC = atv * fx.atv;
-      const desC = getDesafioHist(linhas, v.g);
+      const desC = getDesafioHist(linhas, gHist);
       const eqC = EQUIP_MANUAL_HIST.includes(norm(v.nome)) ? eq : eq * (RULES_HIST.eqRate / 100);
       const gpsC = gps * (RULES_HIST.gpsRate / 100);
       const frDsc = Math.max(0, frete - RULES_HIST.freteLimit);
@@ -1944,16 +1977,19 @@ function calcVendExec(v, mes) {
   const ths = [v.g.obj, v.g.m1, v.g.m2, v.g.sm];
   // Mês anterior a novembro/2026: fórmula histórica, congelada — mirror do
   // mesmo bloco em calcVend (vendedor.html) e consVendedorTotais acima.
+  // Meta também congelada (METAS_HIST) — ver nota em consVendedorTotais.
   if (mes && mes < VIGENCIA_MODELO_NOVO) {
-    const fx = getFaixaHist(alc);
+    const gHist = metasDoVendedor(v, mes);
+    const alcHist = gHist.obj > 0 ? (linhas / gHist.obj * 100) : 0;
+    const fx = getFaixaHist(alcHist);
     const volC = linhas * fx.vol, atvC = atv * fx.atv;
-    const desC = getDesafioHist(linhas, v.g);
+    const desC = getDesafioHist(linhas, gHist);
     const eqC = EQUIP_MANUAL_HIST.includes(norm(v.nome)) ? eq : eq * (RULES_HIST.eqRate / 100);
     const gpsC = gps * (RULES_HIST.gpsRate / 100);
     const frDsc = Math.max(0, frete - RULES_HIST.freteLimit);
     const total = volC + atvC + desC + eqC + gpsC + bonus + bonusCelula - frDsc;
-    return { linhas, atv, eq, gps, frete, bonus, bonusCelula, beSmart: 0, alc, fx, desC, volC, atvC, eqC, gpsC, frDsc,
-      novosClientesC: 0, recorrenciaC: 0, aberturaC: 0, total, ths, categoriaEquip: null, qtdEquip: 0, equipRate: 0 };
+    return { linhas, atv, eq, gps, frete, bonus, bonusCelula, beSmart: 0, alc: alcHist, fx, desC, volC, atvC, eqC, gpsC, frDsc,
+      novosClientesC: 0, recorrenciaC: 0, aberturaC: 0, total, ths: [gHist.obj, gHist.m1, gHist.m2, gHist.sm], categoriaEquip: null, qtdEquip: 0, equipRate: 0 };
   }
   const extra = consVendExtra(v, mes);
   const fx = faixas.find(f => Math.floor(alc) <= f.max) || faixas[faixas.length - 1] || { n: 1, vol: 0, atv: 0 };

@@ -661,6 +661,31 @@ function getDesafioHist(linhas,g){
   DESAFIO_HIST.forEach((d,i)=>{if(linhas>=ths[i])total+=d.val;});
   return total;
 }
+// Metas (Objetivo/Meta1/Meta2/Super Meta) congeladas como estavam ATÉ a
+// mudança de metas de 04/11/2026 (confirmada por timestamp no banco:
+// gs5_v só mudou em 04/11, depois de outubro já aprovado em 13/10). BUG
+// REAL encontrado em 07/11/2026: FAIXAS_HIST/CELULA_ALIQUOTAS_HIST (acima)
+// já congelavam a TABELA de taxas pros meses antigos, mas o alcance% usado
+// pra escolher a faixa e o Desafio continuavam lendo a meta ATUAL do
+// vendedor (vend.g) — então toda vez que a meta de um vendedor mudava (ex.:
+// planejamento de novembro), o Resumo de outubro (já pago) recalculava
+// diferente, mesmo sem nenhum dado de outubro ter mudado. Confirmado:
+// restaurando essas metas (backup semanal de 01/11, antes da mudança de
+// 04/11) outubro volta a bater exatamente com o print de aprovação de
+// 13/10/2026 (Décio R$2.659,50, Patrick R$2.845,00 etc.).
+const METAS_HIST={
+  v2:{obj:750,m1:1000,m2:1250,sm:1750},
+  v3:{obj:2500,m1:2750,m2:3000,sm:3500},
+  v4:{obj:2000,m1:2250,m2:2500,sm:3000},
+  v5:{obj:2500,m1:2750,m2:3000,sm:3500},
+  v6:{obj:2000,m1:2250,m2:2500,sm:3000},
+  v7:{obj:4750,m1:5000,m2:5250,sm:5750},
+  v8:{obj:1800,m1:2050,m2:2300,sm:2800},
+  v9:{obj:4250,m1:4500,m2:4750,sm:5250},
+  v1791480378801:{obj:600,m1:1200,m2:1500,sm:2000},
+  v1791480398867:{obj:600,m1:1200,m2:1500,sm:2000},
+};
+function metasDoVendedor(v,mes){return(mes&&mes<VIGENCIA_MODELO_NOVO)?(METAS_HIST[v.id]||v.g):v.g;}
 // Parceiro "ativo" sozinho não basta pra Recorrência (28/10/2026, pedido do
 // Diego: "vamos pagar a recorrência se o parceiro colocar pedido no mês
 // anterior") — também precisa ter lançamento no mês ANTERIOR ao que está
@@ -713,8 +738,9 @@ function celulaDesempenho(celula,mes){
   celula.vendedorIds.forEach(vid=>{
     const v=vendedores.find(x=>x.id===vid);if(!v)return;
     const d=mdata[`${vid}_${mes}`]||{};
+    const g=metasDoVendedor(v,mes);
     volume+=d.linhas||0;
-    obj+=v.g.obj||0;m1+=v.g.m1||0;m2+=v.g.m2||0;sm+=v.g.sm||0;
+    obj+=g.obj||0;m1+=g.m1||0;m2+=g.m2||0;sm+=g.sm||0;
   });
   const aliq=(mes&&mes<VIGENCIA_MODELO_NOVO)?CELULA_ALIQUOTAS_HIST:celulaAliquotas;
   let aliquota=0;
@@ -853,7 +879,7 @@ function renderResumo(){
   // 1) calcula todos (a conta é a mesma de sempre — calcVend)
   let dados=vendedores.map(vend=>{
     const d=mdata[`${vend.id}_${mes}`]||{};
-    const c=calcVend(d,vend.g,bonusCelulaDe(vend.id,mes),eqDiretoDe(vend,mes),extraDoVendedor(vend,mes),mes);
+    const c=calcVend(d,metasDoVendedor(vend,mes),bonusCelulaDe(vend.id,mes),eqDiretoDe(vend,mes),extraDoVendedor(vend,mes),mes);
     const isEmpty=!c.linhas&&!c.atv&&!c.eq&&!c.gps&&!c.bonus&&!c.bonusCelula&&!c.beSmart&&!c.novosClientesC&&!c.recorrenciaC&&!c.aberturaC;
     return{vend,c,isEmpty,canExport:hasRaw(vend.id,mes)};
   });
@@ -972,7 +998,7 @@ function liveCalc(vid){
   const vend=vendedores.find(v=>v.id===vid);
   const mes=document.getElementById('mesInput').value;
   const d={linhas:+document.getElementById(`e_l_${vid}`).value||0,atv:+document.getElementById(`e_a_${vid}`).value||0,eq:+document.getElementById(`e_q_${vid}`).value||0,gps:+document.getElementById(`e_g_${vid}`).value||0,frete:+document.getElementById(`e_f_${vid}`).value||0,bonus:+document.getElementById(`e_b_${vid}`).value||0,beSmart:+document.getElementById(`e_bs_${vid}`).value||0};
-  const c=calcVend(d,vend.g,bonusCelulaDe(vid,mes),eqDiretoDe(vend,mes),extraDoVendedor(vend,mes),mes);
+  const c=calcVend(d,metasDoVendedor(vend,mes),bonusCelulaDe(vid,mes),eqDiretoDe(vend,mes),extraDoVendedor(vend,mes),mes);
   const fpCls=['f1','f2','f3','f4'];
   const ths=[vend.g.obj,vend.g.m1,vend.g.m2,vend.g.sm];
   const prev=document.getElementById(`prev_${vid}`);if(!prev)return;
@@ -1078,7 +1104,7 @@ async function exportVendedor(vid,mes,retornarBlob){
     }
   }
   const raw=rawStore[key]||{};
-  const c=calcVend(d,vend.g,bonusCelulaDe(vid,mes),eqDiretoDe(vend,mes),extraDoVendedor(vend,mes),mes);
+  const c=calcVend(d,metasDoVendedor(vend,mes),bonusCelulaDe(vid,mes),eqDiretoDe(vend,mes),extraDoVendedor(vend,mes),mes);
 
   const wb=new ExcelJS.Workbook();
   const [y,m]=mes.split('-');
