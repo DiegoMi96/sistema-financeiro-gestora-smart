@@ -1079,6 +1079,14 @@ function reclassificarExtratoAntigo(rawPorMes){
 // acompanha o texto, pra não sair tudo espremido como no SheetJS antigo.
 function vendAbaBruta(wb,nomeAba,headers,rows){
   if(!headers||!rows||!rows.length)return;
+  // Planilhas de Cobranças às vezes trazem coluna sem cabeçalho no fim do
+  // arquivo — o SheetJS batiza como "__EMPTY"/"__EMPTY_1"... Some aqui no
+  // extrato exportado (não afeta nenhum cálculo, só a aba crua exibida).
+  const manter=headers.map(h=>!/^_{1,2}EMPTY/i.test(String(h??'')));
+  if(!manter.every(Boolean)){
+    headers=headers.filter((_,i)=>manter[i]);
+    rows=rows.map(r=>r.filter((_,i)=>manter[i]));
+  }
   const ws=wb.addWorksheet(nomeAba);
   ws.addRow(headers);
   rows.forEach(r=>ws.addRow(r));
