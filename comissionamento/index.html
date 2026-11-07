@@ -1153,7 +1153,7 @@ iframe.active{display:block}
     <iframe id="frame-projeto_especial" src="projeto_especial.html?b=44" title="Projeto Especial"></iframe>
     <iframe id="frame-gestor_operacoes" src="gestor_operacoes.html?b=38" title="Gestor de Operações"></iframe>
     <iframe id="frame-diretor_adm" src="diretor_adm.html?b=41" title="Diretor Administrativo"></iframe>
-    <iframe id="frame-diretor_comercial" src="diretor_comercial.html?b=40" title="Diretor Comercial"></iframe>
+    <iframe id="frame-diretor_comercial" src="diretor_comercial.html?b=41" title="Diretor Comercial"></iframe>
   </div>
 </div>
 
@@ -2617,11 +2617,18 @@ function consDCHardware(cfg, qtd) {
   fixos.forEach(f => { if (qtd >= f.min && (!melhor || f.min > melhor.min)) melhor = f; });
   return melhor ? melhor.valor : qtd * (f1?.valor || 0);
 }
+// Volume de outubro/2026 foi recalculado (25000) depois que o mês já estava aprovado
+// com 24582 — congela o dado do mês fechado pra não reabrir o total já aprovado
+// (mesmo padrão usado pro vendedor em METAS_HIST).
+const DC1_DADOS_HIST = {
+  '2026-10': { volume: 24582, cresc: 9791, hw: 30, sat: null, news: false },
+};
+function dadosDiretorComercial(mes, mdata) { return (mes && mes < VIGENCIA_MODELO_NOVO) ? (DC1_DADOS_HIST[mes] || mdata[mes] || {}) : (mdata[mes] || {}); }
 function consDiretorComercialTotal(mes) {
   const cfg = CLS.get('dc1_cfg', CONS_DC_DEFAULTS);
   const mdata = CLS.get('dc1_m', {});
   const extras = CLS.get('dc1_ext', { canais: [], reajustes: [], produtos: [], newsKickoffPago: false, newsKickoffData: '' });
-  const d = mdata[mes] || {};
+  const d = dadosDiretorComercial(mes, mdata);
   const volumeBonus = consDCFaixaMaior(cfg.faixasVolume, d.volume || 0);
   const crescBonus = consDCFaixaMaior(cfg.faixasCresc, d.cresc || 0);
   const hwBonus = consDCHardware(cfg, d.hw || 0);

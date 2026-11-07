@@ -431,6 +431,15 @@ const COM_API = {
 function mesAprovado(mes) { try { const a = JSON.parse(localStorage.getItem('aprovacoes_mes') || '{}'); return !!(a[mes] && a[mes].aprovado); } catch { return false; } }
 let config = LS.get('dc1_cfg', DEF_CONFIG);
 let mdata = LS.get('dc1_m', {});
+
+const VIGENCIA_MODELO_NOVO = '2026-11';
+// Volume de outubro/2026 foi recalculado (25000) depois que o mês já estava aprovado
+// com 24582 — congela o dado do mês fechado pra não reabrir o total já aprovado
+// (mesmo padrão usado pro vendedor em index.html/vendedor.html).
+const DADOS_HIST = {
+  '2026-10': { volume: 24582, cresc: 9791, hw: 30, sat: null, news: false },
+};
+function dadosDoMes(mes) { return (mes && mes < VIGENCIA_MODELO_NOVO) ? (DADOS_HIST[mes] || mdata[mes] || {}) : (mdata[mes] || {}); }
 let extras = LS.get('dc1_ext', DEF_EXTRAS);
 
 // ─── INIT ─────────────────────────────────────────────
@@ -624,7 +633,7 @@ function renderCiclo() {
   const meses = Array.from({ length: 12 }, (_, i) => `${ano}-${String(i + 1).padStart(2, '0')}`);
   let totGeral = 0, totExtras = 0;
   const rows = meses.map(mes => {
-    const d = mdata[mes] || {};
+    const d = dadosDoMes(mes);
     const c = calcMonth(d);
     const ex = extrasDoMes(mes);
     const totalMes = c.total + ex;
@@ -652,7 +661,7 @@ function exportCiclo(retornarBlob) {
   anos.forEach(ano => {
     const meses = Array.from({ length: 12 }, (_, i) => `${ano}-${String(i + 1).padStart(2, '0')}`);
     meses.forEach(mes => {
-      const d = mdata[mes] || {};
+      const d = dadosDoMes(mes);
       const c = calcMonth(d);
       const ex = extrasDoMes(mes);
       rows.push([fmtMes(mes), c.volumeBonus, c.crescBonus, c.hwBonus, d.sat != null ? c.satBonus : '', d.news ? c.newsBonus : '', c.total + ex]);
