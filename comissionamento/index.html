@@ -3903,6 +3903,13 @@ function impSetStatus(target, cls, msg) {
 }
 
 const impFileNames = {};
+// Leitura de planilha grande no servidor ainda em andamento, por target —
+// achado 08/11/2026: se o Diego clica em "Processar tudo" ANTES dessa
+// leitura terminar, impRows[target] ainda está null e o passo é pulado
+// silenciosamente (processa rápido, não aparece nada, parece "quebrado").
+// impProcessarTudo espera essa promise antes de decidir o que processar.
+const impLeiturasPendentes = {};
+
 // Achado 08/11/2026: pra planilha grande (.xlsx de 500 mil+ linhas) que o
 // SheetJS no navegador lê como vazia, manda pro servidor (Python/openpyxl
 // aguenta esse tamanho numa boa) em vez de obrigar o Diego a converter pra
@@ -3913,6 +3920,10 @@ async function impParsePlanilhaServidor(file, target) {
   // — mais perto de 3-5 min num upload mais lento. Sem avisar isso, dá a
   // impressão de ter travado e a pessoa recarrega achando que quebrou.
   impSetStatus(target, 'st-idle', `A leitura local de "${file.name}" veio vazia — lendo no servidor. Para um arquivo deste tamanho (${(file.size / 1024 / 1024).toFixed(0)} MB) isso pode levar VÁRIOS MINUTOS. Não feche nem recarregue a aba — espere aparecer "lido pelo servidor" aqui embaixo.`);
+  // Desabilita "Processar tudo" enquanto lê — clicar antes de terminar
+  // pulava o passo em silêncio (ver impLeiturasPendentes acima).
+  const btnTudo = document.getElementById('imp_tudo_btn');
+  if (btnTudo) btnTudo.disabled = true;
   try {
     const tok = localStorage.getItem('token');
     const fd = new FormData();
@@ -3940,6 +3951,9 @@ async function impParsePlanilhaServidor(file, target) {
   } catch (err) {
     impRows[target] = null;
     impSetStatus(target, 'st-err', `Não consegui ler "${file.name}" nem no navegador nem no servidor (${err.message}). Tente salvar como CSV (UTF-8) no Excel e subir de novo.`);
+  } finally {
+    delete impLeiturasPendentes[target];
+    if (!Object.keys(impLeiturasPendentes).length && btnTudo) btnTudo.disabled = false;
   }
 }
 
@@ -3970,7 +3984,7 @@ function impHandleFile(evt, target) {
           // Processar tudo. Tenta ler esse mesmo arquivo no servidor antes
           // de desistir (ver impParsePlanilhaServidor).
           impRows[target] = null;
-          impParsePlanilhaServidor(file, target);
+          impLeiturasPendentes[target] = impParsePlanilhaServidor(file, target);
         } else {
           impRows[target] = rows;
           impSetStatus(target, 'st-ok', rows.length.toLocaleString('pt-BR') + ' linha(s) carregada(s) de "' + file.name + '". Clique em processar.');
@@ -4094,6 +4108,17 @@ function impDcLinhas(d) {
 async function impProcessarTudo() {
   const mes = impReqMes(); if (!mes) return;
   if (mesAprovado(mes)) { alert('Este mês já foi aprovado — não é possível reprocessar. Desaprove antes, se precisar.'); return; }
+  const pendentes = Object.keys(impLeiturasPendentes);
+  if (pendentes.length) {
+    // Achado 08/11/2026: clicar em "Processar tudo" enquanto um arquivo
+    // grande ainda está sendo lido pelo servidor fazia o passo ser pulado
+    // em silêncio (processava rápido, sem avisar nada) — agora espera.
+    const btnEspera = document.getElementById('imp_tudo_btn');
+    const progEspera = document.getElementById('imp_tudo_progress');
+    if (btnEspera) btnEspera.disabled = true;
+    if (progEspera) progEspera.textContent = `Esperando terminar de ler ${pendentes.join(', ')} antes de processar…`;
+    await Promise.allSettled(Object.values(impLeiturasPendentes));
+  }
   const passos = [
     { nome: 'Clientes', tem: () => !!impRows.clientes, fn: impProcessarClientes, resultId: 'imp_clientes_result' },
     { nome: 'Vendas do mês (Volume)', tem: () => !!impRows.pedidos, fn: impProcessarPedidos, resultId: 'imp_pedidos_result' },
