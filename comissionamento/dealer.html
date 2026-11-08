@@ -986,6 +986,11 @@ async function exportEntity(id,mes,retornarBlob){
   const entity=dealers.find(e=>e.id===id);
   const d=mdata[`d_${id}_${mes}`]||{};
   const c=calcDealer(d,id);
+  // Mesmo rótulo condicional que a tela já usa (renderEditPanel) — achado
+  // 08/11/2026: o Excel exportado ainda dizia "Novas linhas"/"Margem" pra
+  // quem tem Regra de Comissão própria (ex.: Hilario), mas esse número é na
+  // verdade "Linhas ativadas no mês"/"Comissão da regra (já calculada)".
+  const regra=regraDoDealer(id);
   const key=`dealer_${id}_${mes}`;
   // Se a aba abriu depois de um F5, rawStore está vazio — busca o extrato
   // que ficou salvo no backend na hora do Importar, antes de montar o Excel.
@@ -1005,8 +1010,8 @@ async function exportEntity(id,mes,retornarBlob){
   const wb=XLSX.utils.book_new();
   const resumoRows=[
     ['MARGEM','','CANCELAMENTOS','','COMISSÃO TOTAL',''],
-    ['Linhas em base',c.linhas||0,'Linhas canceladas',d.cancel||0,'Margem',c.margin],
-    ['Novas linhas',c.novas||0,'Taxa por linha',-rules.cancelRate,'Bateu-Levou',c.bl.total],
+    ['Linhas em base',c.linhas||0,'Linhas canceladas',d.cancel||0,regra?'Comissão da regra (já calculada)':'Margem',c.margin],
+    [regra?'Linhas ativadas no mês':'Novas linhas',c.novas||0,'Taxa por linha',-rules.cancelRate,'Bateu-Levou',c.bl.total],
     [null,null,'Total desconto',-c.cancelDesc,'Bônus extra',c.bonus],
     [null,null,null,null,'−Cancelamentos',-c.cancelDesc],
     [null,null,null,null,'TOTAL',c.total],
