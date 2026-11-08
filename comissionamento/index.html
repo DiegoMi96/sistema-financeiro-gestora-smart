@@ -1157,7 +1157,7 @@ iframe.active{display:block}
     <!-- ?b=N é só cache-busting: o navegador guarda esses arquivos em cache
          agressivamente, e sem isso uma edição no perfil não aparece nem com F5
          normal. Suba o número sempre que mexer em algum desses arquivos. -->
-    <iframe id="frame-vendedor" src="vendedor.html?b=46" title="Vendedor"></iframe>
+    <iframe id="frame-vendedor" src="vendedor.html?b=47" title="Vendedor"></iframe>
     <iframe id="frame-dealer" src="dealer.html?b=36" title="Dealer"></iframe>
     <iframe id="frame-indicadores" src="indicadores.html?b=26" title="Indicador"></iframe>
     <iframe id="frame-projeto_especial" src="projeto_especial.html?b=44" title="Projeto Especial"></iframe>
@@ -1952,8 +1952,12 @@ function consVendedorTotais(mes) {
     // o mesmo bug já corrigido pro modelo de 6 faixas vale igual pro de 4.
     const fx = faixas.find(f => Math.floor(alc) <= f.max) || faixas[faixas.length - 1] || { vol: 0, atv: 0 };
     const volC = linhas * fx.vol, atvC = atv * fx.atv;
-    const eqC = extra.categoriaEquip
-      ? (extra.qtdEquip > 0 ? extra.qtdEquip * (equipCat[extra.categoriaEquip] || 0) : eq)
+    // Meios de Pagamento: R$ fixo por máquina vendida (qtdEquip × equipCat).
+    // Rastreamento (e quem não tem categoria): percentual do valor recebido
+    // — achado 08/11/2026, confirmado com o Diego: só Meios de Pagamento é
+    // por máquina; Rastreamento nunca foi pra ser por unidade.
+    const eqC = extra.categoriaEquip === 'meios_pagamento'
+      ? (extra.qtdEquip > 0 ? extra.qtdEquip * (equipCat.meios_pagamento || 0) : 0)
       : (EQUIP_MANUAL.includes(norm(v.nome)) ? eq : eq * ((rules.eqRate || 0) / 100));
     const gpsC = gps * ((rules.gpsRate || 0) / 100);
     const frDsc = Math.max(0, frete - (rules.freteLimit || 0));
@@ -2004,8 +2008,12 @@ function calcVendExec(v, mes) {
   const extra = consVendExtra(v, mes);
   const fx = faixas.find(f => Math.floor(alc) <= f.max) || faixas[faixas.length - 1] || { n: 1, vol: 0, atv: 0 };
   const volC = linhas * fx.vol, atvC = atv * fx.atv;
-  const eqC = extra.categoriaEquip
-    ? (extra.qtdEquip > 0 ? extra.qtdEquip * (equipCat[extra.categoriaEquip] || 0) : eq)
+  // Meios de Pagamento: R$ fixo por máquina vendida (qtdEquip × equipCat).
+  // Rastreamento (e quem não tem categoria): percentual do valor recebido
+  // — achado 08/11/2026, confirmado com o Diego: só Meios de Pagamento é
+  // por máquina; Rastreamento nunca foi pra ser por unidade.
+  const eqC = extra.categoriaEquip === 'meios_pagamento'
+    ? (extra.qtdEquip > 0 ? extra.qtdEquip * (equipCat.meios_pagamento || 0) : 0)
     : (EQUIP_MANUAL.includes(norm(v.nome)) ? eq : eq * ((rules.eqRate || 0) / 100));
   const gpsC = gps * ((rules.gpsRate || 0) / 100);
   const frDsc = Math.max(0, frete - (rules.freteLimit || 0));
@@ -2013,7 +2021,7 @@ function calcVendExec(v, mes) {
   const total = volC + atvC + eqC + gpsC + bonus + bonusCelula + beSmart + novosClientesC + recorrenciaC + aberturaC - frDsc;
   return { linhas, atv, eq, gps, frete, bonus, bonusCelula, beSmart, alc, fx, volC, atvC, eqC, gpsC, frDsc,
     novosClientesC, recorrenciaC, aberturaC, total, ths, categoriaEquip: extra.categoriaEquip, qtdEquip: extra.qtdEquip,
-    equipRate: extra.categoriaEquip ? (equipCat[extra.categoriaEquip] || 0) : 0 };
+    equipRate: extra.categoriaEquip === 'meios_pagamento' ? (equipCat.meios_pagamento || 0) : 0 };
 }
 
 // Todos os parceiros cadastrados (Indicador/Indicador N2/Dealer/Projeto
@@ -2183,7 +2191,7 @@ function renderExecutivo() {
       ['Canal Indireto', (c.recorrenciaC + c.aberturaC) > 0 ? 'Recorrência + abertura de parceiro' : traco, (c.recorrenciaC + c.aberturaC) > 0 ? '<span style="color:#1c4d24">+R$' + br2c(c.recorrenciaC + c.aberturaC) + '</span>' : traco],
       ['Be Smart', c.beSmart > 0 ? 'Lançamento manual (sistema externo)' : traco, c.beSmart > 0 ? '<span style="color:#1c4d24">+R$' + br2c(c.beSmart) + '</span>' : traco],
       ['Bônus extra', c.bonus > 0 ? 'Lançamento manual' : traco, c.bonus > 0 ? '<span style="color:#1c4d24">+R$' + br2c(c.bonus) + '</span>' : traco],
-      ['Equipamento', c.eqC > 0 ? (c.categoriaEquip ? (c.qtdEquip > 0 ? `${c.qtdEquip} máquina(s) (${c.categoriaEquip === 'rastreamento' ? 'Rastreamento' : 'Meios de Pagamento'}) × R$ ${c.equipRate.toFixed(2).replace('.', ',')}` : 'Valor lançado manualmente (sem dado da planilha no mês)') : (EQUIP_MANUAL.includes(norm(v.nome)) ? 'Valor lançado manualmente' : `R$ ${br2c(c.eq)} × ${rg.eqRate || 0}%`)) : traco, c.eqC > 0 ? 'R$' + br2c(c.eqC) : traco],
+      ['Equipamento', c.eqC > 0 ? (c.categoriaEquip === 'meios_pagamento' ? (c.qtdEquip > 0 ? `${c.qtdEquip} máquina(s) (Meios de Pagamento) × R$ ${c.equipRate.toFixed(2).replace('.', ',')}` : 'Valor lançado manualmente (sem dado da planilha no mês)') : (EQUIP_MANUAL.includes(norm(v.nome)) ? 'Valor lançado manualmente' : `R$ ${br2c(c.eq)} × ${rg.eqRate || 0}%`)) : traco, c.eqC > 0 ? 'R$' + br2c(c.eqC) : traco],
       ['Smart GPS', c.gpsC > 0 ? `R$ ${br2c(c.gps)} × ${rg.gpsRate || 0}%` : traco, c.gpsC > 0 ? 'R$' + br2c(c.gpsC) : traco],
       ['Desconto Frete', c.frDsc > 0 ? `Frete R$ ${br2c(c.frete)} − limite R$ ${br2c(rg.freteLimit || 0)}` : traco, c.frDsc > 0 ? '<span style="color:#b83232">-R$' + br2c(c.frDsc) + '</span>' : traco],
     ], true) + `<div class="exec-sum-footer" style="padding:14px 16px;margin-top:14px"><span style="font-size:12px">Total</span><span style="font-size:20px">R$${br2c(c.total)}</span></div>`;

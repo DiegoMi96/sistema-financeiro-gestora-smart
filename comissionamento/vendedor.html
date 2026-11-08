@@ -782,14 +782,15 @@ function calcVend(d,g,bonusCelula=0,eqDireto=false,extra={},mes=''){
   }
   const fx=getFaixa(alc);
   const volC=linhas*fx.vol,atvC=atv*fx.atv;
-  // Equipamento: vendedor com uma categoria marcada (rastreamento ou meios de
-  // pagamento) em Regras & Config usa R$/máquina daquela categoria sobre o
-  // total de máquinas vendidas (vindo da planilha importada no mês); se não
-  // veio nada da planilha pra ele naquele mês, cai pro valor lançado à mão
-  // (campo fica editável nesse caso). Sem categoria marcada, segue a regra
-  // padrão (% sobre valor da venda, ou lançamento manual direto pros casos antigos).
-  const eqC=extra.categoriaEquip
-    ? (extra.qtdEquip>0 ? extra.qtdEquip*(equipCat[extra.categoriaEquip]||0) : eq)
+  // Equipamento: SÓ a categoria Meios de Pagamento usa R$/máquina (sobre o
+  // total de máquinas vendidas vindo da planilha importada no mês; sem
+  // máquina importada no mês, comissão 0 — não cai mais pro valor lançado à
+  // mão). Rastreamento (mesmo com categoria marcada em Regras & Config) e
+  // quem não tem categoria seguem a regra padrão: % sobre o valor recebido
+  // — achado 08/11/2026, confirmado com o Diego: Rastreamento nunca foi pra
+  // ser por unidade, só Meios de Pagamento (R$5/máquina).
+  const eqC=extra.categoriaEquip==='meios_pagamento'
+    ? (extra.qtdEquip>0 ? extra.qtdEquip*(equipCat.meios_pagamento||0) : 0)
     : (eqDireto?eq:eq*(rules.eqRate/100));
   const gpsC=gps*(rules.gpsRate/100);
   const frDsc=Math.max(0,frete-rules.freteLimit);
@@ -976,10 +977,10 @@ function renderEditPanel(vid,mes){
     <div class="edit-fields">
       <div><label class="lbl">Novas linhas</label><input type="number" id="e_l_${vid}" value="${d.linhas||0}" min="0" oninput="liveCalc('${vid}')"></div>
       <div><label class="lbl">Valor ativações</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="e_a_${vid}" value="${d.atv||0}" min="0" step="0.01" oninput="liveCalc('${vid}')"></div></div>
-      ${vend.categoriaEquip?(()=>{const eqCatMes=(equipCatData[mes]||{})[vid]||{};const qtd=eqCatMes.qtd||0;const rate=equipCat[vend.categoriaEquip]||0;const rotulo=vend.categoriaEquip==='rastreamento'?'Rastreamento':'Meios de Pagamento';
+      ${vend.categoriaEquip==='meios_pagamento'?(()=>{const eqCatMes=(equipCatData[mes]||{})[vid]||{};const qtd=eqCatMes.qtd||0;const rate=equipCat.meios_pagamento||0;
         return qtd>0
-          ?`<div><label class="lbl">Equipamento (${rotulo})</label><div class="irow" style="opacity:.65"><span class="ipfx">R$</span><input type="number" id="e_q_${vid}" value="${(qtd*rate).toFixed(2)}" disabled></div><p style="font-size:10px;color:#888;margin:4px 0 0">${qtd} máquina(s) × R$${rate.toFixed(2).replace('.',',')} — vem da planilha de Equipamentos importada no mês</p></div>`
-          :`<div><label class="lbl">Equipamento (${rotulo})</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="e_q_${vid}" value="${d.eq||0}" min="0" step="0.01" oninput="liveCalc('${vid}')"></div><p style="font-size:10px;color:#888;margin:4px 0 0">Não veio nada da planilha de Equipamentos pra ele neste mês — lance o valor manualmente</p></div>`;
+          ?`<div><label class="lbl">Equipamento (Meios de Pagamento)</label><div class="irow" style="opacity:.65"><span class="ipfx">R$</span><input type="number" id="e_q_${vid}" value="${(qtd*rate).toFixed(2)}" disabled></div><p style="font-size:10px;color:#888;margin:4px 0 0">${qtd} máquina(s) × R$${rate.toFixed(2).replace('.',',')} — vem da planilha de Equipamentos importada no mês</p></div>`
+          :`<div><label class="lbl">Equipamento (Meios de Pagamento)</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="e_q_${vid}" value="${d.eq||0}" min="0" step="0.01" oninput="liveCalc('${vid}')"></div><p style="font-size:10px;color:#888;margin:4px 0 0">Não veio nada da planilha de Equipamentos pra ele neste mês — lance o valor manualmente</p></div>`;
       })():`<div><label class="lbl">${EQUIP_MANUAL.includes(norm(vend.nome))?'Comissão equipamento (manual, sem taxa)':'Equipamentos'}</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="e_q_${vid}" value="${d.eq||0}" min="0" step="0.01" oninput="liveCalc('${vid}')"></div></div>`}
       <div><label class="lbl">Smart GPS</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="e_g_${vid}" value="${d.gps||0}" min="0" step="0.01" oninput="liveCalc('${vid}')"></div></div>
       <div><label class="lbl">Frete</label><div class="irow"><span class="ipfx">R$</span><input type="number" id="e_f_${vid}" value="${d.frete||0}" min="0" step="0.01" oninput="liveCalc('${vid}')"></div></div>
