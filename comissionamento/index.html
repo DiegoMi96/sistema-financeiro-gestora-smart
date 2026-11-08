@@ -3903,6 +3903,27 @@ function impSetStatus(target, cls, msg) {
 }
 
 const impFileNames = {};
+// Achado 08/11/2026: pra planilha grande (.xlsx de 500 mil+ linhas) que o
+// SheetJS no navegador lê como vazia, manda pro servidor (Python/openpyxl
+// aguenta esse tamanho numa boa) em vez de obrigar o Diego a converter pra
+// CSV toda vez — "conseguimos ajustar para ler o arquivo que eu enviar".
+async function impParsePlanilhaServidor(file, target) {
+  impSetStatus(target, 'st-idle', `A leitura local de "${file.name}" veio vazia — tentando ler no servidor (arquivo grande, pode levar alguns segundos)…`);
+  try {
+    const tok = localStorage.getItem('token');
+    const fd = new FormData();
+    fd.append('arquivo', file);
+    const resp = await fetch('/api/comissionamento/parse-planilha', { method: 'POST', headers: { Authorization: 'Bearer ' + tok }, body: fd });
+    if (!resp.ok) { const j = await resp.json().catch(() => ({})); throw new Error(j.detail || ('HTTP ' + resp.status)); }
+    const { headers, linhas, total } = await resp.json();
+    impRows[target] = linhas.map(linha => Object.fromEntries(headers.map((h, i) => [h, linha[i] === undefined ? null : linha[i]])));
+    impSetStatus(target, 'st-ok', total.toLocaleString('pt-BR') + ' linha(s) carregada(s) de "' + file.name + '" (lido pelo servidor). Clique em processar.');
+  } catch (err) {
+    impRows[target] = null;
+    impSetStatus(target, 'st-err', `Não consegui ler "${file.name}" nem no navegador nem no servidor (${err.message}). Tente salvar como CSV (UTF-8) no Excel e subir de novo.`);
+  }
+}
+
 function impHandleFile(evt, target) {
   const file = evt.target.files[0];
   if (!file) return;
@@ -3926,10 +3947,11 @@ function impHandleFile(evt, target) {
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(ws, { defval: null });
         if (rows.length === 0 && file.size > 5 * 1024 * 1024 && !/\.csv$/i.test(file.name)) {
-          // Não grava — array vazio passaria no "tem arquivo?" do Processar
-          // tudo e rodaria o passo mesmo sem nenhum dado de verdade.
+          // Não grava ainda — array vazio passaria no "tem arquivo?" do
+          // Processar tudo. Tenta ler esse mesmo arquivo no servidor antes
+          // de desistir (ver impParsePlanilhaServidor).
           impRows[target] = null;
-          impSetStatus(target, 'st-err', `"${file.name}" (${(file.size / 1024 / 1024).toFixed(0)} MB) leu 0 linhas — arquivo .xlsx grande demais pra essa leitura no navegador. Abra no Excel e salve como "CSV (UTF-8)" e suba o .csv no lugar do .xlsx.`);
+          impParsePlanilhaServidor(file, target);
         } else {
           impRows[target] = rows;
           impSetStatus(target, 'st-ok', rows.length.toLocaleString('pt-BR') + ' linha(s) carregada(s) de "' + file.name + '". Clique em processar.');

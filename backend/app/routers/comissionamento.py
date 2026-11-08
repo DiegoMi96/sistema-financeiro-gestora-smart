@@ -8,7 +8,7 @@ O front (arquivos estáticos em /comissionamento/) chama isso pra:
 """
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -17,8 +17,10 @@ from app.models.comissionamento import ComissaoExtrato, ComissaoCiclo, CadastroP
 from app.core.permissions import require_permission, get_permission
 from app.routers.auth import get_current_user
 from datetime import datetime, timezone, date
+from io import BytesIO
 import re
 import secrets
+import openpyxl
 
 _CTRL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 
@@ -292,6 +294,38 @@ def gravar_estado(data: EstadoIn, db: Session = Depends(get_db), user=Depends(ge
             db.add(ComissaoEstado(chave=chave, valor=valor, atualizado_por=user.name))
     db.commit()
     return {"ok": True, "gravadas": len(data.itens)}
+
+
+# ── Leitura de planilha grande no servidor ────────────────────────────────
+# Achado 08/11/2026: o Inventário (500 mil+ linhas, .xlsx de 70+ MB) faz o
+# SheetJS no navegador ler o arquivo sem erro nenhum e devolver a planilha
+# VAZIA (0 linhas) — limite da biblioteca pra arquivo .xlsx desse tamanho no
+# navegador. O Python/openpyxl no servidor lê o mesmo arquivo em ~1-2s sem
+# problema, então o Importar manda o arquivo pra cá quando a leitura local
+# falhar, em vez de depender do Diego converter pra CSV toda vez.
+@router.post("/parse-planilha")
+async def parse_planilha(arquivo: UploadFile = File(...), db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if not _pode(user, db, ["importar"]):
+        _negar()
+    conteudo = await arquivo.read()
+    try:
+        wb = openpyxl.load_workbook(BytesIO(conteudo), read_only=True, data_only=True)
+        ws = wb[wb.sheetnames[0]]
+        linhas_iter = ws.iter_rows(values_only=True)
+        header = [str(h) if h is not None else "" for h in next(linhas_iter)]
+        linhas = []
+        for row in linhas_iter:
+            linha = []
+            for v in row:
+                if isinstance(v, datetime):
+                    v = v.strftime("%d/%m/%Y")
+                elif isinstance(v, date):
+                    v = v.strftime("%d/%m/%Y")
+                linha.append(v)
+            linhas.append(linha)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Não consegui ler essa planilha no servidor: {e}")
+    return {"headers": header, "linhas": linhas, "total": len(linhas)}
 
 
 # ── Planilhas importadas (Vendas/Pedidos e Cancelamentos) ─────────────────
