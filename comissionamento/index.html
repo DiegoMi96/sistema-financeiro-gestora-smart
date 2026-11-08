@@ -996,7 +996,6 @@ iframe.active{display:block}
             <p class="imp-how-s">Sempre o mês do <strong>pagamento/ciclo que está fechando</strong> (ex.: se é o comissionamento de Setembro, selecione Setembro aqui) — nunca o mês da planilha em si. O sistema já desconta os meses de defasagem sozinho pra achar a "Data de ativação" certa (ex.: ativação considera 2 meses antes deste campo); selecionar um mês adiantado "pra compensar" faz o desconto dobrar e erra a conta.</p>
           </div>
         </div>
-
         <div class="imp-box imp-aprov" id="cons_aprov_box">
           <div>
             <p class="imp-box-t">Aprovação do comissionamento do mês</p>
@@ -1017,7 +1016,6 @@ iframe.active{display:block}
             </div>
             <input type="file" id="imp_f_pedidos" accept=".xlsx,.xls,.csv" style="display:none" onchange="impHandleFile(event,'pedidos')">
             <div id="imp_pedidos_status" class="imp-status st-idle">Aguardando arquivo…</div>
-            <button class="imp-go" onclick="impProcessarPedidos()">Processar volume</button>
             <div id="imp_pedidos_result" class="imp-result"></div>
           </div>
           <div class="imp-card">
@@ -1031,7 +1029,6 @@ iframe.active{display:block}
             </div>
             <input type="file" id="imp_f_clientes" accept=".xlsx,.xls,.csv" style="display:none" onchange="impHandleFile(event,'clientes')">
             <div id="imp_clientes_status" class="imp-status st-idle">Aguardando arquivo…</div>
-            <button class="imp-go" onclick="impProcessarClientes()">Carregar clientes</button>
             <div id="imp_clientes_result" class="imp-result"></div>
           </div>
           <div class="imp-card">
@@ -1045,7 +1042,10 @@ iframe.active{display:block}
             </div>
             <input type="file" id="imp_f_inventario" accept=".xlsx,.xls,.csv" style="display:none" onchange="impHandleFile(event,'inventario')">
             <div id="imp_inventario_status" class="imp-status st-idle">Aguardando arquivo…</div>
-            <button class="imp-go" onclick="impProcessarInventario()">Processar inventário</button>
+            <!-- Arquivo grande (500 mil+ linhas) — processado em pedaços pra não
+                 travar a aba sem feedback (pedido do Diego, 08/11/2026: sem isso
+                 parecia que tinha travado/quebrado no meio do processamento). -->
+            <div id="imp_inventario_progress" class="imp-hint"></div>
             <div id="imp_inventario_result" class="imp-result"></div>
           </div>
         </div>
@@ -1062,7 +1062,6 @@ iframe.active{display:block}
             </div>
             <input type="file" id="imp_f_cancel" accept=".xlsx,.xls,.csv" style="display:none" onchange="impHandleFile(event,'cancel')">
             <div id="imp_cancel_status" class="imp-status st-idle">Aguardando arquivo…</div>
-            <button class="imp-go" onclick="impProcessarCancelamentos()">Processar cancelamentos</button>
             <div id="imp_cancel_result" class="imp-result"></div>
           </div>
           <div class="imp-card">
@@ -1076,7 +1075,6 @@ iframe.active{display:block}
             </div>
             <input type="file" id="imp_f_equipamentos" accept=".xlsx,.xls,.csv" style="display:none" onchange="impHandleFile(event,'equipamentos')">
             <div id="imp_equipamentos_status" class="imp-status st-idle">Aguardando arquivo…</div>
-            <button class="imp-go" onclick="impProcessarEquipamentos()">Processar equipamentos</button>
             <div id="imp_equipamentos_result" class="imp-result"></div>
           </div>
           <div class="imp-card">
@@ -1090,9 +1088,21 @@ iframe.active{display:block}
             </div>
             <input type="file" id="imp_f_smartgps" accept=".xlsx,.xls,.csv" style="display:none" onchange="impHandleFile(event,'smartgps')">
             <div id="imp_smartgps_status" class="imp-status st-idle">Aguardando arquivo…</div>
-            <button class="imp-go" onclick="impProcessarSmartGPS()">Processar Smart GPS</button>
             <div id="imp_smartgps_result" class="imp-result"></div>
           </div>
+        </div>
+
+        <!-- Botão único: processa todos os arquivos já selecionados acima, na ordem
+             certa (Clientes sempre primeiro — Inventário/Cancelamentos/Equipamentos/
+             Smart GPS dependem do cruzamento de Clientes pra achar o responsável de
+             cada linha). Pedido do Diego (08/11/2026): sem botão por caixa — um só,
+             embaixo de todas elas, evita esquecer a ordem e ter que clicar um por um. -->
+        <div class="imp-box" style="margin-bottom:16px">
+          <p class="imp-box-t">Processar tudo</p>
+          <p class="imp-hint">Selecione os arquivos que tiver nas caixas acima e clique uma vez só — a ordem certa (Clientes primeiro) é automática. Pode faltar arquivo (ex.: só Pedidos e Cancelamentos esse mês); o que não foi selecionado é pulado.</p>
+          <button class="imp-go" id="imp_tudo_btn" onclick="impProcessarTudo()" style="margin-top:8px">▶ Processar tudo</button>
+          <div id="imp_tudo_progress" class="imp-hint" style="margin-top:8px"></div>
+          <div id="imp_tudo_resultado"></div>
         </div>
 
         <div class="imp-box imp-hist">
@@ -3847,9 +3857,15 @@ let impRows = { pedidos: null, clientes: null, inventario: null, cancel: null, e
 // "Acácio Souza" (cadastro) precisam bater no mesmo nome.
 const norm = s => (s == null ? '' : String(s)).normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase().replace(/\s+/g, ' ');
 const onlyDigits = s => (s == null ? '' : String(s)).replace(/\D/g, '');
+// Aceita Date (célula de data de verdade) OU texto "DD/MM/AAAA" (algumas
+// exportações do CRM trazem a coluna como texto puro, não como data — achado
+// 08/11/2026: o Inventário de novembro veio assim e zerava TODO componente
+// que depende de "Data de ativação" — Indicador inteiro, Ativação do Dealer/
+// Projeto/Vendedor — porque a função só aceitava Date, sem avisar nada).
 const impDateToMonth = d => {
-  if (!(d instanceof Date) || isNaN(d)) return null;
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  if (d instanceof Date && !isNaN(d)) return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  if (typeof d === 'string') return brDateToMonthC(d.trim());
+  return null;
 };
 const MESES_PT = { janeiro: 1, fevereiro: 2, marco: 3, abril: 4, maio: 5, junho: 6, julho: 7, agosto: 8, setembro: 9, outubro: 10, novembro: 11, dezembro: 12 };
 const impMesAnterior = mes => {
@@ -4014,6 +4030,55 @@ function impDcLinhas(d) {
   if (d.volumeImp != null && d.cancelImp != null) rows.push(['Crescimento líquido (volume − cancelamentos)', n(d.cresc) + ' linha(s)']);
   else rows.push(['Crescimento líquido', 'aguardando ' + (d.volumeImp == null ? 'a planilha de Vendas' : 'a planilha de Cancelamentos')]);
   return rows;
+}
+
+// ─── Processar tudo (botão único, 08/11/2026) ──────────
+// Roda os arquivos já selecionados, na ordem certa de dependência: Clientes
+// SEMPRE primeiro (Inventário/Cancelamentos/Equipamentos/Smart GPS precisam
+// do cruzamento de CPF/CNPJ que ele monta); Pedidos não depende de nada, mas
+// fica logo depois por convenção. Arquivo não selecionado é pulado — não
+// precisa ter os 6 pra rodar.
+async function impProcessarTudo() {
+  const mes = impReqMes(); if (!mes) return;
+  if (mesAprovado(mes)) { alert('Este mês já foi aprovado — não é possível reprocessar. Desaprove antes, se precisar.'); return; }
+  const passos = [
+    { nome: 'Clientes', tem: () => !!impRows.clientes, fn: impProcessarClientes, resultId: 'imp_clientes_result' },
+    { nome: 'Vendas do mês (Volume)', tem: () => !!impRows.pedidos, fn: impProcessarPedidos, resultId: 'imp_pedidos_result' },
+    { nome: 'Inventário', tem: () => !!impRows.inventario, fn: impProcessarInventario, assincrono: true, resultId: 'imp_inventario_result' },
+    { nome: 'Cancelamentos', tem: () => !!impRows.cancel, fn: impProcessarCancelamentos, resultId: 'imp_cancel_result' },
+    { nome: 'Equipamentos', tem: () => !!impRows.equipamentos, fn: impProcessarEquipamentos, resultId: 'imp_equipamentos_result' },
+    { nome: 'Smart GPS', tem: () => !!impRows.smartgps, fn: impProcessarSmartGPS, resultId: 'imp_smartgps_result' },
+  ];
+  const presentes = passos.filter(p => p.tem());
+  if (!presentes.length) { alert('Selecione pelo menos um arquivo antes de processar.'); return; }
+
+  const btn = document.getElementById('imp_tudo_btn');
+  const prog = document.getElementById('imp_tudo_progress');
+  // O resumo de cada passo passa a aparecer só aqui, embaixo do botão — pedido
+  // do Diego (08/11/2026): a caixa onde se solta o arquivo fica limpa, sem
+  // repetir o resumo que já vai aparecer consolidado neste painel único.
+  const resumo = document.getElementById('imp_tudo_resultado');
+  if (resumo) resumo.innerHTML = '';
+  if (btn) btn.disabled = true;
+  for (const passo of presentes) {
+    if (prog) prog.textContent = `Processando ${passo.nome}…`;
+    try {
+      if (passo.assincrono) await passo.fn(); else passo.fn();
+    } catch (e) {
+      if (prog) prog.innerHTML = `<span style="color:#b83232">Erro em ${passo.nome}: ${e.message} — os passos anteriores já foram gravados.</span>`;
+      if (btn) btn.disabled = false;
+      return;
+    }
+    const origem = document.getElementById(passo.resultId);
+    if (resumo && origem) {
+      resumo.innerHTML += `<div class="imp-result-title" style="font-size:13px;margin-top:14px">${passo.nome}</div>${origem.innerHTML || '<div class="cons-panel-empty">Sem lançamento.</div>'}`;
+      origem.innerHTML = ''; // some da caixinha — já foi pro resumo único
+    }
+    // Deixa a tela repintar entre um passo e outro.
+    await new Promise(res => setTimeout(res, 0));
+  }
+  if (prog) prog.innerHTML = `<strong>✓ Tudo processado</strong> (${presentes.map(p => p.nome).join(', ')}). Confira o resumo abaixo.`;
+  if (btn) btn.disabled = false;
 }
 
 // ─── 1 · Vendas do mês (Volume do Vendedor) ────────────
@@ -4453,7 +4518,7 @@ function impPrecoOperadora(precosArr, opEsp, opGeral) {
   return hit ? hit.base : null;
 }
 
-function impProcessarInventario() {
+async function impProcessarInventario() {
   if (!impRows.inventario) { alert('Selecione a planilha de Inventário primeiro.'); return; }
   const mapa = CLS.get('imp_clientes_map', null);
   if (!mapa) { alert('Carregue e processe a planilha de Clientes (passo 2) antes do Inventário.'); return; }
@@ -4483,7 +4548,11 @@ function impProcessarInventario() {
   const dealerRaw = {}, projRaw = {}, indRaw = {}, vendRaw = {};
   const asRow = r => invHeaders.map(h => (r[h] == null ? '' : r[h]));
 
-  impRows.inventario.forEach(r => {
+  const inventarioBtn = document.getElementById('imp_inventario_btn');
+  const progEl = document.getElementById('imp_inventario_progress');
+  if (inventarioBtn) inventarioBtn.disabled = true;
+
+  const processarLinhaInventario = r => {
     const nomeResp = mapa[r['ID_CPF/CNPJ']];
     if (!nomeResp) return; // linha sem cliente correspondente na base de Clientes
     const nn = norm(nomeResp);
@@ -4568,7 +4637,23 @@ function impProcessarInventario() {
       }
       (projRaw[ent.id] = projRaw[ent.id] || []).push(asRow(r));
     }
-  });
+  };
+
+  // Em pedaços (20 mil linhas por vez), com uma pausa mínima entre eles —
+  // um arquivo de 500 mil+ linhas processado tudo de uma vez trava a aba sem
+  // nenhum retorno visual, e dava a impressão de ter quebrado (confirmado
+  // 08/11/2026: o resultado de Dealer/Projeto/Indicador ficava incompleto ou
+  // zerado porque a pessoa recarregava a página achando que tinha travado).
+  const totalLinhas = impRows.inventario.length;
+  const CHUNK_INVENTARIO = 20000;
+  for (let i = 0; i < totalLinhas; i += CHUNK_INVENTARIO) {
+    const fim = Math.min(i + CHUNK_INVENTARIO, totalLinhas);
+    for (let j = i; j < fim; j++) processarLinhaInventario(impRows.inventario[j]);
+    if (progEl) progEl.textContent = `Processando… ${fim.toLocaleString('pt-BR')} de ${totalLinhas.toLocaleString('pt-BR')} linhas.`;
+    if (fim < totalLinhas) await new Promise(res => setTimeout(res, 0));
+  }
+  if (progEl) progEl.textContent = `✓ ${totalLinhas.toLocaleString('pt-BR')} linhas processadas.`;
+  if (inventarioBtn) inventarioBtn.disabled = false;
 
   const dealerFrame = document.getElementById('frame-dealer').contentWindow;
   Object.keys(dealerRaw).forEach(id => dealerFrame?.impSetRaw?.(id, mes, invHeaders, dealerRaw[id] || []));
