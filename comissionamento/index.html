@@ -3914,14 +3914,26 @@ function impHandleFile(evt, target) {
     // (que é síncrono e trava a aba por alguns segundos em arquivos grandes).
     setTimeout(() => {
       try {
-        // dense:true é obrigatório aqui — o Inventário passa de 500 mil linhas, e o
-        // modo padrão (objeto esparso por célula) do SheetJS falha silenciosamente
-        // nesse tamanho (sem erro, mas wb.Sheets fica vazio).
+        // dense:true ajuda em arquivos grandes, mas achado 08/11/2026: pra um
+        // .xlsx de ~500 mil+ linhas (zipado + XML gigante), o SheetJS ainda
+        // pode ler o workbook sem erro e devolver a planilha (wb.Sheets[...])
+        // VAZIA (0 linhas), sem avisar nada — testado e confirmado com o
+        // arquivo real do Diego. O mesmo conteúdo em .csv lê certinho (bem
+        // mais leve de abrir que um .xlsx desse tamanho). Por isso, abaixo,
+        // 0 linhas num arquivo grande vira aviso pra reexportar como CSV, em
+        // vez de parecer que o arquivo só está vazio mesmo.
         const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: true, dense: true });
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(ws, { defval: null });
-        impRows[target] = rows;
-        impSetStatus(target, 'st-ok', rows.length.toLocaleString('pt-BR') + ' linha(s) carregada(s) de "' + file.name + '". Clique em processar.');
+        if (rows.length === 0 && file.size > 5 * 1024 * 1024 && !/\.csv$/i.test(file.name)) {
+          // Não grava — array vazio passaria no "tem arquivo?" do Processar
+          // tudo e rodaria o passo mesmo sem nenhum dado de verdade.
+          impRows[target] = null;
+          impSetStatus(target, 'st-err', `"${file.name}" (${(file.size / 1024 / 1024).toFixed(0)} MB) leu 0 linhas — arquivo .xlsx grande demais pra essa leitura no navegador. Abra no Excel e salve como "CSV (UTF-8)" e suba o .csv no lugar do .xlsx.`);
+        } else {
+          impRows[target] = rows;
+          impSetStatus(target, 'st-ok', rows.length.toLocaleString('pt-BR') + ' linha(s) carregada(s) de "' + file.name + '". Clique em processar.');
+        }
       } catch (err) {
         impSetStatus(target, 'st-err', 'Não consegui ler esse arquivo: ' + err.message);
       }
@@ -4565,7 +4577,12 @@ async function impProcessarInventario() {
   if (inventarioBtn) inventarioBtn.disabled = true;
 
   const processarLinhaInventario = r => {
-    const nomeResp = mapa[r['ID_CPF/CNPJ']];
+    // Aceita a coluna já vindo com "ss_" (formato de sempre) OU só o número
+    // puro (achado 08/11/2026: uma exportação sem o prefixo zerava 100% das
+    // linhas do Inventário, silenciosamente — Equipamentos/Smart GPS já eram
+    // tolerantes a isso, só o Inventário não).
+    const idCel = r['ID_CPF/CNPJ'];
+    const nomeResp = mapa[idCel] || mapa['ss_' + onlyDigits(idCel)];
     if (!nomeResp) return; // linha sem cliente correspondente na base de Clientes
     const nn = norm(nomeResp);
     if (nn === 'golpe' || nn === 'base inativa') return;
