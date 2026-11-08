@@ -3908,15 +3908,34 @@ const impFileNames = {};
 // aguenta esse tamanho numa boa) em vez de obrigar o Diego a converter pra
 // CSV toda vez — "conseguimos ajustar para ler o arquivo que eu enviar".
 async function impParsePlanilhaServidor(file, target) {
-  impSetStatus(target, 'st-idle', `A leitura local de "${file.name}" veio vazia — tentando ler no servidor (arquivo grande, pode levar alguns segundos)…`);
+  // Achado 08/11/2026: pra ~555 mil linhas, o caminho completo (subir o
+  // arquivo + o servidor ler + voltar tudo pro navegador) passa de 1 minuto
+  // — mais perto de 3-5 min num upload mais lento. Sem avisar isso, dá a
+  // impressão de ter travado e a pessoa recarrega achando que quebrou.
+  impSetStatus(target, 'st-idle', `A leitura local de "${file.name}" veio vazia — lendo no servidor. Para um arquivo deste tamanho (${(file.size / 1024 / 1024).toFixed(0)} MB) isso pode levar VÁRIOS MINUTOS. Não feche nem recarregue a aba — espere aparecer "lido pelo servidor" aqui embaixo.`);
   try {
     const tok = localStorage.getItem('token');
     const fd = new FormData();
     fd.append('arquivo', file);
     const resp = await fetch('/api/comissionamento/parse-planilha', { method: 'POST', headers: { Authorization: 'Bearer ' + tok }, body: fd });
     if (!resp.ok) { const j = await resp.json().catch(() => ({})); throw new Error(j.detail || ('HTTP ' + resp.status)); }
+    impSetStatus(target, 'st-idle', `Servidor respondeu — montando as linhas (${file.name})…`);
     const { headers, linhas, total } = await resp.json();
-    impRows[target] = linhas.map(linha => Object.fromEntries(headers.map((h, i) => [h, linha[i] === undefined ? null : linha[i]])));
+    // Em pedaços, mesmo motivo do Inventário em si: montar 500 mil+ objetos
+    // de uma vez trava a aba sem feedback nenhum.
+    const out = new Array(linhas.length);
+    const CHUNK = 20000;
+    for (let i = 0; i < linhas.length; i += CHUNK) {
+      const fim = Math.min(i + CHUNK, linhas.length);
+      for (let j = i; j < fim; j++) {
+        const linha = linhas[j];
+        const obj = {};
+        for (let k = 0; k < headers.length; k++) obj[headers[k]] = linha[k] === undefined ? null : linha[k];
+        out[j] = obj;
+      }
+      if (fim < linhas.length) await new Promise(res => setTimeout(res, 0));
+    }
+    impRows[target] = out;
     impSetStatus(target, 'st-ok', total.toLocaleString('pt-BR') + ' linha(s) carregada(s) de "' + file.name + '" (lido pelo servidor). Clique em processar.');
   } catch (err) {
     impRows[target] = null;
