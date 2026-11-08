@@ -4060,14 +4060,20 @@ async function impProcessarTudo() {
   const resumo = document.getElementById('imp_tudo_resultado');
   if (resumo) resumo.innerHTML = '';
   if (btn) btn.disabled = true;
+  // Erro num passo NÃO pode impedir os outros de rodar (achado 08/11/2026: o
+  // Inventário deu erro e Cancelamentos/Equipamentos/Smart GPS — que não têm
+  // nada a ver com o problema — ficaram vazios só porque o laço parava ali).
+  // Cada passo roda isolado; no fim, mostra certinho o que deu certo e o que
+  // falhou, em vez de tudo ou nada.
+  const erros = [], sucesso = [];
   for (const passo of presentes) {
     if (prog) prog.textContent = `Processando ${passo.nome}…`;
     try {
       if (passo.assincrono) await passo.fn(); else passo.fn();
+      sucesso.push(passo.nome);
     } catch (e) {
-      if (prog) prog.innerHTML = `<span style="color:#b83232">Erro em ${passo.nome}: ${e.message} — os passos anteriores já foram gravados.</span>`;
-      if (btn) btn.disabled = false;
-      return;
+      console.error(`impProcessarTudo — falha em ${passo.nome}:`, e);
+      erros.push(`${passo.nome}: ${e.message}`);
     }
     const origem = document.getElementById(passo.resultId);
     if (resumo && origem) {
@@ -4077,7 +4083,13 @@ async function impProcessarTudo() {
     // Deixa a tela repintar entre um passo e outro.
     await new Promise(res => setTimeout(res, 0));
   }
-  if (prog) prog.innerHTML = `<strong>✓ Tudo processado</strong> (${presentes.map(p => p.nome).join(', ')}). Confira o resumo abaixo.`;
+  if (prog) {
+    const okMsg = sucesso.length ? `<strong>✓ Processado:</strong> ${sucesso.join(', ')}.` : '';
+    const errMsg = erros.length
+      ? `<div style="color:#b83232;margin-top:4px"><strong>✗ Deu erro em:</strong> ${erros.join(' · ')}. Tente selecionar esse arquivo de novo e clicar em "Processar tudo" — os outros já ficaram gravados, não precisa refazer tudo.</div>`
+      : '';
+    prog.innerHTML = okMsg + errMsg || 'Nada processado.';
+  }
   if (btn) btn.disabled = false;
 }
 
@@ -4646,13 +4658,26 @@ async function impProcessarInventario() {
   // zerado porque a pessoa recarregava a página achando que tinha travado).
   const totalLinhas = impRows.inventario.length;
   const CHUNK_INVENTARIO = 20000;
+  let linhasComErro = 0, primeiroErro = null;
   for (let i = 0; i < totalLinhas; i += CHUNK_INVENTARIO) {
     const fim = Math.min(i + CHUNK_INVENTARIO, totalLinhas);
-    for (let j = i; j < fim; j++) processarLinhaInventario(impRows.inventario[j]);
+    for (let j = i; j < fim; j++) {
+      // Uma linha com dado fora do esperado não pode derrubar as outras 500
+      // mil (achado 08/11/2026: um erro no meio do arquivo jogava fora TODO
+      // o processamento já feito, incluindo Dealer/Projeto que tinham dado certo).
+      try { processarLinhaInventario(impRows.inventario[j]); }
+      catch (e) { linhasComErro++; if (!primeiroErro) primeiroErro = e; }
+    }
     if (progEl) progEl.textContent = `Processando… ${fim.toLocaleString('pt-BR')} de ${totalLinhas.toLocaleString('pt-BR')} linhas.`;
     if (fim < totalLinhas) await new Promise(res => setTimeout(res, 0));
   }
-  if (progEl) progEl.textContent = `✓ ${totalLinhas.toLocaleString('pt-BR')} linhas processadas.`;
+  if (progEl) {
+    progEl.textContent = `✓ ${totalLinhas.toLocaleString('pt-BR')} linhas processadas.`;
+    if (linhasComErro) {
+      progEl.textContent += ` (${linhasComErro.toLocaleString('pt-BR')} linha(s) ignorada(s) por erro — ex.: ${primeiroErro?.message || '—'})`;
+      console.warn('impProcessarInventario: linhas com erro', linhasComErro, primeiroErro);
+    }
+  }
   if (inventarioBtn) inventarioBtn.disabled = false;
 
   const dealerFrame = document.getElementById('frame-dealer').contentWindow;
