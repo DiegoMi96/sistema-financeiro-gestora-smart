@@ -381,6 +381,7 @@ tr.row-editing td{background:#f9fffe !important}
 <div class="toast" id="toast"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <script>
 // ─── DEFAULTS ──────────────────────────────────────
 const DEF_DEALERS=[
@@ -982,6 +983,39 @@ function saveEdit(id,mes){
 }
 
 // ─── EXPORT ────────────────────────────────────────
+const DL_HEAD_FILL={type:'pattern',pattern:'solid',fgColor:{argb:'FF1c4d24'}};
+const DL_HEAD_FONT={bold:true,color:{argb:'FFFFFFFF'},size:11};
+const DL_TOTAL_FILL={type:'pattern',pattern:'solid',fgColor:{argb:'FFD9F2E6'}};
+const DL_BORDA_FINA={style:'thin',color:{argb:'FFDDDDDD'}};
+const DL_MOEDA='"R$" #,##0.00';
+function dlBaixarBlob(buffer,nomeArquivo){
+  const blob=new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=nomeArquivo;document.body.appendChild(a);a.click();
+  document.body.removeChild(a);URL.revokeObjectURL(url);
+}
+// Mesma seção estilizada (título em destaque + linhas com borda fina) que o
+// extrato do Vendedor já usa — achado 09/11/2026: a aba RESUMO do Dealer
+// (e de Indicador/Projeto Especial) saía sem nenhum estilo porque usava
+// SheetJS puro (XLSX.utils.aoa_to_sheet), que não grava formatação na
+// célula. Reaproveita o mesmo padrão visual via ExcelJS.
+function dlSecaoResumo(ws,row,titulo,linhas){
+  ws.mergeCells(`A${row}:B${row}`);
+  const h=ws.getCell(`A${row}`);
+  h.value=titulo;h.font=DL_HEAD_FONT;h.fill=DL_HEAD_FILL;h.alignment={vertical:'middle'};
+  ws.getRow(row).height=20;
+  row++;
+  linhas.forEach(([label,valor,fmt])=>{
+    const cLbl=ws.getCell(`A${row}`),cVal=ws.getCell(`B${row}`);
+    cLbl.value=label;cVal.value=valor;
+    cLbl.border={bottom:DL_BORDA_FINA};cVal.border={bottom:DL_BORDA_FINA};
+    cVal.alignment={horizontal:'right'};
+    if(fmt)cVal.numFmt=fmt;
+    row++;
+  });
+  return row+1;
+}
 async function exportEntity(id,mes,retornarBlob){
   const entity=dealers.find(e=>e.id===id);
   const d=mdata[`d_${id}_${mes}`]||{};
@@ -1007,34 +1041,69 @@ async function exportEntity(id,mes,retornarBlob){
   }
   const raw=rawStore[key]||{};
 
-  const wb=XLSX.utils.book_new();
-  const resumoRows=[
-    ['MARGEM','','CANCELAMENTOS','','COMISSÃO TOTAL',''],
-    ['Linhas em base',c.linhas||0,'Linhas canceladas',d.cancel||0,regra?'Comissão da regra (já calculada)':'Margem',c.margin],
-    [regra?'Linhas ativadas no mês':'Novas linhas',c.novas||0,'Taxa por linha',-rules.cancelRate,'Bateu-Levou',c.bl.total],
-    [null,null,'Total desconto',-c.cancelDesc,'Bônus extra',c.bonus],
-    [null,null,null,null,'−Cancelamentos',-c.cancelDesc],
-    [null,null,null,null,'TOTAL',c.total],
-  ];
-  if(d.obs)resumoRows.push([null,null,null,null,'Observação',d.obs]);
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(resumoRows),'RESUMO');
+  const wb=new ExcelJS.Workbook();
+  const[y,m]=mes.split('-');
+  const mesesLongo=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+  const ws=wb.addWorksheet('RESUMO');
+  ws.columns=[{width:34},{width:20}];
+  ws.mergeCells('A1:B1');
+  const titulo=ws.getCell('A1');
+  titulo.value=`${entity.nome} · ${mesesLongo[+m-1]}/${y}`;
+  titulo.font={bold:true,size:14,color:{argb:'FF1c4d24'}};
+  titulo.alignment={vertical:'middle'};
+  ws.getRow(1).height=28;
+
+  let row=3;
+  row=dlSecaoResumo(ws,row,'LINHAS',[
+    ['Linhas em base',c.linhas||0,'#,##0'],
+    [regra?'Linhas ativadas no mês':'Novas linhas',c.novas||0,'#,##0'],
+    ['Linhas canceladas',d.cancel||0,'#,##0'],
+  ]);
+  row=dlSecaoResumo(ws,row,'CANCELAMENTOS',[
+    ['Taxa por linha',-rules.cancelRate,DL_MOEDA],
+    ['Total desconto',-c.cancelDesc,DL_MOEDA],
+  ]);
+  row=dlSecaoResumo(ws,row,'COMISSÃO',[
+    [regra?'Comissão da regra (já calculada)':'Margem',c.margin,DL_MOEDA],
+    ['Bateu-Levou',c.bl.total,DL_MOEDA],
+    ['Bônus extra',c.bonus,DL_MOEDA],
+    ['−Cancelamentos',-c.cancelDesc,DL_MOEDA],
+  ]);
+  if(d.obs){
+    ws.getCell(`A${row}`).value='Observação';
+    ws.getCell(`A${row}`).font={italic:true,color:{argb:'FF888888'}};
+    ws.getCell(`B${row}`).value=d.obs;
+    ws.getCell(`B${row}`).alignment={horizontal:'right',wrapText:true};
+    row+=2;
+  }
+  const tLbl=ws.getCell(`A${row}`),tVal=ws.getCell(`B${row}`);
+  tLbl.value='TOTAL';tVal.value=c.total;
+  [tLbl,tVal].forEach(cell=>{cell.font={bold:true,size:12,color:{argb:'FF1c4d24'}};cell.fill=DL_TOTAL_FILL;cell.border={top:DL_BORDA_FINA,bottom:DL_BORDA_FINA};});
+  tVal.numFmt=DL_MOEDA;tVal.alignment={horizontal:'right'};
+  ws.getRow(row).height=22;
+
   if(raw.rows&&raw.rows.length){
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([raw.headers,...raw.rows]),'LINHAS');
+    const wsL=wb.addWorksheet('LINHAS');
+    wsL.addRow(raw.headers);
+    raw.rows.forEach(r=>wsL.addRow(r));
   }
   if(raw.cancelRows&&raw.cancelRows.length){
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([raw.cancelHeaders||[],...raw.cancelRows]),'CANCELAMENTOS');
+    const wsC=wb.addWorksheet('CANCELAMENTOS');
+    wsC.addRow(raw.cancelHeaders||[]);
+    raw.cancelRows.forEach(r=>wsC.addRow(r));
   }
-  const[y,m]=mes.split('-');
+
   const meses=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const nomeLimpo=entity.nome.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,'_');
   const nomeArquivo=`${nomeLimpo}_${meses[+m-1]}_${y}.xlsx`;
+  const buffer=await wb.xlsx.writeBuffer();
   // retornarBlob=true é usado pela aba Relatórios do shell (index.html) pra
   // juntar vários extratos num ZIP só, em vez de baixar um por um.
   if(retornarBlob){
-    const wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
-    return{blob:new Blob([wbout],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),nomeArquivo};
+    return{blob:new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),nomeArquivo};
   }
-  XLSX.writeFile(wb,nomeArquivo);
+  dlBaixarBlob(buffer,nomeArquivo);
   showToast(`↓ ${entity.nome} · extrato gerado`,'#1d4ed8');
 }
 

@@ -722,6 +722,8 @@ const PE_HEADER_STYLE={
   font:{bold:true,color:{argb:'FFC00000'}},
   fill:{type:'pattern',pattern:'solid',fgColor:{argb:'FFC6E0B4'}},
 };
+const PE_MOEDA='"R$" #,##0.00';
+const PE_TOTAL_FILL={type:'pattern',pattern:'solid',fgColor:{argb:'FFD9F2E6'}};
 async function exportEntity(id,mes,retornarBlob){
   const entity=projetos.find(e=>e.id===id);
   const d=mdata[`p_${id}_${mes}`]||{};
@@ -751,11 +753,26 @@ async function exportEntity(id,mes,retornarBlob){
   // Mensalidade/Comissão total), não só os dados brutos importados.
   const wb=new ExcelJS.Workbook();
   const wsResumo=wb.addWorksheet('Resumo');
+  // Posição das células (B2:C6) é a mesma de sempre — a Johnny confere isso
+  // contra a planilha própria dela, então só estilo foi adicionado aqui
+  // (09/11/2026: essa aba saía sem nenhuma formatação), nenhuma célula mudou
+  // de lugar nem de conteúdo.
+  wsResumo.columns=[{width:3},{width:22},{width:16}];
   wsResumo.getCell('B2').value='Simcard';wsResumo.getCell('C2').value=+(c.margin+c.ativacao).toFixed(2);
   wsResumo.getCell('B3').value='Desconto';wsResumo.getCell('C3').value=-c.cancelDesc;
   if(c.bonus){wsResumo.getCell('B4').value='Bônus';wsResumo.getCell('C4').value=c.bonus;}
   wsResumo.getCell('B5').value='Total';wsResumo.getCell('C5').value=c.total;
   if(d.obs){wsResumo.getCell('B6').value='Observação';wsResumo.getCell('C6').value=d.obs;}
+  ['B2','B3','B4','B5'].forEach(ref=>{wsResumo.getCell(ref).font={bold:true};});
+  ['C2','C3','C4'].forEach(ref=>{wsResumo.getCell(ref).numFmt=PE_MOEDA;});
+  wsResumo.getCell('C5').numFmt=PE_MOEDA;
+  ['B5','C5'].forEach(ref=>{
+    const cell=wsResumo.getCell(ref);
+    cell.font={bold:true,size:12,color:{argb:'FF1c4d24'}};
+    cell.fill=PE_TOTAL_FILL;
+    cell.border={top:{style:'thin',color:{argb:'FFDDDDDD'}},bottom:{style:'thin',color:{argb:'FFDDDDDD'}}};
+  });
+  wsResumo.getCell('C5').alignment={horizontal:'right'};
 
   if(raw.rows&&raw.rows.length){
     const pp=projetosPrecos[id]||{};
