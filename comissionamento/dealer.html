@@ -434,6 +434,15 @@ function regraDoDealer(id){
 // Inventário) e recalcula. Aqui é só criar/editar a regra — ao salvar,
 // chamamos o shell pra recalcular o mês que está aberto nesta tela.
 const REGRA_FONTE_LABEL={somaAtivacao:'Soma "Preço de ativação" (Inventário)',contagemAtivadas:'Contagem de linhas ativadas (Inventário)',volumePedidos:'Volume de vendas (Pedidos)'};
+// Rótulo do campo "novas" — achado 09/11/2026 (Diego): esse campo guardava o
+// volume de vendas da Ione (regra fonte=volumePedidos) mas o rótulo dizia
+// "Linhas ativadas no mês" porque antes olhava só se a regra existia, não de
+// onde vinha o dado dela (só fazia sentido pro Hilario, fonte=somaAtivacao).
+function dlLabelCampoNovas(regra){
+  if(!regra)return'Novas linhas';
+  if(regra.fonte==='volumePedidos')return'Volume de vendas (Pedidos)';
+  return'Linhas ativadas no mês';
+}
 
 function regraModoLabel(regra){
   let base='—';
@@ -916,7 +925,7 @@ function renderEditPanel(id,mes){
         <label class="lbl">Linhas em base</label>
         <input type="number" id="ef_linhas_${id}" value="${d.linhas||0}" min="0" oninput="liveCalcEntity('${id}')">
       </div>
-      <div><label class="lbl">${regra?'Linhas ativadas no mês':'Novas linhas'}</label><input type="number" id="ef_novas_${id}" value="${d.novas||0}" min="0" oninput="liveCalcEntity('${id}')"></div>
+      <div><label class="lbl">${dlLabelCampoNovas(regra)}</label><input type="number" id="ef_novas_${id}" value="${d.novas||0}" min="0" oninput="liveCalcEntity('${id}')"></div>
       <div>
         <label class="lbl">${regra?'Comissão da regra (já calculada)':'Margem total'}</label>
         <div class="irow"><span class="ipfx">R$</span><input type="number" id="ef_margin_${id}" value="${(d.margin||0).toFixed(2)}" min="0" step="0.01" oninput="liveCalcEntity('${id}')"></div>
@@ -1057,7 +1066,7 @@ async function exportEntity(id,mes,retornarBlob){
   let row=3;
   row=dlSecaoResumo(ws,row,'LINHAS',[
     ['Linhas em base',c.linhas||0,'#,##0'],
-    [regra?'Linhas ativadas no mês':'Novas linhas',c.novas||0,'#,##0'],
+    [dlLabelCampoNovas(regra),c.novas||0,'#,##0'],
     ['Linhas canceladas',d.cancel||0,'#,##0'],
   ]);
   // Taxa da própria regra, se ela definir uma, senão a genérica — igual o
