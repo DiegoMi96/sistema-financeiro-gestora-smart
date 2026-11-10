@@ -4284,8 +4284,16 @@ function impProcessarPedidos() {
   });
   LS_set('gs5_m', mdata);
 
+  // Achado 10/11/2026: a planilha de Pedidos processada em "mes" (mês de
+  // PAGAMENTO, ex.: novembro) traz vendas cuja "Data de Criação" é do mês
+  // ANTERIOR (ex.: outubro) — confirmado com o Diego, é assim que o ciclo
+  // sempre funcionou. calcularNovosClientes(mes) lê esse balde por
+  // mesRef=impMesAnterior(mes) (o mês em que o cliente foi CRIADO) — guardar
+  // sob "mes" deixava o balde um mês adiantado e o Bônus de Novos Clientes
+  // nunca encontrava o volume certo (36 clientes de outubro com >20 linhas
+  // ficavam de fora). Guardar sob impMesAnterior(mes) alinha com a leitura.
   const pedidosPorCnpj = CLS.get('gs5_pedidos_por_cnpj', {});
-  pedidosPorCnpj[mes] = porCnpj;
+  pedidosPorCnpj[impMesAnterior(mes)] = porCnpj;
   LS_set('gs5_pedidos_por_cnpj', pedidosPorCnpj);
   const resultadoNovosClientes = calcularNovosClientes(mes);
   const resultadoAbertura = calcularAberturaParceiros(mes);
