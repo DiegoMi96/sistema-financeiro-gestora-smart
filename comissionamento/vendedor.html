@@ -1094,6 +1094,14 @@ function reclassificarExtratoAntigo(rawPorMes){
 // acompanha o texto, pra não sair tudo espremido como no SheetJS antigo.
 function vendAbaBruta(wb,nomeAba,headers,rows){
   if(!headers||!rows||!rows.length)return;
+  // Espalhar (`[...]`) é obrigatório: headers/rows vêm do index.html (outro
+  // iframe, outro realm JS) — achado 10/11/2026: o addRow do ExcelJS grava a
+  // aba com "<sheetData/>" vazia, sem erro nenhum, se receber um array de
+  // outro realm direto. Espalhar cria arrays novos no realm local (deste
+  // iframe), resolvendo — feito logo no início pra valer pro resto da função
+  // (inclusive o .filter() do __EMPTY abaixo, que preservaria o realm antigo).
+  headers=[...headers];
+  rows=rows.map(r=>[...r]);
   // Planilhas de Cobranças às vezes trazem coluna sem cabeçalho no fim do
   // arquivo — o SheetJS batiza como "__EMPTY"/"__EMPTY_1"... Some aqui no
   // extrato exportado (não afeta nenhum cálculo, só a aba crua exibida).

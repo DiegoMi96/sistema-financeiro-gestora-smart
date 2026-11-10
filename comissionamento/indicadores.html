@@ -581,8 +581,13 @@ async function exportInd(id,mes,retornarBlob){
 
   if(raw.rows&&raw.rows.length){
     const wsA=wb.addWorksheet('ATIVAÇÕES');
-    wsA.addRow(raw.headers);
-    raw.rows.forEach(r=>wsA.addRow(r));
+    // Espalhar (`[...]`) é obrigatório: raw.headers/raw.rows vêm do index.html
+    // (outro iframe, outro realm JS) — achado 10/11/2026: o addRow do ExcelJS
+    // grava a aba com "<sheetData/>" vazia, sem erro nenhum, se receber um
+    // array de outro realm direto. Espalhar cria um array novo no realm local
+    // (deste iframe), resolvendo.
+    wsA.addRow([...raw.headers]);
+    raw.rows.forEach(r=>wsA.addRow([...r]));
   }
 
   const meses=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];

@@ -1100,13 +1100,23 @@ async function exportEntity(id,mes,retornarBlob){
 
   if(raw.rows&&raw.rows.length){
     const wsL=wb.addWorksheet('LINHAS');
-    wsL.addRow(raw.headers);
-    raw.rows.forEach(r=>wsL.addRow(r));
+    // Espalhar (`[...]`) é obrigatório: raw.headers/raw.rows vêm do index.html
+    // (outro iframe, outro realm JS) — achado 10/11/2026: o addRow do ExcelJS
+    // grava a aba com "<sheetData/>" vazia, sem erro nenhum, se receber um
+    // array de outro realm direto (ex.: Hilario com "Linhas ativadas no mês"
+    // > 0 mas a aba LINHAS saía sem nenhuma linha). Espalhar cria um array
+    // novo no realm local (deste iframe), resolvendo.
+    wsL.addRow([...raw.headers]);
+    raw.rows.forEach(r=>wsL.addRow([...r]));
   }
   if(raw.cancelRows&&raw.cancelRows.length){
     const wsC=wb.addWorksheet('CANCELAMENTOS');
-    wsC.addRow(raw.cancelHeaders||[]);
-    raw.cancelRows.forEach(r=>wsC.addRow(r));
+    // Espalhar (`[...]`) é obrigatório aqui: esse array vem do index.html (outro
+    // iframe, outro realm JS) e o addRow do ExcelJS grava a linha vazia, sem
+    // erro nenhum, se receber um array de outro realm direto (achado
+    // 10/11/2026 — mesma causa do bug da aba LINHAS, já corrigida acima).
+    wsC.addRow([...(raw.cancelHeaders||[])]);
+    raw.cancelRows.forEach(r=>wsC.addRow([...r]));
   }
 
   const meses=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];

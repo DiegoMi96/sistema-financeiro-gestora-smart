@@ -786,8 +786,13 @@ async function exportEntity(id,mes,retornarBlob){
   }
   if(raw.cancelRows&&raw.cancelRows.length){
     const wsCancel=wb.addWorksheet('Cancelamento');
-    wsCancel.addRow(raw.cancelHeaders||[]);
-    raw.cancelRows.forEach(row=>wsCancel.addRow(row));
+    // Espalhar (`[...]`) é obrigatório: esses arrays vêm do index.html (outro
+    // iframe, outro realm JS) — achado 10/11/2026: o addRow do ExcelJS grava a
+    // aba com "<sheetData/>" vazia, sem erro nenhum, se receber um array de
+    // outro realm direto (a aba Simcard acima já escapava disso por acaso,
+    // porque já espalhava pra concatenar as colunas extras).
+    wsCancel.addRow([...(raw.cancelHeaders||[])]);
+    raw.cancelRows.forEach(row=>wsCancel.addRow([...row]));
     wsCancel.getRow(1).eachCell(cell=>{cell.font=PE_HEADER_STYLE.font;cell.fill=PE_HEADER_STYLE.fill;});
     wsCancel.autoFilter={from:{row:1,column:1},to:{row:raw.cancelRows.length+1,column:(raw.cancelHeaders||[]).length}};
   }
