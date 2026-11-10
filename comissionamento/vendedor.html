@@ -14,7 +14,12 @@ body{font-family:'Inter',sans-serif;background:#F5F5F5;color:#1a1a18;font-size:1
    campo de busca "Buscar vendedor..." (#rsBusca) estava em Arial. Regra
    global em vez de corrigir campo a campo, pra não repetir em campo novo. */
 input,select,textarea,button{font-family:inherit}
-.page{max-width:1340px;margin:0 auto;padding:40px 24px 80px}
+/* 1600px (não 1340px, igual aos outros perfis) — achado 10/11/2026: a
+   tabela #resumoTable (14 colunas + Ação) precisa de ~1511px, mais larga
+   que o Dealer/Indicador/Projeto Especial; com 1340px sobrava espaço vazio
+   nas laterais e ainda assim precisava de scroll horizontal pra ver a
+   tabela inteira. */
+.page{max-width:1600px;margin:0 auto;padding:40px 24px 80px}
 /* Linha e título do cabeçalho principal em preto (#1a1a18) — pedido do Diego
    (29/10/2026): voltou ao preto original; só esta linha/título, o resto do
    arquivo (tab ativa, valores, etc.) continua no verde da marca #1c4d24. */
