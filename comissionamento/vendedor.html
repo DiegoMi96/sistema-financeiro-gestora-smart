@@ -453,11 +453,15 @@ const DEF_CELULAS=[
 // confirmado com o Diego. Modelo novo a partir do ciclo de novembro/2026
 // (27/10/2026): 4 faixas em vez de 6, percentuais maiores.
 const DEF_CELULA_ALIQUOTAS={objetivo:0.10,meta1:0.15,meta2:0.20,superMeta:0.30};
+// Limites de alcance% ajustados em 10/11/2026 (pedido do Diego): Objetivo
+// 0–109%, Meta 1 110–129%, Meta 2 130–149%, Super Meta a partir de 150%
+// (antes: 90/110/130/150). Só os limites mudaram — os percentuais de
+// comissão (vol/atv) de cada faixa continuam os mesmos.
 const DEF_F=[
-  {n:1,range:'0–90%',    min:0,  max:90, vol:0.17,atv:0.40},
-  {n:2,range:'91–110%',  min:91, max:110,vol:0.34,atv:0.60},
-  {n:3,range:'111–130%', min:111,max:130,vol:0.54,atv:0.80},
-  {n:4,range:'131–150%', min:131,max:9999,vol:0.74,atv:1.00},
+  {n:1,range:'0–109%',   min:0,  max:109, vol:0.17,atv:0.40},
+  {n:2,range:'110–129%', min:110,max:129, vol:0.34,atv:0.60},
+  {n:3,range:'130–149%', min:130,max:149, vol:0.54,atv:0.80},
+  {n:4,range:'150%+',    min:150,max:9999,vol:0.74,atv:1.00},
 ];
 // Nome real de cada faixa (28/10/2026, pedido do Diego — trocar "Faixa N"
 // pelo nome da operação) em vez do número; não vai no objeto salvo (gs5_f),
@@ -533,6 +537,16 @@ let vendedores=LS.get('gs5_v',DEF_V);
 let celulas=LS.get('gs5_celulas',DEF_CELULAS);
 let celulaAliquotas=LS.get('gs5_celula_aliquotas',DEF_CELULA_ALIQUOTAS);
 let faixas=LS.get('gs5_f',DEF_F);
+// Migração 10/11/2026 (pedido do Diego, já no ciclo de novembro): atualiza os
+// limites (min/max/range) de quem já tinha faixas salvas com o modelo antigo
+// (90/110/130/150), preservando os percentuais de comissão (vol/atv) que já
+// estavam configurados — não é um reset, só o ponto de corte muda.
+(function migrarFaixasLimites(){
+  if(faixas.length===DEF_F.length && faixas[0] && faixas[0].max===90){
+    faixas=faixas.map((f,i)=>({...DEF_F[i],vol:f.vol,atv:f.atv}));
+    LS.set('gs5_f',faixas);
+  }
+})();
 let rules=LS.get('gs5_r',DEF_R);
 let equipCat=LS.get('gs5_eq_cat',DEF_EQUIP_CAT);
 let novosClientesFaixas=LS.get('gs5_novos_clientes_faixas',DEF_NOVOS_CLIENTES);

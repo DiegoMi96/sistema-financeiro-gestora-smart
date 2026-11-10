@@ -1157,7 +1157,7 @@ iframe.active{display:block}
     <!-- ?b=N é só cache-busting: o navegador guarda esses arquivos em cache
          agressivamente, e sem isso uma edição no perfil não aparece nem com F5
          normal. Suba o número sempre que mexer em algum desses arquivos. -->
-    <iframe id="frame-vendedor" src="vendedor.html?b=47" title="Vendedor"></iframe>
+    <iframe id="frame-vendedor" src="vendedor.html?b=48" title="Vendedor"></iframe>
     <iframe id="frame-dealer" src="dealer.html?b=37" title="Dealer"></iframe>
     <iframe id="frame-indicadores" src="indicadores.html?b=27" title="Indicador"></iframe>
     <iframe id="frame-projeto_especial" src="projeto_especial.html?b=45" title="Projeto Especial"></iframe>
@@ -1705,9 +1705,11 @@ const CONS_DEFAULTS = {
   ],
   // Modelo novo a partir do ciclo de novembro/2026 (27/10/2026): 4 faixas em
   // vez de 6, percentuais maiores — mesmos valores de vendedor.html (DEF_F).
+  // Limites ajustados em 10/11/2026 (pedido do Diego): 109/129/149/150+
+  // (antes: 90/110/130/150) — ver migrarFaixasLimites() logo abaixo.
   faixas: [
-    { n: 1, min: 0, max: 90, vol: 0.17, atv: 0.40 }, { n: 2, min: 91, max: 110, vol: 0.34, atv: 0.60 },
-    { n: 3, min: 111, max: 130, vol: 0.54, atv: 0.80 }, { n: 4, min: 131, max: 9999, vol: 0.74, atv: 1.00 },
+    { n: 1, range: '0–109%', min: 0, max: 109, vol: 0.17, atv: 0.40 }, { n: 2, range: '110–129%', min: 110, max: 129, vol: 0.34, atv: 0.60 },
+    { n: 3, range: '130–149%', min: 130, max: 149, vol: 0.54, atv: 0.80 }, { n: 4, range: '150%+', min: 150, max: 9999, vol: 0.74, atv: 1.00 },
   ],
   vendedorRules: { eqRate: 2, gpsRate: 100, freteLimit: 250 },
   equipCat: { rastreamento: 2.00, meios_pagamento: 5.00 },
@@ -1755,6 +1757,22 @@ const CONS_DEFAULTS = {
     faixas: [{ min: 1, cota: 400 }, { min: 10000, cota: 500 }, { min: 20000, cota: 600 }, { min: 30000, cota: 700 }, { min: 40000, cota: 800 }],
   },
 };
+// Migração 10/11/2026 (pedido do Diego, já no ciclo de novembro): atualiza os
+// limites (min/max) de faixas de Vendedor já salvas com o modelo antigo
+// (90/110/130/150) para o novo (109/129/149/150+), preservando os percentuais
+// de comissão (vol/atv) já configurados. Mirror da mesma migração em
+// vendedor.html — repetida aqui (shell) porque a Visão Consolidada/Executivo
+// leem 'gs5_f' direto do localStorage (CLS não escreve), sem depender de o
+// iframe do Vendedor já ter sido aberto nesta sessão.
+(function migrarFaixasLimites() {
+  try {
+    const atual = CLS.get('gs5_f', null);
+    if (atual && atual.length === CONS_DEFAULTS.faixas.length && atual[0] && atual[0].max === 90) {
+      const novo = atual.map((f, i) => ({ ...CONS_DEFAULTS.faixas[i], vol: f.vol, atv: f.atv }));
+      localStorage.setItem('gs5_f', JSON.stringify(novo));
+    }
+  } catch {}
+})();
 // Preços por operadora usados só pelo motor de Importar (passo 3) pra calcular
 // margem — mesmos defaults que dealer.html/projeto_especial.html usam antes
 // da 1a vez que alguém salva a config de preços.
