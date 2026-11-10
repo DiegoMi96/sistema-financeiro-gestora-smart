@@ -1157,7 +1157,7 @@ iframe.active{display:block}
     <!-- ?b=N é só cache-busting: o navegador guarda esses arquivos em cache
          agressivamente, e sem isso uma edição no perfil não aparece nem com F5
          normal. Suba o número sempre que mexer em algum desses arquivos. -->
-    <iframe id="frame-vendedor" src="vendedor.html?b=48" title="Vendedor"></iframe>
+    <iframe id="frame-vendedor" src="vendedor.html?b=49" title="Vendedor"></iframe>
     <iframe id="frame-dealer" src="dealer.html?b=37" title="Dealer"></iframe>
     <iframe id="frame-indicadores" src="indicadores.html?b=27" title="Indicador"></iframe>
     <iframe id="frame-projeto_especial" src="projeto_especial.html?b=45" title="Projeto Especial"></iframe>
@@ -4671,7 +4671,13 @@ async function impProcessarInventario() {
   // Linhas brutas por entidade — alimenta o "↓ Extrair" de cada perfil (só em
   // memória nesta sessão, igual ao comportamento que a aba Importar antiga já
   // tinha: some se recarregar a página, mas o número calculado fica salvo).
-  const invHeaders = Object.keys(impRows.inventario[0] || {});
+  // Colunas de cálculo interno do Faturamento (do 1º Reajuste até o Total) que
+  // não interessam pro parceiro — pedido do Diego 10/11/2026, conferido contra
+  // o extrato real do Império: ficam de fora do que vai pro Simcard/Linhas de
+  // Vendedor/Dealer/Indicador/Projeto Especial. Não afeta nenhum cálculo (a
+  // apuração lê a linha original `r[...]`, nunca essa lista filtrada).
+  const INV_COLS_OCULTAS_PARCEIRO = ['Reajuste 2024', 'Reajuste 2025', 'Reajuste', 'Excedente', 'Multa Cancelamento', 'SMS', 'Dias', 'Mensalidade_1', 'Ativação', 'Total'];
+  const invHeaders = Object.keys(impRows.inventario[0] || {}).filter(h => !INV_COLS_OCULTAS_PARCEIRO.includes(h));
   const dealerRaw = {}, projRaw = {}, indRaw = {}, vendRaw = {};
   const asRow = r => invHeaders.map(h => (r[h] == null ? '' : r[h]));
 
@@ -4702,18 +4708,18 @@ async function impProcessarInventario() {
       if (mesAtivacao === mesRefAtiv) {
         const precoAtivacao = Number(r['Preço de ativação']) || 0;
         vendedorAtv[ent.id] = (vendedorAtv[ent.id] || 0) + precoAtivacao;
+        // Linhas ativadas no mês de referência — alimenta a aba "Simcard" do
+        // "↓ Extrair" (pedido do Diego 10/11/2026: antes ia a base completa do
+        // vendedor; agora só as linhas do mês que está sendo olhado, mesmo
+        // padrão que o Indicador já usa logo abaixo).
+        (vendRaw[ent.id] = vendRaw[ent.id] || []).push(asRow(r));
       }
-      // Linhas ativas do vendedor (snapshot do Inventário) — alimenta a aba
-      // "Simcard" do "↓ Extrair" (pedido do Diego: separar de "Pedidos do
-      // mês", que são as vendas; aqui são as linhas ativas de verdade).
-      (vendRaw[ent.id] = vendRaw[ent.id] || []).push(asRow(r));
     } else if (ent.tipo === 'indicador') {
       if (mesAtivacao === mesRefAtiv) {
         indAgg[ent.id] = (indAgg[ent.id] || 0) + 1;
         (indRaw[ent.id] = indRaw[ent.id] || []).push(asRow(r));
       }
     } else if (ent.tipo === 'dealer') {
-      (dealerRaw[ent.id] = dealerRaw[ent.id] || []).push(asRow(r));
       // Sempre acumula as fontes genéricas (soma "Preço de ativação" e
       // contagem de linhas ativadas no mês de referência menos 2) — usadas
       // pelo motor de regras pra quem tiver uma regra customizada salva (ver
@@ -4721,6 +4727,12 @@ async function impProcessarInventario() {
       if (mesAtivacao === mesRefAtiv) {
         fontesDealerAcumular(ent.id, mes, 'somaAtivacao', Number(r['Preço de ativação']) || 0);
         fontesDealerAcumular(ent.id, mes, 'contagemAtivadas', 1);
+        // Linhas ativadas no mês de referência — alimenta a aba "Simcard"/
+        // "Linhas" do "↓ Extrair" (pedido do Diego 10/11/2026: antes ia a base
+        // completa do dealer; agora só as linhas do mês, mesmo padrão do
+        // Indicador). Fica antes do "return" de regra customizada (abaixo) pra
+        // valer pra todo dealer, com ou sem regra própria.
+        (dealerRaw[ent.id] = dealerRaw[ent.id] || []).push(asRow(r));
       }
       // Dealer com regra customizada (ex: Ione, Hilario) não usa margem por
       // mensalidade/preço-base — o motor de regras sobrescreve depois (ver
@@ -4731,7 +4743,6 @@ async function impProcessarInventario() {
       if (!dealerAgg[ent.id]) dealerAgg[ent.id] = { margin: 0, novas: 0 };
       dealerAgg[ent.id].margin += mensalidade - (preco || 0);
       if (mesAtivacao === mesRefAtiv) dealerAgg[ent.id].novas += 1;
-      (dealerRaw[ent.id] = dealerRaw[ent.id] || []).push(asRow(r));
     } else if (ent.tipo === 'projeto') {
       // "Linhas em base": total de linhas faturadas no mês, contando todas as
       // linhas da entidade — independente de ter preço de operadora mapeado.

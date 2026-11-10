@@ -1103,13 +1103,14 @@ function vendAbaBruta(wb,nomeAba,headers,rows){
     rows=rows.map(r=>r.filter((_,i)=>manter[i]));
   }
   const ws=wb.addWorksheet(nomeAba);
+  // ws.columns começa null nessa versão do ExcelJS (nunca é "[]" por padrão) —
+  // tem que ser atribuído direto, não dá pra iterar com .forEach nele antes de
+  // existir (achado 10/11/2026: travava toda vez que essa aba tinha dado de
+  // verdade, sempre que a Simcard/Pedidos/Equipamento/Placas não vinha vazia).
+  ws.columns=headers.map(h=>({width:Math.max(12,Math.min(32,(h?String(h).length:10)+4))}));
   ws.addRow(headers);
   rows.forEach(r=>ws.addRow(r));
   ws.getRow(1).eachCell(cell=>{cell.font=VEND_HEAD_FONT;cell.fill=VEND_HEAD_FILL;});
-  ws.columns.forEach((col,i)=>{
-    const tamCab=headers[i]?String(headers[i]).length:10;
-    col.width=Math.max(12,Math.min(32,tamCab+4));
-  });
   ws.autoFilter={from:{row:1,column:1},to:{row:rows.length+1,column:headers.length}};
   ws.views=[{state:'frozen',ySplit:1}];
 }
