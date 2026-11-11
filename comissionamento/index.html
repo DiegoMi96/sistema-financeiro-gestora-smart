@@ -484,7 +484,13 @@ iframe.active{display:block}
 .cad-list-card .cad-table-wrap td{padding:10px 12px;font-size:12px}
 .rel-mes-field{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#55617a;white-space:nowrap;background:#fff;border:1px solid #d4d3ce;border-radius:8px;height:36px;padding:0 12px}
 .rel-mes-field input{border:none;background:none;outline:none;font-size:12px;font-family:'Inter',sans-serif;color:#1a1a18;padding:0;height:100%}
-.rel-group-row td{background:#f7f7f4 !important;font-size:10.5px !important;font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:7px 14px !important}
+/* Linha de categoria do Relatórios (achado 11/11/2026: o cinza plano igual
+   ao cabeçalho da tabela deixava "VENDEDOR"/"NOME" parecendo a mesma coisa —
+   troquei por um selo colorido com a cor de cada perfil, fundo branco. */
+.rel-group-row td{background:#fff !important;padding:14px 14px 6px !important}
+.rel-group-row:first-child td{padding-top:8px !important}
+.rel-group-pill{display:inline-block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--rel-cor);background:color-mix(in srgb, var(--rel-cor) 10%, #fff);border:1px solid color-mix(in srgb, var(--rel-cor) 30%, #fff);border-radius:20px;padding:4px 11px}
+#rel_chk_header{cursor:pointer}
 #rel_baixar_sel:disabled{opacity:.4;cursor:not-allowed}
 .cad-st{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:4px 11px;border-radius:12px;white-space:nowrap}
 .cad-st.pend{background:#fef3e2;color:#b45309}
@@ -2322,7 +2328,7 @@ function renderRelatorios() {
     if (l.sec.painel !== catAtual) {
       catAtual = l.sec.painel;
       const cor = REL_COR[catAtual] || '#1a1a18';
-      rowsHtml.push(`<tr class="rel-group-row" data-group="${catAtual}"><td colspan="3" style="color:${cor}">${l.sec.titulo}</td></tr>`);
+      rowsHtml.push(`<tr class="rel-group-row" data-group="${catAtual}" style="--rel-cor:${cor}"><td colspan="3"><span class="rel-group-pill" style="--rel-cor:${cor}">${l.sec.titulo}</span></td></tr>`);
     }
     rowsHtml.push(relLinha(l, i));
   });
@@ -2339,16 +2345,19 @@ function renderRelatorios() {
           ${visiveis.map(s => `<option value="${s.painel}">${s.titulo}</option>`).join('')}
         </select>
         <label class="rel-mes-field">Mês<input type="month" id="rel_mes" value="${relMesAtual()}"></label>
-        <button type="button" class="cad-btn-outline" onclick="relSelecionarTodos()">Selecionar todos</button>
         <button type="button" class="cad-btn" id="rel_baixar_sel" onclick="relBaixarSelecionados()" disabled>Baixar selecionados</button>
       </div>
       <div class="cad-table-wrap">
         <table style="min-width:0">
-          <thead><tr><th style="width:30px"></th><th>Nome</th><th style="width:120px"></th></tr></thead>
+          <thead><tr>
+            <th style="width:30px"><input type="checkbox" id="rel_chk_header" title="Selecionar todos" onchange="relSelecionarTodos(this.checked)"></th>
+            <th>Nome</th><th style="width:120px"></th>
+          </tr></thead>
           <tbody id="rel_tbody">${rowsHtml.join('')}</tbody>
         </table>
       </div>
     </div>`;
+  relAtualizarBotaoBaixar();
 }
 function relLinha(l, i) {
   return `<tr data-rel-idx="${i}" data-nome="${l.nome.toLowerCase()}" data-cat="${l.sec.painel}">
@@ -2377,15 +2386,26 @@ function relAplicarFiltros() {
   });
   relAtualizarBotaoBaixar();
 }
-function relSelecionarTodos() {
+// checkMarcar: estado vindo do checkbox do cabeçalho (true=marcar tudo,
+// false=desmarcar tudo). Sem argumento (chamada programática), alterna.
+function relSelecionarTodos(checkMarcar) {
   const chks = [...document.querySelectorAll('.rel-chk')].filter(c => c.closest('tr').style.display !== 'none');
-  const marcar = chks.some(c => !c.checked);
+  const marcar = checkMarcar !== undefined ? checkMarcar : chks.some(c => !c.checked);
   chks.forEach(c => { c.checked = marcar; });
   relAtualizarBotaoBaixar();
 }
 function relAtualizarBotaoBaixar() {
   const btn = document.getElementById('rel_baixar_sel');
   if (!btn) return;
+  // O checkbox do cabeçalho reflete só as linhas VISÍVEIS no filtro atual
+  // (marcado = todas visíveis marcadas; meio-marcado = algumas; vazio = nenhuma).
+  const chkHeader = document.getElementById('rel_chk_header');
+  if (chkHeader) {
+    const visiveis = [...document.querySelectorAll('.rel-chk')].filter(c => c.closest('tr').style.display !== 'none');
+    const marcadosVisiveis = visiveis.filter(c => c.checked).length;
+    chkHeader.checked = visiveis.length > 0 && marcadosVisiveis === visiveis.length;
+    chkHeader.indeterminate = marcadosVisiveis > 0 && marcadosVisiveis < visiveis.length;
+  }
   // Conta TODOS os marcados, não só os visíveis no filtro atual — um filtro
   // não pode "esconder" uma seleção que o botão ainda vai baixar.
   const marcados = document.querySelectorAll('.rel-chk:checked').length;
