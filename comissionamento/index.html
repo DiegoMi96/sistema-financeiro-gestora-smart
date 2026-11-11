@@ -4228,6 +4228,12 @@ function impProcessarPedidos() {
   // Clientes (soma > 20 no mês de referência). Mesmo filtro de linha que já
   // vale pro resto da função (simcard, não cancelado).
   const porCnpj = {};
+  // Dono do Bônus de Novos Clientes (achado 11/11/2026, confirmado com o
+  // Diego): usa o Vendedor de QUEM VENDEU o pedido (esta planilha), não o
+  // do cadastro de Clientes — os dois podem divergir quando o cliente foi
+  // reatribuído depois da venda (ex.: Matheus Pereira vendido pela Claudia,
+  // cadastro hoje mostra Daiane). Mesma fonte que já vale pro Volume.
+  const docVendedorId = {};
   // Diretor Comercial: Volume de vendas = TODAS as linhas do mês (vendedores,
   // indicadores, dealers, projetos e demais), mesma regra de filtro do Vendedor —
   // fora hardware (Tipo != simcard), cancelados, golpe e base inativa.
@@ -4275,6 +4281,7 @@ function impProcessarPedidos() {
     }
     porVendedor[ent.id] = (porVendedor[ent.id] || 0) + qtd;
     (rawPorVendedor[ent.id] = rawPorVendedor[ent.id] || []).push(pedidosHeaders.map(h => (r[h] == null ? '' : r[h])));
+    if (docCnpj) docVendedorId[docCnpj] = ent.id;
   });
 
   const mdata = CLS.get('gs5_m', {});
@@ -4295,6 +4302,9 @@ function impProcessarPedidos() {
   const pedidosPorCnpj = CLS.get('gs5_pedidos_por_cnpj', {});
   pedidosPorCnpj[impMesAnterior(mes)] = porCnpj;
   LS_set('gs5_pedidos_por_cnpj', pedidosPorCnpj);
+  const pedidosVendedorPorCnpj = CLS.get('gs5_pedidos_vendedor_por_cnpj', {});
+  pedidosVendedorPorCnpj[impMesAnterior(mes)] = docVendedorId;
+  LS_set('gs5_pedidos_vendedor_por_cnpj', pedidosVendedorPorCnpj);
   const resultadoNovosClientes = calcularNovosClientes(mes);
   const resultadoAbertura = calcularAberturaParceiros(mes);
 
@@ -4340,6 +4350,7 @@ function calcularNovosClientes(mes) {
   const criadoEmMapa = CLS.get('imp_clientes_criado_em', {});
   const clientesMapa = CLS.get('imp_clientes_map', {});
   const pedidosPorCnpj = (CLS.get('gs5_pedidos_por_cnpj', {})[mesRef]) || {};
+  const pedidosVendedorPorCnpj = (CLS.get('gs5_pedidos_vendedor_por_cnpj', {})[mesRef]) || {};
   const vendedores = CLS.get('gs5_v', CONS_DEFAULTS.vendedores);
   const faixas = CLS.get('gs5_novos_clientes_faixas', CONS_DEFAULTS.novosClientesFaixas);
 
@@ -4347,10 +4358,23 @@ function calcularNovosClientes(mes) {
   Object.keys(criadoEmMapa).forEach(docKey => {
     if (criadoEmMapa[docKey] !== mesRef) return;
     const doc = docKey.slice('ss_'.length);
-    if ((pedidosPorCnpj[doc] || 0) <= 20) return;
-    const nomeVendedor = clientesMapa[docKey];
-    if (!nomeVendedor) return;
-    const v = vendedores.find(x => norm(x.nome) === norm(nomeVendedor));
+    // Corte confirmado com o Diego 11/11/2026: >=20 linhas (não só "mais de
+    // 20") qualifica — e por CLIENTE/CNPJ (a soma já agrega, então um
+    // cliente com 2 pedidos no mesmo mês conta 1 vez só, nunca em dobro).
+    if ((pedidosPorCnpj[doc] || 0) < 20) return;
+    // Dono do bônus = quem vendeu o pedido (planilha de Vendas), não o
+    // cadastro de Clientes — eles podem divergir se o cliente foi
+    // reatribuído depois da venda (achado/confirmado com o Diego
+    // 11/11/2026). Cai no cadastro de Clientes só se o pedido não tiver
+    // vendedor identificado (ex.: veio de uma planilha antiga sem esse mapa).
+    let v = null;
+    const vidDoPedido = pedidosVendedorPorCnpj[doc];
+    if (vidDoPedido) v = vendedores.find(x => x.id === vidDoPedido);
+    if (!v) {
+      const nomeVendedor = clientesMapa[docKey];
+      if (!nomeVendedor) return;
+      v = vendedores.find(x => norm(x.nome) === norm(nomeVendedor));
+    }
     if (!v) return;
     qtdPorVendedor[v.id] = (qtdPorVendedor[v.id] || 0) + 1;
   });
