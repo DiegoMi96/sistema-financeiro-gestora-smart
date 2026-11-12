@@ -31,7 +31,10 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.routers.auth import get_current_user
-from app.models import AnalystCommissionRule, AnalystSalary, AuditLog, User, UserRole
+from app.models import (
+    AnalystCommissionRule, AnalystSalary, AuditLog, User, UserRole,
+    AnalystCommissionSnapshot, AnalystCommissionSnapshotBoleto,
+)
 from app.utils.business_days import effective_due_date_sql
 
 router = APIRouter(prefix="/analyst-commission", tags=["Comissionamento Analistas"])
@@ -165,23 +168,40 @@ def comissionamento(year: int, month: int, user_id: Optional[int] = None,
     dados = {d: {"clientes": 0, "boletos": 0, "pagos": 0, "faturado": 0.0, "recebido": 0.0,
                 "recebido_itau": 0.0, "boletos_itau": 0} for d in DIAS}
     datas = {}
-    # Vencimento original de cada grupo (data mais frequente nos resumos dos ciclos)
-    for r in db.execute(text("""
-        SELECT EXTRACT(DAY FROM due_date)::int AS dia, due_date, COUNT(*) AS n
-        FROM billing_client_summaries
-        WHERE due_date >= :ini AND due_date < :fim
-          AND EXTRACT(DAY FROM due_date)::int IN (10, 15, 20, 25)
-        GROUP BY 1, 2 ORDER BY 1, 3 DESC
-    """), {"ini": ini, "fim": fim}).fetchall():
-        datas.setdefault(int(r.dia), r.due_date)
-    tem_boletos = bool(datas)
-    if not tem_boletos:
-        # Sem vencimento nos resumos do ciclo (ex.: arquivo de Vencimentos incompleto), mas com boletos nos bancos: calcula assim mesmo
-        tem_boletos = bool(db.execute(text("""
-            SELECT EXISTS (SELECT 1 FROM asaas_payments_sync WHERE COALESCE(original_due_date, due_date) >= :ini AND COALESCE(original_due_date, due_date) < :fim)
-                OR EXISTS (SELECT 1 FROM itau_boletos WHERE status <> 'cancelada' AND data_vencimento >= :ini AND data_vencimento < :fim)
-        """), {"ini": ini, "fim": fim}).scalar())
-    if tem_boletos:
+
+    # Mês FECHADO (congelado no dia 28 — ver analyst_commission_freeze.py): usa os
+    # números travados naquele dia, nunca recalcula — mesmo que a sincronização do
+    # Asaas perca/mude dado depois (foi exatamente isso que aconteceu com outubro).
+    snap_rows = db.query(AnalystCommissionSnapshot).filter_by(year=year, month=month).all()
+    fechado = bool(snap_rows)
+    if fechado:
+        for s in snap_rows:
+            dados[s.dia] = {
+                "clientes": s.clientes, "boletos": s.boletos, "pagos": s.pagos,
+                "faturado": s.faturado, "recebido": s.recebido,
+                "recebido_itau": s.recebido_itau, "boletos_itau": s.boletos_itau,
+            }
+            if s.vencimento_original:
+                datas[s.dia] = s.vencimento_original
+        tem_boletos = True
+    else:
+        # Vencimento original de cada grupo (data mais frequente nos resumos dos ciclos)
+        for r in db.execute(text("""
+            SELECT EXTRACT(DAY FROM due_date)::int AS dia, due_date, COUNT(*) AS n
+            FROM billing_client_summaries
+            WHERE due_date >= :ini AND due_date < :fim
+              AND EXTRACT(DAY FROM due_date)::int IN (10, 15, 20, 25)
+            GROUP BY 1, 2 ORDER BY 1, 3 DESC
+        """), {"ini": ini, "fim": fim}).fetchall():
+            datas.setdefault(int(r.dia), r.due_date)
+        tem_boletos = bool(datas)
+        if not tem_boletos:
+            # Sem vencimento nos resumos do ciclo (ex.: arquivo de Vencimentos incompleto), mas com boletos nos bancos: calcula assim mesmo
+            tem_boletos = bool(db.execute(text("""
+                SELECT EXISTS (SELECT 1 FROM asaas_payments_sync WHERE COALESCE(original_due_date, due_date) >= :ini AND COALESCE(original_due_date, due_date) < :fim)
+                    OR EXISTS (SELECT 1 FROM itau_boletos WHERE status <> 'cancelada' AND data_vencimento >= :ini AND data_vencimento < :fim)
+            """), {"ini": ini, "fim": fim}).scalar())
+    if tem_boletos and not fechado:
         # Ciclo que gerou os boletos deste mês (o de setembro gera vencimentos de outubro)
         py, pm = (year - 1, 12) if month == 1 else (year, month - 1)
         cyc = db.execute(text("SELECT id FROM billing_cycles WHERE year = :y AND month = :m ORDER BY id DESC LIMIT 1"),
@@ -282,6 +302,7 @@ def comissionamento(year: int, month: int, user_id: Optional[int] = None,
     return {
         "year": year, "month": month,
         "ciclo": tem_boletos,
+        "fechado": fechado,
         "is_admin": admin,
         "analista": alvo,
         "analistas": membros if admin else [],
@@ -296,6 +317,132 @@ def comissionamento(year: int, month: int, user_id: Optional[int] = None,
     }
 
 
+@router.get("/export")
+def exportar_conferencia(year: int, month: int, db: Session = Depends(get_db),
+                         user: User = Depends(get_current_user)):
+    """Planilha de conferência (botão embaixo de 'Meta atingida', pedido do Diego
+    12/11/2026) — 1 linha por cliente faturado + 1 linha por boleto recebido,
+    pra Brenda/Carlo conferirem igual fariam numa planilha manual. Mês fechado
+    (congelado no dia 28) usa o que foi travado; mês aberto calcula na hora."""
+    if not (_is_admin(user) or is_analyst(db, user.id)):
+        raise HTTPException(status_code=403, detail="Você não participa do comissionamento de analistas")
+    _validar_mes(month)
+
+    snap_rows = db.query(AnalystCommissionSnapshot).filter_by(year=year, month=month).all()
+    if snap_rows:
+        snap_ids = [s.id for s in snap_rows]
+        detalhes = (db.query(AnalystCommissionSnapshotBoleto)
+                    .filter(AnalystCommissionSnapshotBoleto.snapshot_id.in_(snap_ids)).all())
+        linhas = [{"tipo": d.tipo, "nome": d.nome, "documento": d.documento, "banco": d.banco,
+                   "vencimento": d.vencimento, "valor": d.valor, "status": d.status,
+                   "data_pagamento": d.data_pagamento} for d in detalhes]
+    else:
+        linhas = _boletos_detalhados(db, year, month)
+
+    from io import BytesIO
+    from openpyxl import Workbook
+    from fastapi.responses import StreamingResponse
+
+    wb = Workbook()
+    wb.remove(wb.active)
+
+    ws_f = wb.create_sheet("Faturado")
+    ws_f.append(["Vencimento (dia)", "Cliente", "CNPJ/CPF", "Valor (R$)"])
+    ws_r = wb.create_sheet("Recebido")
+    ws_r.append(["Vencimento (dia)", "Cliente", "CNPJ/CPF", "Banco", "Valor (R$)", "Status", "Data de Pagamento"])
+
+    for l in sorted(linhas, key=lambda x: ((x["vencimento"] or date.min), x["tipo"])):
+        v = l["vencimento"]
+        dia = v.day if v else None
+        if l["tipo"] == "faturado":
+            ws_f.append([dia, l["nome"], l["documento"], round(l["valor"] or 0, 2)])
+        else:
+            ws_r.append([dia, l["nome"], l["documento"], l["banco"], round(l["valor"] or 0, 2),
+                        l["status"], l["data_pagamento"].strftime("%d/%m/%Y") if l["data_pagamento"] else ""])
+
+    for ws, widths in ((ws_f, [14, 40, 18, 14]), (ws_r, [14, 40, 18, 10, 14, 16, 16])):
+        for i, w in enumerate(widths, start=1):
+            ws.column_dimensions[chr(64 + i)].width = w
+
+    buf = BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    filename = f"Comissionamento_Analistas_Conferencia_{month:02d}_{year}.xlsx"
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+def _boletos_detalhados(db: Session, year: int, month: int) -> list[dict]:
+    """Linha a linha do que entra no cálculo de um mês — mesma base (bol0/base/bol/elig)
+    da query principal de `comissionamento()`, usada pelo fechamento (congelamento) e
+    pela planilha de conferência (`/export`). Duas naturezas de linha, ver docstring de
+    AnalystCommissionSnapshotBoleto: 'faturado' (1 por cliente do ciclo) e 'recebido'
+    (1 por boleto pago dentro da janela do vencimento)."""
+    ini = date(year, month, 1)
+    fim = date(year + (month == 12), month % 12 + 1, 1)
+    py, pm = (year - 1, 12) if month == 1 else (year, month - 1)
+    cyc = db.execute(text("SELECT id FROM billing_cycles WHERE year = :y AND month = :m ORDER BY id DESC LIMIT 1"),
+                     {"y": py, "m": pm}).scalar()
+    ef_g = effective_due_date_sql("e.gdate")
+    janela_esp = _janela_especial_sql(year, month)
+    janela_padrao = f"(e.dp >= e.dv AND e.dp BETWEEN e.gdate AND ({ef_g}) + 1)"
+    pago_expr = f"(e.rec AND COALESCE(({janela_esp}), {janela_padrao}))" if janela_esp else f"(e.rec AND {janela_padrao})"
+    rows = db.execute(text(f"""
+        WITH bol0 AS (
+            SELECT regexp_replace(customer_cpf_cnpj, '\\D', '', 'g') AS doc, customer_name AS nome,
+                   COALESCE(original_due_date, due_date) AS dv, COALESCE(value_original, value) AS valor,
+                   (status IN ('RECEIVED','CONFIRMED','RECEIVED_IN_CASH')) AS rec, status AS status_raw,
+                   COALESCE(payment_date, credit_date) AS dp, 'Asaas' AS banco
+            FROM asaas_payments_sync
+            WHERE COALESCE(original_due_date, due_date) >= :ini AND COALESCE(original_due_date, due_date) < :fim
+            UNION ALL
+            SELECT regexp_replace(cpf_cnpj, '\\D', '', 'g'), pagador, data_vencimento, valor_titulo,
+                   (status = 'paga'), status, data_pagamento, 'Itaú'
+            FROM itau_boletos
+            WHERE status <> 'cancelada' AND data_vencimento >= :ini AND data_vencimento < :fim
+        ),
+        base AS (
+            SELECT regexp_replace(bcs.id_smart, '\\D', '', 'g') AS doc, SUM(bcs.total_final) AS valor_ciclo,
+                   MAX(bcs.nome_cliente) AS nome,
+                   MIN(CASE WHEN bcs.due_date >= :ini AND bcs.due_date < :fim AND EXTRACT(DAY FROM bcs.due_date)::int IN (10, 15, 20, 25)
+                            THEN bcs.due_date END) AS due_ciclo
+            FROM billing_client_summaries bcs
+            WHERE bcs.total_final > 0 AND (bcs.cycle_id = :cyc OR (bcs.due_date >= :ini AND bcs.due_date < :fim))
+            GROUP BY 1
+        ),
+        bol AS (
+            SELECT b.*, CASE WHEN EXTRACT(DAY FROM b.dv)::int IN (10, 15, 20, 25) THEN b.dv
+                             WHEN bs.due_ciclo IS NOT NULL THEN bs.due_ciclo
+                             WHEN EXTRACT(DAY FROM b.dv - 1)::int IN (10, 15, 20, 25) THEN b.dv - 1 END AS gdate
+            FROM bol0 b LEFT JOIN base bs ON bs.doc = b.doc
+        ),
+        elig AS (
+            SELECT b.* FROM bol b
+            WHERE b.gdate IS NOT NULL AND b.gdate >= :ini AND b.gdate < :fim
+              AND (b.banco = 'Itaú' OR b.doc IN (SELECT doc FROM base))
+        )
+        SELECT 'recebido' AS tipo, e.nome, e.doc AS documento, e.banco,
+               EXTRACT(DAY FROM e.gdate)::int AS dia, e.gdate AS vencimento, e.valor,
+               e.status_raw AS status, e.dp AS data_pagamento
+        FROM elig e WHERE {pago_expr}
+        UNION ALL
+        SELECT 'faturado' AS tipo, bs.nome, bs.doc AS documento, NULL AS banco,
+               EXTRACT(DAY FROM COALESCE(bs.due_ciclo, (SELECT MIN(e2.gdate) FROM elig e2 WHERE e2.doc = bs.doc)))::int AS dia,
+               COALESCE(bs.due_ciclo, (SELECT MIN(e2.gdate) FROM elig e2 WHERE e2.doc = bs.doc)) AS vencimento,
+               bs.valor_ciclo AS valor, NULL AS status, NULL AS data_pagamento
+        FROM base bs
+        WHERE COALESCE(bs.due_ciclo, (SELECT MIN(e2.gdate) FROM elig e2 WHERE e2.doc = bs.doc)) IS NOT NULL
+        UNION ALL
+        SELECT 'faturado' AS tipo, e.nome, e.doc AS documento, NULL AS banco,
+               EXTRACT(DAY FROM e.gdate)::int AS dia, e.gdate AS vencimento, e.valor, NULL, NULL
+        FROM elig e WHERE e.banco = 'Itaú' AND e.doc NOT IN (SELECT doc FROM base)
+    """), {"ini": ini, "fim": fim, "cyc": cyc}).fetchall()
+    return [dict(r._mapping) for r in rows if r.dia in DIAS]
+
+
 def _so_admin(user: User):
     if not _is_admin(user):
         raise HTTPException(status_code=403, detail="Somente o administrador edita o comissionamento")
@@ -304,6 +451,22 @@ def _so_admin(user: User):
 def _validar_mes(month: int):
     if not (1 <= month <= 12):
         raise HTTPException(status_code=400, detail="Mês inválido")
+
+
+@router.post("/fechar")
+def fechar_mes_manual(year: int, month: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """Fechamento manual (admin) — o automático já roda sozinho todo dia 28 (ver
+    analyst_commission_freeze.py); isso aqui é só pra um caso excepcional de
+    precisar fechar antes da data ou fechar um mês que passou batido."""
+    _so_admin(user)
+    _validar_mes(month)
+    from app.services.analyst_commission_freeze import fechar_mes
+    resultado = fechar_mes(year, month, db=db)
+    if resultado.get("status") == "ok":
+        db.add(AuditLog(user_id=user.id, action="analyst_commission.fechar_mes", entity="analyst_commission_snapshot",
+                        details={"year": year, "month": month, **resultado}))
+        db.commit()
+    return resultado
 
 
 @router.put("/config")

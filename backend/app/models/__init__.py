@@ -732,3 +732,56 @@ class AnalystCommissionRule(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     __table_args__ = (UniqueConstraint("user_id", "year", "month", "dia", name="uq_analyst_rule_user_month_dia"),)
+
+
+class AnalystCommissionSnapshot(Base):
+    """
+    Fechamento definitivo do Comissionamento dos analistas — um registro por
+    (ano, mês, vencimento 10/15/20/25). Criado automaticamente no dia 28 de
+    cada mês (ver `app/services/analyst_commission_freeze.py`), travando pra
+    sempre o faturado/recebido daquele vencimento com os dados que o banco
+    tinha ATÉ ALI. Depois de criado, a tela de Comissionamento passa a usar
+    esses números em vez de recalcular ao vivo — protege contra o que
+    aconteceu em outubro/2026 (sincronização do Asaas perdendo o vencimento
+    original de boleto renegociado e derrubando o "faturado" de meses já
+    fechados). Pedido do Diego, 12/11/2026.
+    """
+    __tablename__ = "analyst_commission_snapshot"
+
+    id             = Column(Integer, primary_key=True, index=True)
+    year           = Column(Integer, nullable=False)
+    month          = Column(Integer, nullable=False)
+    dia            = Column(Integer, nullable=False)          # 10 | 15 | 20 | 25
+    clientes       = Column(Integer, nullable=False, default=0)
+    boletos        = Column(Integer, nullable=False, default=0)
+    pagos          = Column(Integer, nullable=False, default=0)
+    faturado       = Column(Float, nullable=False, default=0.0)
+    recebido       = Column(Float, nullable=False, default=0.0)
+    recebido_itau  = Column(Float, nullable=False, default=0.0)
+    boletos_itau   = Column(Integer, nullable=False, default=0)
+    vencimento_original = Column(Date, nullable=True)
+    frozen_at      = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (UniqueConstraint("year", "month", "dia", name="uq_analyst_snapshot_year_month_dia"),)
+
+
+class AnalystCommissionSnapshotBoleto(Base):
+    """Detalhe linha a linha de um fechamento (AnalystCommissionSnapshot) — usado
+    pela planilha de conferência que os analistas baixam. Duas naturezas de linha
+    (campo `tipo`): 'faturado' = 1 linha por CLIENTE do ciclo (valor = total_final
+    do ciclo, igual ao que soma no Faturado), 'recebido' = 1 linha por BOLETO que
+    caiu dentro da janela de pagamento daquele vencimento (igual ao que soma no
+    Recebido) — mesma dualidade da query de cálculo (faturado vem do ciclo,
+    recebido vem do boleto)."""
+    __tablename__ = "analyst_commission_snapshot_boleto"
+
+    id            = Column(Integer, primary_key=True, index=True)
+    snapshot_id   = Column(Integer, ForeignKey("analyst_commission_snapshot.id"), nullable=False, index=True)
+    tipo          = Column(String(10), nullable=False)   # faturado | recebido
+    nome          = Column(String(255))
+    documento     = Column(String(20))
+    banco         = Column(String(10))          # Asaas | Itaú | (vazio pra linha de faturado)
+    vencimento    = Column(Date, nullable=True)
+    valor         = Column(Float, nullable=False, default=0.0)
+    status        = Column(String(30))
+    data_pagamento = Column(Date, nullable=True)

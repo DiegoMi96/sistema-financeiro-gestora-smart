@@ -129,6 +129,7 @@ export const analystCommissionApi = {
   saveConfig: (data)                => api.put('/analyst-commission/config', data),
   saveSalary: (data)                => api.put('/analyst-commission/salary', data),
   addMember:  (data)                => api.post('/analyst-commission/members', data),
+  export:     (year, month)         => api.get('/analyst-commission/export', { params: { year, month }, responseType: 'blob' }),
 }
 
 export const attentionApi = {

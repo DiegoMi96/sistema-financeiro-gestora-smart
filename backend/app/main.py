@@ -238,7 +238,9 @@ async def lifespan(app: FastAPI):
     from app.services.asaas_sync import sync_loop
     from app.services.comissionamento_retention import retention_loop
     from app.services.cobranca import regua_loop
-    tasks = [asyncio.create_task(sync_loop()), asyncio.create_task(retention_loop()), asyncio.create_task(regua_loop())]
+    from app.services.analyst_commission_freeze import freeze_loop
+    tasks = [asyncio.create_task(sync_loop()), asyncio.create_task(retention_loop()), asyncio.create_task(regua_loop()),
+             asyncio.create_task(freeze_loop())]
     yield
     for task in tasks:
         task.cancel()

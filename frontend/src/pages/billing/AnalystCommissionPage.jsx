@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { Loader2, Save, User, Target, BarChart3, Trophy, ChevronDown, Wallet, Info } from 'lucide-react'
+import { Loader2, Save, User, Target, BarChart3, Trophy, ChevronDown, Wallet, Info, Download, Lock } from 'lucide-react'
 import { analystCommissionApi } from '../../services/api'
 
 // Aba "Comissionamento" do Faturamento — comissão dos analistas de contas a receber,
@@ -93,6 +93,7 @@ export default function AnalystCommissionPage() {
   const [form, setForm] = useState({})             // { [dia]: { percentual, meta } }
   const [salario, setSalario] = useState('0')
   const [saving, setSaving] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [openCfg, setOpenCfg] = useState(true)
   const [openApu, setOpenApu] = useState(true)
   const [openSal, setOpenSal] = useState(false)   // salário base: recolhido por padrão
@@ -145,6 +146,24 @@ export default function AnalystCommissionPage() {
       toast.error(err.response?.data?.detail || 'Erro ao salvar')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleExport = async () => {
+    if (exporting) return
+    setExporting(true)
+    try {
+      const r = await analystCommissionApi.export(year, month)
+      const url = URL.createObjectURL(new Blob([r.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }))
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `Comissionamento_Analistas_Conferencia_${String(month).padStart(2, '0')}_${year}.xlsx`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      toast.error('Erro ao gerar a planilha de conferência')
+    } finally {
+      setExporting(false)
     }
   }
 
@@ -233,7 +252,14 @@ export default function AnalystCommissionPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Comissionamento</h1>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            Comissionamento
+            {data?.fechado && (
+              <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-600 bg-gray-100 border border-gray-200 rounded-full px-2.5 py-1">
+                <Lock size={11} /> Mês fechado
+              </span>
+            )}
+          </h1>
           <p className="text-sm text-gray-500 mt-1 max-w-2xl">
             {admin
               ? 'Comissão dos analistas de contas a receber, com base na adimplência por vencimento original. O percentual incide sobre o salário do analista, se a meta for atingida.'
@@ -396,6 +422,15 @@ export default function AnalystCommissionPage() {
                     )
                   })}
                   <td className={TD}>—</td>
+                </tr>
+                <tr>
+                  <td colSpan={nCols} className="px-4 py-3 border-t border-gray-100">
+                    <button type="button" onClick={handleExport} disabled={exporting}
+                      className="gs-btn gs-btn-outline gs-btn-sm">
+                      {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                      Baixar planilha completa (conferência)
+                    </button>
+                  </td>
                 </tr>
               </>)}
             </tbody>
