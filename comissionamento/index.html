@@ -1666,6 +1666,24 @@ const CELULA_ALIQUOTAS_HIST = { objetivo: 0.07, meta1: 0.13, meta2: 0.25, superM
 const EQUIP_MANUAL_HIST = ['patrick rodrigues'];
 const RULES_HIST = { eqRate: 2, gpsRate: 100, freteLimit: 250 };
 function getFaixaHist(alc) { return FAIXAS_HIST.find(f => Math.floor(alc) <= f.max) || FAIXAS_HIST[FAIXAS_HIST.length - 1]; }
+// Mirror de fxComOverride (vendedor.html) — achado 12/11/2026: a Visão
+// Consolidada/Executivo têm sua PRÓPRIA cópia da fórmula de cálculo do
+// Vendedor (não reusam o arquivo), então o suporte a Faixas de Volume
+// personalizadas por vendedor (ex.: Patrick) precisa ser replicado aqui
+// também, senão essas telas continuam usando só a tabela global de faixas.
+function fxComOverrideV(alc, override, faixasGlobais) {
+  let i = override.findIndex(f => Math.floor(alc) <= f.max);
+  if (i === -1) i = override.length - 1;
+  const min = i === 0 ? 0 : override[i - 1].max + 1;
+  const max = override[i].max;
+  const range = (i === override.length - 1) ? `${min}%+` : `${min}–${max}%`;
+  return { n: i + 1, range, min, max, vol: override[i].vol, atv: (faixasGlobais[i] ? faixasGlobais[i].atv : 0) };
+}
+function getFaixaVendedor(v, alc, faixasGlobais) {
+  return (v.volFaixasOverride && v.volFaixasOverride.length === faixasGlobais.length)
+    ? fxComOverrideV(alc, v.volFaixasOverride, faixasGlobais)
+    : (faixasGlobais.find(f => Math.floor(alc) <= f.max) || faixasGlobais[faixasGlobais.length - 1] || { n: 1, vol: 0, atv: 0 });
+}
 function getDesafioHist(linhas, g) {
   const ths = [g.obj, g.m1, g.m2, g.sm]; let total = 0;
   DESAFIO_HIST.forEach((d, i) => { if (linhas >= ths[i]) total += d.val; });
@@ -1974,7 +1992,7 @@ function consVendedorTotais(mes) {
     // e também fora da faixa 2 (que só começa em 91), sendo empurrado pra faixa
     // 2 por engano. Confirmado batendo com a planilha real da Claudia (Jul/26):
     // o mesmo bug já corrigido pro modelo de 6 faixas vale igual pro de 4.
-    const fx = faixas.find(f => Math.floor(alc) <= f.max) || faixas[faixas.length - 1] || { vol: 0, atv: 0 };
+    const fx = getFaixaVendedor(v, alc, faixas);
     const volC = linhas * fx.vol, atvC = atv * fx.atv;
     // Meios de Pagamento: R$ fixo por máquina vendida (qtdEquip × equipCat).
     // Rastreamento (e quem não tem categoria): percentual do valor recebido
@@ -2030,7 +2048,7 @@ function calcVendExec(v, mes) {
       novosClientesC: 0, recorrenciaC: 0, aberturaC: 0, total, ths: [gHist.obj, gHist.m1, gHist.m2, gHist.sm], categoriaEquip: null, qtdEquip: 0, equipRate: 0 };
   }
   const extra = consVendExtra(v, mes);
-  const fx = faixas.find(f => Math.floor(alc) <= f.max) || faixas[faixas.length - 1] || { n: 1, vol: 0, atv: 0 };
+  const fx = getFaixaVendedor(v, alc, faixas);
   const volC = linhas * fx.vol, atvC = atv * fx.atv;
   // Meios de Pagamento: R$ fixo por máquina vendida (qtdEquip × equipCat).
   // Rastreamento (e quem não tem categoria): percentual do valor recebido
