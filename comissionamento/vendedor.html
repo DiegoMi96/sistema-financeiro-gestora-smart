@@ -359,7 +359,7 @@ tr.row-editing td{background:#f9fffe !important}
       <div class="rg-note">Metas definidas trimestralmente pelo gestor.</div>
     </div>
     <div class="card" style="margin-top:18px">
-      <div class="rg-head"><p class="rg-title">Faixas de Volume personalizadas — por vendedor</p><p class="rg-sub">Pra vendedor com acordo de R$/linha diferente do padrão acima (ex.: time de Meios de Pagamento). Faixa marcada mas sem valor usa o R$/linha padrão normalmente.</p></div>
+      <div class="rg-head"><p class="rg-title">Faixas de Volume personalizadas — por vendedor</p><p class="rg-sub">Pra vendedor com acordo diferente do padrão acima (ex.: time de Meios de Pagamento) — tanto o limite de alcance % de cada faixa quanto o R$/linha podem ser próprios. Desmarcado usa a tabela padrão normalmente.</p></div>
       <div id="volFaixaVendList"></div>
     </div>
   </div>
@@ -566,8 +566,21 @@ let faixas=LS.get('gs5_f',DEF_F);
   // comparação simples (trim + lowercase) basta aqui.
   const simpleNorm=s=>String(s||'').trim().toLowerCase();
   const p=vendedores.find(v=>simpleNorm(v.nome)===simpleNorm('Patrick Rodrigues'));
-  if(p && !p.volFaixasOverride){
-    p.volFaixasOverride=[0.40,0.60,0.80,1.00];
+  if(!p)return;
+  // Migração 12/11/2026 (revisão): a 1ª versão só guardava o R$/linha (array
+  // de números, mesmos limites % do padrão global) — o Diego confirmou
+  // depois que os LIMITES de alcance também são próprios do Patrick (0–90%
+  // / 91–110% / 111–129% / 130%+). Formato novo = array de {max,vol}.
+  // Só sobrescreve se ainda estiver no formato antigo (número puro) ou sem
+  // nada — não mexe se já foi editado manualmente pela tela depois disso.
+  const formatoAntigo=Array.isArray(p.volFaixasOverride)&&p.volFaixasOverride.length>0&&typeof p.volFaixasOverride[0]==='number';
+  if(!p.volFaixasOverride || formatoAntigo){
+    p.volFaixasOverride=[
+      {max:90,vol:0.40},
+      {max:110,vol:0.60},
+      {max:129,vol:0.80},
+      {max:9999,vol:1.00},
+    ];
     LS.set('gs5_v',vendedores);
   }
 })();
@@ -667,6 +680,18 @@ const norm=(s='')=>String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u0
 // (só começa em 71), sendo empurrado pra faixa 2 por engano. Confirmado batendo
 // com a planilha real da Claudia (Jul/26): 70,04% = Faixa 1 (10%), não Faixa 2 (15%).
 function getFaixa(alc){return faixas.find(f=>Math.floor(alc)<=f.max)||faixas[faixas.length-1];}
+// Monta um objeto de faixa (mesmo formato de `faixas`) a partir do override
+// de um vendedor — override = [{max,vol}, ...] na mesma ordem/tamanho de
+// `faixas`; o `min` de cada uma é implícito (max da anterior + 1, 0 na
+// primeira) e o `atv` vem da tabela global na mesma posição (índice).
+function fxComOverride(alc,override){
+  let i=override.findIndex(f=>Math.floor(alc)<=f.max);
+  if(i===-1)i=override.length-1;
+  const min=i===0?0:override[i-1].max+1;
+  const max=override[i].max;
+  const range=(i===override.length-1)?`${min}%+`:`${min}–${max}%`;
+  return{n:i+1,range,min,max,vol:override[i].vol,atv:(faixas[i]?faixas[i].atv:0)};
+}
 // Modelo HISTÓRICO (vigente até o ciclo de outubro/2026, antes do modelo novo)
 // — congelado, nunca editável por aqui. Existe só pra recalcular um mês já
 // fechado com a fórmula que estava valendo quando ele foi aprovado. O modelo
@@ -818,14 +843,17 @@ function calcVend(d,g,bonusCelula=0,eqDireto=false,extra={},mes=''){
     return{linhas,atv,eq,gps,frete,bonus,bonusCelula,beSmart:0,alc,fx,volRate:fx.vol,desC,volC,atvC,eqC,gpsC,frDsc,
       novosClientesC:0,recorrenciaC:0,aberturaC:0,total};
   }
-  const fx=getFaixa(alc);
   // Faixas de Volume personalizadas por vendedor (achado 12/11/2026, pedido
-  // do Diego — Patrick migrou pro time de Meios de Pagamento, R$/linha bem
-  // mais alto que o padrão): extra.volFaixasOverride é um array de 4
-  // posições (Objetivo/Meta1/Meta2/SuperMeta) só pra ESTE vendedor; ausente
-  // ou null em alguma faixa cai no valor global (faixas/gs5_f) normalmente.
-  const overrideVol=extra.volFaixasOverride&&extra.volFaixasOverride[fx.n-1]!=null?extra.volFaixasOverride[fx.n-1]:null;
-  const volRate=overrideVol!=null?overrideVol:fx.vol;
+  // do Diego — Patrick migrou pro time de Meios de Pagamento: tanto o
+  // R$/linha quanto os PRÓPRIOS limites de alcance% são diferentes do
+  // padrão — Objetivo 0–90%, Meta 1 91–110%, Meta 2 111–129%, Super Meta
+  // 130%+). extra.volFaixasOverride é um array de 4 {max,vol} (o `min` de
+  // cada faixa é implícito = max da faixa anterior + 1); a % de Ativação
+  // continua vindo da tabela global, pela posição (índice) da faixa.
+  const fx=(extra.volFaixasOverride&&extra.volFaixasOverride.length===faixas.length)
+    ? fxComOverride(alc,extra.volFaixasOverride)
+    : getFaixa(alc);
+  const volRate=fx.vol;
   const volC=linhas*volRate,atvC=atv*fx.atv;
   // Equipamento: SÓ a categoria Meios de Pagamento usa R$/máquina (sobre o
   // total de máquinas vendidas vindo da planilha importada no mês; sem
@@ -1385,33 +1413,51 @@ function loadRecorrencia(){
   document.getElementById('rec_ab_dealer').value=recorrenciaCfg.abertura.dealer;
   document.getElementById('rec_ab_broker').value=recorrenciaCfg.abertura.broker;
 }
-// Faixas de Volume personalizadas por vendedor (12/11/2026) — array de 4
-// posições espelhando `faixas` (Objetivo/Meta1/Meta2/SuperMeta); null =
-// desligado, usa o R$/linha padrão da tabela global em todas as faixas.
+// Faixas de Volume personalizadas por vendedor (12/11/2026, revisado —
+// agora cada faixa também tem seu próprio limite % de alcance, não só o
+// R$/linha): volFaixasOverride = array de 4 {max,vol} espelhando `faixas`
+// (Objetivo/Meta1/Meta2/SuperMeta; a última não tem limite superior, é
+// "X%+"); null = desligado, usa a tabela global (limites e R$/linha) em
+// todas as faixas. O % de Ativação sempre vem da tabela global.
 function toggleVolFaixaVend(i,ligado){
-  vendedores[i].volFaixasOverride=ligado?faixas.map(f=>f.vol):null;
+  vendedores[i].volFaixasOverride=ligado?faixas.map(f=>({max:f.max,vol:f.vol})):null;
   LS.set('gs5_v',vendedores);
   buildVolFaixaVendList();
   renderResumo();
 }
-function setVolFaixaVend(i,idx,valor){
-  if(!vendedores[i].volFaixasOverride)return;
-  vendedores[i].volFaixasOverride[idx]=+valor||0;
+function setVolFaixaVend(i,idx,campo,valor){
+  const ov=vendedores[i].volFaixasOverride;
+  if(!ov)return;
+  ov[idx][campo]=+valor||0;
   LS.set('gs5_v',vendedores);
+  buildVolFaixaVendList();
   renderResumo();
 }
 function buildVolFaixaVendList(){
+  const fpCls=['f1','f2','f3','f4'];
   document.getElementById('volFaixaVendList').innerHTML=vendedores.map((v,i)=>{
     const ligado=!!v.volFaixasOverride;
-    const vals=v.volFaixasOverride||faixas.map(f=>f.vol);
-    return `<div style="display:flex;align-items:center;gap:14px;padding:10px 0;font-size:13px;border-bottom:.5px solid #f0efea;flex-wrap:wrap">
-      <label style="flex:0 0 220px;min-width:0;display:flex;align-items:center;gap:8px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${v.nome}">
+    const ov=v.volFaixasOverride||faixas.map(f=>({max:f.max,vol:f.vol}));
+    return `<div style="padding:12px 0;border-bottom:.5px solid #f0efea">
+      <label style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px;margin-bottom:${ligado?'8px':'0'}">
         <input type="checkbox" ${ligado?'checked':''} onchange="toggleVolFaixaVend(${i},this.checked)">${v.nome}
       </label>
-      ${faixas.map((f,idx)=>`
-        <div class="rg-in" style="width:110px" title="${nomeFaixa(f.n)}"><span class="ipfx">R$</span>
-          <input type="number" class="rule-input" step="0.01" value="${vals[idx].toFixed(2)}" ${ligado?'':'disabled'} onchange="setVolFaixaVend(${i},${idx},this.value)">
-        </div>`).join('')}
+      ${ligado?`<div style="display:flex;gap:10px;flex-wrap:wrap;padding-left:26px">
+        ${ov.map((f,idx)=>{
+          const min=idx===0?0:ov[idx-1].max+1;
+          const ultima=idx===ov.length-1;
+          return `<div style="display:flex;flex-direction:column;gap:4px">
+            <span class="fp ${fpCls[idx]}" style="width:fit-content">${nomeFaixa(idx+1)}</span>
+            <div style="display:flex;gap:6px;align-items:center">
+              <span style="font-size:11px;color:#888;white-space:nowrap">${min}% a</span>
+              ${ultima
+                ?`<span style="font-size:12px;font-weight:600;color:#888">acima</span>`
+                :`<div class="rg-in" style="width:64px"><input type="number" class="rule-input" value="${f.max}" onchange="setVolFaixaVend(${i},${idx},'max',this.value)"><span class="ipfx">%</span></div>`}
+              <div class="rg-in" style="width:90px"><span class="ipfx">R$</span><input type="number" class="rule-input" step="0.01" value="${f.vol.toFixed(2)}" onchange="setVolFaixaVend(${i},${idx},'vol',this.value)"></div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`:''}
     </div>`;
   }).join('');
 }
