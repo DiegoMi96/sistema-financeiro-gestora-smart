@@ -229,7 +229,16 @@ def _upsert_payments(db: Session, payments: list, customers: dict):
                 value_original    = EXCLUDED.value_original,
                 net_value         = EXCLUDED.net_value,
                 due_date          = EXCLUDED.due_date,
-                original_due_date = COALESCE(EXCLUDED.original_due_date, asaas_payments_sync.original_due_date),
+                -- Vencimento ORIGINAL é imutável — confirmado com o Diego 12/11/2026 ("o vencimento
+                -- original nunca muda, o que muda é o vencimento"). O Asaas, ao contrário do que seria
+                -- de esperar, também atualiza o próprio campo originalDueDate quando o boleto é
+                -- renegociado/remarcado — então o sync NÃO pode confiar cegamente nesse valor a cada
+                -- sincronização. Antes: COALESCE(EXCLUDED.original_due_date, existente) priorizava o
+                -- valor NOVO, apagando o histórico (um boleto vencido em outubro e remarcado pra
+                -- novembro "esquecia" que um dia venceu em outubro). Agora: o valor já gravado da
+                -- PRIMEIRA sincronização vale pra sempre; só usa o novo se nunca tiver sido gravado
+                -- nenhum valor antes.
+                original_due_date = COALESCE(asaas_payments_sync.original_due_date, EXCLUDED.original_due_date),
                 payment_date      = EXCLUDED.payment_date,
                 credit_date       = EXCLUDED.credit_date,
                 status            = EXCLUDED.status,
