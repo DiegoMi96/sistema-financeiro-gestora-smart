@@ -33,7 +33,7 @@ from app.database import get_db
 from app.routers.auth import get_current_user
 from app.models import (
     AnalystCommissionRule, AnalystSalary, AuditLog, User, UserRole,
-    AnalystCommissionSnapshot, AnalystCommissionSnapshotBoleto,
+    AnalystCommissionLock, AnalystCommissionLockBoleto,
 )
 from app.utils.business_days import effective_due_date_sql
 
@@ -172,7 +172,7 @@ def comissionamento(year: int, month: int, user_id: Optional[int] = None,
     # Mês FECHADO (congelado no dia 28 — ver analyst_commission_freeze.py): usa os
     # números travados naquele dia, nunca recalcula — mesmo que a sincronização do
     # Asaas perca/mude dado depois (foi exatamente isso que aconteceu com outubro).
-    snap_rows = db.query(AnalystCommissionSnapshot).filter_by(year=year, month=month).all()
+    snap_rows = db.query(AnalystCommissionLock).filter_by(year=year, month=month).all()
     fechado = bool(snap_rows)
     if fechado:
         for s in snap_rows:
@@ -328,11 +328,11 @@ def exportar_conferencia(year: int, month: int, db: Session = Depends(get_db),
         raise HTTPException(status_code=403, detail="Você não participa do comissionamento de analistas")
     _validar_mes(month)
 
-    snap_rows = db.query(AnalystCommissionSnapshot).filter_by(year=year, month=month).all()
+    snap_rows = db.query(AnalystCommissionLock).filter_by(year=year, month=month).all()
     if snap_rows:
         snap_ids = [s.id for s in snap_rows]
-        detalhes = (db.query(AnalystCommissionSnapshotBoleto)
-                    .filter(AnalystCommissionSnapshotBoleto.snapshot_id.in_(snap_ids)).all())
+        detalhes = (db.query(AnalystCommissionLockBoleto)
+                    .filter(AnalystCommissionLockBoleto.snapshot_id.in_(snap_ids)).all())
         linhas = [{"tipo": d.tipo, "nome": d.nome, "documento": d.documento, "banco": d.banco,
                    "vencimento": d.vencimento, "valor": d.valor, "status": d.status,
                    "data_pagamento": d.data_pagamento} for d in detalhes]
@@ -379,7 +379,7 @@ def _boletos_detalhados(db: Session, year: int, month: int) -> list[dict]:
     """Linha a linha do que entra no cálculo de um mês — mesma base (bol0/base/bol/elig)
     da query principal de `comissionamento()`, usada pelo fechamento (congelamento) e
     pela planilha de conferência (`/export`). Duas naturezas de linha, ver docstring de
-    AnalystCommissionSnapshotBoleto: 'faturado' (1 por cliente do ciclo) e 'recebido'
+    AnalystCommissionLockBoleto: 'faturado' (1 por cliente do ciclo) e 'recebido'
     (1 por boleto pago dentro da janela do vencimento)."""
     ini = date(year, month, 1)
     fim = date(year + (month == 12), month % 12 + 1, 1)

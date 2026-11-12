@@ -21,7 +21,7 @@ from collections import defaultdict
 from sqlalchemy import text
 
 from app.database import SessionLocal
-from app.models import AnalystCommissionSnapshot, AnalystCommissionSnapshotBoleto
+from app.models import AnalystCommissionLock, AnalystCommissionLockBoleto
 
 FREEZE_INTERVAL = 60 * 60 * 6     # a cada 6h — barato, e pega o dia 28 assim que ele chegar
 DIA_FECHAMENTO  = 28
@@ -45,7 +45,7 @@ def fechar_mes(year: int, month: int, db=None) -> dict:
     if own_session:
         db = SessionLocal()
     try:
-        ja_fechado = db.query(AnalystCommissionSnapshot.id).filter_by(year=year, month=month).first()
+        ja_fechado = db.query(AnalystCommissionLock.id).filter_by(year=year, month=month).first()
         if ja_fechado:
             return {"status": "skipped", "reason": "mês já fechado"}
 
@@ -85,7 +85,7 @@ def fechar_mes(year: int, month: int, db=None) -> dict:
             a = agg[dia]
             if not a["clientes"] and not a["boletos"]:
                 continue
-            snap = AnalystCommissionSnapshot(
+            snap = AnalystCommissionLock(
                 year=year, month=month, dia=dia,
                 clientes=len(a["clientes"]), boletos=a["boletos"], pagos=a["pagos"],
                 faturado=round(a["faturado"], 2), recebido=round(a["recebido"], 2),
@@ -98,7 +98,7 @@ def fechar_mes(year: int, month: int, db=None) -> dict:
                 v = l["vencimento"]
                 if (v.day if v else None) != dia:
                     continue
-                db.add(AnalystCommissionSnapshotBoleto(
+                db.add(AnalystCommissionLockBoleto(
                     snapshot_id=snap.id, tipo=l["tipo"], nome=l["nome"], documento=l["documento"],
                     banco=l["banco"], vencimento=v, valor=l["valor"] or 0,
                     status=l["status"], data_pagamento=l["data_pagamento"],
