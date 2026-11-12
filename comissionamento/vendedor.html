@@ -358,6 +358,10 @@ tr.row-editing td{background:#f9fffe !important}
       <tbody id="faixaBody"></tbody></table>
       <div class="rg-note">Metas definidas trimestralmente pelo gestor.</div>
     </div>
+    <div class="card" style="margin-top:18px">
+      <div class="rg-head"><p class="rg-title">Faixas de Volume personalizadas — por vendedor</p><p class="rg-sub">Pra vendedor com acordo de R$/linha diferente do padrão acima (ex.: time de Meios de Pagamento). Faixa marcada mas sem valor usa o R$/linha padrão normalmente.</p></div>
+      <div id="volFaixaVendList"></div>
+    </div>
   </div>
 
   <div class="rg-section">
@@ -552,6 +556,21 @@ let faixas=LS.get('gs5_f',DEF_F);
     LS.set('gs5_f',faixas);
   }
 })();
+// Migração única 12/11/2026 (pedido do Diego): Patrick Rodrigues migrou pro
+// time de Meios de Pagamento e o R$/linha dele mudou bastante do padrão —
+// Objetivo 0,40 · Meta 1 0,60 · Meta 2 0,80 · Super Meta 1,00. Só define se
+// ele ainda não tiver um override (não sobrescreve se já foi ajustado pela
+// tela de Regras & Config depois disso).
+(function migrarFaixaVolPatrick(){
+  // norm() ainda não existe nesse ponto do arquivo (declarada mais abaixo) —
+  // comparação simples (trim + lowercase) basta aqui.
+  const simpleNorm=s=>String(s||'').trim().toLowerCase();
+  const p=vendedores.find(v=>simpleNorm(v.nome)===simpleNorm('Patrick Rodrigues'));
+  if(p && !p.volFaixasOverride){
+    p.volFaixasOverride=[0.40,0.60,0.80,1.00];
+    LS.set('gs5_v',vendedores);
+  }
+})();
 let rules=LS.get('gs5_r',DEF_R);
 let equipCat=LS.get('gs5_eq_cat',DEF_EQUIP_CAT);
 let novosClientesFaixas=LS.get('gs5_novos_clientes_faixas',DEF_NOVOS_CLIENTES);
@@ -607,7 +626,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   const mv=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   document.getElementById('mesInput').value=mv;
   buildMetas();buildFaixaTable();loadRules();buildCelulas();loadCelulaAliquotas();
-  buildNovosClientesTable();loadEquipCat();loadRecorrencia();buildEquipCatVendList();renderResumo();
+  buildNovosClientesTable();loadEquipCat();loadRecorrencia();buildEquipCatVendList();buildVolFaixaVendList();renderResumo();
 });
 document.querySelectorAll('.tab-btn').forEach(b=>{
   b.addEventListener('click',()=>{
@@ -796,11 +815,18 @@ function calcVend(d,g,bonusCelula=0,eqDireto=false,extra={},mes=''){
     const gpsC=gps*(RULES_HIST.gpsRate/100);
     const frDsc=Math.max(0,frete-RULES_HIST.freteLimit);
     const total=volC+atvC+desC+eqC+gpsC+bonus+bonusCelula-frDsc;
-    return{linhas,atv,eq,gps,frete,bonus,bonusCelula,beSmart:0,alc,fx,desC,volC,atvC,eqC,gpsC,frDsc,
+    return{linhas,atv,eq,gps,frete,bonus,bonusCelula,beSmart:0,alc,fx,volRate:fx.vol,desC,volC,atvC,eqC,gpsC,frDsc,
       novosClientesC:0,recorrenciaC:0,aberturaC:0,total};
   }
   const fx=getFaixa(alc);
-  const volC=linhas*fx.vol,atvC=atv*fx.atv;
+  // Faixas de Volume personalizadas por vendedor (achado 12/11/2026, pedido
+  // do Diego — Patrick migrou pro time de Meios de Pagamento, R$/linha bem
+  // mais alto que o padrão): extra.volFaixasOverride é um array de 4
+  // posições (Objetivo/Meta1/Meta2/SuperMeta) só pra ESTE vendedor; ausente
+  // ou null em alguma faixa cai no valor global (faixas/gs5_f) normalmente.
+  const overrideVol=extra.volFaixasOverride&&extra.volFaixasOverride[fx.n-1]!=null?extra.volFaixasOverride[fx.n-1]:null;
+  const volRate=overrideVol!=null?overrideVol:fx.vol;
+  const volC=linhas*volRate,atvC=atv*fx.atv;
   // Equipamento: SÓ a categoria Meios de Pagamento usa R$/máquina (sobre o
   // total de máquinas vendidas vindo da planilha importada no mês; sem
   // máquina importada no mês, comissão 0 — não cai mais pro valor lançado à
@@ -817,7 +843,7 @@ function calcVend(d,g,bonusCelula=0,eqDireto=false,extra={},mes=''){
   const recorrenciaC=extra.recorrenciaValor||0;
   const aberturaC=extra.aberturaValor||0;
   const total=volC+atvC+eqC+gpsC+bonus+bonusCelula+beSmart+novosClientesC+recorrenciaC+aberturaC-frDsc;
-  return{linhas,atv,eq,gps,frete,bonus,bonusCelula,beSmart,alc,fx,volC,atvC,eqC,gpsC,frDsc,
+  return{linhas,atv,eq,gps,frete,bonus,bonusCelula,beSmart,alc,fx,volRate,volC,atvC,eqC,gpsC,frDsc,
     novosClientesC,recorrenciaC,aberturaC,total};
 }
 // Monta o "extra" de calcVend a partir do que o Importar (index.html) já
@@ -829,6 +855,7 @@ function extraDoVendedor(vend,mes){
   return{
     categoriaEquip:vend.categoriaEquip||null,
     qtdEquip:eqCatMes.qtd||0,
+    volFaixasOverride:vend.volFaixasOverride||null,
     novosClientesValor:nc.valor||0,
     recorrenciaValor:recorrenciaDoVendedor(vend.nome,mes),
     aberturaValor:(aberturaData[mes]||{})[vend.id]||0,
@@ -1023,7 +1050,7 @@ function liveCalc(vid){
   const ths=[vend.g.obj,vend.g.m1,vend.g.m2,vend.g.sm];
   const prev=document.getElementById(`prev_${vid}`);if(!prev)return;
   prev.innerHTML=`
-    <div class="ep-faixa-row"><span class="fp ${fpCls[c.fx.n-1]}">${nomeFaixa(c.fx.n)}</span><span style="font-size:11px;color:#888">${c.alc.toFixed(0)}% do objetivo · R$${c.fx.vol.toFixed(2).replace('.',',')}/linha · ${(c.fx.atv*100).toFixed(0)}% ativação</span></div>
+    <div class="ep-faixa-row"><span class="fp ${fpCls[c.fx.n-1]}">${nomeFaixa(c.fx.n)}</span><span style="font-size:11px;color:#888">${c.alc.toFixed(0)}% do objetivo · R$${c.volRate.toFixed(2).replace('.',',')}/linha · ${(c.fx.atv*100).toFixed(0)}% ativação</span></div>
     <div class="ep-nums">
       <div class="ep-item"><label>Volume</label><span>R$${br2(c.volC)}</span></div><span class="ep-sep">+</span>
       <div class="ep-item"><label>Ativação</label><span>R$${br2(c.atvC)}</span></div>
@@ -1162,7 +1189,7 @@ async function exportVendedor(vid,mes,retornarBlob){
     ['Objetivo',vend.g.obj,'#,##0'],
     ['Volume realizado',c.linhas,'#,##0'],
     ['Alcance',c.alc/100,'0.0%'],
-    ['Faixa aplicada',`${nomeFaixa(c.fx.n)} · R$${c.fx.vol.toFixed(2).replace('.',',')}/linha`,null],
+    ['Faixa aplicada',`${nomeFaixa(c.fx.n)} · R$${c.volRate.toFixed(2).replace('.',',')}/linha`,null],
     ['Comissão Volume',c.volC,VEND_MOEDA],
   ]);
   row=vendSecaoResumo(ws,row,'ATIVAÇÃO',[
@@ -1248,6 +1275,7 @@ function buildMetas(){
       <td class="c"><button class="mt-del" onclick="removeVend(${i})" title="Remover vendedor"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 10v6M14 10v6"/></svg></button></td>
     </tr>`).join('');
   buildEquipCatVendList();
+  buildVolFaixaVendList();
 }
 function addVend(){vendedores.push({id:'v'+Date.now(),nome:'Novo Vendedor',g:{obj:1000,m1:1200,m2:1500,sm:2000},salarioFixo:0,categoriaEquip:'rastreamento'});buildMetas();buildCelulas();}
 function removeVend(i){if(vendedores.length<=1)return;const vid=vendedores[i].id;vendedores.splice(i,1);celulas.forEach(c=>{c.vendedorIds=c.vendedorIds.filter(x=>x!==vid);});LS.set('gs5_celulas',celulas);buildMetas();buildCelulas();}
@@ -1356,6 +1384,36 @@ function loadRecorrencia(){
   document.getElementById('rec_ab_indicador_n2').value=recorrenciaCfg.abertura.indicador_n2;
   document.getElementById('rec_ab_dealer').value=recorrenciaCfg.abertura.dealer;
   document.getElementById('rec_ab_broker').value=recorrenciaCfg.abertura.broker;
+}
+// Faixas de Volume personalizadas por vendedor (12/11/2026) — array de 4
+// posições espelhando `faixas` (Objetivo/Meta1/Meta2/SuperMeta); null =
+// desligado, usa o R$/linha padrão da tabela global em todas as faixas.
+function toggleVolFaixaVend(i,ligado){
+  vendedores[i].volFaixasOverride=ligado?faixas.map(f=>f.vol):null;
+  LS.set('gs5_v',vendedores);
+  buildVolFaixaVendList();
+  renderResumo();
+}
+function setVolFaixaVend(i,idx,valor){
+  if(!vendedores[i].volFaixasOverride)return;
+  vendedores[i].volFaixasOverride[idx]=+valor||0;
+  LS.set('gs5_v',vendedores);
+  renderResumo();
+}
+function buildVolFaixaVendList(){
+  document.getElementById('volFaixaVendList').innerHTML=vendedores.map((v,i)=>{
+    const ligado=!!v.volFaixasOverride;
+    const vals=v.volFaixasOverride||faixas.map(f=>f.vol);
+    return `<div style="display:flex;align-items:center;gap:14px;padding:10px 0;font-size:13px;border-bottom:.5px solid #f0efea;flex-wrap:wrap">
+      <label style="flex:0 0 220px;min-width:0;display:flex;align-items:center;gap:8px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${v.nome}">
+        <input type="checkbox" ${ligado?'checked':''} onchange="toggleVolFaixaVend(${i},this.checked)">${v.nome}
+      </label>
+      ${faixas.map((f,idx)=>`
+        <div class="rg-in" style="width:110px" title="${nomeFaixa(f.n)}"><span class="ipfx">R$</span>
+          <input type="number" class="rule-input" step="0.01" value="${vals[idx].toFixed(2)}" ${ligado?'':'disabled'} onchange="setVolFaixaVend(${i},${idx},this.value)">
+        </div>`).join('')}
+    </div>`;
+  }).join('');
 }
 function setEquipCatVend(i,valor){
   vendedores[i].categoriaEquip=valor||null;
