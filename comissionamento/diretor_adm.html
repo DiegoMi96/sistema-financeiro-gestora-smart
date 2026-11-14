@@ -2,6 +2,12 @@
 <html lang="pt-BR">
 <head>
 <script src="com_sync.js?v=6"></script>
+<!-- Achado 14/11/2026: faltava o XLSX nesse arquivo (presente em
+     gestor_operacoes.html/diretor_comercial.html) — exportCiclo() usa XLSX.*
+     e sempre deu ReferenceError aqui, tanto no botão próprio quanto (pior)
+     na aba Relatórios do shell, onde isso derrubava o "Baixar selecionados"
+     inteiro no meio do laço (exceção não tratada). -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Comissão Diretor Administrativo · Gestora Smart</title>

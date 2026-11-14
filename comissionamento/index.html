@@ -1168,7 +1168,7 @@ iframe.active{display:block}
     <iframe id="frame-indicadores" src="indicadores.html?b=29" title="Indicador"></iframe>
     <iframe id="frame-projeto_especial" src="projeto_especial.html?b=47" title="Projeto Especial"></iframe>
     <iframe id="frame-gestor_operacoes" src="gestor_operacoes.html?b=39" title="Gestor de Operações"></iframe>
-    <iframe id="frame-diretor_adm" src="diretor_adm.html?b=42" title="Diretor Administrativo"></iframe>
+    <iframe id="frame-diretor_adm" src="diretor_adm.html?b=43" title="Diretor Administrativo"></iframe>
     <iframe id="frame-diretor_comercial" src="diretor_comercial.html?b=42" title="Diretor Comercial"></iframe>
   </div>
 </div>
@@ -2436,7 +2436,15 @@ async function relExecutar(sec, id, mes, btnEl) {
   if (!fn) { console.warn('[Relatórios] ' + sec.exportFn + ' indisponível em ' + sec.frame); return; }
   const original = btnEl ? btnEl.textContent : null;
   if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Gerando…'; }
-  try { await fn(id, mes); } finally {
+  try {
+    // Perfis "unico" (Gestor de Operações/Diretor Comercial/Diretor Administrativo)
+    // não têm id de pessoa nem recorte por mês — exportCiclo(retornarBlob) é o único
+    // parâmetro. Achado 14/11/2026: chamar fn(id, mes) passava `id` (undefined pra
+    // esses perfis) na posição de retornarBlob — inofensivo aqui (só não baixa como
+    // blob), mas quebrava relGerarBlob (ver abaixo) no "Baixar selecionados".
+    if (sec.tipo === 'unico') await fn();
+    else await fn(id, mes);
+  } finally {
     if (btnEl) { btnEl.disabled = false; btnEl.textContent = original; }
   }
 }
@@ -2454,6 +2462,15 @@ async function relGerarBlob(sec, id, mes) {
   const frame = document.getElementById(sec.frame)?.contentWindow;
   const fn = frame?.[sec.exportFn];
   if (!fn) { console.warn('[Relatórios] ' + sec.exportFn + ' indisponível em ' + sec.frame); return null; }
+  // Mesma ressalva de relExecutar: perfis "unico" só aceitam o próprio
+  // retornarBlob, na 1ª posição — achado 14/11/2026 (bug real, não só teórico):
+  // com fn(id, mes, true), o `true` caía descartado na 3ª posição (a função só
+  // declara 1 parâmetro) e `retornarBlob` recebia `id` (undefined) — caindo no
+  // branch de download direto (XLSX.writeFile) em vez de devolver o blob.
+  // Resultado batido com o relato real: Gestor de Operações/Diretor Comercial/
+  // Diretor Administrativo disparavam um download avulso cada um (fora do ZIP)
+  // ao clicar "Baixar selecionados", e entravam vazios (undefined) no ZIP.
+  if (sec.tipo === 'unico') return await fn(true);
   return await fn(id, mes, true);
 }
 async function relBaixarSelecionados() {
@@ -2477,7 +2494,12 @@ async function relBaixarSelecionados() {
     for (const i of idxs) {
       const l = REL_LINHAS[i];
       btn.textContent = `Gerando ${l.nome}… (${gerados + 1}/${idxs.length})`;
-      const arq = await relGerarBlob(l.sec, l.id, mes);
+      // Acha 14/11/2026: um erro num relatório só (ex.: diretor_adm.html sem o
+      // XLSX carregado) não pode travar o lote inteiro — sem isso, uma exceção
+      // no meio do laço derrubava o "Baixar selecionados" pra todo mundo.
+      let arq;
+      try { arq = await relGerarBlob(l.sec, l.id, mes); }
+      catch (e) { console.error('[Relatórios] falhou gerando ' + l.nome + ':', e); arq = null; }
       if (!arq) continue;
       let nome = arq.nomeArquivo;
       if (nomesUsados.has(nome)) {
