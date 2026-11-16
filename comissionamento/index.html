@@ -1852,10 +1852,31 @@ function ppGarantirSementes() {
   } catch (e) { console.error('ppGarantirSementes falhou:', e); }
 }
 ppGarantirSementes();
+// "Data de ativação" chega como string "DD/MM/AAAA" (formato brasileiro) na
+// maioria das linhas do Inventário — new Date() nativo lê isso como mês/dia
+// (formato americano), virando Invalid Date sempre que o dia é >12. Nesse
+// caso o código caía no fallback "historico[historico.length-1]" (preço MAIS
+// RECENTE) mesmo a linha sendo de um ano anterior à mudança de preço —
+// inflava a margem de Projeto Especial sempre que o preço da operadora caiu
+// de um ano pro outro (achado 16/11/2026, auditando Império/novembro:
+// ~3.400 linhas afetadas, ~R$1.150 de margem a mais só nesse mês/projeto).
+// Mesmo padrão de `brDateToMonthC` já usado em `impDateToMonth` acima.
+function impParseDataAtivacao(v) {
+  if (v instanceof Date && !isNaN(v)) return v;
+  if (typeof v === 'string') {
+    const p = v.trim().split('/');
+    if (p.length === 3) {
+      const d = new Date(+p[2], +p[1] - 1, +p[0]);
+      if (!isNaN(d)) return d;
+    }
+  }
+  const d2 = new Date(v);
+  return isNaN(d2) ? null : d2;
+}
 function impPrecoVigente(historico, dataAtivacao) {
   if (!historico || !historico.length) return null;
-  const d = dataAtivacao instanceof Date ? dataAtivacao : new Date(dataAtivacao);
-  if (isNaN(d)) return historico[historico.length - 1].valor;
+  const d = impParseDataAtivacao(dataAtivacao);
+  if (!d) return historico[historico.length - 1].valor;
   let melhor = null;
   historico.forEach(h => {
     const hd = new Date(h.desde + 'T00:00:00');
