@@ -661,10 +661,30 @@ function saveEdit(id,mes){
 // Mesma lógica de vigência/defasagem do motor no shell (index.html), copiada
 // aqui pra este arquivo poder recalcular o detalhe linha-a-linha do extrato
 // sem depender do parent — mesmo padrão de duplicação já usado em DEF_PP.
+// Mesmo problema que o `impDateToMonth`/`brDateToMonthC` do shell (index.html)
+// já resolviam: depois de salvo/recarregado do servidor, "Data de ativação"
+// chega como STRING no formato brasileiro "DD/MM/AAAA", não como objeto Date.
+// `new Date("15/07/2026")` é interpretado como mês/dia (formato americano) —
+// vira Invalid Date (dia>12) ou uma data TROCADA (dia<=12), zerando ou
+// deslocando o mês de ativação da linha (achado 16/11/2026: coluna "Comissão
+// At" do Excel exportado não batia com o total real do sistema). Corrigido
+// pra tratar string BR antes de cair no `new Date()` genérico.
+function peParseData(v){
+  if(v instanceof Date&&!isNaN(v))return v;
+  if(typeof v==='string'){
+    const p=v.trim().split('/');
+    if(p.length===3){
+      const d=new Date(+p[2],+p[1]-1,+p[0]);
+      if(!isNaN(d))return d;
+    }
+  }
+  const d2=new Date(v);
+  return isNaN(d2)?null:d2;
+}
 function pePrecoVigente(hist,dataAtivacao){
   if(!hist||!hist.length)return null;
-  const d=dataAtivacao instanceof Date?dataAtivacao:new Date(dataAtivacao);
-  if(isNaN(d))return hist[hist.length-1].valor;
+  const d=peParseData(dataAtivacao);
+  if(!d)return hist[hist.length-1].valor;
   let melhor=null;
   hist.forEach(h=>{const hd=new Date(h.desde+'T00:00:00');if(hd<=d&&(!melhor||hd>new Date(melhor.desde+'T00:00:00')))melhor=h;});
   return melhor?melhor.valor:hist[0].valor;
@@ -695,7 +715,7 @@ function peLinhaExtra(headers,row,proj,pp,mesRefAtiv){
   // Mensalidade (margem 0) — mesma regra do motor em index.html.
   if(valorBase!=null&&(mensalidade-valorBase)>5)valorBase=mensalidade;
   const precoAtivacao=Number(get('Preço de ativação'))||0;
-  const mesLinha=peDateToMonth(dataAtivacao instanceof Date?dataAtivacao:new Date(dataAtivacao));
+  const mesLinha=peDateToMonth(peParseData(dataAtivacao));
   const taxaAtivacao=proj.taxaAtivacao||0,taxaMargem=proj.taxaMargem||0;
   const comissaoAt=(mesLinha===mesRefAtiv)?+((precoAtivacao*taxaAtivacao).toFixed(2)):0;
   const comissaoMensalidade=valorBase!=null?+(Math.max(0,mensalidade-valorBase)*taxaMargem).toFixed(2):0;
