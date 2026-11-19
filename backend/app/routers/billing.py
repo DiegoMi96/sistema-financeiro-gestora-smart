@@ -330,7 +330,11 @@ async def process_billing(
     background_tasks: BackgroundTasks,
     year:  int = 2026,
     month: int = 5,
-    data_inicio: Optional[str] = None,   # informativo (aparece no detalhamento) — não entra no cálculo
+    # 18/11/2026: deixou de ser só informativo — o motor passa a usar a janela
+    # (quando as duas datas vêm preenchidas) pra decidir se uma ATIVAÇÃO
+    # pertence a este ciclo (ver BillingEngineService.janela_inicio/janela_fim).
+    # Continua aparecendo no detalhamento; sem as duas datas, nada muda (mês-calendário).
+    data_inicio: Optional[str] = None,
     data_fim:    Optional[str] = None,
     base_file:          UploadFile = File(...),
     cancelamentos_file: UploadFile = File(...),
@@ -504,23 +508,25 @@ def _run_billing_engine(cycle_id: int, year: int, month: int, file_paths: dict, 
         _sem_clube = set(_atencao.get("sem_clube") or ())
         _clube.liberar_ciclo(db, year, month)
 
+        cycle = db.query(BillingCycle).filter(BillingCycle.id == cycle_id).first()
+        if not cycle:
+            return
+
         print(f"⏳ Iniciando motor — ciclo {cycle_id} ({month:02d}/{year})", flush=True)
         engine = BillingEngineService(year=year, month=month,
                                       cnpj_excluidos=_cnpj_excluidos,
                                       mensageria_valor=_mensageria_valor,
                                       cnpj_sem_arredondamento=_cnpj_sem_arredondamento,
                                       atencao_cancel=_atencao["cancel"],
-                                      atencao_ativ=_atencao["ativ"])
+                                      atencao_ativ=_atencao["ativ"],
+                                      data_inicio=cycle.data_inicio,
+                                      data_fim=cycle.data_fim)
 
         # ── Setup: carrega refs + converte base Excel → CSV (pico 830 MB, depois 0) ──
         ref = engine.setup(file_paths, base_bytes=base_bytes)
         del base_bytes
         _gc.collect()
         csv_path = ref["csv_path"]
-
-        cycle = db.query(BillingCycle).filter(BillingCycle.id == cycle_id).first()
-        if not cycle:
-            return
 
         # ── Helpers de conversão de linha para ORM ──────────────────────────
 

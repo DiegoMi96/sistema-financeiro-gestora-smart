@@ -83,7 +83,8 @@ class BillingEngineService:
                  mensageria_valor: float | None = None,
                  cnpj_sem_arredondamento: set | None = None,
                  atencao_cancel: set | None = None,
-                 atencao_ativ: set | None = None):
+                 atencao_ativ: set | None = None,
+                 data_inicio=None, data_fim=None):
         self.year            = year
         self.month           = month
         self.mes_ref         = datetime(year, month, 1)
@@ -98,6 +99,18 @@ class BillingEngineService:
         # ainda enviar uma — com a aba vazia e sem planilha, o resultado é o mesmo de antes.
         self.atencao_cancel = set(atencao_cancel or ())
         self.atencao_ativ   = set(atencao_ativ or ())
+        # Janela real do ciclo (ex.: 20/10 a 19/11), só pra decidir se uma
+        # ATIVAÇÃO "pertence" a este ciclo — resolve a brecha de ~11 dias que
+        # o mês-calendário puro deixava passar quando o ciclo virou rolante
+        # (18/11/2026, mapeado com o Diego). Sem as duas datas, cai 100% no
+        # comportamento de sempre (mês-calendário) — nenhum ciclo antigo muda.
+        # Só os 2 pontos que decidem "é ativação deste ciclo?" usam a janela
+        # (setup() dedup scan e _calcular() _ativacao); suspensão/cancelamento
+        # proporcional e o denominador de dias (total_dias) continuam no
+        # mês-calendário de sempre — escopo combinado com o Diego pra não
+        # mexer em mais do que o necessário antes do faturamento.
+        self.janela_inicio = pd.Timestamp(data_inicio) if data_inicio else None
+        self.janela_fim    = pd.Timestamp(data_fim) if data_fim else None
 
     def _is_excluido(self, cnpj_str: str) -> bool:
         digits = re.sub(r"\D", "", str(cnpj_str))
@@ -272,7 +285,10 @@ class BillingEngineService:
 
                 mask_ativo = sc["Status"] == "Ativo"
                 da_sc   = pd.to_datetime(sc["Data de ativação"], errors="coerce")
-                elig_sc = mask_ativo & (da_sc.dt.year == self.year) & (da_sc.dt.month == self.month)
+                if self.janela_inicio is not None and self.janela_fim is not None:
+                    elig_sc = mask_ativo & (da_sc >= self.janela_inicio) & (da_sc <= self.janela_fim)
+                else:
+                    elig_sc = mask_ativo & (da_sc.dt.year == self.year) & (da_sc.dt.month == self.month)
                 preco_sc = pd.to_numeric(sc["Preço de ativação"], errors="coerce").fillna(0)
                 for iccid_v, preco_v in zip(icc_all[elig_sc], preco_sc[elig_sc]):
                     if iccid_v and iccid_v != "nan" and preco_v:
@@ -836,7 +852,16 @@ class BillingEngineService:
             if mask_sem_arred.any():
                 df.loc[mask_sem_arred, "_mensalidade_cobr"] = raw[mask_sem_arred].round(2)
 
-        mask_ativ_mes = (da.dt.year == mr.year) & (da.dt.month == mr.month)
+        # A taxa de ativação "pertence" a este ciclo pela JANELA real (quando
+        # informada) — mês-calendário puro deixava passar sem cobrar qualquer
+        # ativação entre o dia 20 e o fim do mês, porque ela nunca batia com o
+        # mês do ciclo anterior (já fechado) nem com o seguinte (filtro por
+        # mês não bate com o dia real). Sem janela, comportamento idêntico a
+        # sempre (ciclos antigos, ou sem Data início/término preenchidas).
+        if self.janela_inicio is not None and self.janela_fim is not None:
+            mask_ativ_mes = (da >= self.janela_inicio) & (da <= self.janela_fim)
+        else:
+            mask_ativ_mes = (da.dt.year == mr.year) & (da.dt.month == mr.month)
         df["_ativacao"] = np.where(mask_ativ_mes, df.get("Preço de ativação", 0), 0.0)
 
         # Repassa a ativação de linhas "Ativo" removidas por duplicidade (mesmo
