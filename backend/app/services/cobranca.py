@@ -333,7 +333,7 @@ def renderizar(etapa_assunto: str, etapa_texto: str, e, hoje: date, prazo_bloque
     elif origem == "itau":
         link = "Para receber a segunda via do boleto, responda este e-mail."
     elif e.link:
-        link = f"Ver a fatura: {e.link}"
+        link = f"Ver fatura: {e.link}"
     else:
         link = "Para receber a segunda via do boleto, responda este e-mail."
     vals = {
@@ -546,7 +546,7 @@ def montar_email(e, et, cfg: dict, hoje: date, anexo: dict = None, link_atual: s
                + '</td></tr></table>')
     elif e.link:
         cta = (f'<table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 20px"><tr><td style="background:#16a34a;border-radius:8px">'
-               f'<a href="{escape(e.link, quote=True)}" style="display:inline-block;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:13px 26px">Ver a fatura</a></td></tr></table>')
+               f'<a href="{escape(e.link, quote=True)}" style="display:inline-block;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:13px 26px">Ver fatura</a></td></tr></table>')
     else:
         cta = ''
     lay = layout_etapa(et)
@@ -972,7 +972,7 @@ def montar_email_lancamento(e, et, cfg: dict, hoje: date, boletos: list) -> dict
         acao, linha_html = "", ""
         if b.get("link"):
             acao = (f'<a href="{escape(b["link"], quote=True)}" style="display:inline-block;background:#16a34a;color:#ffffff;text-decoration:none;'
-                    'font-weight:700;font-size:13px;padding:8px 16px;border-radius:6px">Ver a fatura</a>')
+                    'font-weight:700;font-size:13px;padding:8px 16px;border-radius:6px">Ver fatura</a>')
         elif b.get("anexo"):
             acao = '<span style="color:#166534;font-size:13px"><b>PDF anexado</b></span>'
             if b["anexo"].get("linha"):
