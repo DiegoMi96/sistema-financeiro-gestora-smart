@@ -734,6 +734,29 @@ class AnalystCommissionRule(Base):
     __table_args__ = (UniqueConstraint("user_id", "year", "month", "dia", name="uq_analyst_rule_user_month_dia"),)
 
 
+class AnalystCommissionWindow(Base):
+    """
+    Janela de "pago no dia" (período que conta como recebido em dia) por vencimento
+    (10/15/20/25) e mês — editável pelo admin direto na tela de Comissionamento
+    (cabeçalho da coluna do vencimento), substituindo o antigo dict `JANELAS_ESPECIAIS`
+    fixo no código (exigia deploy a cada mês com fim de semana/feriado atípico).
+    Mês/dia sem registro aqui cai na regra padrão (vencimento até 1 dia depois do
+    1º dia útil seguinte — ver `app/utils/business_days.py`).
+    """
+    __tablename__ = "analyst_commission_window"
+
+    id          = Column(Integer, primary_key=True, index=True)
+    year        = Column(Integer, nullable=False)
+    month       = Column(Integer, nullable=False)
+    dia         = Column(Integer, nullable=False)   # 10 | 15 | 20 | 25
+    data_inicio = Column(Date, nullable=False)
+    data_fim    = Column(Date, nullable=False)
+    updated_by  = Column(String(150))
+    updated_at  = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (UniqueConstraint("year", "month", "dia", name="uq_analyst_window_year_month_dia"),)
+
+
 class AnalystCommissionLock(Base):
     """
     Fechamento definitivo do Comissionamento dos analistas — um registro por

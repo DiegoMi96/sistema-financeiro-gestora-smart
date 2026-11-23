@@ -128,6 +128,8 @@ export const analystCommissionApi = {
   get:        (year, month, userId) => api.get('/analyst-commission', { params: { year, month, user_id: userId || undefined } }),
   saveConfig: (data)                => api.put('/analyst-commission/config', data),
   saveSalary: (data)                => api.put('/analyst-commission/salary', data),
+  saveWindow: (data)                => api.put('/analyst-commission/window', data),
+  resetWindow: (year, month, dia)   => api.delete('/analyst-commission/window', { params: { year, month, dia } }),
   addMember:  (data)                => api.post('/analyst-commission/members', data),
   export:     (year, month)         => api.get('/analyst-commission/export', { params: { year, month }, responseType: 'blob' }),
 }

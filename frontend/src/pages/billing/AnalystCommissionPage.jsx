@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { Loader2, Save, User, Target, BarChart3, Trophy, ChevronDown, Wallet, Info, Download, Lock } from 'lucide-react'
+import { Loader2, Save, User, Target, BarChart3, Trophy, ChevronDown, Wallet, Info, Download, Lock, RotateCcw } from 'lucide-react'
 import { analystCommissionApi } from '../../services/api'
 
 // Aba "Comissionamento" do Faturamento — comissão dos analistas de contas a receber,
@@ -29,6 +29,38 @@ const parseNum = s => {
 }
 // número vindo do servidor → texto no formato digitável (vírgula decimal, sem milhar)
 const toField = v => String(v ?? 0).replace('.', ',')
+
+// Dia do mês de uma data ISO ("2026-11-19" → 19), sem passar por fuso-horário
+const diaDe = iso => Number(String(iso || '').slice(8, 10)) || 0
+// 2 dias do mês (ano/mês do grupo) → par de datas ISO, cruzando para o mês seguinte se o fim < início
+const diasParaDatas = (year, month, diaIni, diaFim) => {
+  const pad = n => String(n).padStart(2, '0')
+  let fy = year, fm = month
+  if (diaFim < diaIni) { fm = month === 12 ? 1 : month + 1; fy = month === 12 ? year + 1 : year }
+  return { data_inicio: `${year}-${pad(month)}-${pad(diaIni)}`, data_fim: `${fy}-${pad(fm)}-${pad(diaFim)}` }
+}
+
+// Dois dígitos no máximo, só números — usado nos campos de dia da janela (sem o spinner do type=number)
+const soDigitos = s => String(s ?? '').replace(/\D/g, '').slice(0, 2)
+
+// Par de dias do mês (editável pelo admin) usado no cabeçalho de cada coluna de vencimento
+function WindowHeader({ dia, value, onChange, custom, onReset }) {
+  const inp = 'w-9 px-1 py-0.5 text-center text-xs border border-gray-200 rounded bg-white focus:ring-1 focus:ring-green-500 focus:outline-none'
+  return (
+    <span className="inline-flex items-center gap-1 font-normal normal-case tracking-normal">
+      <input type="text" inputMode="numeric" maxLength={2} value={value?.jIni ?? ''}
+        onChange={e => onChange('jIni', soDigitos(e.target.value))} className={inp} />
+      <span className="text-gray-400">-</span>
+      <input type="text" inputMode="numeric" maxLength={2} value={value?.jFim ?? ''}
+        onChange={e => onChange('jFim', soDigitos(e.target.value))} className={inp} />
+      {custom && (
+        <button type="button" title="Voltar para o cálculo automático" onClick={onReset} className="text-gray-400 hover:text-gray-600">
+          <RotateCcw size={12} />
+        </button>
+      )}
+    </span>
+  )
+}
 
 // Campo numérico com formatação: "R$ 1.500,00" ou "10,00 %". Em foco mostra o valor cru para digitar.
 // O prefixo/sufixo fica numa célula própria, separada por uma linha fina.
@@ -110,7 +142,10 @@ export default function AnalystCommissionPage() {
 
   useEffect(() => {
     if (!data) return
-    setForm(Object.fromEntries(data.vencimentos.map(v => [v.dia, { percentual: toField(v.percentual), meta: toField(v.meta) }])))
+    setForm(Object.fromEntries(data.vencimentos.map(v => [v.dia, {
+      percentual: toField(v.percentual), meta: toField(v.meta),
+      jIni: String(diaDe(v.janela_inicio)), jFim: String(diaDe(v.janela_fim)),
+    }])))
     setSalario(toField(data.salario))
   }, [data])
 
@@ -120,15 +155,35 @@ export default function AnalystCommissionPage() {
     const f = form[v.dia]
     return f && (parseNum(f.percentual) !== (v.percentual || 0) || parseNum(f.meta) !== (v.meta || 0))
   })
+  const dirtyWindows = venc.filter(v => {
+    const f = form[v.dia]
+    return f && (Number(f.jIni) !== diaDe(v.janela_inicio) || Number(f.jFim) !== diaDe(v.janela_fim))
+  })
   const dirtySalary = parseNum(salario) !== (data?.salario || 0)
-  const dirty = dirtyRules.length > 0 || dirtySalary
+  const dirty = dirtyRules.length > 0 || dirtySalary || dirtyWindows.length > 0
 
   const setField = (dia, k, val) => setForm(f => ({ ...f, [dia]: { ...f[dia], [k]: val } }))
+
+  const handleResetWindow = async (dia) => {
+    try {
+      await analystCommissionApi.resetWindow(year, month, dia)
+      toast.success('Janela voltou ao cálculo automático')
+      qc.invalidateQueries({ queryKey: ['analyst-commission'] })
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Erro ao redefinir a janela')
+    }
+  }
 
   const handleSave = async () => {
     for (const v of dirtyRules) {
       const p = parseNum(form[v.dia].percentual)
       if (p < 0 || p > 100) return toast.error(`Vencimento ${v.dia}: percentual deve estar entre 0 e 100`)
+    }
+    for (const v of dirtyWindows) {
+      const { jIni, jFim } = form[v.dia]
+      if (!(Number(jIni) >= 1 && Number(jIni) <= 31) || !(Number(jFim) >= 1 && Number(jFim) <= 31)) {
+        return toast.error(`Vencimento ${v.dia}: dias da janela devem estar entre 1 e 31`)
+      }
     }
     setSaving(true)
     try {
@@ -139,6 +194,10 @@ export default function AnalystCommissionPage() {
           user_id: uid, year, month, dia: v.dia,
           percentual: parseNum(form[v.dia].percentual), meta: parseNum(form[v.dia].meta),
         })
+      }
+      for (const v of dirtyWindows) {
+        const { jIni, jFim } = form[v.dia]
+        await analystCommissionApi.saveWindow({ year, month, dia: v.dia, ...diasParaDatas(year, month, Number(jIni), Number(jFim)) })
       }
       toast.success('Configuração salva')
       qc.invalidateQueries({ queryKey: ['analyst-commission'] })
@@ -229,7 +288,8 @@ export default function AnalystCommissionPage() {
     </tr>
   )
 
-  // Cabeçalho repetido nos dois blocos. Vencimento + dia seguinte (10 - 11, 15 - 16…): o recebido conta nos dois dias.
+  // Cabeçalho repetido nos dois blocos. Vencimento + janela de "pago em dia" (10 - 11, 19 - 23…),
+  // editável pelo admin — o recebido conta em qualquer dia dentro dessa janela.
   const CARD = 'bg-white rounded-2xl border border-gray-100 shadow-sm overflow-x-auto'
   const COLS = (
     <colgroup>
@@ -242,7 +302,14 @@ export default function AnalystCommissionPage() {
     <thead>
       <tr className="border-b border-gray-100">
         <th className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider text-left">Vencimento</th>
-        {venc.map(v => <th key={v.dia} className={TH}>{v.dia} - {v.dia + 1}</th>)}
+        {venc.map(v => (
+          <th key={v.dia} className={TH}>
+            {admin
+              ? <WindowHeader dia={v.dia} value={form[v.dia]} onChange={(k, val) => setField(v.dia, k, val)}
+                              custom={v.janela_custom} onReset={() => handleResetWindow(v.dia)} />
+              : `${diaDe(v.janela_inicio)} - ${diaDe(v.janela_fim)}`}
+          </th>
+        ))}
         <th className={TH}>Total</th>
       </tr>
     </thead>
@@ -385,7 +452,7 @@ export default function AnalystCommissionPage() {
                   <td className={TD + ' font-bold'}>{fmtNum(totalCli)}</td>
                 </tr>
                 <tr className="border-b border-gray-50">
-                  <td className={ROW_LABEL}>Recebido no dia (vencimento + 1 dia)</td>
+                  <td className={ROW_LABEL}>Recebido na janela do vencimento</td>
                   {venc.map(v => <td key={v.dia} className={TD}>{fmtBRL(v.recebido)}</td>)}
                   <td className={TD + ' font-bold'}>{fmtBRL(totalRec)}</td>
                 </tr>
@@ -466,8 +533,9 @@ export default function AnalystCommissionPage() {
         <p>
           O mês escolhido é o mês de vencimento: outubro usa os boletos do ciclo de setembro. Valor do vencimento = total que o ciclo
           mandou cobrar em cada vencimento original (arquivo de Vencimentos) mais os boletos do Itaú de clientes que não estão no ciclo.
-          Recebido no dia = boletos desses clientes no Asaas e no Itaú pagos no próprio dia do vencimento ou no dia seguinte (10 e 11,
-          15 e 16, 20 e 21, 25 e 26) — pagamento antecipado ou atrasado não conta —, cruzados por CNPJ/CPF.
+          Recebido na janela = boletos desses clientes no Asaas e no Itaú pagos dentro da janela de cada vencimento (editável pelo
+          admin no cabeçalho de cada coluna; padrão: do vencimento até 1 dia depois do 1º dia útil seguinte) — pagamento fora da
+          janela não conta —, cruzados por CNPJ/CPF.
         </p>
       </div>
     </div>

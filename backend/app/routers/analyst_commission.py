@@ -21,7 +21,7 @@ system_settings.analistas_margem_meta_pct). O percentual do salário não muda �
 O recebido é da carteira toda (ainda não há carteira por analista). Só o admin edita;
 cada analista (Carlo, Brenda…) vê apenas o próprio comissionamento.
 """
-from datetime import date
+from datetime import date, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -33,9 +33,9 @@ from app.database import get_db
 from app.routers.auth import get_current_user
 from app.models import (
     AnalystCommissionRule, AnalystSalary, AuditLog, User, UserRole,
-    AnalystCommissionLock, AnalystCommissionLockBoleto,
+    AnalystCommissionLock, AnalystCommissionLockBoleto, AnalystCommissionWindow,
 )
-from app.utils.business_days import effective_due_date_sql
+from app.utils.business_days import effective_due_date_sql, effective_due_date
 
 router = APIRouter(prefix="/analyst-commission", tags=["Comissionamento Analistas"])
 
@@ -44,21 +44,28 @@ DIAS = (10, 15, 20, 25)
 
 MARGEM_META_PADRAO = 5.0   # % — o time bate a meta com 95% dela
 
-# Exceções PONTUAIS da janela de "pago em dia", por (ano, mês, dia do vencimento).
-# Pedido do Diego (26/10/2026): o vencimento dia 25 de outubro/2026 caiu num domingo; a regra padrão de
-# fim de semana (ver nota "VENCIMENTO EM FIM DE SEMANA" acima) daria a janela 25→27 (vencimento até 1 dia
-# depois do 1º dia útil). Ele pediu, só para este mês, considerar pago em dia de sexta 23 a segunda 26
-# (inclui pagamento ANTES do vencimento, por causa do fim de semana). Vale só para o(s) mês(es) aqui
-# listado(s) — a regra geral (e os próximos meses com vencimento em fim de semana) não muda.
-JANELAS_ESPECIAIS = {
-    (2026, 10, 25): (date(2026, 10, 23), date(2026, 10, 26)),
-}
+# Janela PADRÃO de "pago em dia" (sem override cadastrado): do vencimento até 1 dia
+# depois do 1º dia útil seguinte (sáb/dom não são dia útil; feriados não entram — o
+# sistema não tem calendário). Overrides pontuais (mês com feriado/fim de semana
+# atípico) ficam na tabela `analyst_commission_window`, editável pelo admin na própria
+# tela de Comissionamento (cabeçalho da coluna do vencimento) — substituiu o antigo
+# dict `JANELAS_ESPECIAIS` fixo no código (pedido do Diego, 23/11/2026).
+def _janela_padrao(ano: int, mes: int, dia: int) -> tuple[date, date]:
+    venc = date(ano, mes, dia)
+    return venc, effective_due_date(venc) + timedelta(days=1)
 
 
-def _janela_especial_sql(year: int, month: int) -> Optional[str]:
-    """CASE (fragmento SQL) com as janelas especiais deste mês, por dia do vencimento — ou None se não há
+def _janelas_do_mes(db: Session, year: int, month: int) -> dict[int, tuple[date, date]]:
+    """Overrides cadastrados (tabela `analyst_commission_window`) para este mês, por dia."""
+    rows = db.execute(text(
+        "SELECT dia, data_inicio, data_fim FROM analyst_commission_window WHERE year = :y AND month = :m"
+    ), {"y": year, "m": month}).fetchall()
+    return {int(r.dia): (r.data_inicio, r.data_fim) for r in rows}
+
+
+def _janela_especial_sql(overrides: dict[int, tuple[date, date]]) -> Optional[str]:
+    """CASE (fragmento SQL) com as janelas cadastradas deste mês, por dia do vencimento — ou None se não há
     nenhuma (aí vale só a regra padrão). Usado para SUBSTITUIR a janela padrão quando o dia bate."""
-    overrides = {dia: janela for (y, m, dia), janela in JANELAS_ESPECIAIS.items() if y == year and m == month}
     if not overrides:
         return None
     partes = " ".join(
@@ -103,6 +110,14 @@ class MemberIn(BaseModel):
     user_id: int
     year: int
     month: int
+
+
+class WindowIn(BaseModel):
+    year: int
+    month: int
+    dia: int
+    data_inicio: date
+    data_fim: date
 
 
 def _is_admin(user: User) -> bool:
@@ -168,6 +183,7 @@ def comissionamento(year: int, month: int, user_id: Optional[int] = None,
     dados = {d: {"clientes": 0, "boletos": 0, "pagos": 0, "faturado": 0.0, "recebido": 0.0,
                 "recebido_itau": 0.0, "boletos_itau": 0} for d in DIAS}
     datas = {}
+    janelas = _janelas_do_mes(db, year, month)   # overrides cadastrados deste mês, por dia
 
     # Mês FECHADO (congelado no dia 28 — ver analyst_commission_freeze.py): usa os
     # números travados naquele dia, nunca recalcula — mesmo que a sincronização do
@@ -207,7 +223,7 @@ def comissionamento(year: int, month: int, user_id: Optional[int] = None,
         cyc = db.execute(text("SELECT id FROM billing_cycles WHERE year = :y AND month = :m ORDER BY id DESC LIMIT 1"),
                          {"y": py, "m": pm}).scalar()
         ef_g = effective_due_date_sql("e.gdate")
-        janela_esp = _janela_especial_sql(year, month)
+        janela_esp = _janela_especial_sql(janelas)
         janela_padrao = f"(e.dp >= e.dv AND e.dp BETWEEN e.gdate AND ({ef_g}) + 1)"
         pago_expr = f"(e.rec AND COALESCE(({janela_esp}), {janela_padrao}))" if janela_esp else f"(e.rec AND {janela_padrao})"
         rows = db.execute(text(f"""
@@ -291,6 +307,7 @@ def comissionamento(year: int, month: int, user_id: Optional[int] = None,
         meta_ok = meta_atingida(cfg["meta"], rec, margem)
         previsao = round(salario * cfg["percentual"] / 100, 2)
         valor = previsao if meta_ok else 0.0
+        j_ini, j_fim = janelas.get(dia) or _janela_padrao(year, month, dia)
         out.append({
             "dia": dia, "vencimento_original": (datas.get(dia) or date(year, month, dia)).isoformat(), **d, **cfg,
             "adimplencia": adimp,
@@ -298,6 +315,9 @@ def comissionamento(year: int, month: int, user_id: Optional[int] = None,
             "meta_minima": round(cfg["meta"] * (1 - margem / 100.0), 2),
             "previsao": previsao,
             "valor": valor,
+            "janela_inicio": j_ini.isoformat(),
+            "janela_fim": j_fim.isoformat(),
+            "janela_custom": dia in janelas,
         })
     return {
         "year": year, "month": month,
@@ -386,8 +406,9 @@ def _boletos_detalhados(db: Session, year: int, month: int) -> list[dict]:
     py, pm = (year - 1, 12) if month == 1 else (year, month - 1)
     cyc = db.execute(text("SELECT id FROM billing_cycles WHERE year = :y AND month = :m ORDER BY id DESC LIMIT 1"),
                      {"y": py, "m": pm}).scalar()
+    janelas = _janelas_do_mes(db, year, month)
     ef_g = effective_due_date_sql("e.gdate")
-    janela_esp = _janela_especial_sql(year, month)
+    janela_esp = _janela_especial_sql(janelas)
     janela_padrao = f"(e.dp >= e.dv AND e.dp BETWEEN e.gdate AND ({ef_g}) + 1)"
     pago_expr = f"(e.rec AND COALESCE(({janela_esp}), {janela_padrao}))" if janela_esp else f"(e.rec AND {janela_padrao})"
     rows = db.execute(text(f"""
@@ -512,6 +533,45 @@ def salvar_salario(data: SalaryIn, db: Session = Depends(get_db), user: User = D
     db.add(AuditLog(user_id=user.id, action="analyst_commission.salary", entity="analyst_salary",
                     details={"user_id": data.user_id, "year": data.year, "month": data.month}))
     db.commit()
+    return {"ok": True}
+
+
+@router.put("/window")
+def salvar_janela(data: WindowIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """Edita (ou cria) a janela de "pago em dia" de um vencimento num mês específico —
+    cabeçalho editável da coluna na tela de Comissionamento. Substitui o antigo dict
+    `JANELAS_ESPECIAIS` fixo no código: fim de semana/feriado atípico num mês não exige
+    mais deploy, só editar aqui. Mês/dia sem registro continua na regra padrão."""
+    _so_admin(user)
+    _validar_mes(data.month)
+    if data.dia not in DIAS:
+        raise HTTPException(status_code=400, detail="Vencimento deve ser 10, 15, 20 ou 25")
+    if data.data_fim < data.data_inicio:
+        raise HTTPException(status_code=400, detail="Data final não pode ser antes da inicial")
+
+    c = db.query(AnalystCommissionWindow).filter_by(year=data.year, month=data.month, dia=data.dia).first()
+    if c:
+        c.data_inicio, c.data_fim, c.updated_by = data.data_inicio, data.data_fim, user.name
+    else:
+        db.add(AnalystCommissionWindow(year=data.year, month=data.month, dia=data.dia,
+                                       data_inicio=data.data_inicio, data_fim=data.data_fim, updated_by=user.name))
+    db.add(AuditLog(user_id=user.id, action="analyst_commission.window", entity="analyst_commission_window",
+                    details=data.model_dump(mode="json") if hasattr(data, "model_dump") else data.dict()))
+    db.commit()
+    return {"ok": True}
+
+
+@router.delete("/window")
+def remover_janela(year: int, month: int, dia: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """Remove o override — o vencimento volta a usar a regra padrão calculada automaticamente."""
+    _so_admin(user)
+    _validar_mes(month)
+    c = db.query(AnalystCommissionWindow).filter_by(year=year, month=month, dia=dia).first()
+    if c:
+        db.delete(c)
+        db.add(AuditLog(user_id=user.id, action="analyst_commission.window_reset", entity="analyst_commission_window",
+                        details={"year": year, "month": month, "dia": dia}))
+        db.commit()
     return {"ok": True}
 
 
