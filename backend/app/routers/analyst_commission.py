@@ -366,6 +366,20 @@ def exportar_conferencia(year: int, month: int, db: Session = Depends(get_db),
     wb = Workbook()
     wb.remove(wb.active)
 
+    # Janela de "pago em dia" considerada em cada vencimento deste mês (editável na tela de
+    # Comissionamento, cabeçalho da coluna) — pedido do Diego, 23/11/2026: deixar documentado
+    # na planilha pro time conferir contra a mesma regra que valeu no cálculo.
+    janelas_mes = _janelas_do_mes(db, year, month)
+    ws_j = wb.create_sheet("Janelas")
+    ws_j.append(["Vencimento (dia)", "Período considerado (pago em dia)", "Personalizada"])
+    for dia in DIAS:
+        j_ini, j_fim = janelas_mes.get(dia) or _janela_padrao(year, month, dia)
+        ws_j.append([dia, f"{j_ini.strftime('%d/%m/%Y')} a {j_fim.strftime('%d/%m/%Y')}",
+                    "Sim" if dia in janelas_mes else "Não"])
+    ws_j.column_dimensions["A"].width = 14
+    ws_j.column_dimensions["B"].width = 34
+    ws_j.column_dimensions["C"].width = 14
+
     ws_f = wb.create_sheet("Faturado")
     ws_f.append(["Vencimento (dia)", "Cliente", "CNPJ/CPF", "Valor (R$)"])
     ws_r = wb.create_sheet("Recebido")
