@@ -11,6 +11,7 @@ export default function ConfigTab({ onChange }) {
   const [etapaTeste, setEtapaTeste] = useState('vence_hoje')
   const [origemTeste, setOrigemTeste] = useState('asaas')
   const [senha, setSenha] = useState('')
+  const [brevoKey, setBrevoKey] = useState('')
   const [tokenUmbler, setTokenUmbler] = useState('')
   const [senhaImap, setSenhaImap] = useState('')
   const [avancado, setAvancado] = useState(false)
@@ -22,7 +23,7 @@ export default function ConfigTab({ onChange }) {
 
   const salvar = async (body, msg = 'Configuração salva') => {
     setOcupado(true)
-    try { await cobrancaApi.salvarConfig(body); toast.success(msg); setSenha(''); setTokenUmbler(''); setSenhaImap(''); setConf(null); qc.invalidateQueries({ queryKey: ['cobranca-config'] }); onChange() }
+    try { await cobrancaApi.salvarConfig(body); toast.success(msg); setSenha(''); setBrevoKey(''); setTokenUmbler(''); setSenhaImap(''); setConf(null); qc.invalidateQueries({ queryKey: ['cobranca-config'] }); onChange() }
     catch (e) { toast.error(e.response?.data?.detail || 'Erro ao salvar') }
     finally { setOcupado(false) }
   }
@@ -105,24 +106,48 @@ export default function ConfigTab({ onChange }) {
 
       <section className="space-y-3">
         <p className="text-sm font-semibold text-gray-800">Conta de e-mail que envia</p>
-        <p className="text-xs text-gray-500">Use o servidor SMTP do provedor do e-mail da empresa. A senha é guardada no servidor, nunca aparece de volta nesta tela nem nos registros. Ao trocar o servidor ou o usuário, é preciso digitar a senha de novo.</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Campo rotulo="E-mail do remetente"><input className={inp} value={f.remetente} onChange={e => set('remetente', e.target.value)} /></Campo>
-          <Campo rotulo="Servidor SMTP"><input className={inp} value={f.smtp_host} onChange={e => set('smtp_host', e.target.value)} placeholder="ex.: smtp.seuprovedor.com" /></Campo>
-          <Campo rotulo="Porta"><input type="number" className={inp} value={f.smtp_porta} onChange={e => set('smtp_porta', parseInt(e.target.value || '0', 10))} /></Campo>
-          <Campo rotulo="Segurança"><select className={inp} value={f.smtp_seguranca} onChange={e => set('smtp_seguranca', e.target.value)}><option value="starttls">STARTTLS (porta 587)</option><option value="ssl">SSL (porta 465)</option></select></Campo>
-          <Campo rotulo="Usuário"><input className={inp} value={f.smtp_usuario} onChange={e => set('smtp_usuario', e.target.value)} autoComplete="off" /></Campo>
-          <Campo rotulo="Senha"><input type="password" className={inp} value={senha} onChange={e => setSenha(e.target.value)} autoComplete="new-password" placeholder={f.smtp_senha_configurada ? '•••••••• (já configurada — deixe vazio para manter)' : 'digite a senha'} /></Campo>
+          <Campo rotulo="Como enviar">
+            <select className={inp} value={f.envio_metodo} onChange={e => set('envio_metodo', e.target.value)}>
+              <option value="smtp">SMTP (servidor do provedor)</option>
+              <option value="brevo">Brevo (API — usa quando o SMTP de saída está bloqueado no servidor)</option>
+            </select>
+          </Campo>
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => salvar({ remetente: f.remetente, smtp_host: f.smtp_host, smtp_porta: f.smtp_porta, smtp_seguranca: f.smtp_seguranca, smtp_usuario: f.smtp_usuario, ...(senha ? { smtp_senha: senha } : {}) })} className="text-sm px-3 py-1.5 rounded-lg bg-green-600 text-white">Salvar e-mail</button>
+        <button onClick={() => salvar({ remetente: f.remetente, envio_metodo: f.envio_metodo })} className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50">Salvar remetente/método</button>
+
+        {f.envio_metodo === 'brevo' ? (
+          <div className="space-y-3 pt-1">
+            <p className="text-xs text-gray-500">A chave fica guardada no servidor, nunca aparece de volta nesta tela nem nos registros.</p>
+            <Campo rotulo="Chave da API (Brevo)">
+              <input type="password" className={inp} value={brevoKey} onChange={e => setBrevoKey(e.target.value)} autoComplete="new-password"
+                placeholder={f.brevo_api_key_configurada ? '•••••••••••••••• (já configurada — deixe vazio para manter)' : 'xkeysib-...'} />
+            </Campo>
+            <button onClick={() => salvar({ ...(brevoKey ? { brevo_api_key: brevoKey } : {}) })} className="text-sm px-3 py-1.5 rounded-lg bg-green-600 text-white">Salvar chave da Brevo</button>
+          </div>
+        ) : (
+          <>
+            <p className="text-xs text-gray-500">Use o servidor SMTP do provedor do e-mail da empresa. A senha é guardada no servidor, nunca aparece de volta nesta tela nem nos registros. Ao trocar o servidor ou o usuário, é preciso digitar a senha de novo.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Campo rotulo="Servidor SMTP"><input className={inp} value={f.smtp_host} onChange={e => set('smtp_host', e.target.value)} placeholder="ex.: smtp.seuprovedor.com" /></Campo>
+              <Campo rotulo="Porta"><input type="number" className={inp} value={f.smtp_porta} onChange={e => set('smtp_porta', parseInt(e.target.value || '0', 10))} /></Campo>
+              <Campo rotulo="Segurança"><select className={inp} value={f.smtp_seguranca} onChange={e => set('smtp_seguranca', e.target.value)}><option value="starttls">STARTTLS (porta 587)</option><option value="ssl">SSL (porta 465)</option></select></Campo>
+              <Campo rotulo="Usuário"><input className={inp} value={f.smtp_usuario} onChange={e => set('smtp_usuario', e.target.value)} autoComplete="off" /></Campo>
+              <Campo rotulo="Senha"><input type="password" className={inp} value={senha} onChange={e => setSenha(e.target.value)} autoComplete="new-password" placeholder={f.smtp_senha_configurada ? '•••••••• (já configurada — deixe vazio para manter)' : 'digite a senha'} /></Campo>
+            </div>
+            <button onClick={() => salvar({ smtp_host: f.smtp_host, smtp_porta: f.smtp_porta, smtp_seguranca: f.smtp_seguranca, smtp_usuario: f.smtp_usuario, ...(senha ? { smtp_senha: senha } : {}) })} className="text-sm px-3 py-1.5 rounded-lg bg-green-600 text-white">Salvar SMTP</button>
+          </>
+        )}
+
+        <div className="flex gap-2 pt-1">
           <select value={etapaTeste} onChange={e => setEtapaTeste(e.target.value)} className="text-sm border border-gray-200 rounded-lg p-1.5 text-gray-700" aria-label="Etapa do e-mail de teste">
             <option value="lancamento">Lançamento do ciclo</option><option value="lembrete">Lembrete</option><option value="vence_hoje">Vencimento</option><option value="atraso">Em atraso</option><option value="bloqueio">Aviso de bloqueio</option>
           </select>
           <select value={origemTeste} onChange={e => setOrigemTeste(e.target.value)} className="text-sm border border-gray-200 rounded-lg p-1.5 text-gray-700" aria-label="Formato do boleto">
             <option value="asaas">Asaas (link)</option><option value="itau">Itaú (PDF)</option>
           </select>
-          <button onClick={testar} disabled={!f.smtp_configurado} className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40">Enviar e-mail de teste</button>
+          <button onClick={testar} disabled={!f.envio_configurado} className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40">Enviar e-mail de teste</button>
         </div>
       </section>
       <section className="space-y-3">

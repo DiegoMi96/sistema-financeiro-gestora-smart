@@ -108,7 +108,7 @@ def resumo(current_user=_ler, db: Session = Depends(get_db)):
         "contagem": cont, "por_etapa": por_etapa,
         "enviados_hoje": env_hoje, "limite_diario": svc._int(cfg["regua_limite_diario"], 300),
         "envio_ativo": cfg["regua_envio_ativo"] == "1", "modo_teste": cfg["regua_modo_teste"] == "1",
-        "email_teste": cfg["regua_email_teste"], "smtp_configurado": svc.smtp_configurado(cfg),
+        "email_teste": cfg["regua_email_teste"], "smtp_configurado": svc.envio_configurado(cfg),
         "remetente": cfg["cobranca_email_remetente"],
         "frescor": svc.frescor(db, cfg), "ultima_geracao": ultima,
         "horario": {"inicio": cfg["regua_horario_inicio"], "fim": cfg["regua_horario_fim"], "proximo_envio": svc.proximo_envio(cfg),
@@ -240,7 +240,7 @@ def aprovar(body: IdsIn, background_tasks: BackgroundTasks, current_user=_ler, d
     _audit(db, current_user, "cobranca.aprovar", {"qtd": len(itens), "expirados": expirados, "etapa": body.etapa, "ids": (body.ids or ids_ok)[:50]})
     db.commit()
     cfg = svc.carregar_cfg(db)
-    enviando = cfg["regua_envio_ativo"] == "1" and (svc.smtp_configurado(cfg) or svc.whatsapp_configurado(cfg))
+    enviando = cfg["regua_envio_ativo"] == "1" and (svc.envio_configurado(cfg) or svc.whatsapp_configurado(cfg))
     if enviando and itens:
         background_tasks.add_task(_enviar_em_segundo_plano)
     aviso = None
@@ -275,7 +275,7 @@ def reenviar(body: IdsIn, background_tasks: BackgroundTasks, current_user=_ler, 
     _audit(db, current_user, "cobranca.reenviar", {"qtd": n, "ids": body.ids[:50]})
     db.commit()
     cfg = svc.carregar_cfg(db)
-    if n and cfg["regua_envio_ativo"] == "1" and svc.smtp_configurado(cfg):
+    if n and cfg["regua_envio_ativo"] == "1" and svc.envio_configurado(cfg):
         background_tasks.add_task(_enviar_em_segundo_plano)
     return {"reenfileirados": n}
 
@@ -454,6 +454,8 @@ class ConfigIn(BaseModel):
     limite_diario: Optional[int] = None
     geracao_automatica: Optional[bool] = None
     remetente: Optional[str] = None
+    envio_metodo: Optional[str] = None         # "smtp" | "brevo"
+    brevo_api_key: Optional[str] = None        # só escrita; nunca devolvida
     smtp_host: Optional[str] = None
     smtp_porta: Optional[int] = None
     smtp_seguranca: Optional[str] = None
@@ -483,9 +485,12 @@ def ler_config(current_user=_admin, db: Session = Depends(get_db)):
     c = svc.carregar_cfg(db)
     return {"envio_ativo": c["regua_envio_ativo"] == "1", "modo_teste": c["regua_modo_teste"] == "1", "email_teste": c["regua_email_teste"],
             "limite_diario": svc._int(c["regua_limite_diario"], 300), "geracao_automatica": c["regua_geracao_automatica"] == "1",
-            "remetente": c["cobranca_email_remetente"], "smtp_host": c["cobranca_smtp_host"], "smtp_porta": svc._int(c["cobranca_smtp_porta"], 587),
+            "remetente": c["cobranca_email_remetente"], "envio_metodo": c.get("cobranca_envio_metodo") or "smtp",
+            "brevo_api_key_configurada": bool(c.get("cobranca_brevo_api_key")), "brevo_configurado": svc.brevo_configurado(c),
+            "smtp_host": c["cobranca_smtp_host"], "smtp_porta": svc._int(c["cobranca_smtp_porta"], 587),
             "smtp_seguranca": c["cobranca_smtp_seguranca"], "smtp_usuario": c["cobranca_smtp_usuario"],
             "smtp_senha_configurada": bool(c["cobranca_smtp_senha"]), "smtp_configurado": svc.smtp_configurado(c),
+            "envio_configurado": svc.envio_configurado(c),
             "horario_inicio": c["regua_horario_inicio"], "horario_fim": c["regua_horario_fim"], "feriados_extra": c["regua_feriados_extra"],
             "lancamento_desde": c["regua_lancamento_desde"], "lancamento_janela_dias": svc._int(c["regua_lancamento_janela_dias"], 10),
             "imap_host": c["cobranca_imap_host"], "imap_porta": svc._int(c["cobranca_imap_porta"], 993), "imap_usuario": c["cobranca_imap_usuario"],
@@ -513,6 +518,12 @@ def salvar_config(body: ConfigIn, current_user=_admin, db: Session = Depends(get
         if not 1 <= body.limite_diario <= 5000:
             raise HTTPException(400, "Limite diário deve ficar entre 1 e 5000.")
         mapa["regua_limite_diario"] = str(body.limite_diario)
+    if body.envio_metodo is not None:
+        if body.envio_metodo not in ("smtp", "brevo"):
+            raise HTTPException(400, "Método de envio inválido: use 'smtp' ou 'brevo'.")
+        mapa["cobranca_envio_metodo"] = body.envio_metodo
+    if body.brevo_api_key:                                    # vazio = mantém a atual
+        mapa["cobranca_brevo_api_key"] = body.brevo_api_key.strip()
     if body.smtp_seguranca is not None:
         if body.smtp_seguranca not in ("starttls", "ssl"):
             raise HTTPException(400, "Segurança inválida: use STARTTLS ou SSL (a senha nunca vai sem criptografia).")
@@ -621,8 +632,11 @@ def salvar_config(body: ConfigIn, current_user=_admin, db: Session = Depends(get
             mapa["whatsapp_pausado_motivo"] = ""              # quem religa assume a decisão
             mapa["whatsapp_religado_em"] = datetime.now(timezone.utc).isoformat()   # o disjuntor por taxa só olha mensagens DEPOIS daqui
     if body.envio_ativo is not None:
-        if body.envio_ativo and not svc.smtp_configurado({**c, **mapa}):
-            raise HTTPException(400, "Configure o e-mail (servidor, usuário e senha) antes de ligar o envio.")
+        if body.envio_ativo and not svc.envio_configurado({**c, **mapa}):
+            metodo = mapa.get("cobranca_envio_metodo", c.get("cobranca_envio_metodo") or "smtp")
+            msg = "Configure a chave da API da Brevo antes de ligar o envio." if metodo == "brevo" \
+                else "Configure o e-mail (servidor, usuário e senha) antes de ligar o envio."
+            raise HTTPException(400, msg)
         mapa["regua_envio_ativo"] = "1" if body.envio_ativo else "0"
     for k, v in mapa.items():
         _set_setting(db, k, v)
@@ -642,16 +656,22 @@ def smtp_teste(body: Optional[SmtpTesteIn] = None, current_user=_admin, db: Sess
     confirma servidor, usuário e senha e mostra como o cliente vai ver."""
     body = body or SmtpTesteIn()
     c = svc.carregar_cfg(db)
-    if not svc.smtp_configurado(c):
-        raise HTTPException(400, "Preencha servidor, usuário e senha do e-mail.")
+    if not svc.envio_configurado(c):
+        msg = "Preencha a chave da API da Brevo." if c.get("cobranca_envio_metodo") == "brevo" \
+            else "Preencha servidor, usuário e senha do e-mail."
+        raise HTTPException(400, msg)
     et = db.get(CobrancaEtapa, body.etapa)
     if not et or "email" not in (et.canais or ""):
         et = db.get(CobrancaEtapa, "vence_hoje")
     try:
         m = svc.exemplo_email(et, et.assunto or "", et.texto or "", c, svc.hoje_br(), body.origem)
-        svc._enviar_smtp(c, [c["cobranca_email_remetente"]], "[TESTE DE LAYOUT] " + m["assunto"], m["texto"], m["html_cid"], None, m["inline"])
+        svc._enviar_email(c, [c["cobranca_email_remetente"]], "[TESTE DE LAYOUT] " + m["assunto"], m["texto"], m["html_cid"], None, m["inline"])
     except Exception as ex:
-        msg = str(ex).replace(c["cobranca_smtp_senha"], "•••") if c["cobranca_smtp_senha"] else str(ex)
+        msg = str(ex)
+        if c["cobranca_smtp_senha"]:
+            msg = msg.replace(c["cobranca_smtp_senha"], "•••")
+        if c.get("cobranca_brevo_api_key"):
+            msg = msg.replace(c["cobranca_brevo_api_key"], "•••")
         raise HTTPException(400, f"Não foi possível enviar: {msg[:200]}")
     _audit(db, current_user, "cobranca.smtp_teste", {"etapa": et.chave, "origem": body.origem})
     db.commit()

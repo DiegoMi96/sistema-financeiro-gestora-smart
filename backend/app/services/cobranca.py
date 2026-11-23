@@ -99,6 +99,12 @@ _DEFAULTS_CFG = {
     "cobranca_smtp_seguranca": "starttls",   # starttls | ssl
     "cobranca_smtp_usuario": "",
     "cobranca_smtp_senha": "",
+    # método de envio do e-mail: "smtp" (servidor do provedor) ou "brevo" (API HTTP da Brevo —
+    # usada quando o SMTP de saída está bloqueado pelo provedor do servidor, ex.: DigitalOcean
+    # bloqueia por padrão as portas 25/465/587 de saída e só libera com chamado de suporte;
+    # a API da Brevo manda por HTTPS/443, que não sofre esse bloqueio)
+    "cobranca_envio_metodo": "smtp",
+    "cobranca_brevo_api_key": "",
     # horário de envio (vale para e-mail e WhatsApp)
     "regua_horario_inicio": "09:00",
     "regua_horario_fim": "18:00",
@@ -137,7 +143,7 @@ _DEFAULTS_CFG = {
     "email_rodape_descadastro": "Não quero mais receber estes e-mails",
     "email_rodape_slogan": "SIMCARD | HARDWARE | SOFTWARE",
 }
-SEGREDOS = {"cobranca_smtp_senha", "umbler_token", "cobranca_imap_senha"}
+SEGREDOS = {"cobranca_smtp_senha", "umbler_token", "cobranca_imap_senha", "cobranca_brevo_api_key"}
 
 
 # ── configuração ───────────────────────────────────────────────────────────────
@@ -249,6 +255,17 @@ def whatsapp_configurado(cfg: dict) -> bool:
 
 def smtp_configurado(cfg: dict) -> bool:
     return bool(cfg["cobranca_smtp_host"] and cfg["cobranca_smtp_usuario"] and cfg["cobranca_smtp_senha"])
+
+
+def brevo_configurado(cfg: dict) -> bool:
+    return bool(cfg.get("cobranca_brevo_api_key"))
+
+
+def envio_configurado(cfg: dict) -> bool:
+    """O método de envio ativo (SMTP ou Brevo) está pronto pra mandar e-mail de verdade."""
+    if cfg.get("cobranca_envio_metodo") == "brevo":
+        return brevo_configurado(cfg)
+    return smtp_configurado(cfg)
 
 
 def garantir_etapas(db: Session) -> None:
@@ -1024,6 +1041,52 @@ def _enviar_smtp(cfg: dict, para: list, assunto: str, texto: str, html: str, ane
     return mid
 
 
+def _enviar_brevo(cfg: dict, para: list, assunto: str, texto: str, html: str, anexos: list = None, inline: list = None) -> str:
+    """Mesmo envio de `_enviar_smtp`, mas pela API HTTP da Brevo (porta 443) em vez de SMTP —
+    usada quando o servidor não tem saída SMTP liberada (ex.: bloqueio padrão de provedores de
+    nuvem nas portas 25/465/587). As imagens embutidas (cid:) viram data URI direto no HTML,
+    em vez de anexo inline, pra não depender da convenção de nome-de-arquivo da Brevo."""
+    import base64
+    import requests
+
+    mid = make_msgid(domain=cfg["cobranca_email_remetente"].split("@")[-1])
+    html_final = html_com_imagens(html, inline) if inline else html
+    payload = {
+        "sender": {"name": cfg["cobranca_email_nome"], "email": cfg["cobranca_email_remetente"]},
+        "to": [{"email": e} for e in para],
+        "replyTo": {"email": cfg["cobranca_email_remetente"]},
+        "subject": assunto,
+        "htmlContent": html_final,
+        "textContent": texto,
+        "headers": {"Message-Id": mid},
+    }
+    if anexos:
+        payload["attachment"] = [
+            {"name": nome, "content": base64.b64encode(dados).decode()} for nome, dados, _tipo in anexos
+        ]
+    r = requests.post(
+        "https://api.brevo.com/v3/smtp/email",
+        headers={"api-key": cfg["cobranca_brevo_api_key"], "Content-Type": "application/json", "Accept": "application/json"},
+        json=payload, timeout=30,
+    )
+    if r.status_code >= 300:
+        detalhe = ""
+        try:
+            detalhe = r.json().get("message", "")
+        except Exception:
+            detalhe = r.text[:200]
+        raise RuntimeError(f"Brevo recusou o envio ({r.status_code}): {detalhe}")
+    return mid
+
+
+def _enviar_email(cfg: dict, para: list, assunto: str, texto: str, html: str, anexos: list = None, inline: list = None) -> str:
+    """Despacha pro método de envio configurado (SMTP ou Brevo) — ponto único usado pelo envio real
+    e pelo e-mail de teste de layout, pra testar exatamente o que vai sair em produção."""
+    if cfg.get("cobranca_envio_metodo") == "brevo":
+        return _enviar_brevo(cfg, para, assunto, texto, html, anexos, inline)
+    return _enviar_smtp(cfg, para, assunto, texto, html, anexos, inline)
+
+
 def _lock_conexao(db: Session, chave: int):
     """Trava de 'um envio por vez' numa conexão PRÓPRIA e em AUTOCOMMIT (não fica 'idle in transaction'). None = ocupado."""
     conn = db.get_bind().connect().execution_options(isolation_level="AUTOCOMMIT")
@@ -1148,8 +1211,8 @@ def _fonte_fresca(e, fresco: dict) -> bool:
 def _email_pode_enviar(cfg: dict) -> str:
     if cfg["regua_envio_ativo"] != "1":
         return "envio desligado (chave geral)"
-    if not smtp_configurado(cfg):
-        return "e-mail (SMTP) não configurado"
+    if not envio_configurado(cfg):
+        return "e-mail (Brevo) não configurado" if cfg.get("cobranca_envio_metodo") == "brevo" else "e-mail (SMTP) não configurado"
     if not dentro_do_horario(cfg):
         return f"fora do horário de envio (dias úteis, {cfg['regua_horario_inicio']}–{cfg['regua_horario_fim']}, sem feriados)"
     return ""
@@ -1283,13 +1346,15 @@ def processar_aprovados(db: Session, limite: int = 500) -> dict:
                 if teste:
                     efetivo = [cfg["regua_email_teste"]]
                     assunto = f"[TESTE — seria para {', '.join(lista)}] {assunto}"
-                mid = _enviar_smtp(cfg, efetivo, assunto, msgm["texto"], msgm["html"], msgm["anexos"], msgm.get("inline"))
-            except Exception as ex:                                 # nunca derruba o lote; nunca grava a senha
+                mid = _enviar_email(cfg, efetivo, assunto, msgm["texto"], msgm["html"], msgm["anexos"], msgm.get("inline"))
+            except Exception as ex:                                 # nunca derruba o lote; nunca grava a senha/chave
                 db.rollback()
                 e = db.get(CobrancaEnvio, eid)
                 msg = str(ex)
                 if cfg["cobranca_smtp_senha"]:
                     msg = msg.replace(cfg["cobranca_smtp_senha"], "•••")
+                if cfg.get("cobranca_brevo_api_key"):
+                    msg = msg.replace(cfg["cobranca_brevo_api_key"], "•••")
                 e.status, e.erro = "falhou", msg[:400]
                 db.commit()
                 res["falhas"] += 1
