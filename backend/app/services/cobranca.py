@@ -1050,7 +1050,17 @@ def _enviar_brevo(cfg: dict, para: list, assunto: str, texto: str, html: str, an
     import requests
 
     mid = make_msgid(domain=cfg["cobranca_email_remetente"].split("@")[-1])
-    html_final = html_com_imagens(html, inline) if inline else html
+    # O Gmail (e outros webmails) bloqueia imagem embutida como data: URI no corpo do e-mail — por
+    # isso NÃO usamos html_com_imagens aqui (isso é só para a prévia dentro do próprio navegador do
+    # sistema). Em vez disso, seguimos a convenção da Brevo para imagem inline: o nome do anexo
+    # precisa bater com a referência "cid:" no HTML — então viram "cid:logo-topo.png" e um anexo
+    # chamado "logo-topo.png", sem tocar no HTML/CID usado pelo caminho SMTP (que não leva extensão).
+    html_final = re.sub(r"cid:([a-z-]+)", lambda m: f"cid:{m.group(1)}.png", html)
+    anexos_payload = []
+    for cid, dados in (inline or []):
+        anexos_payload.append({"name": f"{cid}.png", "content": base64.b64encode(dados).decode()})
+    for nome, dados, _tipo in (anexos or []):
+        anexos_payload.append({"name": nome, "content": base64.b64encode(dados).decode()})
     payload = {
         "sender": {"name": cfg["cobranca_email_nome"], "email": cfg["cobranca_email_remetente"]},
         "to": [{"email": e} for e in para],
@@ -1060,10 +1070,8 @@ def _enviar_brevo(cfg: dict, para: list, assunto: str, texto: str, html: str, an
         "textContent": texto,
         "headers": {"Message-Id": mid},
     }
-    if anexos:
-        payload["attachment"] = [
-            {"name": nome, "content": base64.b64encode(dados).decode()} for nome, dados, _tipo in anexos
-        ]
+    if anexos_payload:
+        payload["attachment"] = anexos_payload
     r = requests.post(
         "https://api.brevo.com/v3/smtp/email",
         headers={"api-key": cfg["cobranca_brevo_api_key"], "Content-Type": "application/json", "Accept": "application/json"},
