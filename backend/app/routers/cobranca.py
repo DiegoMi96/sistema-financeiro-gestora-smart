@@ -417,7 +417,9 @@ def previa_etapa(chave: str, body: PreviaIn, current_user=_ler, db: Session = De
             lay = None
             if body.layout is not None:
                 lay = _limpa_layout(body.layout, svc.LAYOUT_ETAPA)
-            html = svc.exemplo_email(et, body.assunto, body.texto, cfg, svc.hoje_br(), body.origem, lay)["html"]
+            ex = svc.exemplo_email(et, body.assunto, body.texto, cfg, svc.hoje_br(), body.origem, lay)
+            html = ex["html"]
+            assunto = ex["assunto"] or assunto                 # assunto do MESMO exemplo do HTML (senão a competência diverge)
         except Exception:                                      # prévia visual nunca derruba a edição da etapa
             log.exception("prévia visual da etapa %s", chave)
     return {"assunto": assunto, "corpo": corpo, "exemplo": e.nome, "html": html}

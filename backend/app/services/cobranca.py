@@ -313,6 +313,11 @@ def brl(v) -> str:
     return "R$ " + f"{float(v or 0):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
+# Linha digitável fora dos e-mails (pedido do Diego, 23/11/2026: evitar erro de digitação/cópia) — o cliente paga pelo PDF anexado.
+# O dado continua guardado em cobranca_boletos_itau.linha_digitavel; para voltar a mostrar, basta True.
+MOSTRAR_LINHA_DIGITAVEL = False
+
+
 def competencia_de(venc: date) -> str:
     """Competência = mês anterior ao vencimento (mesma regra da lista de vencidos)."""
     m, a = venc.month - 1, venc.year
@@ -327,7 +332,7 @@ def renderizar(etapa_assunto: str, etapa_texto: str, e, hoje: date, prazo_bloque
     atraso = max(0, (hoje - venc).days) if venc else 0
     origem = getattr(e, "origem", None)
     if origem == "itau" and anexa:
-        link = "O boleto está anexado a este e-mail (PDF). Se preferir, copie a linha digitável abaixo e pague no aplicativo do seu banco."
+        link = "O boleto está anexado a este e-mail (PDF)."
     elif origem == "lancamento":
         link = link_txt or "Os boletos estão listados abaixo."
     elif origem == "itau":
@@ -436,6 +441,9 @@ def exemplo_email(et, assunto: str, texto: str, cfg: dict, hoje: date, origem: s
     return {"assunto": m["assunto"], "html": html_com_imagens(m["html"], m["inline"]), "html_cid": m["html"], "texto": m["texto"], "inline": m["inline"]}
 
 
+_RE_COMPETENCIA = re.compile(r"\b(janeiro|fevereiro|março|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/\d{4}\b", re.I)
+
+
 def _titulo_em_duas_linhas(t: str) -> tuple:
     """Divide o título como no modelo: começo em preto, final em verde."""
     p = t.split()
@@ -480,6 +488,12 @@ def layout_email(titulo: str, corpo_paras: str, secao: str, cfg: dict = None, pr
         return f"<html><body>{corpo_paras}{secao}</body></html>"
     g = layout_global(cfg)
     a, b = _titulo_em_duas_linhas(titulo)
+    a, b = escape(a), escape(b)
+    m_comp = _RE_COMPETENCIA.search(titulo or "")
+    if m_comp:   # pedido do Diego (24/11/2026): a competência (ex.: novembro/2026) em verde, o resto em preto
+        antes, comp, depois = titulo[:m_comp.start()].rstrip(), m_comp.group(0), titulo[m_comp.end():].strip()
+        a = (escape(antes) + " " if antes else "") + f'<span style="color:#22a447;">{escape(comp)}</span>'
+        b = f'<span style="color:#111827;">{escape(depois)}</span>' if depois else ""
     ano = str(datetime.now(ZoneInfo("America/Sao_Paulo")).year)
     from urllib.parse import quote_plus
 
@@ -493,8 +507,8 @@ def layout_email(titulo: str, corpo_paras: str, secao: str, cfg: dict = None, pr
                       f'<img src="cid:{cid}" width="22" height="22" alt="{nome}" style="display:block;width:22px;height:22px;border:0;"></a></td>')
     em = lambda v: escape(re.sub(r"[^A-Za-z0-9._%+@-]", "", v or ""), quote=True)
     slogan = escape(g["rodape_slogan"]).replace(" | ", "&nbsp;|&nbsp;")
-    mapa = dict((("TITLE", escape(titulo)), ("PREHEADER", escape(preheader or titulo)), ("H1A", escape(a)),
-                 ("H1B", escape(b)), ("CORPO", corpo_paras), ("SECAO", secao),
+    mapa = dict((("TITLE", escape(titulo)), ("PREHEADER", escape(preheader or titulo)), ("H1A", a),
+                 ("H1B", b), ("CORPO", corpo_paras), ("SECAO", secao),
                  ("DUVIDA_TITULO", escape(g["duvida_titulo"])), ("DUVIDA_TEXTO", escape(g["duvida_texto"])),
                  ("CONTATO_EMAIL", em(g["contato_email"])), ("CONTATO_FONE", escape(g["contato_fone"])),
                  ("REDES_TEXTO", escape(g["redes_texto"])), ("TD_REDES", redes),
@@ -521,7 +535,7 @@ def montar_email(e, et, cfg: dict, hoje: date, anexo: dict = None, link_atual: s
     levaboleto = bool(getattr(et, "anexa_boleto", False))
     assunto, corpo = renderizar(et.assunto, et.texto, e, hoje, _int(cfg["regua_prazo_bloqueio_dias"], 3), anexa=levaboleto)
     itau = getattr(e, "origem", None) == "itau" and levaboleto
-    linha = (anexo or {}).get("linha")
+    linha = (anexo or {}).get("linha") if MOSTRAR_LINHA_DIGITAVEL else None
     pagar_txt = ""
     if "{link}" not in (et.texto or ""):                      # garantia: o texto editado perdeu o campo — o bloco entra sozinho
         _, pagar_txt = renderizar("", "{link}", e, hoje, anexa=levaboleto)
@@ -967,23 +981,27 @@ def montar_email_lancamento(e, et, cfg: dict, hoje: date, boletos: list) -> dict
     for i, b in enumerate(boletos, 1):
         rot = f"Boleto {i} de {n}" if n > 1 else "Boleto"
         txt.append(f"- {rot}: vencimento {b['venc'].strftime('%d/%m/%Y')} — {brl(b['valor'])}" + (f" — {b['link']}" if b.get("link") else " — PDF anexado"))
-        if b.get("anexo") and b["anexo"].get("linha"):
+        if MOSTRAR_LINHA_DIGITAVEL and b.get("anexo") and b["anexo"].get("linha"):
             txt.append(f"  Linha digitável: {b['anexo']['linha']}")
         acao, linha_html = "", ""
         if b.get("link"):
             acao = (f'<a href="{escape(b["link"], quote=True)}" style="display:inline-block;background:#16a34a;color:#ffffff;text-decoration:none;'
                     'font-weight:700;font-size:13px;padding:8px 16px;border-radius:6px">Ver fatura</a>')
         elif b.get("anexo"):
-            acao = '<span style="color:#166534;font-size:13px"><b>PDF anexado</b></span>'
-            if b["anexo"].get("linha"):
-                linha_html = (f'<tr><td colspan="4" style="padding:0 0 10px 0"><div style="font-size:11px;color:#6b7280;margin:0 0 2px 0">Linha digitável (copie e cole no app do banco):</div>'
-                              f'<div style="font-family:Consolas,Menlo,monospace;font-size:12px;color:#111827;word-break:break-all">{escape(b["anexo"]["linha"])}</div></td></tr>')
+            acao = ('<span style="display:inline-block;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;font-size:12px;'
+                    'font-weight:700;padding:5px 12px;border-radius:999px;white-space:nowrap">PDF anexado</span>')
+            if MOSTRAR_LINHA_DIGITAVEL and b["anexo"].get("linha"):
+                linha_html = ('<tr><td colspan="3" style="padding:4px 0 14px 0">'
+                              '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
+                              '<td style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px 14px">'
+                              '<div style="font-size:11px;color:#6b7280;letter-spacing:0.3px">LINHA DIGITÁVEL <span style="text-transform:none;letter-spacing:0">· copie e cole no app do seu banco</span></div>'
+                              f'<div style="font-family:Consolas,Menlo,monospace;font-size:14px;font-weight:bold;color:#111827;word-break:break-all;margin-top:4px">{escape(b["anexo"]["linha"])}</div>'
+                              '</td></tr></table></td></tr>')
             nome_cli = re.sub(r"[^A-Za-z0-9]+", "_", (e.nome or "cliente"))[:30].strip("_")
             anexos.append((f"Boleto_{b['venc'].strftime('%d-%m-%Y')}_{nome_cli}_{i}.pdf", b["anexo"]["bytes"], "application/pdf"))
         topo = "border-top:1px solid #e5e7eb;" if i > 1 else ""
         pad_b = "0" if linha_html else "10px"
-        linhas_html.append(f'<tr><td style="padding:10px 8px {pad_b} 0;{topo}font-size:13px;color:#6b7280;white-space:nowrap">{escape(rot)}</td>'
-                           f'<td style="padding:10px 8px {pad_b} 0;{topo}font-size:14px;color:#111827;white-space:nowrap"><b>{b["venc"].strftime("%d/%m/%Y")}</b></td>'
+        linhas_html.append(f'<tr><td style="padding:10px 8px {pad_b} 0;{topo}font-size:14px;color:#111827;white-space:nowrap"><b>{b["venc"].strftime("%d/%m/%Y")}</b></td>'
                            f'<td style="padding:10px 8px {pad_b} 0;{topo}font-size:14px;color:#111827;white-space:nowrap"><b>{escape(brl(b["valor"]))}</b></td>'
                            f'<td style="padding:10px 0 {pad_b} 0;{topo}text-align:right">{acao}</td></tr>{linha_html}')
     if n > 1:
@@ -991,13 +1009,13 @@ def montar_email_lancamento(e, et, cfg: dict, hoje: date, boletos: list) -> dict
     paras = "".join(f'<p style="margin:0 0 16px 0;">{escape(bl).replace(chr(10), "<br>")}</p>' for bl in corpo.split("\n\n"))
     th = 'align="left" style="font-size:12px;color:#9ca3af;padding-bottom:6px;font-weight:bold"'
     tabela = ('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0"><tr>'
-              f'<th {th}>Boleto</th><th {th}>Vencimento</th><th {th}>Valor</th><th></th></tr>'
+              f'<th {th}>Vencimento</th><th {th}>Valor</th><th></th></tr>'
               + "".join(linhas_html) + '</table>')
     lay = layout_etapa(et)
     prazo = _int(cfg["regua_prazo_bloqueio_dias"], 3)
     campo = lambda v: renderizar("", v, x, hoje, prazo, anexa=True, link_txt=link_txt)[1] if v else ""
-    secao = secao_html(campo(lay["secao_titulo"]) or ("Seus boletos" if n > 1 else "Seu boleto"),
-                       campo(lay["secao_sub"]) or "Confira os vencimentos e a forma de pagamento:", None, tabela)
+    secao = secao_html(campo(lay["secao_titulo"]) or ("Suas faturas" if n > 1 else "Sua fatura"),
+                       campo(lay["secao_sub"]) or "Consulte os dados da cobrança e fique atento à data de vencimento:", None, tabela)
     html = layout_email(campo(lay["titulo"]) or assunto, paras, secao, cfg, preheader=campo(lay["preheader"]) or re.sub(r"\s+", " ", corpo)[:110])
     return {"assunto": assunto, "texto": "\n".join(txt), "html": html, "anexos": anexos, "inline": imagens_inline()}
 
