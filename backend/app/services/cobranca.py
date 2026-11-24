@@ -1015,7 +1015,7 @@ def montar_email_lancamento(e, et, cfg: dict, hoje: date, boletos: list) -> dict
     prazo = _int(cfg["regua_prazo_bloqueio_dias"], 3)
     campo = lambda v: renderizar("", v, x, hoje, prazo, anexa=True, link_txt=link_txt)[1] if v else ""
     secao = secao_html(campo(lay["secao_titulo"]) or ("Suas faturas" if n > 1 else "Sua fatura"),
-                       campo(lay["secao_sub"]) or "Consulte os dados da cobrança e fique atento à data de vencimento:", None, tabela)
+                       campo(lay["secao_sub"]) or "Consulte os dados da cobrança e a data de vencimento:", None, tabela)
     html = layout_email(campo(lay["titulo"]) or assunto, paras, secao, cfg, preheader=campo(lay["preheader"]) or re.sub(r"\s+", " ", corpo)[:110])
     return {"assunto": assunto, "texto": "\n".join(txt), "html": html, "anexos": anexos, "inline": imagens_inline()}
 
