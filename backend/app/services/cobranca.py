@@ -495,6 +495,7 @@ def _titulo_em_duas_linhas(t: str) -> tuple:
 
 # Prévia editável (tela da régua): marca cada texto editável com data-campo="<chave>" para o editor clicar e digitar
 # direto no e-mail. Só a rota de prévia liga isto; o e-mail enviado de verdade sai sem marcação nenhuma (byte-idêntico).
+_RE_DATA = re.compile(r"\b\d{2}/\d{2}/\d{4}\b")
 MARCAR_CAMPOS = contextvars.ContextVar("cobranca_marcar_campos", default=False)
 
 
@@ -542,8 +543,8 @@ def layout_email(titulo: str, corpo_paras: str, secao: str, cfg: dict = None, pr
     g = layout_global(cfg)
     a, b = _titulo_em_duas_linhas(titulo)
     a, b = escape(a), escape(b)
-    m_comp = _RE_COMPETENCIA.search(titulo or "")
-    if m_comp:   # pedido do Diego (24/11/2026): a competência (ex.: novembro/2026) em verde, o resto em preto
+    m_comp = _RE_COMPETENCIA.search(titulo or "") or _RE_DATA.search(titulo or "")
+    if m_comp:   # pedido do Diego (24/11/2026): a competência (ex.: novembro/2026) — ou a data, ex.: 01/12/2026 (26/11) — em verde, o resto em preto
         antes, comp, depois = titulo[:m_comp.start()].rstrip(), m_comp.group(0), titulo[m_comp.end():].strip()
         a = (escape(antes) + " " if antes else "") + f'<span style="color:#22a447;">{escape(comp)}</span>'
         b = f'<span style="color:#111827;">{escape(depois)}</span>' if depois else ""
