@@ -446,9 +446,11 @@ def _ler(nome: str) -> bytes:
     return _CACHE[nome]
 
 
-def imagens_inline() -> list:
-    """[(cid, bytes_png)] das imagens do modelo. Arquivo ausente = imagem some, o e-mail sai igual."""
-    return [(n, _ler(n + ".png")) for n in _IMAGENS if _ler(n + ".png")]
+def imagens_inline(html: str = None) -> list:
+    """[(cid, bytes_png)] das imagens do modelo. Arquivo ausente = imagem some, o e-mail sai igual.
+    Com `html`, só as imagens que o e-mail usa: imagem anexada e não usada o Gmail mostra como anexo
+    (o lançamento não tem os cards, e os ícones de banco/calendário apareciam como anexo)."""
+    return [(n, _ler(n + ".png")) for n in _IMAGENS if _ler(n + ".png") and (html is None or f"cid:{n}" in html)]
 
 
 def html_com_imagens(html: str, inline: list) -> str:
@@ -625,7 +627,7 @@ def montar_email(e, et, cfg: dict, hoje: date, anexo: dict = None, link_atual: s
         comp = (competencia_de(venc) if venc else "boleto").replace("/", "-")
         nome_cli = re.sub(r"[^A-Za-z0-9]+", "_", (e.nome or "cliente"))[:40].strip("_")
         anexos.append((f"Boleto_{comp}_{nome_cli}.pdf", anexo["bytes"], "application/pdf"))
-    return {"assunto": assunto, "texto": texto, "html": html, "anexos": anexos, "inline": imagens_inline()}
+    return {"assunto": assunto, "texto": texto, "html": html, "anexos": anexos, "inline": imagens_inline(html)}
 
 
 # ── frescor dos dados de pagamento ─────────────────────────────────────────────
@@ -1070,7 +1072,7 @@ def montar_email_lancamento(e, et, cfg: dict, hoje: date, boletos: list) -> dict
     secao = secao_html(campo(lay["secao_titulo"]) or ("Suas faturas" if n > 1 else "Sua fatura"),
                        campo(lay["secao_sub"]) or "Consulte os dados da cobrança e a data de vencimento:", None, tabela)
     html = layout_email(campo(lay["titulo"]) or assunto, paras, secao, cfg, preheader=campo(lay["preheader"]) or re.sub(r"\s+", " ", corpo)[:110])
-    return {"assunto": assunto, "texto": "\n".join(txt), "html": html, "anexos": anexos, "inline": imagens_inline()}
+    return {"assunto": assunto, "texto": "\n".join(txt), "html": html, "anexos": anexos, "inline": imagens_inline(html)}
 
 
 # ── envio ──────────────────────────────────────────────────────────────────────
