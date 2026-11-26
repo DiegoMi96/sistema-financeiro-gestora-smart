@@ -373,7 +373,7 @@ def corpo_html(texto: str, rodape: str) -> str:
 
 
 # Etapas cujo bloco do boleto é a tabela "Vencimento | Valor | botão" (igual ao lançamento) em vez dos cartões (pedido do Diego, 26/11/2026)
-ETAPAS_TABELA = {"vence_hoje"}
+ETAPAS_TABELA = {"vence_hoje", "lembrete"}
 
 # Campos do layout editáveis POR ETAPA (cobranca_etapas.layout = JSON). Vazio = padrão. Aceitam {campos} como o texto.
 LAYOUT_ETAPA = {"titulo": 200, "preheader": 200, "secao_titulo": 120, "secao_sub": 200, "card_valor": 120, "card_venc": 120,
