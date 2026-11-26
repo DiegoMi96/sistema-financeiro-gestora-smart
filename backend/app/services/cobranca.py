@@ -54,7 +54,7 @@ ETAPAS_PADRAO = [
                 "Caso não tenha acesso ao boleto, estamos deixando-o em anexo.\n\n"
                 "{link}\n\n"
                 "Se o pagamento já foi feito, pode desconsiderar esta mensagem.")),
-    dict(chave="atraso", nome="Em atraso", ordem=3, dias=3, canais="email", ativa=True, anexa_boleto=False,
+    dict(chave="atraso", nome="Em atraso", ordem=3, dias=3, canais="email", ativa=True, anexa_boleto=True,
          assunto="Boleto de {competencia} em atraso",
          texto=("Olá, {nome}.\n\n"
                 "Não identificamos o pagamento do boleto referente a {competencia}, no valor de {valor}, que venceu em {vencimento}.\n\n"
@@ -292,6 +292,11 @@ def garantir_etapas(db: Session) -> None:
                                   WHERE chave=:chave AND updated_by IS NULL"""), {**e, "anexa_boleto": bool(e.get("anexa_boleto", False))})
         db.execute(_t("INSERT INTO system_settings (key, value) VALUES ('cobranca_etapas_v2', 'ok') ON CONFLICT (key) DO NOTHING"))
         db.commit()
+    # migração única (26/11/2026, pedido do Diego): "Em atraso" passa a levar o boleto (link do Asaas / PDF do Itaú)
+    if not db.execute(_t("SELECT 1 FROM system_settings WHERE key = 'cobranca_atraso_boleto_v1'")).fetchone():
+        db.execute(_t("UPDATE cobranca_etapas SET anexa_boleto = TRUE WHERE chave = 'atraso'"))
+        db.execute(_t("INSERT INTO system_settings (key, value) VALUES ('cobranca_atraso_boleto_v1', 'ok') ON CONFLICT (key) DO NOTHING"))
+        db.commit()
 
 
 # ── utilidades ─────────────────────────────────────────────────────────────────
@@ -373,7 +378,7 @@ def corpo_html(texto: str, rodape: str) -> str:
 
 
 # Etapas cujo bloco do boleto é a tabela "Vencimento | Valor | botão" (igual ao lançamento) em vez dos cartões (pedido do Diego, 26/11/2026)
-ETAPAS_TABELA = {"vence_hoje", "lembrete"}
+ETAPAS_TABELA = {"vence_hoje", "lembrete", "atraso"}
 
 # Campos do layout editáveis POR ETAPA (cobranca_etapas.layout = JSON). Vazio = padrão. Aceitam {campos} como o texto.
 LAYOUT_ETAPA = {"titulo": 200, "preheader": 200, "secao_titulo": 120, "secao_sub": 200, "card_valor": 120, "card_venc": 120,
