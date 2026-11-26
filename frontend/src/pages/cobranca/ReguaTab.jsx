@@ -116,13 +116,27 @@ function PreviaEmail({ html }) {
   )
 }
 
-const CAMPOS_LAYOUT = [
+// Campos do layout por etapa, na ordem em que aparecem no e-mail; o 3º item é o texto padrão (o que sai se ficar em branco).
+// O lançamento do ciclo usa uma tabela (vencimento/valor/botão); as outras etapas usam cartões.
+const CAMPOS_TOPO = [
   ['titulo', 'Título grande do e-mail (faixa cinza)', 'igual ao assunto'],
   ['preheader', 'Texto de pré-visualização (aparece na caixa de entrada, antes de abrir)', 'as primeiras palavras da mensagem'],
+]
+const CAMPOS_LAYOUT_LANCAMENTO = [
+  ...CAMPOS_TOPO,
+  ['secao_titulo', 'Título do bloco da fatura', 'Sua fatura'],
+  ['secao_sub', 'Subtítulo do bloco da fatura', 'Consulte os dados da cobrança e a data de vencimento:'],
+  ['rotulo_venc', 'Nome da coluna de vencimento', 'Vencimento'],
+  ['rotulo_valor', 'Nome da coluna de valor', 'Valor'],
+  ['botao_fatura', 'Texto do botão da fatura (Asaas)', 'Ver fatura'],
+]
+const CAMPOS_LAYOUT_ETAPAS = [
+  ...CAMPOS_TOPO,
   ['secao_titulo', 'Título do bloco de dados', 'Dados do boleto'],
   ['secao_sub', 'Subtítulo do bloco de dados', 'Confira as informações e a forma de pagamento:'],
   ['card_valor', 'Texto do cartão de valor', 'Boleto bancário · competência {competencia}'],
   ['card_venc', 'Texto do cartão de vencimento', 'Data de vencimento'],
+  ['botao_fatura', 'Texto do botão da fatura (Asaas)', 'Ver fatura'],
 ]
 const EXEMPLO_WA = { nome: 'Cliente Exemplo LTDA', valor: 'R$ 1.240,50', vencimento: '03/11/2026', competencia: 'outubro/2026', link: 'https://www.asaas.com/i/exemplo', dias_atraso: '3', data_limite: '06/11/2026' }
 
@@ -137,7 +151,7 @@ function EditorEtapa({ etapa, aba, campos, camposWa, admin, onClose, onSave }) {
   const [waId, setWaId] = useState(etapa.wa_template_id || '')
   const [waParams, setWaParams] = useState(etapa.wa_params || [])
   const [waTexto, setWaTexto] = useState(etapa.wa_texto || '')
-  const [verLayout, setVerLayout] = useState(false)
+  const [verLayout, setVerLayout] = useState(true)
   const email = aba === 'email'
   const whats = aba === 'whatsapp'
   const alternar = c => setWaParams(p => (p.includes(c) ? p.filter(x => x !== c) : [...p, c]))
@@ -185,15 +199,15 @@ function EditorEtapa({ etapa, aba, campos, camposWa, admin, onClose, onSave }) {
               <textarea rows={9} value={texto} disabled={!admin} onChange={e => setTexto(e.target.value)} className="w-full border border-gray-200 rounded-lg p-2 text-sm mt-1 text-gray-800" />
             </label>
             {admin && <div className="flex flex-wrap gap-1.5">{campos.map(c => <button key={c} onClick={() => inserir(c)} className="text-xs px-2 py-0.5 rounded bg-blue-50 text-blue-700">{`{${c}}`}</button>)}</div>}
-            <button onClick={() => setVerLayout(v => !v)} className="text-xs text-green-700 font-medium pt-1">{verLayout ? '▾' : '▸'} Textos do layout do e-mail (título, bloco de dados, cartões)</button>
+            <button onClick={() => setVerLayout(v => !v)} className="text-xs text-green-700 font-medium pt-1">{verLayout ? '▾' : '▸'} Demais textos do e-mail (título, bloco da fatura, botão)</button>
             {verLayout && (
               <div className="space-y-2 border border-gray-100 rounded-lg p-3 bg-gray-50">
-                {CAMPOS_LAYOUT.map(([k, rotulo, padrao]) => (
+                {(etapa.chave === 'lancamento' ? CAMPOS_LAYOUT_LANCAMENTO : CAMPOS_LAYOUT_ETAPAS).map(([k, rotulo, padrao]) => (
                   <label key={k} className="text-xs text-gray-500 block">{rotulo}
                     <input value={layout[k] || ''} disabled={!admin} placeholder={padrao} onChange={e => setLayout(l => ({ ...l, [k]: e.target.value }))} className="w-full border border-gray-200 rounded-lg p-2 text-sm mt-1 text-gray-800 bg-white" />
                   </label>
                 ))}
-                <p className="text-xs text-gray-400">Deixe em branco para usar o texto padrão. Aceita os mesmos campos da mensagem, como {'{nome}'} e {'{competencia}'}. O rodapé e os contatos são os mesmos em todas as etapas: use o botão “Rodapé e contatos do e-mail” da lista.</p>
+                <p className="text-xs text-gray-400">Deixe em branco para usar o texto padrão. Aceita os mesmos campos da mensagem, como {'{nome}'} e {'{competencia}'}. O bloco “Ficou com alguma dúvida?”, os contatos e o rodapé são os mesmos em todas as etapas: edite pelo botão “Rodapé e contatos do e-mail”, na lista da régua.</p>
               </div>
             )}
           </div>

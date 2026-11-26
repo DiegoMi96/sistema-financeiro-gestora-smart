@@ -372,7 +372,8 @@ def corpo_html(texto: str, rodape: str) -> str:
 
 
 # Campos do layout editáveis POR ETAPA (cobranca_etapas.layout = JSON). Vazio = padrão. Aceitam {campos} como o texto.
-LAYOUT_ETAPA = {"titulo": 200, "preheader": 200, "secao_titulo": 120, "secao_sub": 200, "card_valor": 120, "card_venc": 120}
+LAYOUT_ETAPA = {"titulo": 200, "preheader": 200, "secao_titulo": 120, "secao_sub": 200, "card_valor": 120, "card_venc": 120,
+                "rotulo_venc": 40, "rotulo_valor": 40, "botao_fatura": 40}   # rótulos da tabela e texto do botão (pedido do Diego, 26/11/2026)
 # Campos GLOBAIS (rodapé/contatos) = chaves email_* de system_settings. Limite de tamanho de cada um:
 LAYOUT_GLOBAL = {"duvida_titulo": 120, "duvida_texto": 400, "contato_email": 120, "contato_fone": 40, "redes_texto": 120,
                  "url_instagram": 200, "url_linkedin": 200, "rodape_email": 120, "rodape_endereco": 200,
@@ -552,6 +553,9 @@ def montar_email(e, et, cfg: dict, hoje: date, anexo: dict = None, link_atual: s
         h = escape(bloco).replace("\n", "<br>")
         h = re.sub(r"(https?://[^\s<]+)", r'<a href="\1" style="color:#15803d">\1</a>', h)
         paras.append(f'<p style="margin:0 0 16px 0;">{h}</p>')
+    lay = layout_etapa(et)
+    prazo = _int(cfg["regua_prazo_bloqueio_dias"], 3)
+    campo = lambda v: renderizar("", v, e, hoje, prazo, anexa=levaboleto)[1] if v else ""      # layout aceita {campos} como o texto
     if itau:
         cta = ('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:6px 0 18px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px"><tr><td style="padding:14px 18px;font-size:14px;color:#14532d">'
                '<b>O boleto está anexado a este e-mail (PDF).</b>'
@@ -560,12 +564,9 @@ def montar_email(e, et, cfg: dict, hoje: date, anexo: dict = None, link_atual: s
                + '</td></tr></table>')
     elif e.link:
         cta = (f'<table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 20px"><tr><td style="background:#16a34a;border-radius:8px">'
-               f'<a href="{escape(e.link, quote=True)}" style="display:inline-block;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:13px 26px">Ver fatura</a></td></tr></table>')
+               f'<a href="{escape(e.link, quote=True)}" style="display:inline-block;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:13px 26px">{escape(campo(lay["botao_fatura"]) or "Ver fatura")}</a></td></tr></table>')
     else:
         cta = ''
-    lay = layout_etapa(et)
-    prazo = _int(cfg["regua_prazo_bloqueio_dias"], 3)
-    campo = lambda v: renderizar("", v, e, hoje, prazo, anexa=levaboleto)[1] if v else ""      # layout aceita {campos} como o texto
     cartoes = [("icone-banco", brl(e.valor), campo(lay["card_valor"]) or f"Boleto bancário · competência {competencia_de(venc) if venc else '-'}"),
                ("icone-calendario", venc.strftime("%d/%m/%Y") if venc else "-", campo(lay["card_venc"]) or "Data de vencimento")]
     secao = secao_html(campo(lay["secao_titulo"]) or "Dados do boleto", campo(lay["secao_sub"]) or "Confira as informações e a forma de pagamento:", cartoes, cta)
@@ -976,6 +977,10 @@ def montar_email_lancamento(e, et, cfg: dict, hoje: date, boletos: list) -> dict
         link_txt = "Os boletos estão listados abaixo: PDF anexado (Itaú) ou link da fatura (Asaas)."
     assunto, corpo = renderizar(et.assunto, et.texto, x, hoje, anexa=True, link_txt=link_txt)
     n = len(boletos)
+    lay = layout_etapa(et)
+    prazo = _int(cfg["regua_prazo_bloqueio_dias"], 3)
+    campo = lambda v: renderizar("", v, x, hoje, prazo, anexa=True, link_txt=link_txt)[1] if v else ""
+    botao = campo(lay["botao_fatura"]) or "Ver fatura"
     txt = [corpo, "", "Seus boletos:"]
     linhas_html, anexos = [], []
     for i, b in enumerate(boletos, 1):
@@ -986,7 +991,7 @@ def montar_email_lancamento(e, et, cfg: dict, hoje: date, boletos: list) -> dict
         acao, linha_html = "", ""
         if b.get("link"):
             acao = (f'<a href="{escape(b["link"], quote=True)}" style="display:inline-block;background:#16a34a;color:#ffffff;text-decoration:none;'
-                    'font-weight:700;font-size:13px;padding:8px 16px;border-radius:6px">Ver fatura</a>')
+                    f'font-weight:700;font-size:13px;padding:8px 16px;border-radius:6px">{escape(botao)}</a>')
         elif b.get("anexo"):
             acao = ('<span style="display:inline-block;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;font-size:12px;'
                     'font-weight:700;padding:5px 12px;border-radius:999px;white-space:nowrap">PDF anexado</span>')
@@ -1009,11 +1014,8 @@ def montar_email_lancamento(e, et, cfg: dict, hoje: date, boletos: list) -> dict
     paras = "".join(f'<p style="margin:0 0 16px 0;">{escape(bl).replace(chr(10), "<br>")}</p>' for bl in corpo.split("\n\n"))
     th = 'align="left" style="font-size:12px;color:#9ca3af;padding-bottom:6px;font-weight:bold"'
     tabela = ('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0"><tr>'
-              f'<th {th}>Vencimento</th><th {th}>Valor</th><th></th></tr>'
+              f'<th {th}>{escape(campo(lay["rotulo_venc"]) or "Vencimento")}</th><th {th}>{escape(campo(lay["rotulo_valor"]) or "Valor")}</th><th></th></tr>'
               + "".join(linhas_html) + '</table>')
-    lay = layout_etapa(et)
-    prazo = _int(cfg["regua_prazo_bloqueio_dias"], 3)
-    campo = lambda v: renderizar("", v, x, hoje, prazo, anexa=True, link_txt=link_txt)[1] if v else ""
     secao = secao_html(campo(lay["secao_titulo"]) or ("Suas faturas" if n > 1 else "Sua fatura"),
                        campo(lay["secao_sub"]) or "Consulte os dados da cobrança e a data de vencimento:", None, tabela)
     html = layout_email(campo(lay["titulo"]) or assunto, paras, secao, cfg, preheader=campo(lay["preheader"]) or re.sub(r"\s+", " ", corpo)[:110])
