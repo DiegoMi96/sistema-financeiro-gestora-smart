@@ -372,6 +372,9 @@ def corpo_html(texto: str, rodape: str) -> str:
             + "".join(paras) + f'<p style="margin:18px 0 0;color:#777;font-size:12px">{escape(rodape)}</p></div>')
 
 
+# Etapas cujo bloco do boleto é a tabela "Vencimento | Valor | botão" (igual ao lançamento) em vez dos cartões (pedido do Diego, 26/11/2026)
+ETAPAS_TABELA = {"vence_hoje"}
+
 # Campos do layout editáveis POR ETAPA (cobranca_etapas.layout = JSON). Vazio = padrão. Aceitam {campos} como o texto.
 LAYOUT_ETAPA = {"titulo": 200, "preheader": 200, "secao_titulo": 120, "secao_sub": 200, "card_valor": 120, "card_venc": 120,
                 "rotulo_venc": 40, "rotulo_valor": 40, "botao_fatura": 40}   # rótulos da tabela e texto do botão (pedido do Diego, 26/11/2026)
@@ -618,9 +621,36 @@ def montar_email(e, et, cfg: dict, hoje: date, anexo: dict = None, link_atual: s
                f'<a href="{escape(e.link, quote=True)}" style="display:inline-block;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:13px 26px">{_mk("botao_fatura", escape(campo(lay["botao_fatura"]) or "Ver fatura"))}</a></td></tr></table>')
     else:
         cta = ''
-    cartoes = [("icone-banco", brl(e.valor), campo(lay["card_valor"]) or f"Boleto bancário · competência {competencia_de(venc) if venc else '-'}"),
-               ("icone-calendario", venc.strftime("%d/%m/%Y") if venc else "-", campo(lay["card_venc"]) or "Data de vencimento")]
-    secao = secao_html(campo(lay["secao_titulo"]) or "Dados do boleto", campo(lay["secao_sub"]) or "Confira as informações e a forma de pagamento:", cartoes, cta)
+    if getattr(et, "chave", None) in ETAPAS_TABELA:
+        # mesmo formato do lançamento: Vencimento | Valor | botão "Ver fatura" (Asaas) ou selo "PDF anexado" (Itaú), na mesma linha
+        if e.link and not itau:
+            acao = (f'<a href="{escape(e.link, quote=True)}" style="display:inline-block;background:#16a34a;color:#ffffff;text-decoration:none;'
+                    f'font-weight:700;font-size:13px;padding:8px 16px;border-radius:6px">{_mk("botao_fatura", escape(campo(lay["botao_fatura"]) or "Ver fatura"))}</a>')
+        elif itau:
+            acao = ('<span style="display:inline-block;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;font-size:12px;'
+                    'font-weight:700;padding:5px 12px;border-radius:999px;white-space:nowrap">PDF anexado</span>')
+        else:
+            acao = ""
+        linha_html = ""
+        if itau and linha:
+            linha_html = ('<tr><td colspan="3" style="padding:4px 0 14px 0">'
+                          '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
+                          '<td style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px 14px">'
+                          '<div style="font-size:11px;color:#6b7280;letter-spacing:0.3px">LINHA DIGITÁVEL <span style="text-transform:none;letter-spacing:0">· copie e cole no app do seu banco</span></div>'
+                          f'<div style="font-family:Consolas,Menlo,monospace;font-size:14px;font-weight:bold;color:#111827;word-break:break-all;margin-top:4px">{escape(linha)}</div>'
+                          '</td></tr></table></td></tr>')
+        pad_b = "0" if linha_html else "10px"
+        th = 'align="left" style="font-size:12px;color:#9ca3af;padding-bottom:6px;font-weight:bold"'
+        tabela = ('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0"><tr>'
+                  f'<th {th}>{_mk("rotulo_venc", escape(campo(lay["rotulo_venc"]) or "Vencimento"))}</th><th {th}>{_mk("rotulo_valor", escape(campo(lay["rotulo_valor"]) or "Valor"))}</th><th></th></tr>'
+                  f'<tr><td style="padding:10px 8px {pad_b} 0;font-size:14px;color:#111827;white-space:nowrap"><b>{venc.strftime("%d/%m/%Y") if venc else "-"}</b></td>'
+                  f'<td style="padding:10px 8px {pad_b} 0;font-size:14px;color:#111827;white-space:nowrap"><b>{escape(brl(e.valor))}</b></td>'
+                  f'<td style="padding:10px 0 {pad_b} 0;text-align:right">{acao}</td></tr>{linha_html}</table>')
+        secao = secao_html(campo(lay["secao_titulo"]) or "Dados do boleto", campo(lay["secao_sub"]) or "Confira as informações e a forma de pagamento:", None, tabela)
+    else:
+        cartoes = [("icone-banco", brl(e.valor), campo(lay["card_valor"]) or f"Boleto bancário · competência {competencia_de(venc) if venc else '-'}"),
+                   ("icone-calendario", venc.strftime("%d/%m/%Y") if venc else "-", campo(lay["card_venc"]) or "Data de vencimento")]
+        secao = secao_html(campo(lay["secao_titulo"]) or "Dados do boleto", campo(lay["secao_sub"]) or "Confira as informações e a forma de pagamento:", cartoes, cta)
     html = layout_email(campo(lay["titulo"]) or assunto, "".join(paras), secao, cfg, preheader=campo(lay["preheader"]) or re.sub(r"\s+", " ", corpo)[:110])
     anexos = []
     if itau and anexo and anexo.get("bytes"):

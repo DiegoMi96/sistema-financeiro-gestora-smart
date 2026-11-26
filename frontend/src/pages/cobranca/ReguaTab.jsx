@@ -200,6 +200,14 @@ const BLOCO_ETAPAS = [
   ['card_venc', 'Texto do cartão de vencimento', 'Data de vencimento'],
   ['botao_fatura', 'Texto do botão da fatura (Asaas)', 'Ver fatura'],
 ]
+const BLOCO_TABELA = [   // etapas com a tabela igual à do lançamento (Vencimento | Valor | botão)
+  ['secao_titulo', 'Título do bloco', 'Dados do boleto'],
+  ['secao_sub', 'Subtítulo', 'Confira as informações e a forma de pagamento:'],
+  ['rotulo_venc', 'Nome da coluna de vencimento', 'Vencimento'],
+  ['rotulo_valor', 'Nome da coluna de valor', 'Valor'],
+  ['botao_fatura', 'Texto do botão da fatura (Asaas)', 'Ver fatura'],
+]
+const ETAPAS_TABELA = ['vence_hoje']
 const GLOBAL_DUVIDAS = [
   ['duvida_titulo', 'Título'],
   ['duvida_texto', 'Texto', true],
@@ -273,7 +281,7 @@ function EditorEtapa({ etapa, aba, campos, camposWa, admin, onClose, onSave }) {
   const gMudou = !!(g && gOrig && JSON.stringify(g) !== JSON.stringify(gOrig))
   const [foco, setFoco] = useState(null)          // texto sendo editado direto na prévia (enquanto isso a prévia não recarrega)
   const lanc = etapa.chave === 'lancamento'
-  const bloco = lanc ? BLOCO_LANCAMENTO : BLOCO_ETAPAS
+  const bloco = lanc ? BLOCO_LANCAMENTO : ETAPAS_TABELA.includes(etapa.chave) ? BLOCO_TABELA : BLOCO_ETAPAS
   const padroes = Object.fromEntries(bloco.map(([k, , p]) => [k, p]))
   const setL = (k, v) => mudaVersao('layout', l => ({ ...l, [k]: v }))
   const copiarAsaas = () => window.confirm('Substituir o texto do Itaú pelo texto do Asaas?') && setVersoes(s => ({ ...s, itau: s.asaas }))
