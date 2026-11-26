@@ -18,6 +18,7 @@ import re
 import smtplib
 import ssl
 import logging
+import contextvars
 from datetime import date, datetime, timedelta, timezone
 from email.message import EmailMessage
 from email.utils import formatdate, make_msgid
@@ -454,21 +455,34 @@ def _titulo_em_duas_linhas(t: str) -> tuple:
     return " ".join(p[:k]), " ".join(p[k:])
 
 
+# Prévia editável (tela da régua): marca cada texto editável com data-campo="<chave>" para o editor clicar e digitar
+# direto no e-mail. Só a rota de prévia liga isto; o e-mail enviado de verdade sai sem marcação nenhuma (byte-idêntico).
+MARCAR_CAMPOS = contextvars.ContextVar("cobranca_marcar_campos", default=False)
+
+
+def _mk(campo: str, html: str, bloco: bool = False) -> str:
+    if not MARCAR_CAMPOS.get():
+        return html
+    tag = "div" if bloco else "span"
+    return f'<{tag} data-campo="{campo}">{html}</{tag}>'
+
+
 def secao_html(titulo: str, subtitulo: str, cartoes: list = None, extra: str = "") -> str:
     """Bloco 'O que muda' do modelo: barrinha verde, título, até 2 cartões (ícone, destaque, texto) e HTML extra."""
     out = ('<tr><td class="px" style="padding:36px 48px 0 48px;font-family:Arial,Helvetica,sans-serif;">'
            '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td width="36" style="width:36px;height:3px;line-height:3px;font-size:0;background-color:#3cc46a;">&nbsp;</td></tr></table>'
-           f'<p style="margin:14px 0 4px 0;font-size:24px;line-height:30px;font-weight:bold;color:#111827;">{escape(titulo)}</p>'
-           + (f'<p style="margin:0;font-size:15px;line-height:22px;color:#6b7280;">{escape(subtitulo)}</p>' if subtitulo else '') + '</td></tr>')
+           f'<p style="margin:14px 0 4px 0;font-size:24px;line-height:30px;font-weight:bold;color:#111827;">{_mk("secao_titulo", escape(titulo))}</p>'
+           + (f'<p style="margin:0;font-size:15px;line-height:22px;color:#6b7280;">{_mk("secao_sub", escape(subtitulo))}</p>' if subtitulo else '') + '</td></tr>')
     if cartoes:
         def card(ic, destaque, txt, esq):
+            chave = "card_valor" if esq else "card_venc"
             pad = "4px 20px 4px 0px" if esq else "4px 0px 4px 20px"
             return (f'<td class="col" width="275" valign="top" style="width:255px;padding:{pad};">'
                     '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr>'
                     f'<td width="44" valign="top" style="width:36px;padding:0 8px 0 0;"><img src="cid:{ic}" width="36" height="36" alt="" style="display:block;width:36px;height:36px;border:0;"></td>'
                     '<td valign="top" style="font-family:Arial,Helvetica,sans-serif;">'
                     f'<p style="margin:2px 0 4px 0;font-size:14px;line-height:19px;font-weight:bold;color:#111827;">{escape(destaque)}</p>'
-                    f'<p style="margin:0;font-size:13px;line-height:19px;color:#5b6472;">{escape(txt)}</p></td></tr></table></td>')
+                    f'<p style="margin:0;font-size:13px;line-height:19px;color:#5b6472;">{_mk(chave, escape(txt))}</p></td></tr></table></td>')
         celulas = card(*cartoes[0], True)
         if len(cartoes) > 1:
             celulas += ('<td class="col-gap" width="1" style="width:1px;background-color:#e5e7eb;font-size:0;line-height:0;">&nbsp;</td>' + card(*cartoes[1], False))
@@ -495,6 +509,7 @@ def layout_email(titulo: str, corpo_paras: str, secao: str, cfg: dict = None, pr
         antes, comp, depois = titulo[:m_comp.start()].rstrip(), m_comp.group(0), titulo[m_comp.end():].strip()
         a = (escape(antes) + " " if antes else "") + f'<span style="color:#22a447;">{escape(comp)}</span>'
         b = f'<span style="color:#111827;">{escape(depois)}</span>' if depois else ""
+    a, b = _mk("titulo", a), _mk("titulo", b)
     ano = str(datetime.now(ZoneInfo("America/Sao_Paulo")).year)
     from urllib.parse import quote_plus
 
@@ -509,14 +524,14 @@ def layout_email(titulo: str, corpo_paras: str, secao: str, cfg: dict = None, pr
     em = lambda v: escape(re.sub(r"[^A-Za-z0-9._%+@-]", "", v or ""), quote=True)
     slogan = escape(g["rodape_slogan"]).replace(" | ", "&nbsp;|&nbsp;")
     mapa = dict((("TITLE", escape(titulo)), ("PREHEADER", escape(preheader or titulo)), ("H1A", a),
-                 ("H1B", b), ("CORPO", corpo_paras), ("SECAO", secao),
-                 ("DUVIDA_TITULO", escape(g["duvida_titulo"])), ("DUVIDA_TEXTO", escape(g["duvida_texto"])),
-                 ("CONTATO_EMAIL", em(g["contato_email"])), ("CONTATO_FONE", escape(g["contato_fone"])),
-                 ("REDES_TEXTO", escape(g["redes_texto"])), ("TD_REDES", redes),
-                 ("RODAPE_EMAIL", em(g["rodape_email"])), ("ENDERECO", escape(g["rodape_endereco"])),
+                 ("H1B", b), ("CORPO", _mk("texto", corpo_paras, bloco=True)), ("SECAO", secao),
+                 ("DUVIDA_TITULO", _mk("duvida_titulo", escape(g["duvida_titulo"]))), ("DUVIDA_TEXTO", _mk("duvida_texto", escape(g["duvida_texto"]))),
+                 ("CONTATO_EMAIL", em(g["contato_email"])), ("CONTATO_FONE", _mk("contato_fone", escape(g["contato_fone"]))),
+                 ("REDES_TEXTO", _mk("redes_texto", escape(g["redes_texto"]))), ("TD_REDES", redes),
+                 ("RODAPE_EMAIL", em(g["rodape_email"])), ("ENDERECO", _mk("rodape_endereco", escape(g["rodape_endereco"]))),
                  ("MAPS_URL", "https://www.google.com/maps/search/?api=1&amp;query=" + quote_plus(g["rodape_endereco"])),
-                 ("COPYRIGHT", escape(g["rodape_copyright"].replace("{ano}", ano))),
-                 ("DESCADASTRO_TEXTO", escape(g["rodape_descadastro"])), ("SLOGAN", slogan)))
+                 ("COPYRIGHT", _mk("rodape_copyright", escape(g["rodape_copyright"].replace("{ano}", ano)))),
+                 ("DESCADASTRO_TEXTO", _mk("rodape_descadastro", escape(g["rodape_descadastro"]))), ("SLOGAN", _mk("rodape_slogan", slogan))))
     return re.sub(r"\{\{([A-Z_0-9]+)\}\}", lambda x: mapa.get(x.group(1), x.group(0)), m)
 
 
@@ -564,7 +579,7 @@ def montar_email(e, et, cfg: dict, hoje: date, anexo: dict = None, link_atual: s
                + '</td></tr></table>')
     elif e.link:
         cta = (f'<table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 20px"><tr><td style="background:#16a34a;border-radius:8px">'
-               f'<a href="{escape(e.link, quote=True)}" style="display:inline-block;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:13px 26px">{escape(campo(lay["botao_fatura"]) or "Ver fatura")}</a></td></tr></table>')
+               f'<a href="{escape(e.link, quote=True)}" style="display:inline-block;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:13px 26px">{_mk("botao_fatura", escape(campo(lay["botao_fatura"]) or "Ver fatura"))}</a></td></tr></table>')
     else:
         cta = ''
     cartoes = [("icone-banco", brl(e.valor), campo(lay["card_valor"]) or f"Boleto bancário · competência {competencia_de(venc) if venc else '-'}"),
@@ -991,7 +1006,7 @@ def montar_email_lancamento(e, et, cfg: dict, hoje: date, boletos: list) -> dict
         acao, linha_html = "", ""
         if b.get("link"):
             acao = (f'<a href="{escape(b["link"], quote=True)}" style="display:inline-block;background:#16a34a;color:#ffffff;text-decoration:none;'
-                    f'font-weight:700;font-size:13px;padding:8px 16px;border-radius:6px">{escape(botao)}</a>')
+                    f'font-weight:700;font-size:13px;padding:8px 16px;border-radius:6px">{_mk("botao_fatura", escape(botao))}</a>')
         elif b.get("anexo"):
             acao = ('<span style="display:inline-block;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;font-size:12px;'
                     'font-weight:700;padding:5px 12px;border-radius:999px;white-space:nowrap">PDF anexado</span>')
@@ -1014,7 +1029,7 @@ def montar_email_lancamento(e, et, cfg: dict, hoje: date, boletos: list) -> dict
     paras = "".join(f'<p style="margin:0 0 16px 0;">{escape(bl).replace(chr(10), "<br>")}</p>' for bl in corpo.split("\n\n"))
     th = 'align="left" style="font-size:12px;color:#9ca3af;padding-bottom:6px;font-weight:bold"'
     tabela = ('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0"><tr>'
-              f'<th {th}>{escape(campo(lay["rotulo_venc"]) or "Vencimento")}</th><th {th}>{escape(campo(lay["rotulo_valor"]) or "Valor")}</th><th></th></tr>'
+              f'<th {th}>{_mk("rotulo_venc", escape(campo(lay["rotulo_venc"]) or "Vencimento"))}</th><th {th}>{_mk("rotulo_valor", escape(campo(lay["rotulo_valor"]) or "Valor"))}</th><th></th></tr>'
               + "".join(linhas_html) + '</table>')
     secao = secao_html(campo(lay["secao_titulo"]) or ("Suas faturas" if n > 1 else "Sua fatura"),
                        campo(lay["secao_sub"]) or "Consulte os dados da cobrança e a data de vencimento:", None, tabela)

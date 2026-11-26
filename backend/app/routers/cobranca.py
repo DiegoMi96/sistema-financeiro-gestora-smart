@@ -417,7 +417,11 @@ def previa_etapa(chave: str, body: PreviaIn, current_user=_ler, db: Session = De
             lay = None
             if body.layout is not None:
                 lay = _limpa_layout(body.layout, svc.LAYOUT_ETAPA)
-            ex = svc.exemplo_email(et, body.assunto, body.texto, cfg, svc.hoje_br(), body.origem, lay)
+            marca = svc.MARCAR_CAMPOS.set(True)            # prévia editável: textos marcados para editar clicando no e-mail
+            try:
+                ex = svc.exemplo_email(et, body.assunto, body.texto, cfg, svc.hoje_br(), body.origem, lay)
+            finally:
+                svc.MARCAR_CAMPOS.reset(marca)
             html = ex["html"]
             assunto = ex["assunto"] or assunto                 # assunto do MESMO exemplo do HTML (senão a competência diverge)
         except Exception:                                      # prévia visual nunca derruba a edição da etapa

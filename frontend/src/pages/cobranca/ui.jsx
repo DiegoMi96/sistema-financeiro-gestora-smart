@@ -40,7 +40,7 @@ export function Chip({ status }) {
 export function Modal({ titulo, onClose, children, largo }) {
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
-      <div className={`bg-white rounded-xl w-full ${largo ? 'max-w-3xl' : 'max-w-md'} max-h-[90vh] overflow-y-auto`} onClick={e => e.stopPropagation()}>
+      <div className={`bg-white rounded-xl w-full ${largo === 'xl' ? 'max-w-6xl' : largo ? 'max-w-3xl' : 'max-w-md'} max-h-[90vh] overflow-y-auto`} onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
           <p className="font-semibold text-gray-800">{titulo}</p>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700" aria-label="Fechar"><X size={18} /></button>

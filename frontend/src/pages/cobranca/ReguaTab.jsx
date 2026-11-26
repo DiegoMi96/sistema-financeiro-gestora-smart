@@ -93,9 +93,23 @@ export default function ReguaTab({ admin }) {
 }
 
 const ALTURA_EMAIL = 1250
+// Campos de várias linhas na edição direta (Enter quebra linha); nos outros, Enter conclui.
+const MULTILINHA = new Set(['texto', 'duvida_texto'])
+const CSS_EDICAO = `
+[data-campo]{cursor:text;border-radius:3px}
+[data-campo]:hover{outline:1px dashed #22a447;outline-offset:3px}
+[data-campo]:focus{outline:2px solid #22a447;outline-offset:3px;background:rgba(240,253,244,.92);color:#111827}
+[data-campo="texto"]:focus,[data-campo="duvida_texto"]:focus{white-space:pre-wrap;display:block}
+a [data-campo]:focus{color:#111827}`
+
 // E-mail mostrado em tamanho de computador (640 px) e reduzido para caber na coluna; rola na vertical.
-function PreviaEmail({ html }) {
+// Com `editor`, cada texto marcado pelo servidor (data-campo) vira editável: clicou, aparece o texto "cru"
+// (com {competencia}, {nome}…), digita, e ao sair a prévia é refeita com os dados do exemplo.
+function PreviaEmail({ html, editor }) {
   const ref = useRef(null)
+  const frame = useRef(null)
+  const ed = useRef(editor)
+  ed.current = editor
   const [largura, setLargura] = useState(640)
   useEffect(() => {
     const el = ref.current
@@ -107,37 +121,131 @@ function PreviaEmail({ html }) {
     return () => ro.disconnect()
   }, [])
   const escala = Math.min(1, largura / 640)
+
+  const ligar = () => {
+    const doc = frame.current?.contentDocument
+    if (!doc || !ed.current) return
+    const st = doc.createElement('style')
+    st.textContent = CSS_EDICAO
+    doc.head.appendChild(st)
+    doc.addEventListener('click', ev => { if (ev.target.closest && ev.target.closest('a')) ev.preventDefault() }, true)   // links não navegam dentro da prévia
+    const grupos = {}
+    doc.querySelectorAll('[data-campo]').forEach(el => { (grupos[el.dataset.campo] = grupos[el.dataset.campo] || []).push(el) })
+    Object.entries(grupos).forEach(([k, [prim, ...resto]]) => {
+      if (!ed.current.editavel(k)) return
+      try { prim.contentEditable = 'plaintext-only' } catch { prim.contentEditable = 'true' }
+      if (prim.contentEditable !== 'plaintext-only') prim.contentEditable = 'true'
+      prim.spellcheck = true
+      prim.title = 'Clique para editar'
+      resto.forEach(el => {                                  // ex.: 2ª linha do título → edita junto com a 1ª
+        el.style.cursor = 'text'
+        el.addEventListener('mousedown', ev => { ev.preventDefault(); prim.focus() })
+      })
+      let original = null, inicial = null                    // para desfazer a troca visual se sair sem mudar nada
+      prim.addEventListener('focus', () => {
+        original = prim.innerHTML
+        inicial = ed.current.bruto(k)
+        resto.forEach(el => { el.style.display = 'none' })
+        prim.innerText = inicial
+        const sel = doc.getSelection(); const r = doc.createRange()
+        r.selectNodeContents(prim); r.collapse(false); sel.removeAllRanges(); sel.addRange(r)
+        ed.current.foco(k)
+      })
+      prim.addEventListener('input', () => {
+        let v = prim.innerText.replace(/ /g, ' ')
+        v = MULTILINHA.has(k) ? v.replace(/\n+$/, '') : v.replace(/\s*\n\s*/g, ' ').trim()
+        ed.current.editar(k, v)
+      })
+      prim.addEventListener('keydown', ev => {
+        if (ev.key === 'Escape' || (ev.key === 'Enter' && !MULTILINHA.has(k))) { ev.preventDefault(); prim.blur() }
+      })
+      prim.addEventListener('paste', ev => {                 // cola só texto (sem formatação de Word/site)
+        ev.preventDefault()
+        doc.execCommand('insertText', false, (ev.clipboardData?.getData('text/plain') || ''))
+      })
+      prim.addEventListener('blur', () => {
+        if (original !== null && ed.current.bruto(k) === inicial) {           // nada mudou: volta a mostrar como estava (com o mês, cores etc.)
+          prim.innerHTML = original
+          resto.forEach(el => { el.style.display = '' })
+        }
+        original = null
+        ed.current.foco(null)
+      })
+    })
+  }
+
   return (
-    <div ref={ref} className="w-full border border-gray-200 rounded-lg bg-gray-100 overflow-y-auto overflow-x-hidden" style={{ height: 560 }}>
+    <div ref={ref} className="w-full border border-gray-200 rounded-lg bg-gray-100 overflow-y-auto overflow-x-hidden" style={{ height: 600 }}>
       <div style={{ height: ALTURA_EMAIL * escala, overflow: 'hidden' }}>
-        <iframe title="Prévia do e-mail" sandbox="" srcDoc={html} style={{ width: 640, height: ALTURA_EMAIL, border: 0, transform: `scale(${escala})`, transformOrigin: 'top left' }} />
+        <iframe ref={frame} title="Prévia do e-mail" sandbox={editor ? 'allow-same-origin' : ''} srcDoc={html} onLoad={ligar}
+          style={{ width: 640, height: ALTURA_EMAIL, border: 0, transform: `scale(${escala})`, transformOrigin: 'top left' }} />
       </div>
     </div>
   )
 }
 
-// Campos do layout por etapa, na ordem em que aparecem no e-mail; o 3º item é o texto padrão (o que sai se ficar em branco).
+// Campos do e-mail por seção, na ordem em que aparecem. [chave, rótulo, padrão (o que sai se ficar em branco), várias linhas?]
 // O lançamento do ciclo usa uma tabela (vencimento/valor/botão); as outras etapas usam cartões.
-const CAMPOS_TOPO = [
-  ['titulo', 'Título grande do e-mail (faixa cinza)', 'igual ao assunto'],
-  ['preheader', 'Texto de pré-visualização (aparece na caixa de entrada, antes de abrir)', 'as primeiras palavras da mensagem'],
-]
-const CAMPOS_LAYOUT_LANCAMENTO = [
-  ...CAMPOS_TOPO,
-  ['secao_titulo', 'Título do bloco da fatura', 'Sua fatura'],
-  ['secao_sub', 'Subtítulo do bloco da fatura', 'Consulte os dados da cobrança e a data de vencimento:'],
+const BLOCO_LANCAMENTO = [
+  ['secao_titulo', 'Título do bloco', 'Sua fatura'],
+  ['secao_sub', 'Subtítulo', 'Consulte os dados da cobrança e a data de vencimento:'],
   ['rotulo_venc', 'Nome da coluna de vencimento', 'Vencimento'],
   ['rotulo_valor', 'Nome da coluna de valor', 'Valor'],
   ['botao_fatura', 'Texto do botão da fatura (Asaas)', 'Ver fatura'],
 ]
-const CAMPOS_LAYOUT_ETAPAS = [
-  ...CAMPOS_TOPO,
-  ['secao_titulo', 'Título do bloco de dados', 'Dados do boleto'],
-  ['secao_sub', 'Subtítulo do bloco de dados', 'Confira as informações e a forma de pagamento:'],
+const BLOCO_ETAPAS = [
+  ['secao_titulo', 'Título do bloco', 'Dados do boleto'],
+  ['secao_sub', 'Subtítulo', 'Confira as informações e a forma de pagamento:'],
   ['card_valor', 'Texto do cartão de valor', 'Boleto bancário · competência {competencia}'],
   ['card_venc', 'Texto do cartão de vencimento', 'Data de vencimento'],
   ['botao_fatura', 'Texto do botão da fatura (Asaas)', 'Ver fatura'],
 ]
+const GLOBAL_DUVIDAS = [
+  ['duvida_titulo', 'Título'],
+  ['duvida_texto', 'Texto', true],
+  ['contato_email', 'E-mail de contato'],
+  ['contato_fone', 'Telefone de contato'],
+]
+const GLOBAL_RODAPE = [
+  ['redes_texto', 'Chamada das redes sociais'],
+  ['url_instagram', 'Link do Instagram (https://… — vazio esconde o ícone)'],
+  ['url_linkedin', 'Link do LinkedIn (https://… — vazio esconde o ícone)'],
+  ['rodape_email', 'E-mail do rodapé (também recebe os descadastros)'],
+  ['rodape_endereco', 'Endereço'],
+  ['rodape_copyright', 'Linha de direitos (use {ano} para o ano atual)'],
+  ['rodape_descadastro', 'Texto do link de descadastro'],
+  ['rodape_slogan', 'Slogan (separe os itens com |)'],
+]
+const CHAVES_GLOBAIS = new Set([...GLOBAL_DUVIDAS, ...GLOBAL_RODAPE].map(c => c[0]))
+
+function Secao({ n, titulo, todas, children }) {
+  return (
+    <div className="border border-gray-100 rounded-lg p-3 space-y-2 bg-white">
+      <p className="text-xs font-semibold text-gray-700 flex items-center gap-2">
+        <span className="w-5 h-5 rounded-full bg-green-50 text-green-700 flex items-center justify-center text-[11px]">{n}</span>
+        {titulo}
+        {todas && <span className="ml-auto text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">vale para todas as etapas</span>}
+      </p>
+      {children}
+    </div>
+  )
+}
+
+function Campo({ id, rotulo, ativo, padrao, valor, longo, disabled, onChange, onPadrao }) {
+  const cls = `w-full border rounded-lg p-2 text-sm mt-1 text-gray-800 ${ativo ? 'border-green-500 ring-2 ring-green-100' : 'border-gray-200'}`
+  return (
+    <label id={`campo-${id}`} className="text-xs text-gray-500 block">
+      <span className="flex items-center justify-between">
+        {rotulo}
+        {!disabled && onPadrao && <button type="button" onClick={onPadrao} className="text-[11px] text-gray-400 hover:text-green-700">↺ voltar ao padrão</button>}
+      </span>
+      {longo
+        ? <textarea rows={longo === true ? 3 : longo} value={valor} placeholder={padrao} disabled={disabled} onChange={e => onChange(e.target.value)} className={cls} />
+        : <input value={valor} placeholder={padrao} disabled={disabled} onChange={e => onChange(e.target.value)} className={cls} />}
+    </label>
+  )
+}
+
 const EXEMPLO_WA = { nome: 'Cliente Exemplo LTDA', valor: 'R$ 1.240,50', vencimento: '03/11/2026', competencia: 'outubro/2026', link: 'https://www.asaas.com/i/exemplo', dias_atraso: '3', data_limite: '06/11/2026' }
 
 function EditorEtapa({ etapa, aba, campos, camposWa, admin, onClose, onSave }) {
@@ -151,24 +259,53 @@ function EditorEtapa({ etapa, aba, campos, camposWa, admin, onClose, onSave }) {
   const [waId, setWaId] = useState(etapa.wa_template_id || '')
   const [waParams, setWaParams] = useState(etapa.wa_params || [])
   const [waTexto, setWaTexto] = useState(etapa.wa_texto || '')
-  const [verLayout, setVerLayout] = useState(true)
   const email = aba === 'email'
+  const qc = useQueryClient()
+  // textos globais (dúvidas, contatos, rodapé): editados aqui também, salvos junto e valem para todas as etapas
+  const { data: glob } = useQuery({ queryKey: ['cobranca-layout-global'], queryFn: () => cobrancaApi.layoutGlobal().then(r => r.data), enabled: email, staleTime: 0 })
+  const [g, setG] = useState(null)
+  const [gOrig, setGOrig] = useState(null)
+  useEffect(() => { if (glob && !g) { setG(glob.layout); setGOrig(glob.layout) } }, [glob])  // eslint-disable-line react-hooks/exhaustive-deps
+  const gMudou = !!(g && gOrig && JSON.stringify(g) !== JSON.stringify(gOrig))
+  const [foco, setFoco] = useState(null)          // texto sendo editado direto na prévia (enquanto isso a prévia não recarrega)
+  const lanc = etapa.chave === 'lancamento'
+  const bloco = lanc ? BLOCO_LANCAMENTO : BLOCO_ETAPAS
+  const padroes = Object.fromEntries(bloco.map(([k, , p]) => [k, p]))
+  const setL = (k, v) => setLayout(l => ({ ...l, [k]: v }))
   const whats = aba === 'whatsapp'
   const alternar = c => setWaParams(p => (p.includes(c) ? p.filter(x => x !== c) : [...p, c]))
   const fixo = ['consentimento', 'lancamento'].includes(etapa.chave)
 
   useEffect(() => {
-    if (!email) return
-    const t = setTimeout(() => cobrancaApi.previaEtapa(etapa.chave, { assunto, texto, origem, layout }).then(r => setPrevia(r.data)).catch(() => {}), 350)
+    if (!email || foco) return
+    const t = setTimeout(() => cobrancaApi.previaEtapa(etapa.chave, { assunto, texto, origem, layout, ...(gMudou ? { layout_global: g } : {}) }).then(r => setPrevia(r.data)).catch(() => {}), 350)
     return () => clearTimeout(t)
-  }, [assunto, texto, origem, layout])  // eslint-disable-line react-hooks/exhaustive-deps
+  }, [assunto, texto, origem, layout, g, foco])  // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (foco) document.getElementById(`campo-${foco}`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }) }, [foco])
+
+  // edição direta na prévia: o que aparece ao clicar (texto "cru", com {campos}) e para onde vai o que foi digitado
+  const editor = admin ? {
+    editavel: k => k === 'texto' || k === 'titulo' || k in padroes || (CHAVES_GLOBAIS.has(k) && !!g),
+    bruto: k => (k === 'texto' ? texto : k === 'titulo' ? (layout.titulo || assunto) : CHAVES_GLOBAIS.has(k) ? (g?.[k] || '') : (layout[k] || padroes[k] || '')),
+    editar: (k, v) => {
+      if (k === 'texto') setTexto(v)
+      else if (CHAVES_GLOBAIS.has(k)) setG(x => ({ ...x, [k]: v }))
+      else if (k === 'titulo') setL('titulo', v === assunto ? '' : v)
+      else setL(k, v === padroes[k] ? '' : v)
+    },
+    foco: setFoco,
+  } : null
 
   const inserir = c => setTexto(t => `${t}{${c}}`)
   const titulo = `${etapa.nome} — ${email ? 'E-mail' : whats ? 'WhatsApp' : 'configuração'}`
   const balao = waParams.reduce((t, c, i) => t.split(`{{${i + 1}}}`).join(EXEMPLO_WA[c] || c), waTexto)
 
-  const salvar = () => {
+  const salvar = async () => {
     if (modo === 'automatico' && etapa.modo !== 'automatico' && !window.confirm('Esta etapa passará a ENVIAR SOZINHA, sem aprovação do analista (dentro da janela de envio e só com a chave geral ligada). Confirmar?')) return
+    if (email && gMudou) {
+      try { await cobrancaApi.salvarLayoutGlobal({ layout: g }); qc.invalidateQueries({ queryKey: ['cobranca-layout-global'] }); setGOrig(g) }
+      catch (e) { toast.error(e.response?.data?.detail || 'Erro ao salvar dúvidas/rodapé'); return }
+    }
     onSave({
       ...(etapa.chave === 'consentimento' ? {} : etapa.chave === 'lancamento' ? { modo } : { dias, modo }),
       ...(email ? { assunto, texto, layout } : {}),
@@ -177,7 +314,7 @@ function EditorEtapa({ etapa, aba, campos, camposWa, admin, onClose, onSave }) {
   }
 
   return (
-    <Modal titulo={titulo} onClose={onClose} largo>
+    <Modal titulo={titulo} onClose={onClose} largo={email ? 'xl' : true}>
       <div className={`grid grid-cols-2 gap-3 mb-4 ${fixo ? 'hidden' : ''}`}>
         <label className="text-xs text-gray-500">Prazo (dias; negativo = antes do vencimento)
           <input type="number" value={dias} disabled={!admin} onChange={e => setDias(parseInt(e.target.value || '0', 10))} className="w-full border border-gray-200 rounded-lg p-2 text-sm mt-1 text-gray-800" />
@@ -190,26 +327,46 @@ function EditorEtapa({ etapa, aba, campos, camposWa, admin, onClose, onSave }) {
         </label>
       </div>
       {email && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label className="text-xs text-gray-500 block">Assunto do e-mail
-              <input value={assunto} disabled={!admin} onChange={e => setAssunto(e.target.value)} className="w-full border border-gray-200 rounded-lg p-2 text-sm mt-1 text-gray-800" />
-            </label>
-            <label className="text-xs text-gray-500 block">Mensagem
-              <textarea rows={9} value={texto} disabled={!admin} onChange={e => setTexto(e.target.value)} className="w-full border border-gray-200 rounded-lg p-2 text-sm mt-1 text-gray-800" />
-            </label>
-            {admin && <div className="flex flex-wrap gap-1.5">{campos.map(c => <button key={c} onClick={() => inserir(c)} className="text-xs px-2 py-0.5 rounded bg-blue-50 text-blue-700">{`{${c}}`}</button>)}</div>}
-            <button onClick={() => setVerLayout(v => !v)} className="text-xs text-green-700 font-medium pt-1">{verLayout ? '▾' : '▸'} Demais textos do e-mail (título, bloco da fatura, botão)</button>
-            {verLayout && (
-              <div className="space-y-2 border border-gray-100 rounded-lg p-3 bg-gray-50">
-                {(etapa.chave === 'lancamento' ? CAMPOS_LAYOUT_LANCAMENTO : CAMPOS_LAYOUT_ETAPAS).map(([k, rotulo, padrao]) => (
-                  <label key={k} className="text-xs text-gray-500 block">{rotulo}
-                    <input value={layout[k] || ''} disabled={!admin} placeholder={padrao} onChange={e => setLayout(l => ({ ...l, [k]: e.target.value }))} className="w-full border border-gray-200 rounded-lg p-2 text-sm mt-1 text-gray-800 bg-white" />
-                  </label>
-                ))}
-                <p className="text-xs text-gray-400">Deixe em branco para usar o texto padrão. Aceita os mesmos campos da mensagem, como {'{nome}'} e {'{competencia}'}. O bloco “Ficou com alguma dúvida?”, os contatos e o rodapé são os mesmos em todas as etapas: edite pelo botão “Rodapé e contatos do e-mail”, na lista da régua.</p>
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] gap-4">
+          <div className="space-y-3 md:max-h-[640px] md:overflow-y-auto md:pr-1">
+            <Secao n={1} titulo="Caixa de entrada">
+              <Campo id="assunto" rotulo="Assunto do e-mail" valor={assunto} disabled={!admin} onChange={setAssunto} />
+              <Campo id="preheader" rotulo="Texto de pré-visualização (aparece na caixa de entrada, antes de abrir)" padrao="as primeiras palavras da mensagem"
+                valor={layout.preheader || ''} disabled={!admin} onChange={v => setL('preheader', v)} onPadrao={layout.preheader ? () => setL('preheader', '') : null} />
+            </Secao>
+            <Secao n={2} titulo="Título grande (faixa cinza)">
+              <Campo id="titulo" rotulo="Título — o mês da competência sai em verde" padrao={`igual ao assunto: ${assunto}`} ativo={foco === 'titulo'}
+                valor={layout.titulo || ''} disabled={!admin} onChange={v => setL('titulo', v)} onPadrao={layout.titulo ? () => setL('titulo', '') : null} />
+            </Secao>
+            <Secao n={3} titulo="Mensagem">
+              <Campo id="texto" rotulo="Texto" longo={8} valor={texto} ativo={foco === 'texto'} disabled={!admin} onChange={setTexto} />
+              {admin && <div className="flex flex-wrap gap-1.5">{campos.map(c => <button key={c} onClick={() => inserir(c)} className="text-xs px-2 py-0.5 rounded bg-blue-50 text-blue-700">{`{${c}}`}</button>)}</div>}
+            </Secao>
+            <Secao n={4} titulo={lanc ? 'Bloco da fatura' : 'Dados do boleto'}>
+              {bloco.map(([k, rotulo, padrao]) => (
+                <Campo key={k} id={k} rotulo={rotulo} padrao={padrao} ativo={foco === k} valor={layout[k] || ''} disabled={!admin}
+                  onChange={v => setL(k, v)} onPadrao={layout[k] ? () => setL(k, '') : null} />
+              ))}
+              <p className="text-[11px] text-gray-400">Nos boletos do Itaú, no lugar do botão aparece o selo “PDF anexado”.</p>
+            </Secao>
+            {!g ? <p className="text-xs text-gray-400">Carregando dúvidas e rodapé…</p> : (
+              <>
+                <Secao n={5} titulo="Dúvidas e contatos" todas>
+                  {GLOBAL_DUVIDAS.map(([k, rotulo, longo]) => (
+                    <Campo key={k} id={k} rotulo={rotulo} longo={longo} ativo={foco === k} valor={g[k] || ''} disabled={!admin}
+                      onChange={v => setG(x => ({ ...x, [k]: v }))} onPadrao={glob?.padrao && g[k] !== glob.padrao[k] ? () => setG(x => ({ ...x, [k]: glob.padrao[k] })) : null} />
+                  ))}
+                </Secao>
+                <Secao n={6} titulo="Rodapé" todas>
+                  {GLOBAL_RODAPE.map(([k, rotulo, longo]) => (
+                    <Campo key={k} id={k} rotulo={rotulo} longo={longo} ativo={foco === k} valor={g[k] || ''} disabled={!admin}
+                      onChange={v => setG(x => ({ ...x, [k]: v }))} onPadrao={glob?.padrao && g[k] !== glob.padrao[k] ? () => setG(x => ({ ...x, [k]: glob.padrao[k] })) : null} />
+                  ))}
+                  <p className="text-[11px] text-gray-400">O link de descadastro só abre um e-mail para o endereço do rodapé: o descadastro é tratado por uma pessoa.</p>
+                </Secao>
+              </>
             )}
+            <p className="text-xs text-gray-400">Campo em branco usa o texto padrão (o cinza dentro do campo). Todos aceitam os campos da mensagem, como {'{nome}'} e {'{competencia}'}.</p>
           </div>
           <div>
             <div className="flex items-center justify-between mb-1">
@@ -222,8 +379,9 @@ function EditorEtapa({ etapa, aba, campos, camposWa, admin, onClose, onSave }) {
                 </div>
               )}
             </div>
-            <p className="text-sm font-medium text-gray-800 mb-2">Assunto: {previa?.assunto}</p>
-            {previa?.html ? <PreviaEmail html={previa.html} /> : (
+            <p className="text-sm font-medium text-gray-800 mb-1">Assunto: {previa?.assunto}</p>
+            {admin && <p className="text-xs text-green-700 bg-green-50 rounded-md px-2 py-1 mb-2">✎ Clique em qualquer texto do e-mail para editar ali mesmo. Enter (ou clicar fora) conclui; na mensagem, Enter quebra a linha.</p>}
+            {previa?.html ? <PreviaEmail html={previa.html} editor={editor} /> : (
               <div className="bg-gray-50 rounded-lg p-3 text-sm"><pre className="whitespace-pre-wrap font-sans text-gray-700">{previa?.corpo}</pre></div>
             )}
           </div>
@@ -258,7 +416,8 @@ function EditorEtapa({ etapa, aba, campos, camposWa, admin, onClose, onSave }) {
         </div>
       )}
       {admin && (
-        <div className="flex justify-end gap-2 mt-5">
+        <div className="flex justify-end items-center gap-2 mt-5">
+          {email && gMudou && <p className="text-xs text-amber-700 mr-auto">Você mudou textos de dúvidas/rodapé: ao salvar, valem para todas as etapas.</p>}
           <button onClick={onClose} className="text-sm px-3 py-1.5 rounded-lg border border-gray-200">Cancelar</button>
           <button onClick={salvar} className="text-sm px-3 py-1.5 rounded-lg bg-green-600 text-white">Salvar</button>
         </div>
