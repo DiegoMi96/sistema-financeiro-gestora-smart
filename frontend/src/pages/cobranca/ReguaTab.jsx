@@ -207,7 +207,7 @@ const BLOCO_TABELA = [   // etapas com a tabela igual à do lançamento (Vencime
   ['rotulo_valor', 'Nome da coluna de valor', 'Valor'],
   ['botao_fatura', 'Texto do botão da fatura (Asaas)', 'Ver fatura'],
 ]
-const ETAPAS_TABELA = ['vence_hoje', 'lembrete', 'atraso']
+const ETAPAS_TABELA = ['vence_hoje', 'lembrete', 'atraso', 'bloqueio']
 const GLOBAL_DUVIDAS = [
   ['duvida_titulo', 'Título'],
   ['duvida_texto', 'Texto', true],

@@ -40,7 +40,7 @@ ETAPAS_PADRAO = [
                 "O boleto referente a {competencia} já foi emitido e está disponível para pagamento.\n\n"
                 "{link}\n\n"
                 "Qualquer dúvida, é só responder este e-mail.")),
-    dict(chave="lembrete", nome="Lembrete", ordem=1, dias=-5, canais="email", ativa=False, anexa_boleto=False,
+    dict(chave="lembrete", nome="Lembrete", ordem=1, dias=-5, canais="email", ativa=False, anexa_boleto=True,
          assunto="Lembrete: boleto de {competencia} vence em {vencimento}",
          texto=("Olá, {nome}.\n\n"
                 "Este é um lembrete de que o boleto referente a {competencia}, no valor de {valor}, vence em {vencimento}.\n\n"
@@ -60,7 +60,7 @@ ETAPAS_PADRAO = [
                 "Não identificamos o pagamento do boleto referente a {competencia}, no valor de {valor}, que venceu em {vencimento}.\n\n"
                 "{link}\n\n"
                 "Se o pagamento já foi feito, pode desconsiderar esta mensagem. Se precisar negociar, responda este e-mail.")),
-    dict(chave="bloqueio", nome="Aviso de bloqueio", ordem=4, dias=7, canais="email", ativa=True, anexa_boleto=False,
+    dict(chave="bloqueio", nome="Aviso de bloqueio", ordem=4, dias=7, canais="email", ativa=True, anexa_boleto=True,
          assunto="Aviso: risco de bloqueio das linhas — boleto de {competencia}",
          texto=("Olá, {nome}.\n\n"
                 "O boleto referente a {competencia}, no valor de {valor}, venceu em {vencimento} e segue em aberto.\n\n"
@@ -292,10 +292,10 @@ def garantir_etapas(db: Session) -> None:
                                   WHERE chave=:chave AND updated_by IS NULL"""), {**e, "anexa_boleto": bool(e.get("anexa_boleto", False))})
         db.execute(_t("INSERT INTO system_settings (key, value) VALUES ('cobranca_etapas_v2', 'ok') ON CONFLICT (key) DO NOTHING"))
         db.commit()
-    # migração única (26/11/2026, pedido do Diego): "Em atraso" passa a levar o boleto (link do Asaas / PDF do Itaú)
-    if not db.execute(_t("SELECT 1 FROM system_settings WHERE key = 'cobranca_atraso_boleto_v1'")).fetchone():
-        db.execute(_t("UPDATE cobranca_etapas SET anexa_boleto = TRUE WHERE chave = 'atraso'"))
-        db.execute(_t("INSERT INTO system_settings (key, value) VALUES ('cobranca_atraso_boleto_v1', 'ok') ON CONFLICT (key) DO NOTHING"))
+    # migração única (26/11/2026, pedido do Diego): lembrete, atraso e bloqueio passam a levar o boleto (link do Asaas / PDF do Itaú)
+    if not db.execute(_t("SELECT 1 FROM system_settings WHERE key = 'cobranca_boleto_etapas_v1'")).fetchone():
+        db.execute(_t("UPDATE cobranca_etapas SET anexa_boleto = TRUE WHERE chave IN ('lembrete', 'atraso', 'bloqueio')"))
+        db.execute(_t("INSERT INTO system_settings (key, value) VALUES ('cobranca_boleto_etapas_v1', 'ok') ON CONFLICT (key) DO NOTHING"))
         db.commit()
 
 
@@ -378,7 +378,7 @@ def corpo_html(texto: str, rodape: str) -> str:
 
 
 # Etapas cujo bloco do boleto é a tabela "Vencimento | Valor | botão" (igual ao lançamento) em vez dos cartões (pedido do Diego, 26/11/2026)
-ETAPAS_TABELA = {"vence_hoje", "lembrete", "atraso"}
+ETAPAS_TABELA = {"vence_hoje", "lembrete", "atraso", "bloqueio"}
 
 # Campos do layout editáveis POR ETAPA (cobranca_etapas.layout = JSON). Vazio = padrão. Aceitam {campos} como o texto.
 LAYOUT_ETAPA = {"titulo": 200, "preheader": 200, "secao_titulo": 120, "secao_sub": 200, "card_valor": 120, "card_venc": 120,
