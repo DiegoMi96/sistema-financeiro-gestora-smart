@@ -567,7 +567,9 @@ def layout_email(titulo: str, corpo_paras: str, secao: str, cfg: dict = None, pr
         # junto com ela (data em verde). Fonte 25px: a 1ª linha cabe na faixa do título (336px) sem quebrar.
         p = titulo[:m_data.start()].split()
         if len(p) >= 2:
-            fonte = '<span style="font-size:25px;line-height:30px;">{}</span>'
+            # maior fonte (25 → 20px) em que a 1ª linha cabe inteira (pedido do Diego, 26/11: "Pendência de pagamento Vencido")
+            px = next((n for n in (25, 24, 23, 22, 21, 20) if _cabe_numa_linha(" ".join(p[:-1]), n, 330)), 20)
+            fonte = f'<span style="font-size:{px}px;line-height:{px + 5}px;">{{}}</span>'
             a = fonte.format(escape(" ".join(p[:-1])))
             b = fonte.format(f'<span style="color:#111827;">{escape(p[-1])}</span> {escape(m_data.group(0))}')
             m_comp = None
