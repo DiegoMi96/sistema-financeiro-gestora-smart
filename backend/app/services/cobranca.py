@@ -496,6 +496,18 @@ def _titulo_em_duas_linhas(t: str) -> tuple:
 # Prévia editável (tela da régua): marca cada texto editável com data-campo="<chave>" para o editor clicar e digitar
 # direto no e-mail. Só a rota de prévia liga isto; o e-mail enviado de verdade sai sem marcação nenhuma (byte-idêntico).
 _RE_DATA = re.compile(r"\b\d{2}/\d{2}/\d{4}\b")
+
+# largura (Arial negrito, por 1000 da fonte) — para saber se o título cabe numa linha da faixa do cabeçalho (336px)
+_LARG = {**{c: w for c, w in zip("abcdefghijklmnopqrstuvwxyz", (556, 611, 556, 611, 556, 333, 611, 611, 278, 278, 556, 278, 889, 611, 611, 611, 611, 389, 556, 333, 611, 556, 778, 556, 556, 500))},
+         **{c: w for c, w in zip("ABCDEFGHIJKLMNOPQRSTUVWXYZ", (722, 722, 722, 722, 667, 611, 778, 722, 278, 556, 722, 611, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611))},
+         **{c: 556 for c in "0123456789"}, " ": 278, "!": 333, ":": 333, ".": 278, ",": 278, "/": 278, "-": 333, "?": 611}
+
+
+def _cabe_numa_linha(t: str, px: int = 27, limite: int = 320) -> bool:
+    import unicodedata
+    base = unicodedata.normalize("NFD", t)
+    larg = sum(_LARG.get(c, 0 if unicodedata.combining(c) else 667) for c in base) * px / 1000 - 0.3 * len(t)
+    return larg <= limite
 MARCAR_CAMPOS = contextvars.ContextVar("cobranca_marcar_campos", default=False)
 
 
@@ -560,6 +572,9 @@ def layout_email(titulo: str, corpo_paras: str, secao: str, cfg: dict = None, pr
         antes, comp, depois = titulo[:m_comp.start()].rstrip(), m_comp.group(0), titulo[m_comp.end():].strip()
         a = (escape(antes) + " " if antes else "") + f'<span style="color:#22a447;">{escape(comp)}</span>'
         b = f'<span style="color:#111827;">{escape(depois)}</span>' if depois else ""
+    elif not m_data and b and _cabe_numa_linha(titulo or ""):
+        # pedido do Diego (26/11/2026): título curto fica numa linha só ("Seu boleto vence hoje!"), mantendo o fim em verde
+        a, b = f'{a} <span style="color:#22a447;">{b}</span>', ""
     a, b = _mk("titulo", a), _mk("titulo", b)
     ano = str(datetime.now(ZoneInfo("America/Sao_Paulo")).year)
     from urllib.parse import quote_plus
