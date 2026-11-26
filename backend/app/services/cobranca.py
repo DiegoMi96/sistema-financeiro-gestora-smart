@@ -381,14 +381,47 @@ LAYOUT_GLOBAL = {"duvida_titulo": 120, "duvida_texto": 400, "contato_email": 120
                  "rodape_copyright": 200, "rodape_descadastro": 120, "rodape_slogan": 80}
 
 
+def _limpa_lay(d) -> dict:
+    d = d if isinstance(d, dict) else {}
+    return {k: str(d.get(k) or "").strip()[:n] for k, n in LAYOUT_ETAPA.items()}
+
+
 def layout_etapa(et) -> dict:
     """Layout salvo da etapa, só com os campos conhecidos (texto vazio = usa o padrão)."""
     try:
         d = json.loads(getattr(et, "layout", None) or "{}")
-        d = d if isinstance(d, dict) else {}
     except (ValueError, TypeError):
         d = {}
-    return {k: str(d.get(k) or "").strip()[:n] for k, n in LAYOUT_ETAPA.items()}
+    return _limpa_lay(d)
+
+
+def versao_itau(et):
+    """Versão do e-mail para boletos do Itaú ({assunto, texto, layout}) ou None = usa a mesma do Asaas."""
+    try:
+        d = json.loads(getattr(et, "itau", None) or "null")
+    except (ValueError, TypeError):
+        d = None
+    if not isinstance(d, dict):
+        return None
+    return {"assunto": str(d.get("assunto") or "")[:200], "texto": str(d.get("texto") or "")[:4000], "layout": _limpa_lay(d.get("layout"))}
+
+
+class _Versao:
+    """A etapa com assunto/texto/layout trocados pela versão de um banco; o resto vem da etapa original."""
+    def __init__(self, base, **troca):
+        self._base = base
+        self.__dict__.update(troca)
+
+    def __getattr__(self, k):
+        return getattr(self._base, k)
+
+
+def etapa_da_origem(et, origem):
+    """Etapa com os textos do banco do boleto: Itaú usa a versão própria, se houver; Asaas (e o resto) usa a principal."""
+    v = versao_itau(et) if origem == "itau" else None
+    if not v:
+        return et
+    return _Versao(et, assunto=v["assunto"], texto=v["texto"], layout=json.dumps(v["layout"]), itau=None)
 
 
 def layout_global(cfg: dict) -> dict:
@@ -548,6 +581,7 @@ def montar_email(e, et, cfg: dict, hoje: date, anexo: dict = None, link_atual: s
     `anexo` = {'nome', 'bytes', 'linha'} do boleto do Itaú; `link_atual` = link mais recente do Asaas."""
     if link_atual and not e.link:
         e.link = link_atual
+    et = etapa_da_origem(et, getattr(e, "origem", None))     # boleto do Itaú: texto próprio do Itaú, se a etapa tiver
     levaboleto = bool(getattr(et, "anexa_boleto", False))
     assunto, corpo = renderizar(et.assunto, et.texto, e, hoje, _int(cfg["regua_prazo_bloqueio_dias"], 3), anexa=levaboleto)
     itau = getattr(e, "origem", None) == "itau" and levaboleto
@@ -983,6 +1017,8 @@ def montar_email_lancamento(e, et, cfg: dict, hoje: date, boletos: list) -> dict
     x.nome, x.valor, x.vencimento, x.link, x.origem = e.nome, round(sum(b["valor"] for b in boletos), 2), min(b["venc"] for b in boletos), None, "lancamento"
     so_pdf = all(b.get("anexo") and not b.get("link") for b in boletos)       # Itaú: boleto em PDF anexado
     so_link = all(b.get("link") for b in boletos)                             # Asaas: link da fatura
+    if so_pdf:                                                                # só boletos do Itaú: texto próprio do Itaú, se houver
+        et = etapa_da_origem(et, "itau")                                      # (misto ou só Asaas: texto principal/Asaas)
     plural = len(boletos) > 1
     if so_pdf:
         link_txt = ("Os boletos estão anexados a este e-mail (PDF)." if plural else "O boleto está anexado a este e-mail (PDF).")

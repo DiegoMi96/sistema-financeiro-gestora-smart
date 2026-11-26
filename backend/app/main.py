@@ -141,6 +141,7 @@ def _run_migrations():
         ("client_profiles", "arquivado_motivo", "VARCHAR(200)"),
         ("cobranca_etapas", "wa_texto", "TEXT"),
         ("cobranca_etapas", "layout", "TEXT"),
+        ("cobranca_etapas", "itau", "TEXT"),              # texto/layout próprios dos boletos do Itaú (26/11/2026)
         ("cobranca_etapas", "anexa_boleto", "BOOLEAN DEFAULT FALSE"),    # etapa que leva o boleto (PDF do Itaú / link do Asaas)
         ("billing_client_summaries", "total_clube",      "FLOAT DEFAULT 0"),
         ("billing_client_summaries", "total_desc_clube", "FLOAT DEFAULT 0"),

@@ -179,6 +179,7 @@ class CobrancaEtapa(Base):
     wa_params   = Column(String(200))                 # ordem dos campos enviados ao template: "nome,valor,vencimento"
     wa_texto    = Column(Text)                        # cópia do texto do template aprovado (só para a prévia na tela; o que vale é o da Umbler)
     layout      = Column(Text)                        # JSON com os textos editáveis do layout do e-mail desta etapa
+    itau        = Column(Text)                        # JSON {assunto, texto, layout}: versão do e-mail para boletos do Itaú (vazio = usa a do Asaas)
     updated_at  = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     updated_by  = Column(Integer)
 

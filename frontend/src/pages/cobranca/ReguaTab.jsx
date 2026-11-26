@@ -251,11 +251,15 @@ const EXEMPLO_WA = { nome: 'Cliente Exemplo LTDA', valor: 'R$ 1.240,50', vencime
 function EditorEtapa({ etapa, aba, campos, camposWa, admin, onClose, onSave }) {
   const [dias, setDias] = useState(etapa.dias)
   const [modo, setModo] = useState(etapa.modo)
-  const [assunto, setAssunto] = useState(etapa.assunto)
-  const [texto, setTexto] = useState(etapa.texto)
-  const [layout, setLayout] = useState(etapa.layout || {})
+  // um texto para os boletos do Asaas e outro para os do Itaú (o do Itaú começa como cópia do Asaas)
+  const principal = { assunto: etapa.assunto, texto: etapa.texto, layout: etapa.layout || {} }
+  const [versoes, setVersoes] = useState({ asaas: principal, itau: etapa.itau ? { ...etapa.itau, layout: etapa.itau.layout || {} } : principal })
   const [previa, setPrevia] = useState(null)
-  const [origem, setOrigem] = useState('asaas')   // só afeta a prévia: Asaas = link da fatura, Itaú = PDF anexado
+  const [origem, setOrigem] = useState('asaas')   // qual versão está sendo editada (e a prévia: link da fatura x PDF anexado)
+  const { assunto, texto, layout } = versoes[origem]
+  const mudaVersao = (k, v) => setVersoes(s => ({ ...s, [origem]: { ...s[origem], [k]: typeof v === 'function' ? v(s[origem][k]) : v } }))
+  const setAssunto = v => mudaVersao('assunto', v)
+  const setTexto = v => mudaVersao('texto', v)
   const [waId, setWaId] = useState(etapa.wa_template_id || '')
   const [waParams, setWaParams] = useState(etapa.wa_params || [])
   const [waTexto, setWaTexto] = useState(etapa.wa_texto || '')
@@ -271,7 +275,8 @@ function EditorEtapa({ etapa, aba, campos, camposWa, admin, onClose, onSave }) {
   const lanc = etapa.chave === 'lancamento'
   const bloco = lanc ? BLOCO_LANCAMENTO : BLOCO_ETAPAS
   const padroes = Object.fromEntries(bloco.map(([k, , p]) => [k, p]))
-  const setL = (k, v) => setLayout(l => ({ ...l, [k]: v }))
+  const setL = (k, v) => mudaVersao('layout', l => ({ ...l, [k]: v }))
+  const copiarAsaas = () => window.confirm('Substituir o texto do Itaú pelo texto do Asaas?') && setVersoes(s => ({ ...s, itau: s.asaas }))
   const whats = aba === 'whatsapp'
   const alternar = c => setWaParams(p => (p.includes(c) ? p.filter(x => x !== c) : [...p, c]))
   const fixo = ['consentimento', 'lancamento'].includes(etapa.chave)
@@ -308,7 +313,7 @@ function EditorEtapa({ etapa, aba, campos, camposWa, admin, onClose, onSave }) {
     }
     onSave({
       ...(etapa.chave === 'consentimento' ? {} : etapa.chave === 'lancamento' ? { modo } : { dias, modo }),
-      ...(email ? { assunto, texto, layout } : {}),
+      ...(email ? { ...versoes.asaas, itau: versoes.itau } : {}),
       ...(whats ? { wa_template_id: waId, wa_params: waParams, wa_texto: waTexto } : {}),
     })
   }
@@ -329,6 +334,19 @@ function EditorEtapa({ etapa, aba, campos, camposWa, admin, onClose, onSave }) {
       {email && (
         <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] gap-4">
           <div className="space-y-3 md:max-h-[640px] md:overflow-y-auto md:pr-1">
+            <div className="rounded-lg border border-gray-200 p-2">
+              <p className="text-xs text-gray-500 mb-1.5">Você está editando o e-mail dos boletos do:</p>
+              <div className="flex gap-1">
+                {[['asaas', 'Asaas (link da fatura)'], ['itau', 'Itaú (PDF anexado)']].map(([v, t]) => (
+                  <button key={v} type="button" onClick={() => setOrigem(v)} className={`flex-1 text-sm px-2 py-1.5 rounded-md font-medium ${origem === v ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{t}</button>
+                ))}
+              </div>
+              <p className="text-[11px] text-gray-400 mt-1.5">
+                Os dois textos são independentes: mudar um não muda o outro.
+                {lanc && ' No lançamento, cliente com boletos dos dois bancos recebe o texto do Asaas.'}
+                {admin && origem === 'itau' && <> <button type="button" onClick={copiarAsaas} className="text-green-700 hover:underline">Copiar o texto do Asaas para cá</button></>}
+              </p>
+            </div>
             <Secao n={1} titulo="Caixa de entrada">
               <Campo id="assunto" rotulo="Assunto do e-mail" valor={assunto} disabled={!admin} onChange={setAssunto} />
               <Campo id="preheader" rotulo="Texto de pré-visualização (aparece na caixa de entrada, antes de abrir)" padrao="as primeiras palavras da mensagem"
@@ -371,13 +389,7 @@ function EditorEtapa({ etapa, aba, campos, camposWa, admin, onClose, onSave }) {
           <div>
             <div className="flex items-center justify-between mb-1">
               <p className="text-xs text-gray-500">Prévia do e-mail{previa?.exemplo ? ` — ${previa.exemplo}` : ''}</p>
-              {['lancamento', 'vence_hoje'].includes(etapa.chave) && (
-                <div className="flex gap-1">
-                  {[['asaas', 'Asaas (link)'], ['itau', 'Itaú (PDF)']].map(([v, t]) => (
-                    <button key={v} onClick={() => setOrigem(v)} className={`text-xs px-2 py-0.5 rounded ${origem === v ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600'}`}>{t}</button>
-                  ))}
-                </div>
-              )}
+              <span className="text-xs px-2 py-0.5 rounded bg-green-50 text-green-700">{origem === 'itau' ? 'Itaú (PDF)' : 'Asaas (link)'}</span>
             </div>
             <p className="text-sm font-medium text-gray-800 mb-1">Assunto: {previa?.assunto}</p>
             {admin && <p className="text-xs text-green-700 bg-green-50 rounded-md px-2 py-1 mb-2">✎ Clique em qualquer texto do e-mail para editar ali mesmo. Enter (ou clicar fora) conclui; na mensagem, Enter quebra a linha.</p>}

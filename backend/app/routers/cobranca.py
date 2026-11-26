@@ -297,7 +297,7 @@ def _etapa_dict(e: CobrancaEtapa) -> dict:
     return {"chave": e.chave, "nome": e.nome, "ordem": e.ordem, "ativa": bool(e.ativa), "dias": e.dias,
             "canais": [c for c in (e.canais or "").split(",") if c], "modo": e.modo, "assunto": e.assunto or "", "texto": e.texto or "",
             "wa_template_id": e.wa_template_id or "", "wa_params": [c for c in (e.wa_params or "").split(",") if c],
-            "anexa_boleto": bool(e.anexa_boleto), "wa_texto": e.wa_texto or "", "layout": svc.layout_etapa(e)}
+            "anexa_boleto": bool(e.anexa_boleto), "wa_texto": e.wa_texto or "", "layout": svc.layout_etapa(e), "itau": svc.versao_itau(e)}
 
 
 @router.get("/etapas")
@@ -318,6 +318,7 @@ class EtapaIn(BaseModel):
     wa_params: Optional[List[str]] = None
     wa_texto: Optional[str] = None
     layout: Optional[dict] = None
+    itau: Optional[dict] = None          # versão dos boletos do Itaú: {assunto, texto, layout}; {} = volta a usar a do Asaas
 
 
 def _limpa_layout(d: dict, campos: dict) -> dict:
@@ -384,6 +385,16 @@ def salvar_etapa(chave: str, body: EtapaIn, current_user=_admin, db: Session = D
         atual = svc.layout_etapa(e)
         atual.update(_limpa_layout(body.layout, svc.LAYOUT_ETAPA))
         e.layout = json.dumps({k: v for k, v in atual.items() if v}, ensure_ascii=False) or None
+    if body.itau is not None:
+        if not body.itau:
+            e.itau = None
+        else:
+            t = str(body.itau.get("texto") or "")
+            if len(t) > 4000:
+                raise HTTPException(400, "Texto do Itaú muito longo.")
+            lay = _limpa_layout(body.itau.get("layout") or {}, svc.LAYOUT_ETAPA)
+            e.itau = json.dumps({"assunto": str(body.itau.get("assunto") or "")[:200], "texto": t,
+                                 "layout": {k: v for k, v in lay.items() if v}}, ensure_ascii=False)
     if body.ativa is not None:
         e.ativa = body.ativa
     e.updated_by = current_user.id
@@ -670,6 +681,7 @@ def smtp_teste(body: Optional[SmtpTesteIn] = None, current_user=_admin, db: Sess
     if not et or "email" not in (et.canais or ""):
         et = db.get(CobrancaEtapa, "vence_hoje")
     try:
+        et = svc.etapa_da_origem(et, body.origem)          # teste com o texto do banco escolhido
         m = svc.exemplo_email(et, et.assunto or "", et.texto or "", c, svc.hoje_br(), body.origem)
         svc._enviar_email(c, [c["cobranca_email_remetente"]], "[TESTE DE LAYOUT] " + m["assunto"], m["texto"], m["html_cid"], None, m["inline"])
     except Exception as ex:
