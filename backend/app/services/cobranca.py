@@ -543,7 +543,19 @@ def layout_email(titulo: str, corpo_paras: str, secao: str, cfg: dict = None, pr
     g = layout_global(cfg)
     a, b = _titulo_em_duas_linhas(titulo)
     a, b = escape(a), escape(b)
-    m_comp = _RE_COMPETENCIA.search(titulo or "") or _RE_DATA.search(titulo or "")
+    m_comp = _RE_COMPETENCIA.search(titulo or "")
+    m_data = None if m_comp else _RE_DATA.search(titulo or "")
+    if m_data and not titulo[m_data.end():].strip():
+        # pedido do Diego (26/11/2026): "Lembrete: seu boleto vence" / "em 01/12/2026" — a palavra antes da data desce
+        # junto com ela (data em verde). Fonte 25px: a 1ª linha cabe na faixa do título (336px) sem quebrar.
+        p = titulo[:m_data.start()].split()
+        if len(p) >= 2:
+            fonte = '<span style="font-size:25px;line-height:30px;">{}</span>'
+            a = fonte.format(escape(" ".join(p[:-1])))
+            b = fonte.format(f'<span style="color:#111827;">{escape(p[-1])}</span> {escape(m_data.group(0))}')
+            m_comp = None
+        else:
+            m_comp = m_data
     if m_comp:   # pedido do Diego (24/11/2026): a competência (ex.: novembro/2026) — ou a data, ex.: 01/12/2026 (26/11) — em verde, o resto em preto
         antes, comp, depois = titulo[:m_comp.start()].rstrip(), m_comp.group(0), titulo[m_comp.end():].strip()
         a = (escape(antes) + " " if antes else "") + f'<span style="color:#22a447;">{escape(comp)}</span>'
